@@ -3,14 +3,17 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.0.0",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "lint": "pnpm -r --if-present run lint",
-    "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "pnpm -r --if-present run test",
-    "build": "pnpm -r --if-present run build"
+    "lint": "pnpm -r --workspace-concurrency=1 --if-present run lint",
+    "typecheck": "pnpm -r --workspace-concurrency=1 --if-present run typecheck",
+    "test": "pnpm -r --workspace-concurrency=1 --if-present run test",
+    "build": "pnpm -r --workspace-concurrency=1 --if-present run build"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "eslint": "^8.57.1",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
   }
 }

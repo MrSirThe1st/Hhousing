@@ -1,0 +1,178 @@
+:root {
+  --bg: #f6f3ea;
+  --ink: #1f1a12;
+  --panel: #fffaf0;
+  --line: #c7bba6;
+  --accent: #0d6b4f;
+  --accent-soft: #d5f0e6;
+  --danger: #b0432b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 85% -10%, #e6d7bf 0, transparent 40%),
+    radial-gradient(circle at 10% 110%, #d5f0e6 0, transparent 35%),
+    var(--bg);
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.topbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.brand {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.nav {
+  display: flex;
+  gap: 12px;
+}
+
+.nav a {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+}
+
+.hero {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px;
+  background: var(--panel);
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.hero p {
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--panel);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 8px 0 0;
+}
+
+.meta {
+  margin: 5px 0 0;
+  opacity: 0.75;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.notice {
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 0.9rem;
+}
+
+.notice.ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.notice.err {
+  background: #fde8e3;
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hero h1 {
+    font-size: 1.45rem;
+  }
+}
