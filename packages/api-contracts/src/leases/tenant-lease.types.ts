@@ -30,3 +30,7 @@ export interface LeaseWithTenantView extends Lease {
 export interface ListLeasesOutput {
   leases: LeaseWithTenantView[];
 }
+
+export interface ListTenantsOutput {
+  tenants: Tenant[];
+}

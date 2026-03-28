@@ -25,4 +25,5 @@ export interface TenantLeaseRepository {
   createTenant(input: CreateTenantRecordInput): Promise<Tenant>;
   createLease(input: CreateLeaseRecordInput): Promise<Lease>;
   listLeasesByOrganization(organizationId: string): Promise<LeaseWithTenantView[]>;
+  listTenantsByOrganization(organizationId: string): Promise<Tenant[]>;
 }

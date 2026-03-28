@@ -21,7 +21,8 @@ export type {
   CreateLeaseInput,
   CreateLeaseOutput,
   LeaseWithTenantView,
-  ListLeasesOutput
+  ListLeasesOutput,
+  ListTenantsOutput
 } from "./leases/tenant-lease.types";
 export {
   parseCreateTenantInput,

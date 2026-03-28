@@ -1,4 +1,4 @@
-import { createTenant } from "../../../api";
+import { createTenant, listTenants } from "../../../api";
 import { extractAuthSessionFromRequest } from "../../../auth/session-adapter";
 import { createId, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
 
@@ -23,6 +23,20 @@ export async function POST(request: Request): Promise<Response> {
       repository: createTenantLeaseRepo(),
       createId: () => createId("ten")
     }
+  );
+
+  return jsonResponse(result.status, result.body);
+}
+
+export async function GET(request: Request): Promise<Response> {
+  const { searchParams } = new URL(request.url);
+
+  const result = await listTenants(
+    {
+      organizationId: searchParams.get("organizationId"),
+      session: await extractAuthSessionFromRequest(request)
+    },
+    { repository: createTenantLeaseRepo() }
   );
 
   return jsonResponse(result.status, result.body);

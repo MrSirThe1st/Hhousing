@@ -153,6 +153,17 @@ export function createPostgresTenantLeaseRepository(
         [organizationId]
       );
       return result.rows.map(mapLeaseWithTenant);
+    },
+
+    async listTenantsByOrganization(organizationId: string): Promise<Tenant[]> {
+      const result = await client.query<TenantRow>(
+        `select id, organization_id, auth_user_id, full_name, email, phone, created_at
+         from tenants
+         where organization_id = $1
+         order by full_name asc`,
+        [organizationId]
+      );
+      return result.rows.map(mapTenant);
     }
   };
 }

@@ -29,6 +29,12 @@ export {
   type CreateTenantResponse
 } from "./tenants/create-tenant";
 export {
+  listTenants,
+  type ListTenantsDeps,
+  type ListTenantsRequest,
+  type ListTenantsResponse
+} from "./tenants/list-tenants";
+export {
   createLease,
   listLeases,
   type CreateLeaseDeps,
