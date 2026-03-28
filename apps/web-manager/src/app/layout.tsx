@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import "./globals.css";
+import { AuthProvider } from "../contexts/auth-context";
 
 export const metadata: Metadata = {
   title: "Hhousing — Gestionnaire",
@@ -12,7 +14,9 @@ export default function RootLayout({
 }>): React.ReactElement {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body className="bg-gray-50 text-foreground antialiased">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
