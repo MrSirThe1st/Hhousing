@@ -3,3 +3,4 @@ export type { Property, PropertyStatus } from "./entities/property.types";
 export type { Unit, UnitStatus } from "./entities/unit.types";
 export type { Tenant } from "./entities/tenant.types";
 export type { Lease, LeaseStatus } from "./entities/lease.types";
+export type { Payment, PaymentStatus } from "./entities/payment.types";

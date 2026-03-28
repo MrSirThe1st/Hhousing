@@ -27,3 +27,15 @@ export {
   parseCreateTenantInput,
   parseCreateLeaseInput
 } from "./leases/tenant-lease.validation";
+export type {
+  CreatePaymentInput,
+  CreatePaymentOutput,
+  MarkPaymentPaidInput,
+  MarkPaymentPaidOutput,
+  ListPaymentsFilter,
+  ListPaymentsOutput
+} from "./payments/payment.types";
+export {
+  parseCreatePaymentInput,
+  parseMarkPaymentPaidInput
+} from "./payments/payment.validation";

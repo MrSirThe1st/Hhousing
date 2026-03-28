@@ -2,8 +2,10 @@ import type { ApiResult } from "@hhousing/api-contracts";
 import {
   createOrganizationPropertyUnitRepositoryFromEnv,
   createTenantLeaseRepositoryFromEnv,
+  createPaymentRepositoryFromEnv,
   type OrganizationPropertyUnitRepository,
-  type TenantLeaseRepository
+  type TenantLeaseRepository,
+  type PaymentRepository
 } from "@hhousing/data-access";
 
 export function jsonResponse(status: number, body: unknown): Response {
@@ -29,4 +31,8 @@ export function createRepositoryFromEnv(): ApiResult<OrganizationPropertyUnitRep
 
 export function createTenantLeaseRepo(): TenantLeaseRepository {
   return createTenantLeaseRepositoryFromEnv(process.env);
+}
+
+export function createPaymentRepo(): PaymentRepository {
+  return createPaymentRepositoryFromEnv(process.env);
 }

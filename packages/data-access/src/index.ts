@@ -25,3 +25,13 @@ export type {
   TenantLeaseRepository
 } from "./leases/tenant-lease-record.types";
 export type { TenantLeaseQueryable } from "./leases/postgres-tenant-lease.repository";
+export {
+  createPostgresPaymentRepository,
+  createPaymentRepositoryFromEnv
+} from "./payments/postgres-payment.repository";
+export type {
+  CreatePaymentRecordInput,
+  MarkPaymentPaidRecordInput,
+  PaymentRepository
+} from "./payments/payment-record.types";
+export type { PaymentQueryable } from "./payments/postgres-payment.repository";

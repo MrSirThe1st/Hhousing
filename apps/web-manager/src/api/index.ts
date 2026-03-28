@@ -38,3 +38,17 @@ export {
   type ListLeasesRequest,
   type ListLeasesResponse
 } from "./leases/lease";
+export {
+  createPayment,
+  markPaymentPaid,
+  listPayments,
+  type CreatePaymentDeps,
+  type CreatePaymentRequest,
+  type CreatePaymentResponse,
+  type MarkPaymentPaidDeps,
+  type MarkPaymentPaidRequest,
+  type MarkPaymentPaidResponse,
+  type ListPaymentsDeps,
+  type ListPaymentsRequest,
+  type ListPaymentsResponse
+} from "./payments/payment";
