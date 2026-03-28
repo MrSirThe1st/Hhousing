@@ -3,9 +3,11 @@ import {
   createOrganizationPropertyUnitRepositoryFromEnv,
   createTenantLeaseRepositoryFromEnv,
   createPaymentRepositoryFromEnv,
+  createMaintenanceRequestRepositoryFromEnv,
   type OrganizationPropertyUnitRepository,
   type TenantLeaseRepository,
-  type PaymentRepository
+  type PaymentRepository,
+  type MaintenanceRequestRepository
 } from "@hhousing/data-access";
 
 export function jsonResponse(status: number, body: unknown): Response {
@@ -35,4 +37,8 @@ export function createTenantLeaseRepo(): TenantLeaseRepository {
 
 export function createPaymentRepo(): PaymentRepository {
   return createPaymentRepositoryFromEnv(process.env);
+}
+
+export function createMaintenanceRepo(): MaintenanceRequestRepository {
+  return createMaintenanceRequestRepositoryFromEnv(process.env);
 }

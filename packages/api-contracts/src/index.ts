@@ -39,3 +39,15 @@ export {
   parseCreatePaymentInput,
   parseMarkPaymentPaidInput
 } from "./payments/payment.validation";
+export type {
+  CreateMaintenanceRequestInput,
+  CreateMaintenanceRequestOutput,
+  UpdateMaintenanceStatusInput,
+  UpdateMaintenanceStatusOutput,
+  ListMaintenanceRequestsFilter,
+  ListMaintenanceRequestsOutput
+} from "./maintenance/maintenance-request.types";
+export {
+  parseCreateMaintenanceRequestInput,
+  parseUpdateMaintenanceStatusInput
+} from "./maintenance/maintenance-request.validation";

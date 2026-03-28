@@ -35,3 +35,13 @@ export type {
   PaymentRepository
 } from "./payments/payment-record.types";
 export type { PaymentQueryable } from "./payments/postgres-payment.repository";
+export {
+  createPostgresMaintenanceRequestRepository,
+  createMaintenanceRequestRepositoryFromEnv
+} from "./maintenance/postgres-maintenance-request.repository";
+export type {
+  CreateMaintenanceRequestRecordInput,
+  UpdateMaintenanceStatusRecordInput,
+  MaintenanceRequestRepository
+} from "./maintenance/maintenance-request-record.types";
+export type { MaintenanceRequestQueryable } from "./maintenance/postgres-maintenance-request.repository";

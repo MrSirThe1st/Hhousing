@@ -52,3 +52,17 @@ export {
   type ListPaymentsRequest,
   type ListPaymentsResponse
 } from "./payments/payment";
+export {
+  createMaintenanceRequest,
+  updateMaintenanceStatus,
+  listMaintenanceRequests,
+  type CreateMaintenanceRequestDeps,
+  type CreateMaintenanceRequestRequest,
+  type CreateMaintenanceRequestResponse,
+  type UpdateMaintenanceStatusDeps,
+  type UpdateMaintenanceStatusRequest,
+  type UpdateMaintenanceStatusResponse,
+  type ListMaintenanceRequestsDeps,
+  type ListMaintenanceRequestsRequest,
+  type ListMaintenanceRequestsResponse
+} from "./maintenance/maintenance-request";
