@@ -1,0 +1,11 @@
+{
+  "name": "hhousing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "echo 'lint targets will be added with first implementation slice'",
+    "typecheck": "echo 'typecheck targets will be added with first implementation slice'",
+    "test": "echo 'test targets will be added with first implementation slice'",
+    "build": "echo 'build targets will be added with first implementation slice'"
+  }
+}

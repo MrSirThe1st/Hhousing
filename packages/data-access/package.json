@@ -1,0 +1,15 @@
+{
+  "name": "@hhousing/data-access",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@hhousing/api-contracts": "workspace:*",
+    "@hhousing/domain": "workspace:*",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0"
+  }
+}

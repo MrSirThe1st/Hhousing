@@ -1,0 +1,25 @@
+{
+  "name": "@hhousing/web-manager",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@hhousing/api-contracts": "workspace:*",
+    "@hhousing/data-access": "workspace:*",
+    "@supabase/supabase-js": "^2.57.2",
+    "next": "^15.2.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.8.2"
+  }
+}
