@@ -31,26 +31,44 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const { pathname } = request.nextUrl;
 
-  // Unauthenticated user hitting a protected route → login
-  if (user === null && pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // Preserve public auth pages for anyone
+  if (pathname === "/login" || pathname === "/signup") {
+    // Authenticated users in login/signup → dashboard
+    if (user !== null) {
+      return NextResponse.redirect(new URL("/account-type", request.url));
+    }
+    return response;
   }
 
-  // Authenticated user hitting login → dashboard
-  if (user !== null && pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Root → redirect based on auth state
+  // Root path → redirect based on auth state
   if (pathname === "/") {
-    return NextResponse.redirect(
-      new URL(user !== null ? "/dashboard" : "/login", request.url)
-    );
+    if (user === null) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    // Authenticated → account-type picker (let that page check memberships)
+    return NextResponse.redirect(new URL("/account-type", request.url));
+  }
+
+  // Account-type picker - only for authenticated users
+  if (pathname === "/account-type") {
+    if (user === null) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return response;
+  }
+
+  // Protected dashboard routes
+  if (pathname.startsWith("/dashboard")) {
+    if (user === null) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    // Authenticated users - let the server page validate membership
+    return response;
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/", "/login", "/dashboard/:path*"]
+  matcher: ["/", "/login", "/signup", "/account-type", "/dashboard/:path*"]
 };
