@@ -4,7 +4,7 @@ import type {
   ListTenantsOutput
 } from "@hhousing/api-contracts";
 import type { TenantLeaseRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireManagerSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface ListTenantsRequest {
   organizationId: string | null;
@@ -24,7 +24,7 @@ export async function listTenants(
   request: ListTenantsRequest,
   deps: ListTenantsDeps
 ): Promise<ListTenantsResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }

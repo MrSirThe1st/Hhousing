@@ -1,4 +1,10 @@
 export { readDatabaseEnv } from "./database/database-env";
+export { createAuthRepositoryFromEnv, createPostgresAuthRepository } from "./auth/postgres-auth.repository";
+export type {
+  AuthRepository,
+  CreateOperatorAccountRecordInput,
+  CreateOperatorAccountRecordOutput
+} from "./auth/auth-record.types";
 export {
   createPostgresOrganizationPropertyUnitRepository,
   createPostgresOrganizationPropertyUnitRepositoryFromConnectionString,

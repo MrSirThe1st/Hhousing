@@ -1,7 +1,15 @@
-export type UserRole = "tenant" | "manager" | "owner" | "admin";
+import type {
+  MembershipCapabilities,
+  OrganizationMembership,
+  UserRole
+} from "@hhousing/domain";
+
+export type { MembershipCapabilities, OrganizationMembership, UserRole } from "@hhousing/domain";
 
 export interface AuthSession {
   userId: string;
   role: UserRole;
-  organizationId: string | null;
+  organizationId: string;
+  capabilities: MembershipCapabilities;
+  memberships: OrganizationMembership[];
 }

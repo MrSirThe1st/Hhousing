@@ -5,7 +5,7 @@ import type {
 } from "@hhousing/api-contracts";
 import { parseCreateUnitInput } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireManagerSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateUnitRequest {
   body: unknown;
@@ -26,7 +26,7 @@ export async function createUnit(
   request: CreateUnitRequest,
   deps: CreateUnitDeps
 ): Promise<CreateUnitResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return {
       status: mapErrorCodeToHttpStatus(sessionResult.code),

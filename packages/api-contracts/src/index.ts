@@ -1,6 +1,12 @@
 export type { ApiResult } from "./api-result.types";
 export type { AuthSession, UserRole } from "./auth.types";
 export type {
+  CreateOperatorAccountInput,
+  CreateOperatorAccountOutput,
+  OperatorAccountType
+} from "./auth/onboarding.types";
+export { parseCreateOperatorAccountInput } from "./auth/onboarding.validation";
+export type {
   CreateOrganizationInput,
   CreateOrganizationOutput,
   CreatePropertyInput,

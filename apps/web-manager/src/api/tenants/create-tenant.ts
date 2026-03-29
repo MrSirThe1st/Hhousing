@@ -5,7 +5,7 @@ import type {
 } from "@hhousing/api-contracts";
 import { parseCreateTenantInput } from "@hhousing/api-contracts";
 import type { TenantLeaseRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireManagerSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateTenantRequest {
   body: unknown;
@@ -26,7 +26,7 @@ export async function createTenant(
   request: CreateTenantRequest,
   deps: CreateTenantDeps
 ): Promise<CreateTenantResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }

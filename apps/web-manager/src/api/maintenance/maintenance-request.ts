@@ -10,7 +10,7 @@ import {
   parseUpdateMaintenanceStatusInput
 } from "@hhousing/api-contracts";
 import type { MaintenanceRequestRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireManagerSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateMaintenanceRequestRequest {
   body: unknown;
@@ -31,7 +31,7 @@ export async function createMaintenanceRequest(
   request: CreateMaintenanceRequestRequest,
   deps: CreateMaintenanceRequestDeps
 ): Promise<CreateMaintenanceRequestResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }
@@ -80,7 +80,7 @@ export async function updateMaintenanceStatus(
   request: UpdateMaintenanceStatusRequest,
   deps: UpdateMaintenanceStatusDeps
 ): Promise<UpdateMaintenanceStatusResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }
@@ -125,7 +125,7 @@ export async function listMaintenanceRequests(
   request: ListMaintenanceRequestsRequest,
   deps: ListMaintenanceRequestsDeps
 ): Promise<ListMaintenanceRequestsResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }

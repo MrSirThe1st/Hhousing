@@ -7,7 +7,7 @@ import {
   parseCreateOrganizationInput
 } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireManagerSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateOrganizationRequest {
   body: unknown;
@@ -28,7 +28,7 @@ export async function createOrganization(
   request: CreateOrganizationRequest,
   deps: CreateOrganizationDeps
 ): Promise<CreateOrganizationResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return {
       status: mapErrorCodeToHttpStatus(sessionResult.code),

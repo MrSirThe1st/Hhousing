@@ -4,7 +4,7 @@ import type {
   ListPropertiesWithUnitsOutput
 } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireManagerSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface ListPropertiesRequest {
   session: AuthSession | null;
@@ -24,7 +24,7 @@ export async function listProperties(
   request: ListPropertiesRequest,
   deps: ListPropertiesDeps
 ): Promise<ListPropertiesResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return {
       status: mapErrorCodeToHttpStatus(sessionResult.code),

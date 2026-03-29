@@ -21,19 +21,25 @@ Hhousing should adapt the model for DRC realities (French-first UX, local paymen
 
 The product has 4 sides:
 
-1. Tenant side (mobile app)
-- End-user renting a unit.
-- Sees lease, pays rent, submits maintenance, chats with manager, views documents.
+1. **Tenant side (mobile app only)**
+   - End-user renting a unit.
+   - Sees lease, pays rent, submits maintenance, chats with manager, views documents.
+   - Role: `tenant` (cannot access web-manager operator system).
 
-2. Landlord / Property Manager side (web app)
-- Operates properties, units, tenants, rent, maintenance, communication, and documents.
+2. **Landlord / Property Manager side (web app)**
+   - Operates properties, units, tenants, rent, maintenance, communication, and documents.
+   - Roles: `landlord` or `property_manager` (with optional `canOwnProperties` capability).
+   - This is the only web interface for these operators.
 
-3. Property Owner side (light portal)
-- Read-only business view: income, occupancy, statements, performance.
-- No operations-heavy controls.
+3. **Property Owner (Investor) side**
+   - Deferred to future phase.
+   - Read-only business view: income, occupancy, statements, performance.
+   - Will be a separate light portal or integrated read-only views in web-manager.
 
-4. Platform Admin side (internal SaaS ops)
-- Controls organizations, subscriptions, disputes, support, feature flags, and audit visibility.
+4. **Platform Admin side (internal SaaS ops)**
+   - Deferred to future phase.
+   - Controls organizations, subscriptions, disputes, support, feature flags, and audit visibility.
+   - Reserved role: `platform_admin` (not assigned during operator signup).
 
 ## Core Data Backbone
 
@@ -51,14 +57,61 @@ All modules must map back to these entities:
 
 If a feature does not strengthen one of these entities or their workflows, it is not a priority.
 
-## Roles and Permission Intent
+## Roles and Permission Model
 
-| Side | Primary Access |
-|---|---|
-| Tenant | Only own lease, payments, requests, messages, documents |
-| Landlord / Manager | Full operational control within own organization |
-| Property Owner | Read-only portfolio and financial visibility |
-| Platform Admin | Cross-organization control and SaaS operations |
+### Core Roles
+
+All users have exactly one role per organization. Roles are stored in the database (organization_memberships table).
+
+| Role | Where | Access | Notes |
+|---|---|---|---|
+| **tenant** | Mobile app only | Own lease, payments, requests, messages, documents | Created automatically when user is linked to a lease. NEVER granted access to web-manager. |
+| **property_manager** | web-manager (operator system) | Full CRUD: properties, units, tenants, leases, payments, maintenance, messages, documents within own organization | Primary operator role. Can own properties if `canOwnProperties` capability is true. |
+| **landlord** | web-manager (operator system) | Full CRUD: properties, units, tenants, leases, payments, maintenance, messages, documents within own organization | Property owner who may self-manage or hire manager. Functionally identical to property_manager. |
+| **platform_admin** | Internal/reserved | Cross-organization SaaS ops | Deferred to future phase. Not assigned during operator onboarding. |
+
+### Role Assignment Flow
+
+Operators (property_manager, landlord) are assigned roles during account creation via an account type picker:
+
+1. User not logged in → landing page
+2. User clicks "Sign up" → signup form (email, password, name)
+3. Post-signup → account type picker:
+   - **"I manage my own rental(s)"** → role: `landlord`
+   - **"I manage rentals for others"** → role: `property_manager`
+   - **"I manage a mix of both"** → role: `property_manager` + capability: `canOwnProperties = true`
+   - **"I don't manage any rentals yet"** → role: `tenant` (cannot access web-manager; must use mobile app only)
+4. Redirect based on role:
+   - `tenant` → dashboard shows "Tenants use mobile app" message; cannot proceed
+   - `property_manager` / `landlord` → prompt to create organization → redirect to dashboard
+
+### Membership Model
+
+Each user-organization link is a membership record:
+
+```sql
+organization_memberships (
+  id text primary key,
+  user_id text not null references auth.users(id),
+  organization_id text not null references organizations(id),
+  role text not null check (role in ('tenant', 'property_manager', 'landlord')),
+  can_own_properties boolean not null default false,  -- capability flag for hybrid operators
+  status text not null default 'active' check (status in ('invited', 'active', 'inactive')),
+  invited_by text references auth.users(id),  -- who invited this user
+  created_at timestamptz not null default now()
+)
+```
+
+### Authorization Rules
+
+- **Source of truth:** organization_memberships table. No Supabase metadata.
+- **Unauthenticated users:** Redirected to landing → login.
+- **Authenticated users with no membership:** Redirected to account type picker or onboarding.
+- **Authenticated users in a membership:** Role and capabilities enforced on every request.
+- **Tenant role in web-manager:** Always rejected with 403. Tenants use mobile app only.
+- **property_manager / landlord:** Can perform write operations on their organization's data.
+- **Cross-org requests:** Show org switcher or redirect to primary org.
+- **All authorization checks:** Enforced server-side (middleware, server actions, API routes). Never trust client.
 
 Role assignment is server-enforced. All authorization checks live in server code.
 
@@ -349,15 +402,19 @@ Not a current priority:
 
 | Concern | Decision |
 |---|---|
-| Web | Next.js App Router |
-| Mobile | Expo |
+| Web | Next.js App Router (operators only; tenants use mobile app) |
+| Mobile | Expo (tenants exclusively) |
 | Language | TypeScript strict, no `any` |
-| Auth | Supabase Auth |
+| Auth | Supabase Auth (login/signup provider) |
 | Data | PostgreSQL relational backbone |
+| Role source | organization_memberships table (DB is source of truth, not Supabase metadata) |
 | Validation | Zod at API boundaries |
 | API shape | `{ success: true; data: T }` or `{ success: false; error: string; code: string }` |
-| Authorization | Server-side checks only |
+| Authorization | Server-side checks only; enforced via session resolution and capability guards |
 | Shared logic | Keep in shared packages, no duplication |
+| Multi-org access | Explicit org header/body on API calls (cookies omitted); org cookie for server pages |
+| One role per org | Yes; users need invite/re-signup to join second org |
+| Invite flow | Phase 2 (stubs only for now) |
 
 ## Brand and Localization Standards
 

@@ -1,8 +1,12 @@
-import type { ApiResult, AuthSession, UserRole } from "@hhousing/api-contracts";
+import type { ApiResult, AuthSession } from "@hhousing/api-contracts";
 
-const ALLOWED_MANAGER_ROLES: readonly UserRole[] = ["manager", "owner", "admin"];
-
-export function requireManagerSession(session: AuthSession | null): ApiResult<AuthSession> {
+/**
+ * Require authenticated user with operator role (landlord or property_manager)
+ * Returns 401 if not authenticated
+ * Returns 403 if tenant (tenants use mobile app only)
+ * Returns 403 if no organization context
+ */
+export function requireOperatorSession(session: AuthSession | null): ApiResult<AuthSession> {
   if (session === null) {
     return {
       success: false,
@@ -11,15 +15,15 @@ export function requireManagerSession(session: AuthSession | null): ApiResult<Au
     };
   }
 
-  if (!ALLOWED_MANAGER_ROLES.includes(session.role)) {
+  if (session.role === "tenant") {
     return {
       success: false,
       code: "FORBIDDEN",
-      error: "Role cannot perform this operation"
+      error: "Tenants are not permitted to access the operator system"
     };
   }
 
-  if (session.organizationId === null) {
+  if (!session.organizationId) {
     return {
       success: false,
       code: "FORBIDDEN",
@@ -31,6 +35,29 @@ export function requireManagerSession(session: AuthSession | null): ApiResult<Au
     success: true,
     data: session
   };
+}
+
+/**
+ * Require write access (landlord or property_manager can write)
+ * Returns error if session fails requireOperatorSession
+ */
+export function requireWriteAccess(session: AuthSession | null): ApiResult<AuthSession> {
+  return requireOperatorSession(session);
+}
+
+/**
+ * Require read access (landlord, property_manager, or platform_admin can read; property_owner deferred)
+ * Returns error if session fails requireOperatorSession
+ */
+export function requireReadAccess(session: AuthSession | null): ApiResult<AuthSession> {
+  return requireOperatorSession(session);
+}
+
+/**
+ * Helper to check if user can own properties (has capability flag)
+ */
+export function canOwnProperties(session: AuthSession): boolean {
+  return session.capabilities?.canOwnProperties ?? false;
 }
 
 export function mapErrorCodeToHttpStatus(code: string): number {

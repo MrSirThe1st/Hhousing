@@ -10,7 +10,7 @@ import {
   parseMarkPaymentPaidInput
 } from "@hhousing/api-contracts";
 import type { PaymentRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireManagerSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreatePaymentRequest {
   body: unknown;
@@ -31,7 +31,7 @@ export async function createPayment(
   request: CreatePaymentRequest,
   deps: CreatePaymentDeps
 ): Promise<CreatePaymentResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }
@@ -81,7 +81,7 @@ export async function markPaymentPaid(
   request: MarkPaymentPaidRequest,
   deps: MarkPaymentPaidDeps
 ): Promise<MarkPaymentPaidResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }
@@ -126,7 +126,7 @@ export async function listPayments(
   request: ListPaymentsRequest,
   deps: ListPaymentsDeps
 ): Promise<ListPaymentsResponse> {
-  const sessionResult = requireManagerSession(request.session);
+  const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }
