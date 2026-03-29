@@ -15,6 +15,7 @@ export async function postWithAuth<T>(url: string, body: unknown): Promise<ApiRe
 
   const response = await fetch(url, {
     method: "POST",
+    credentials: "omit",
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${token}`
