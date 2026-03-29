@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ApiResult, PropertyWithUnitsView } from "@hhousing/api-contracts";
-import { createSupabaseBrowserClient } from "../lib/supabase/browser";
+import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
+import { postWithAuth } from "../lib/api-client";
 import type {
   PropertyFormState,
   PropertyManagementPanelProps,
@@ -23,31 +23,6 @@ const INITIAL_UNIT_FORM: UnitFormState = {
   monthlyRentAmount: "",
   currencyCode: "CDF",
 };
-
-async function getAccessToken(): Promise<string | null> {
-  const supabase = createSupabaseBrowserClient();
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
-}
-
-async function postWithAuth(url: string, body: unknown): Promise<ApiResult<unknown>> {
-  const token = await getAccessToken();
-  if (!token) {
-    return { success: false, code: "UNAUTHORIZED", error: "Session expirée" };
-  }
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  const result = (await response.json()) as ApiResult<unknown>;
-  return result;
-}
 
 export default function PropertyManagementPanel({
   organizationId,
