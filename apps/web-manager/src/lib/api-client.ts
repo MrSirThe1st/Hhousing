@@ -22,13 +22,23 @@ export async function postWithAuth<T>(url: string, body: unknown): Promise<ApiRe
     body: JSON.stringify(body)
   });
 
+  const responseText = await response.text();
+
+  if (responseText.trim().length === 0) {
+    return {
+      success: false,
+      code: "INTERNAL_ERROR",
+      error: `Réponse vide du serveur (HTTP ${response.status})`
+    };
+  }
+
   try {
-    return (await response.json()) as ApiResult<T>;
+    return JSON.parse(responseText) as ApiResult<T>;
   } catch {
     return {
       success: false,
       code: "INTERNAL_ERROR",
-      error: "Réponse invalide du serveur"
+      error: `Réponse invalide du serveur (HTTP ${response.status}): ${responseText.slice(0, 180)}`
     };
   }
 }

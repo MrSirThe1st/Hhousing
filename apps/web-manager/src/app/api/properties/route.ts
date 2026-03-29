@@ -19,16 +19,24 @@ export async function POST(request: Request): Promise<Response> {
     return jsonResponse(500, repositoryResult);
   }
 
-  const result = await createProperty(
-    {
-      body,
-      session: await extractAuthSessionFromRequest(request)
-    },
-    {
-      repository: repositoryResult.data,
-      createId: () => createId("prp")
-    }
-  );
+  try {
+    const result = await createProperty(
+      {
+        body,
+        session: await extractAuthSessionFromRequest(request)
+      },
+      {
+        repository: repositoryResult.data,
+        createId: () => createId("prp")
+      }
+    );
 
-  return jsonResponse(result.status, result.body);
+    return jsonResponse(result.status, result.body);
+  } catch {
+    return jsonResponse(500, {
+      success: false,
+      code: "INTERNAL_ERROR",
+      error: "Unexpected server error while creating property"
+    });
+  }
 }
