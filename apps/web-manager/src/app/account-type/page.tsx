@@ -51,12 +51,9 @@ export default function AccountTypePage(): React.ReactElement {
       return;
     }
 
-    // Block tenant selection: show error and redirect
+    // Redirect tenant selection to mobile app download page
     if (formData.accountType === "tenant") {
-      setError("Les comptes locataires doivent utiliser l'application mobile ou un lien d'invitation.");
-      setTimeout(() => {
-        window.location.href = "https://hhousing.app/mobile";
-      }, 1800);
+      router.push("/mobile-app");
       return;
     }
 

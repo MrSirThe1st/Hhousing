@@ -6,6 +6,8 @@ import type {
   CreateOrganizationRecordInput,
   CreatePropertyRecordInput,
   CreateUnitRecordInput,
+  UpdatePropertyRecordInput,
+  UpdateUnitRecordInput,
   OrganizationPropertyUnitRepository,
   PropertyWithUnitsRecord
 } from "./organization-property-unit-record.types";
@@ -184,6 +186,60 @@ export function createPostgresOrganizationPropertyUnitRepository(
       );
 
       return mapUnit(result.rows[0]);
+    },
+    async updateProperty(input: UpdatePropertyRecordInput): Promise<Property | null> {
+      const result = await client.query<PropertyRow>(
+        `update properties
+         set name = $1, address = $2, city = $3, country_code = $4
+         where id = $5 and organization_id = $6
+         returning *`,
+        [input.name, input.address, input.city, input.countryCode, input.id, input.organizationId]
+      );
+
+      return result.rows[0] ? mapProperty(result.rows[0]) : null;
+    },
+    async updateUnit(input: UpdateUnitRecordInput): Promise<Unit | null> {
+      const result = await client.query<UnitRow>(
+        `update units
+         set unit_number = $1, monthly_rent_amount = $2, currency_code = $3, status = $4
+         where id = $5 and organization_id = $6
+         returning *`,
+        [input.unitNumber, input.monthlyRentAmount, input.currencyCode, input.status, input.id, input.organizationId]
+      );
+
+      return result.rows[0] ? mapUnit(result.rows[0]) : null;
+    },
+    async deleteProperty(propertyId: string, organizationId: string): Promise<boolean> {
+      const result = await client.query(
+        `delete from properties where id = $1 and organization_id = $2`,
+        [propertyId, organizationId]
+      );
+
+      return (result.rowCount ?? 0) > 0;
+    },
+    async deleteUnit(unitId: string, organizationId: string): Promise<boolean> {
+      const result = await client.query(
+        `delete from units where id = $1 and organization_id = $2`,
+        [unitId, organizationId]
+      );
+
+      return (result.rowCount ?? 0) > 0;
+    },
+    async getPropertyById(propertyId: string, organizationId: string): Promise<Property | null> {
+      const result = await client.query<PropertyRow>(
+        `select * from properties where id = $1 and organization_id = $2`,
+        [propertyId, organizationId]
+      );
+
+      return result.rows[0] ? mapProperty(result.rows[0]) : null;
+    },
+    async getUnitById(unitId: string, organizationId: string): Promise<Unit | null> {
+      const result = await client.query<UnitRow>(
+        `select * from units where id = $1 and organization_id = $2`,
+        [unitId, organizationId]
+      );
+
+      return result.rows[0] ? mapUnit(result.rows[0]) : null;
     },
     async listPropertiesWithUnits(organizationId: string): Promise<PropertyWithUnitsRecord[]> {
       const result = await client.query<PropertyWithUnitRow>(

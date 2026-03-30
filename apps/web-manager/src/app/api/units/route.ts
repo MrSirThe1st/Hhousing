@@ -1,5 +1,5 @@
 import { createUnit } from "../../../api";
-import { extractAuthSessionFromRequest } from "../../../auth/session-adapter";
+import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { createId, createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
@@ -22,7 +22,7 @@ export async function POST(request: Request): Promise<Response> {
   const result = await createUnit(
     {
       body,
-      session: await extractAuthSessionFromRequest(request)
+      session: await extractAuthSessionFromCookies()
     },
     {
       repository: repositoryResult.data,

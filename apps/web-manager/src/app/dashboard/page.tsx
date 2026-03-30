@@ -1,9 +1,22 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { getServerAuthSession } from "../../lib/session";
+import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
+
 type DashboardVariant = "self_managed_owner" | "manager_for_others" | "mixed_operator" | "tenant" | "standard";
 
 type DashboardPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     variant?: string;
-  };
+  }>;
+};
+
+type DashboardMetrics = {
+  propertyCount: number;
+  unitCount: number;
+  tenantCount: number;
+  leaseCount: number;
+  maintenanceCount: number;
 };
 
 function getVariant(raw?: string): DashboardVariant {
@@ -49,78 +62,154 @@ function getVariantHeader(variant: DashboardVariant): { title: string; subtitle:
   };
 }
 
-function getStats(variant: DashboardVariant): Array<{ label: string; value: string }> {
+async function fetchDashboardMetrics(organizationId: string): Promise<DashboardMetrics> {
+  const propertyRepo = createRepositoryFromEnv();
+  const tenantLeaseRepo = createTenantLeaseRepo();
+  const maintenanceRepo = createMaintenanceRepo();
+
+  if (!propertyRepo.success) {
+    return {
+      propertyCount: 0,
+      unitCount: 0,
+      tenantCount: 0,
+      leaseCount: 0,
+      maintenanceCount: 0
+    };
+  }
+
+  try {
+    const [properties, tenants, leases, maintenanceRequests] = await Promise.all([
+      propertyRepo.data.listPropertiesWithUnits(organizationId),
+      tenantLeaseRepo.listTenantsByOrganization(organizationId),
+      tenantLeaseRepo.listLeasesByOrganization(organizationId),
+      maintenanceRepo.listMaintenanceRequests({ organizationId, unitId: null, status: null })
+    ]);
+
+    const unitCount = properties.reduce((sum, prop) => sum + prop.units.length, 0);
+
+    return {
+      propertyCount: properties.length,
+      unitCount,
+      tenantCount: tenants.length,
+      leaseCount: leases.length,
+      maintenanceCount: maintenanceRequests.length
+    };
+  } catch {
+    return {
+      propertyCount: 0,
+      unitCount: 0,
+      tenantCount: 0,
+      leaseCount: 0,
+      maintenanceCount: 0
+    };
+  }
+}
+
+function getStats(variant: DashboardVariant, metrics: DashboardMetrics): Array<{ label: string; value: string }> {
+  const occupancyRate = metrics.unitCount > 0
+    ? Math.round((metrics.leaseCount / metrics.unitCount) * 100)
+    : 0;
+
   if (variant === "self_managed_owner") {
     return [
-      { label: "Revenus mensuels", value: "—" },
-      { label: "Taux d'occupation", value: "—" },
-      { label: "Marge estimée", value: "—" },
-      { label: "Vos propriétés", value: "—" },
-      { label: "Vos locataires", value: "—" },
-      { label: "Loyers à percevoir", value: "—" }
+      { label: "Vos propriétés", value: metrics.propertyCount.toString() },
+      { label: "Unités totales", value: metrics.unitCount.toString() },
+      { label: "Taux d'occupation", value: `${occupancyRate}%` },
+      { label: "Locataires actifs", value: metrics.tenantCount.toString() },
+      { label: "Baux actifs", value: metrics.leaseCount.toString() },
+      { label: "Demandes maintenance", value: metrics.maintenanceCount.toString() }
     ];
   }
 
   if (variant === "manager_for_others") {
     return [
-      { label: "Tâches ouvertes", value: "—" },
-      { label: "Incidents maintenance", value: "—" },
-      { label: "Collecte en attente", value: "—" },
-      { label: "Biens gérés", value: "—" },
-      { label: "Clients / propriétaires", value: "—" },
-      { label: "Locataires actifs", value: "—" }
+      { label: "Biens gérés", value: metrics.propertyCount.toString() },
+      { label: "Unités gérées", value: metrics.unitCount.toString() },
+      { label: "Locataires actifs", value: metrics.tenantCount.toString() },
+      { label: "Taux d'occupation", value: `${occupancyRate}%` },
+      { label: "Incidents maintenance", value: metrics.maintenanceCount.toString() },
+      { label: "Baux actifs", value: metrics.leaseCount.toString() }
     ];
   }
 
   if (variant === "mixed_operator") {
     return [
-      { label: "Revenus (owned)", value: "—" },
-      { label: "Collecte (managed)", value: "—" },
-      { label: "Occupation globale", value: "—" },
-      { label: "Propriétés owned", value: "—" },
-      { label: "Propriétés managed", value: "—" },
-      { label: "Demandes en cours", value: "—" }
+      { label: "Propriétés totales", value: metrics.propertyCount.toString() },
+      { label: "Unités totales", value: metrics.unitCount.toString() },
+      { label: "Occupation globale", value: `${occupancyRate}%` },
+      { label: "Locataires actifs", value: metrics.tenantCount.toString() },
+      { label: "Baux actifs", value: metrics.leaseCount.toString() },
+      { label: "Demandes en cours", value: metrics.maintenanceCount.toString() }
     ];
   }
 
   if (variant === "tenant") {
     return [
-      { label: "Propriétés", value: "0" },
-      { label: "Unités", value: "0" },
-      { label: "Locataires", value: "0" },
-      { label: "Baux actifs", value: "0" },
-      { label: "Actions recommandées", value: "2" },
-      { label: "Progression setup", value: "0%" }
+      { label: "Propriétés", value: metrics.propertyCount.toString() },
+      { label: "Unités", value: metrics.unitCount.toString() },
+      { label: "Locataires", value: metrics.tenantCount.toString() },
+      { label: "Baux actifs", value: metrics.leaseCount.toString() },
+      { label: "Progression setup", value: metrics.propertyCount > 0 ? "50%" : "0%" }
     ];
   }
 
   return [
-    { label: "Propriétés", value: "—" },
-    { label: "Locataires actifs", value: "—" },
-    { label: "Loyers en attente", value: "—" },
-    { label: "Baux actifs", value: "—" },
-    { label: "Paiements ce mois", value: "—" },
-    { label: "Demandes en cours", value: "—" }
+    { label: "Propriétés", value: metrics.propertyCount.toString() },
+    { label: "Unités", value: metrics.unitCount.toString() },
+    { label: "Locataires actifs", value: metrics.tenantCount.toString() },
+    { label: "Baux actifs", value: metrics.leaseCount.toString() },
+    { label: "Taux d'occupation", value: `${occupancyRate}%` },
+    { label: "Demandes en cours", value: metrics.maintenanceCount.toString() }
   ];
 }
 
-export default function DashboardPage({ searchParams }: DashboardPageProps): React.ReactElement {
-  const variant = getVariant(searchParams?.variant);
-  const header = getVariantHeader(variant);
-  const stats = getStats(variant);
+export default async function DashboardPage({ searchParams }: DashboardPageProps): Promise<React.ReactElement> {
+  const session = await getServerAuthSession();
+  if (!session) redirect("/login");
 
-  // Neutralize variant param after first visit
-  // Only run client-side
-  if (typeof window !== "undefined" && searchParams?.variant) {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("variant");
-    window.history.replaceState({}, "", url.pathname + url.search);
-  }
+  const params = await searchParams;
+  const variant = getVariant(params?.variant);
+  const header = getVariantHeader(variant);
+
+  const metrics = await fetchDashboardMetrics(session.organizationId);
+  const stats = getStats(variant, metrics);
+
+  const hasNoData = metrics.propertyCount === 0;
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-semibold text-[#010a19] mb-1">{header.title}</h1>
-      <p className="mb-6 text-sm text-gray-600">{header.subtitle}</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#010a19] mb-1">{header.title}</h1>
+          <p className="text-sm text-gray-600">{header.subtitle}</p>
+        </div>
+        {hasNoData && (
+          <Link
+            href="/dashboard/properties"
+            className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0052d4]"
+          >
+            Ajouter une propriété
+          </Link>
+        )}
+      </div>
+
+      {hasNoData && (
+        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6">
+          <h2 className="text-lg font-semibold text-[#010a19] mb-2">Commencez par créer votre première propriété</h2>
+          <p className="text-sm text-gray-700 mb-4">
+            Votre tableau de bord affichera les métriques une fois que vous aurez ajouté des propriétés et unités.
+          </p>
+          <div className="flex gap-3">
+            <Link
+              href="/dashboard/properties"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#0063fe] bg-white px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
+            >
+              Créer une propriété
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((stat) => (
           <div

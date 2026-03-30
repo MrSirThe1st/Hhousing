@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { LeaseWithTenantView, PropertyWithUnitsView } from "@hhousing/api-contracts";
-import type { Tenant, Unit } from "@hhousing/domain";
+import type { Tenant, Unit, LeaseStatus } from "@hhousing/domain";
 import { postWithAuth } from "../lib/api-client";
 import type {
   LeaseFormState,
@@ -64,6 +65,12 @@ export default function LeaseManagementPanel({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<LeaseStatus | "all">("all");
+
+  const filteredLeases = useMemo(() => {
+    if (statusFilter === "all") return leases;
+    return leases.filter(lease => lease.status === statusFilter);
+  }, [leases, statusFilter]);
 
   function handleUnitChange(unitId: string): void {
     const selectedUnit = unitOptions.find((unit) => unit.id === unitId);
@@ -225,6 +232,49 @@ export default function LeaseManagementPanel({
         </div>
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex gap-2">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                statusFilter === "all"
+                  ? "bg-[#0063fe] text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Tous ({leases.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("active")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                statusFilter === "active"
+                  ? "bg-green-600 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Actifs ({leases.filter(l => l.status === "active").length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("ended")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                statusFilter === "ended"
+                  ? "bg-gray-600 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Terminés ({leases.filter(l => l.status === "ended").length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("pending")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                statusFilter === "pending"
+                  ? "bg-yellow-600 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              En attente ({leases.filter(l => l.status === "pending").length})
+            </button>
+          </div>
+
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
               <tr>
@@ -233,10 +283,11 @@ export default function LeaseManagementPanel({
                 <th className="px-4 py-3 text-left">Fin</th>
                 <th className="px-4 py-3 text-left">Loyer</th>
                 <th className="px-4 py-3 text-left">Statut</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {leases.map((lease) => (
+              {filteredLeases.map((lease) => (
                 <tr key={lease.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-[#010a19]">{lease.tenantFullName}</td>
                   <td className="px-4 py-3 text-gray-600">{lease.startDate}</td>
@@ -249,10 +300,24 @@ export default function LeaseManagementPanel({
                       {STATUS_LABELS[lease.status] ?? lease.status}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/dashboard/leases/${lease.id}`}
+                      className="text-[#0063fe] hover:underline text-sm font-medium"
+                    >
+                      Voir détails
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {filteredLeases.length === 0 && (
+            <div className="px-4 py-8 text-center text-sm text-gray-400">
+              Aucun bail dans cette catégorie.
+            </div>
+          )}
         </div>
       )}
     </div>

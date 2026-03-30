@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import { postWithAuth } from "../lib/api-client";
 import type {
@@ -231,6 +232,7 @@ export default function PropertyManagementPanel({
                 <th className="px-4 py-3 text-left">Ville</th>
                 <th className="px-4 py-3 text-left">Unités</th>
                 <th className="px-4 py-3 text-left">Statut</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -250,6 +252,14 @@ export default function PropertyManagementPanel({
                     >
                       {property.status === "active" ? "Actif" : "Archivé"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/dashboard/properties/${property.id}`}
+                      className="text-[#0063fe] hover:underline text-sm font-medium"
+                    >
+                      Voir détails
+                    </Link>
                   </td>
                 </tr>
               ))}

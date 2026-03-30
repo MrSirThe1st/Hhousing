@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { Tenant } from "@hhousing/domain";
 import { postWithAuth } from "../lib/api-client";
 import type {
@@ -113,6 +114,7 @@ export default function TenantManagementPanel({
                 <th className="px-4 py-3 text-left">E-mail</th>
                 <th className="px-4 py-3 text-left">Téléphone</th>
                 <th className="px-4 py-3 text-left">Ajouté le</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -123,6 +125,14 @@ export default function TenantManagementPanel({
                   <td className="px-4 py-3 text-gray-600">{tenant.phone ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">
                     {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/dashboard/tenants/${tenant.id}`}
+                      className="text-[#0063fe] hover:underline text-sm font-medium"
+                    >
+                      Voir détails
+                    </Link>
                   </td>
                 </tr>
               ))}

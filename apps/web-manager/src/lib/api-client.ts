@@ -1,26 +1,13 @@
 import type { ApiResult } from "@hhousing/api-contracts";
-import { createSupabaseBrowserClient } from "./supabase/browser";
 
-async function getAccessToken(): Promise<string | null> {
-  const supabase = createSupabaseBrowserClient();
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
-}
-
-export async function postWithAuth<T>(url: string, body: unknown): Promise<ApiResult<T>> {
-  const token = await getAccessToken();
-  if (!token) {
-    return { success: false, code: "UNAUTHORIZED", error: "Session expirée" };
-  }
-
+async function fetchWithAuth<T>(url: string, method: string, body?: unknown): Promise<ApiResult<T>> {
   const response = await fetch(url, {
-    method: "POST",
-    credentials: "omit",
+    method,
+    credentials: "include",
     headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`
+      "content-type": "application/json"
     },
-    body: JSON.stringify(body)
+    body: body ? JSON.stringify(body) : undefined
   });
 
   const responseText = await response.text();
@@ -42,4 +29,16 @@ export async function postWithAuth<T>(url: string, body: unknown): Promise<ApiRe
       error: `Réponse invalide du serveur (HTTP ${response.status}): ${responseText.slice(0, 180)}`
     };
   }
+}
+
+export async function postWithAuth<T>(url: string, body: unknown): Promise<ApiResult<T>> {
+  return fetchWithAuth<T>(url, "POST", body);
+}
+
+export async function patchWithAuth<T>(url: string, body: unknown): Promise<ApiResult<T>> {
+  return fetchWithAuth<T>(url, "PATCH", body);
+}
+
+export async function deleteWithAuth<T>(url: string): Promise<ApiResult<T>> {
+  return fetchWithAuth<T>(url, "DELETE");
 }

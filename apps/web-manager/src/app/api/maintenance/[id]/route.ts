@@ -1,5 +1,5 @@
 import { updateMaintenanceStatus } from "../../../../api";
-import { extractAuthSessionFromRequest } from "../../../../auth/session-adapter";
+import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createMaintenanceRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function PATCH(
@@ -23,7 +23,7 @@ export async function PATCH(
     {
       requestId: id,
       body,
-      session: await extractAuthSessionFromRequest(request)
+      session: await extractAuthSessionFromCookies()
     },
     { repository: createMaintenanceRepo() }
   );

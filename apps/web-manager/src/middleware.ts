@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
@@ -32,12 +31,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const { pathname } = request.nextUrl;
 
-  // Helper: fetch memberships for user (server-side)
+  // Helper: fetch memberships for user via Supabase client (Edge-compatible)
   async function getMembershipCount(userId: string): Promise<number> {
     try {
-      const authRepo = createAuthRepositoryFromEnv(process.env);
-      const memberships = await authRepo.listMembershipsByUserId(userId);
-      return memberships.length;
+      const { count } = await supabase
+        .from('organization_memberships')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      return count ?? 0;
     } catch {
       return 0;
     }

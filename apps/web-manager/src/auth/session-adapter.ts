@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 import type { AuthSession, UserRole } from "@hhousing/api-contracts";
 
@@ -133,6 +135,75 @@ export async function extractAuthSessionFromRequest(request: Request): Promise<A
     };
   } catch (error) {
     console.error("Failed to extract auth session", error);
+    return null;
+  }
+}
+
+/**
+ * Extract auth session from request cookies (for API routes).
+ *
+ * 1. Creates Supabase client with cookie support
+ * 2. Gets authenticated user from cookies
+ * 3. Queries DB for user's memberships
+ * 4. Builds AuthSession with first membership as primary
+ *
+ * Returns null if:
+ * - User not authenticated
+ * - User has no memberships (not yet onboarded)
+ */
+export async function extractAuthSessionFromCookies(): Promise<AuthSession | null> {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options);
+          }
+        }
+      }
+    }
+  );
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (user === null) {
+    return null;
+  }
+
+  const userId = user.id;
+
+  try {
+    const authRepo = createAuthRepositoryFromEnv(process.env);
+    const memberships = await authRepo.listMembershipsByUserId(userId);
+
+    // User must have at least one membership to access web-manager
+    if (memberships.length === 0) {
+      return null;
+    }
+
+    // Use first (most recent) membership as primary org context
+    const primary = memberships[0];
+    if (!primary) {
+      return null;
+    }
+
+    return {
+      userId,
+      role: primary.role,
+      organizationId: primary.organizationId,
+      capabilities: primary.capabilities,
+      memberships
+    };
+  } catch (error) {
+    console.error("Failed to extract auth session from cookies", error);
     return null;
   }
 }

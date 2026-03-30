@@ -2,6 +2,36 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-03-30
+- Change type: Frontend
+- Description: Converted dashboard from client component with placeholder data to async server component showing real metrics. Created `fetchDashboardMetrics()` helper that queries DB for property count, unit count, tenant count, lease count, and maintenance request count. Updated variant-specific stat cards to display real data. Calculated occupancy rate (leases/units). Added empty state with "Ajouter une propriété" CTA when no data exists. Dashboard now shows live operational metrics instead of "—" placeholders.
+- Impact: Dashboard provides immediate value with real data. Users see accurate counts for properties, units, tenants, leases, maintenance requests, and occupancy rate. Empty state guides new users to create first property. Metrics update on page refresh.
+- Tests: Dashboard metrics ready for testing with real data.
+
+## 2026-03-30
+- Change type: Frontend
+- Description: Simplified onboarding page from multi-step wizard to welcome-only screen. Shows account-type specific welcome message and recommended next steps (add properties, configure units, manage tenants). Provides two CTAs: "Accéder au tableau de bord" and "Ajouter une propriété". Removes forced property/unit creation during onboarding, allowing users to set up at their own pace from dedicated property management interface.
+- Impact: Onboarding no longer blocks users with required forms. Users can explore dashboard immediately and add properties when ready. Respects that property setup can be time-consuming for users with multiple properties. Better UX for complex setups.
+- Tests: Onboarding flow simplified and ready for testing.
+
+## 2026-03-30
+- Change type: API
+- Description: Standardized authentication to cookie-based approach across all API routes. Created `extractAuthSessionFromCookies()` helper function in `session-adapter.ts` that reads Supabase session from cookies (Edge runtime compatible). Updated all API routes to use cookie auth instead of Bearer tokens: organizations, properties, units, tenants, leases, payments, maintenance (including detail routes). Updated client `postWithAuth()` to use `credentials: "include"` instead of sending Authorization Bearer header.
+- Impact: Consistent cookie-based auth flow throughout web-manager app. All server components, API routes, and client components now use cookies. No more mixed Bearer/cookie authentication. Edge runtime compatible.
+- Tests: Ready for end-to-end testing - need to verify property creation flow works with new auth mechanism.
+
+## 2026-03-30
+- Change type: Other
+- Description: Expanded `project-context.md` with detailed account type capabilities breakdown for the three operator types (`self_managed_owner`, `manager_for_others`, `mixed_operator`). Added comprehensive feature lists showing UI composition differences, team management capabilities, and context switching behavior. Clarified that all operator types use the same web-manager platform with different capabilities (not separate systems). Updated Feature Set section with detailed breakdown for Tenant (mobile only), Landlord/Property Manager (web core product), Property Owner (read-only portal), and Platform Admin (internal). Created `.claude/CLAUDE.md` with mandatory pre-work checklist referencing project docs.
+- Impact: Project documentation now provides explicit guidance on capability differences between account types, what features are available/restricted per type, and how team management works. Establishes clear boundaries between tenant mobile app vs operator web platform. AI agent now has checklist to consult project docs before code changes.
+- Tests: N/A (documentation update only).
+
+## 2026-03-30
+- Change type: Frontend
+- Description: Implemented clean onboarding flow with cookie-based authentication. Fixed Edge runtime error in middleware by replacing `createAuthRepositoryFromEnv()` (Node.js) with Supabase client query for `organization_memberships`. Updated `create-account` API route to use cookies instead of Bearer token. Simplified account-type page frontend to remove token logic. Applied migration `0005_init_organization_memberships.sql`. Created `/mobile-app` page for tenant download prompt and updated account-type picker to redirect tenant selection to download page instead of showing error.
+- Impact: Onboarding flow now works: middleware checks memberships via Supabase (Edge-compatible), API creates membership via cookies, tenant selection redirects to mobile app download page. Clean cookie-based auth throughout. No more "must be logged in" error or Edge runtime crashes.
+- Tests: Migration applied successfully, onboarding flow tested end-to-end.
+
 ## 2026-03-29
 - Change type: API
 - Description: Completed cleanup + first implementation scaffold for Slice 1 (Organization, Property, Unit). Removed legacy `apps/web-user`, added DB migration `0001_init_organizations_properties_units.sql`, introduced domain entities, API contracts + validation parsers, data-access repository interfaces, and web-manager service skeleton endpoints (`createOrganization`, `createProperty`, `createUnit`, `listProperties`).

@@ -125,82 +125,277 @@ organization_memberships (
 
 Role assignment is server-enforced. All authorization checks live in server code.
 
+### Account Type Capabilities
+
+All three operator account types (`self_managed_owner`, `manager_for_others`, `mixed_operator`) use the **same web-manager platform** but with different **capabilities and UI composition**. They are NOT separate systems.
+
+#### self_managed_owner (Simple Owner-Operator)
+
+**Meaning:**
+- Owns properties
+- Manages only their own units
+- Small landlord business
+
+**Available Features:**
+- Dashboard: occupancy overview, monthly income, overdue rent, maintenance (own portfolio only)
+- Properties: create/edit properties, create/edit units, assign tenants
+- Tenants: view profiles, lease/payment history, basic contact (own properties only)
+- Leases: create, edit, terminate leases
+- Payments: record payments, track rent status, export simple reports
+- Maintenance: view requests, assign/resolve, update status
+- Messaging: message tenants, broadcast announcements (own properties only)
+- Documents: upload leases, store property documents
+- Team: invite 1-few users (assistant, co-manager) with simple roles (viewer/helper/manager-lite)
+
+**NOT Available:**
+- Multi-owner/client management
+- Portfolio separation or grouping
+- Context switching between owners
+- Client dashboards
+- Revenue breakdown per client
+- Advanced analytics (cross-property benchmarking)
+- Advanced staff role delegation
+
+**Experience Changes:**
+- Simpler dashboard
+- No team features (basic only)
+- No multi-owner switching
+- Basic financial tracking
+
+#### manager_for_others (Professional Property Manager)
+
+**Meaning:**
+- Manages properties for clients
+- Property management company
+- Operates at scale
+
+**Available Features:**
+- Portfolio structure: multiple property owners, client-based grouping, portfolio segmentation
+- Dashboard: all properties across clients, filters by owner/client, portfolio-wide analytics
+- Properties: create/manage for clients, assign ownership to client profiles, multi-property tools
+- Clients/Owners: create/manage client profiles, link properties to clients, view client-specific dashboards
+- Units: manage units across multiple owners, cross-property tracking
+- Tenants: full management across portfolio, assignment across different clients
+- Leases: create/track across all client properties, lease tracking per owner
+- Payments: portfolio-wide tracking, client-level financial separation, advanced reporting per owner
+- Maintenance: cross-property dashboard, assign per client/property
+- Messaging: tenant messaging across portfolio, client-specific communication logs
+- Analytics: per-client revenue reports, portfolio performance comparison, occupancy by client, maintenance cost distribution
+- Team: invite full team members, assign internal roles (agent, accountant, maintenance staff), manage permissions per staff, scale teams per client/property
+
+**NOT Available:**
+- Simple single-owner view mode
+- Pure personal dashboard mode (always portfolio-based)
+- Mobile-first tenant experience control
+- Investor read-only mode (future owner portal)
+
+**Experience Changes:**
+- Multi-owner dashboard
+- Tenant management at scale
+- Maintenance workflows
+- Reporting per owner
+
+#### mixed_operator (Hybrid Owner + Manager)
+
+**Meaning:**
+- Both owner AND manager roles
+- Hybrid business owner + manager
+- Context switching between personal and client properties
+
+**Available Features:**
+- Dual context system: switch between "My properties" and "Clients/Managed properties"
+- Property scope: own properties + client properties, combined or separated views
+- Dashboard: toggle between personal dashboard (self_managed_owner mode) and portfolio dashboard (manager_for_others mode)
+- Properties: create own properties, manage client properties, switch ownership context per property
+- Clients: can manage clients OR ignore client system when focusing personal
+- Leases: works in both contexts, creation depends on selected context
+- Payments: split view (personal income vs managed income), combined reporting option
+- Maintenance: unified inbox OR context-filtered inbox
+- Analytics: two modes (personal performance vs managed portfolio performance)
+- Team: same as manager_for_others, team access applies to both contexts (personal properties team + client management team)
+
+**NOT Available:**
+- No new features beyond the other two roles
+- No additional permissions
+- No admin-level controls
+- No tenant/mobile features
+- No separate org system
+
+**Experience Changes:**
+- Hybrid dashboard
+- Ability to switch context: "my properties" vs "client properties"
+- Combined analytics
+
+**Important:** This role does NOT add features, it adds **context switching** capability.
+
+Role assignment is server-enforced. All authorization checks live in server code.
+
 ## Feature Set
 
-### Tenant App (Mobile)
+### 1. Tenant (Mobile App Only)
 
-Core:
-- Login and profile
-- Lease details (agreement, move-in date, duration, contact)
-- Rent due summary (amount, due date, status)
-- Pay rent (card / mobile money / bank)
-- Payment history and receipts
-- Maintenance requests with photos and status tracking
-- Messaging with landlord/manager
-- Notifications (rent due, updates, messages)
-- Documents (lease, receipts, notices)
+**Goal:** "Live in the property, pay rent, report issues, communicate"
 
-Nice-to-have:
-- Split rent reminders
-- Community notices feed
+**Core Features (must-have):**
 
-### Landlord / Property Manager (Web)
+**Home:**
+- Current lease summary (unit, address, rent amount)
+- Next rent due date
+- Payment status (paid/due/late)
+- Quick actions: pay rent, report maintenance, message manager
 
-Dashboard:
-- Portfolio overview
-- Occupied vs vacant units
+**Payments:**
+- Pay rent
+- Payment methods
+- Payment history
+- Receipts download
+- Pending/overdue rent alerts
+
+**Maintenance:**
+- Create maintenance request
+- Upload photos
+- Track status: open → in_progress → resolved
+- Chat updates per request
+
+**Messaging:**
+- Chat with landlord/manager
+- Receive announcements
+- Attach images/files
+
+**Documents:**
+- Lease agreement
+- Receipts
+- Notices
+
+**Profile:**
+- Personal info
+- Unit info
+- Notifications settings
+
+**Tenant CANNOT:**
+- See other units
+- Access financial dashboards
+- Manage properties
+- Access web app
+
+### 2. Landlord / Property Manager (Web - Core Product)
+
+**Goal:** "Run the entire rental operation"
+This is your MAIN platform.
+
+**Dashboard (critical):**
+- Total properties
+- Occupancy rate (occupied vs vacant)
 - Monthly income summary
-- Pending/overdue rent
+- Overdue rent count
 - Active maintenance requests
 
-Operations:
-- Create/manage properties
-- Add/manage units
-- Assign tenants to units
-- Track occupancy
-- View tenant profiles and activity
+**Properties:**
+- Create/edit property
+- View property overview: units, income, occupancy, maintenance
 
-Financial:
-- Rent collection tracking
-- Payment status dashboard
-- Overdue tracking
-- Late fee automation (optional)
-- Export reports (CSV/PDF)
+**Units:**
+- Create units
+- Assign rent price
+- Mark status (vacant/occupied/maintenance)
+- Link tenant
 
-Maintenance:
-- View requests
-- Assign contractor/staff
-- Update status (open -> in_progress -> done)
+**Tenants:**
+- Tenant list
+- Tenant profile: lease history, payments, maintenance requests
+- Invite/assign tenant to unit
+
+**Leases (VERY IMPORTANT CORE MODULE):**
+- Create lease (tenant + unit)
+- Start/end dates
+- Rent amount
+- Deposit tracking
+- Active/expired leases
+
+**Payments:**
+- Payment tracking table
+- Paid/unpaid/late filtering
+- Record manual payments (cash/mobile money)
+- Export reports
+
+**Maintenance (HIGH VALUE MODULE):**
+- All tenant requests
+- Assign staff/contractor
+- Update status
 - Track resolution time
 
-Communication and documents:
-- Message tenants
-- Broadcast announcements
-- Upload/store leases, notices, receipts
+**Messaging:**
+- Tenant conversations
+- Broadcast messages (all tenants or per property)
 
-Analytics:
+**Documents:**
+- Upload leases
+- Upload notices
+- Attach to property/unit/tenant
+
+**Analytics (simple but powerful):**
 - Occupancy rate
-- Monthly income
+- Monthly income trends
 - Payment completion rate
 - Maintenance frequency
 
-### Property Owner Portal (Read-only)
+**Manager CANNOT:**
+- Access tenant mobile-only features
+- Access system admin tools
+- See other organizations
 
+**Note:** See "Account Type Capabilities" section above for differences between self_managed_owner, manager_for_others, and mixed_operator
+
+### 3. Property Owner (Read-Only Portal - Future)
+
+**Goal:** "Understand performance, not operate"
+
+**Dashboard:**
 - Total properties owned
-- Monthly/annual income summaries
+- Monthly income summary
 - Occupancy snapshot
-- Property-level performance views
-- Statements and report export
 
-### Platform Admin (Internal)
+**Property View:**
+- List of owned properties
+- Per-property performance: occupancy, revenue, tenant count
 
-- Manage organizations/accounts
-- Suspend/activate accounts
-- Handle disputes and support tickets
-- View global transactions/audit logs
-- Manage SaaS plans/billing
-- Feature flags by region
-- Usage limits by plan
+**Financials:**
+- Monthly income breakdown
+- Annual summaries
+- Download statements
+
+**Owner CANNOT:**
+- Edit properties
+- Manage tenants
+- Handle maintenance
+- Access messaging system
+
+### 4. Platform Admin (Internal)
+
+**Goal:** "Control the SaaS system"
+
+**Users Management:**
+- All users (tenants + operators)
+- Suspend/activate users
+
+**Organizations:**
+- View all organizations
+- Inspect data health
+- Resolve disputes
+
+**Support/Tickets:**
+- Customer issues
+- Resolution tracking
+
+**Billing (SaaS layer):**
+- Subscriptions
+- Plan limits
+- Usage tracking
+
+**System Control:**
+- Feature flags
+- Regional config (DRC support rules)
+- Audit logs
 
 ## UI Screen Flows
 

@@ -5,6 +5,8 @@ import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-en
 import type {
   CreateTenantRecordInput,
   CreateLeaseRecordInput,
+  UpdateTenantRecordInput,
+  UpdateLeaseRecordInput,
   TenantLeaseRepository
 } from "./tenant-lease-record.types";
 
@@ -164,6 +166,63 @@ export function createPostgresTenantLeaseRepository(
         [organizationId]
       );
       return result.rows.map(mapTenant);
+    },
+
+    async getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `select id, organization_id, auth_user_id, full_name, email, phone, created_at
+         from tenants
+         where id = $1 and organization_id = $2`,
+        [tenantId, organizationId]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async getLeaseById(leaseId: string, organizationId: string): Promise<LeaseWithTenantView | null> {
+      const result = await client.query<LeaseWithTenantRow>(
+        `select
+           l.id, l.organization_id, l.unit_id, l.tenant_id,
+           l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code, l.status, l.created_at,
+           t.full_name  as tenant_full_name,
+           t.email      as tenant_email
+         from leases l
+         join tenants t on t.id = l.tenant_id
+         where l.id = $1 and l.organization_id = $2`,
+        [leaseId, organizationId]
+      );
+      return result.rows[0] ? mapLeaseWithTenant(result.rows[0]) : null;
+    },
+
+    async updateTenant(input: UpdateTenantRecordInput): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `update tenants
+         set full_name = $1, email = $2, phone = $3
+         where id = $4 and organization_id = $5
+         returning id, organization_id, auth_user_id, full_name, email, phone, created_at`,
+        [input.fullName, input.email, input.phone, input.id, input.organizationId]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async updateLease(input: UpdateLeaseRecordInput): Promise<Lease | null> {
+      const result = await client.query<LeaseRow>(
+        `update leases
+         set end_date = $1, status = $2
+         where id = $3 and organization_id = $4
+         returning
+           id, organization_id, unit_id, tenant_id,
+           start_date, end_date, monthly_rent_amount, currency_code, status, created_at`,
+        [input.endDate, input.status, input.id, input.organizationId]
+      );
+      return result.rows[0] ? mapLease(result.rows[0]) : null;
+    },
+
+    async deleteTenant(tenantId: string, organizationId: string): Promise<boolean> {
+      const result = await client.query(
+        `delete from tenants where id = $1 and organization_id = $2`,
+        [tenantId, organizationId]
+      );
+      return (result.rowCount ?? 0) > 0;
     }
   };
 }

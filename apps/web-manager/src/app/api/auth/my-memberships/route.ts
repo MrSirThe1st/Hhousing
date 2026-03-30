@@ -1,8 +1,8 @@
-import { extractAuthSessionFromRequest } from "../../../../auth/session-adapter";
+import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 
 export async function GET(request: Request): Promise<Response> {
-  const session = await extractAuthSessionFromRequest(request);
+  const session = await extractAuthSessionFromCookies();
   if (!session) {
     return new Response(JSON.stringify({ memberships: [] }), {
       status: 200,

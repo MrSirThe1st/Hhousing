@@ -1,5 +1,5 @@
 import { markPaymentPaid } from "../../../../api";
-import { extractAuthSessionFromRequest } from "../../../../auth/session-adapter";
+import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createPaymentRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function PATCH(
@@ -23,7 +23,7 @@ export async function PATCH(
     {
       paymentId: id,
       body,
-      session: await extractAuthSessionFromRequest(request)
+      session: await extractAuthSessionFromCookies()
     },
     { repository: createPaymentRepo() }
   );

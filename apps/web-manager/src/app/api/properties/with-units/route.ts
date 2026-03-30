@@ -1,5 +1,5 @@
 import { listProperties } from "../../../../api";
-import { extractAuthSessionFromRequest } from "../../../../auth/session-adapter";
+import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createRepositoryFromEnv, jsonResponse } from "../../shared";
 
 export async function GET(request: Request): Promise<Response> {
@@ -21,7 +21,7 @@ export async function GET(request: Request): Promise<Response> {
   const result = await listProperties(
     {
       organizationId,
-      session: await extractAuthSessionFromRequest(request)
+      session: await extractAuthSessionFromCookies()
     },
     {
       repository: repositoryResult.data
