@@ -7,5 +7,9 @@
     "typecheck": "echo 'typecheck targets will be added with first implementation slice'",
     "test": "echo 'test targets will be added with first implementation slice'",
     "build": "echo 'build targets will be added with first implementation slice'"
+  },
+  "dependencies": {
+    "@types/pg": "^8.20.0",
+    "pg": "^8.20.0"
   }
 }

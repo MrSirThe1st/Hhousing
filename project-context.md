@@ -77,13 +77,16 @@ Operators (property_manager, landlord) are assigned roles during account creatio
 1. User not logged in → landing page
 2. User clicks "Sign up" → signup form (email, password, name)
 3. Post-signup → account type picker:
-   - **"I manage my own rental(s)"** → role: `landlord`
-   - **"I manage rentals for others"** → role: `property_manager`
-   - **"I manage a mix of both"** → role: `property_manager` + capability: `canOwnProperties = true`
-   - **"I don't manage any rentals yet"** → role: `tenant` (cannot access web-manager; must use mobile app only)
-4. Redirect based on role:
-   - `tenant` → dashboard shows "Tenants use mobile app" message; cannot proceed
-   - `property_manager` / `landlord` → prompt to create organization → redirect to dashboard
+   - **"I manage my own rental(s)"** → onboarding UX: owner-operator
+   - **"I manage rentals for others"** → onboarding UX: pure property manager
+   - **"I manage a mix of both"** → onboarding UX: hybrid operator
+   - **"I don't manage any rentals yet"** → onboarding UX: starter path
+4. Redirect after account creation:
+   - show onboarding flow variant (transient UX, not persisted)
+   - enter dashboard with variant-specific initial language/cards
+5. Security model remains role/capability based only:
+   - role and capabilities are persisted in DB
+   - picker choice itself is not persisted
 
 ### Membership Model
 
@@ -112,6 +115,13 @@ organization_memberships (
 - **property_manager / landlord:** Can perform write operations on their organization's data.
 - **Cross-org requests:** Show org switcher or redirect to primary org.
 - **All authorization checks:** Enforced server-side (middleware, server actions, API routes). Never trust client.
+
+### UX Personalization Rules (No Persistence)
+
+- Account type picker is **presentation-only** and **onboarding-only**.
+- `account_type` is **not** stored in `organization_memberships` or any security table.
+- Security decisions come only from persisted role + capabilities.
+- Picker choice may drive transient onboarding and first-dashboard variants (query params/client state), then UI falls back to neutral wording.
 
 Role assignment is server-enforced. All authorization checks live in server code.
 

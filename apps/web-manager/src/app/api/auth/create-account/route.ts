@@ -1,9 +1,27 @@
-import type { ApiResult } from "@hhousing/api-contracts";
 import { parseCreateOperatorAccountInput } from "@hhousing/api-contracts";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
-import { extractAuthSessionFromRequest } from "../../../auth/session-adapter";
-import { mapErrorCodeToHttpStatus } from "../../shared";
+import { extractUserIdFromRequest } from "../../../../auth/session-adapter";
 import { randomUUID } from "crypto";
+
+function mapErrorCodeToHttpStatus(code: string): number {
+  if (code === "UNAUTHORIZED") {
+    return 401;
+  }
+
+  if (code === "FORBIDDEN") {
+    return 403;
+  }
+
+  if (code === "VALIDATION_ERROR") {
+    return 400;
+  }
+
+  if (code === "NOT_FOUND") {
+    return 404;
+  }
+
+  return 422;
+}
 
 function accountTypeToRoleAndCapabilities(accountType: string): { role: "landlord" | "property_manager"; canOwnProperties: boolean } {
   if (accountType === "self_managed_owner") {
@@ -19,9 +37,9 @@ function accountTypeToRoleAndCapabilities(accountType: string): { role: "landlor
 }
 
 export async function POST(request: Request): Promise<Response> {
-  // Verify user is authenticated
-  const session = await extractAuthSessionFromRequest(request);
-  if (session === null) {
+  // Verify user is authenticated (lightweight check, no membership required)
+  const userId = await extractUserIdFromRequest(request);
+  if (userId === null) {
     return new Response(
       JSON.stringify({
         success: false,
@@ -55,13 +73,13 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  // Tenants shouldn't create accounts in web-manager
+  // Block tenant from creating operator accounts
   if (parsed.data.accountType === "tenant") {
     return new Response(
       JSON.stringify({
         success: false,
         code: "FORBIDDEN",
-        error: "Tenants must use the mobile app"
+        error: "Tenant accounts cannot be created here. Use the mobile app or accept an invite."
       }),
       { status: 403, headers: { "Content-Type": "application/json" } }
     );
@@ -75,7 +93,7 @@ export async function POST(request: Request): Promise<Response> {
       organizationId: randomUUID(),
       organizationName: parsed.data.organizationName,
       membershipId: randomUUID(),
-      userId: session.userId,
+      userId,
       role,
       canOwnProperties
     });

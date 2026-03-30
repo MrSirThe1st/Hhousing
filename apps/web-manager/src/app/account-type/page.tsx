@@ -18,6 +18,7 @@ export default function AccountTypePage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+
   const picker = [
     {
       type: "self_managed_owner" as const,
@@ -37,7 +38,7 @@ export default function AccountTypePage(): React.ReactElement {
     {
       type: "tenant" as const,
       label: "Je ne gère pas encore de location",
-      description: "Vous êtes locataire ou en attente d'une location"
+      description: "Vous démarrez: création de votre premier bien ou rejoindre une organisation"
     }
   ];
 
@@ -50,9 +51,12 @@ export default function AccountTypePage(): React.ReactElement {
       return;
     }
 
-    // Tenant users shouldn't proceed through web-manager
+    // Block tenant selection: show error and redirect
     if (formData.accountType === "tenant") {
-      setError("Les locataires utilisent l'application mobile");
+      setError("Les comptes locataires doivent utiliser l'application mobile ou un lien d'invitation.");
+      setTimeout(() => {
+        window.location.href = "https://hhousing.app/mobile";
+      }, 1800);
       return;
     }
 
@@ -64,10 +68,29 @@ export default function AccountTypePage(): React.ReactElement {
     setLoading(true);
 
     try {
+      // Dynamically import Supabase client to get current user session
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error("Missing Supabase environment variables");
+      }
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (!accessToken) {
+        setError("Vous devez être connecté pour créer un compte.");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/auth/create-account", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "omit", // Don't send cookies
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        credentials: "omit",
         body: JSON.stringify({
           accountType: formData.accountType,
           organizationName: formData.organizationName
@@ -83,8 +106,8 @@ export default function AccountTypePage(): React.ReactElement {
         return;
       }
 
-      // Success - redirect to dashboard
-      router.push("/dashboard");
+      // Success - redirect to onboarding variant (transient UX only)
+      router.push(`/onboarding?flow=${encodeURIComponent(formData.accountType)}`);
     } catch (err) {
       setError("Erreur réseau. Veuillez réessayer.");
       setLoading(false);
@@ -136,8 +159,8 @@ export default function AccountTypePage(): React.ReactElement {
               </div>
             </fieldset>
 
-            {/* Organization Name - only for operators */}
-            {formData.accountType && formData.accountType !== "tenant" && (
+            {/* Organization Name */}
+            {formData.accountType && (
               <div>
                 <label
                   htmlFor="organizationName"

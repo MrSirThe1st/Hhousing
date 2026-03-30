@@ -22,10 +22,7 @@ export default async function DashboardLayout({
 
   // Tenant role → not permitted in web-manager
   if (session.role === "tenant") {
-    // This could show a custom error page or redirect
-    // For now, we'll redirect to a tenant-not-allowed page
-    // In the future, this could be a mobile app deep link
-    redirect("/tenant-mobile-only");
+    redirect("/account-type");
   }
 
   return (

@@ -31,38 +31,53 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const { pathname } = request.nextUrl;
 
-  // Preserve public auth pages for anyone
+  // Helper: fetch memberships for user (server-side)
+  async function getMembershipCount(userId: string): Promise<number> {
+    // Use your data-access layer or direct DB call here
+    // For demo, always return 0 (replace with real logic)
+    return 0;
+  }
+
+  // Public pages
   if (pathname === "/login" || pathname === "/signup") {
-    // Authenticated users in login/signup → dashboard
     if (user !== null) {
-      return NextResponse.redirect(new URL("/account-type", request.url));
+      // Check memberships
+      const count = await getMembershipCount(user.id);
+      if (count === 0) {
+        return NextResponse.redirect(new URL("/account-type", request.url));
+      } else {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
     }
     return response;
   }
 
-  // Root path → redirect based on auth state
+  // Root path
   if (pathname === "/") {
     if (user === null) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    // Authenticated → account-type picker (let that page check memberships)
-    return NextResponse.redirect(new URL("/account-type", request.url));
+    const count = await getMembershipCount(user.id);
+    if (count === 0) {
+      return NextResponse.redirect(new URL("/account-type", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
-  // Account-type picker - only for authenticated users
-  if (pathname === "/account-type") {
+  // Onboarding/account-type: only for authenticated users
+  if (pathname === "/account-type" || pathname === "/onboarding") {
     if (user === null) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return response;
   }
 
-  // Protected dashboard routes
+  // Dashboard: only for authenticated users
   if (pathname.startsWith("/dashboard")) {
     if (user === null) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    // Authenticated users - let the server page validate membership
     return response;
   }
 
@@ -70,5 +85,5 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/signup", "/account-type", "/dashboard/:path*"]
+  matcher: ["/", "/login", "/signup", "/account-type", "/onboarding", "/dashboard/:path*"]
 };

@@ -49,12 +49,42 @@ function createSupabaseClientFromEnv(): SupabaseAuthLikeClient | null {
 }
 
 /**
+ * Lightweight auth validation for onboarding/account creation.
+ * Validates Supabase token and returns userId WITHOUT checking memberships.
+ *
+ * Use this for endpoints that create the first membership.
+ *
+ * Returns null if:
+ * - No Authorization header
+ * - Token invalid
+ * - User not found in Supabase
+ */
+export async function extractUserIdFromRequest(request: Request): Promise<string | null> {
+  const token = getBearerToken(request.headers);
+  if (token === null) {
+    return null;
+  }
+
+  const supabaseClient = createSupabaseClientFromEnv();
+  if (supabaseClient === null) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient.auth.getUser(token);
+  if (error || data.user === null) {
+    return null;
+  }
+
+  return data.user.id;
+}
+
+/**
  * Extract auth session from request by:
  * 1. Getting Bearer token from Authorization header
  * 2. Validating token with Supabase
  * 3. Querying DB for user's memberships
  * 4. Building AuthSession with first membership as primary (if available)
- * 
+ *
  * Returns null if:
  * - No Authorization header
  * - Token invalid
