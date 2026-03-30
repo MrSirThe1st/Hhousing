@@ -1,7 +1,8 @@
 import { parseCreateOperatorAccountInput } from "@hhousing/api-contracts";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
-import { extractUserIdFromRequest } from "../../../../auth/session-adapter";
 import { randomUUID } from "crypto";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 function mapErrorCodeToHttpStatus(code: string): number {
   if (code === "UNAUTHORIZED") {
@@ -37,9 +38,30 @@ function accountTypeToRoleAndCapabilities(accountType: string): { role: "landlor
 }
 
 export async function POST(request: Request): Promise<Response> {
-  // Verify user is authenticated (lightweight check, no membership required)
-  const userId = await extractUserIdFromRequest(request);
-  if (userId === null) {
+  // Verify user is authenticated via cookies
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options);
+          }
+        }
+      }
+    }
+  );
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (user === null) {
     return new Response(
       JSON.stringify({
         success: false,
@@ -49,6 +71,8 @@ export async function POST(request: Request): Promise<Response> {
       { status: 401, headers: { "Content-Type": "application/json" } }
     );
   }
+
+  const userId = user.id;
 
   // Parse input
   let input: unknown;

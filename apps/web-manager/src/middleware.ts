@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
@@ -33,9 +34,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   // Helper: fetch memberships for user (server-side)
   async function getMembershipCount(userId: string): Promise<number> {
-    // Use your data-access layer or direct DB call here
-    // For demo, always return 0 (replace with real logic)
-    return 0;
+    try {
+      const authRepo = createAuthRepositoryFromEnv(process.env);
+      const memberships = await authRepo.listMembershipsByUserId(userId);
+      return memberships.length;
+    } catch {
+      return 0;
+    }
   }
 
   // Public pages
