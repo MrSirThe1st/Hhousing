@@ -3,6 +3,7 @@ import type { DatabaseEnvSource } from "../database/database-env";
 import { readDatabaseEnv } from "../database/database-env";
 import type {
   AuthRepository,
+  CreateOrganizationMembershipRecordInput,
   CreateOperatorAccountRecordInput,
   CreateOperatorAccountRecordOutput
 } from "./auth-record.types";
@@ -127,6 +128,27 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
       return result.rows.map(mapMembership);
     },
 
+    async listMembershipsByOrganization(organizationId: string): Promise<OrganizationMembership[]> {
+      const result = await pool.query<OrganizationMembershipRow>(
+        `select
+           membership.id,
+           membership.user_id,
+           membership.organization_id,
+           organization.name as organization_name,
+           membership.role,
+           membership.status,
+           membership.can_own_properties,
+           membership.created_at
+         from organization_memberships membership
+         join organizations organization on organization.id = membership.organization_id
+         where membership.organization_id = $1
+         order by membership.created_at desc`,
+        [organizationId]
+      );
+
+      return result.rows.map(mapMembership);
+    },
+
     async getMembershipByUserAndOrg(userId: string, organizationId: string): Promise<OrganizationMembership | null> {
       const result = await pool.query<OrganizationMembershipRow>(
         `select
@@ -145,6 +167,48 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
       );
 
       return result.rows.length > 0 ? mapMembership(result.rows[0]) : null;
+    },
+
+    async createOrganizationMembership(
+      input: CreateOrganizationMembershipRecordInput
+    ): Promise<OrganizationMembership> {
+      const result = await pool.query<OrganizationMembershipRow>(
+        `insert into organization_memberships (
+          id,
+          organization_id,
+          user_id,
+          role,
+          status,
+          can_own_properties
+        ) values ($1, $2, $3, $4, $5, $6)
+        returning
+          id,
+          user_id,
+          organization_id,
+          role,
+          status,
+          can_own_properties,
+          created_at,
+          '' as organization_name`,
+        [
+          input.id,
+          input.organizationId,
+          input.userId,
+          input.role,
+          input.status,
+          input.canOwnProperties
+        ]
+      );
+
+      const nameResult = await pool.query<{ name: string }>(
+        `select name from organizations where id = $1`,
+        [input.organizationId]
+      );
+
+      return mapMembership({
+        ...result.rows[0],
+        organization_name: nameResult.rows[0]?.name ?? ""
+      });
     },
 
     async createOperatorAccount(

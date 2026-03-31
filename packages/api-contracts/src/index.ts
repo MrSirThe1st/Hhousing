@@ -1,6 +1,13 @@
 export type { ApiResult } from "./api-result.types";
 export type { AuthSession, UserRole } from "./auth.types";
 export type {
+  ListOrganizationMembersOutput,
+  TeamInviteRole,
+  InvitePropertyManagerInput,
+  InvitePropertyManagerOutput
+} from "./auth/memberships.types";
+export { parseInvitePropertyManagerInput } from "./auth/memberships.validation";
+export type {
   CreateOperatorAccountInput,
   CreateOperatorAccountOutput,
   OperatorAccountType
@@ -37,6 +44,8 @@ export {
 export type {
   CreatePaymentInput,
   CreatePaymentOutput,
+  GenerateRentChargesInput,
+  GenerateRentChargesOutput,
   MarkPaymentPaidInput,
   MarkPaymentPaidOutput,
   ListPaymentsFilter,
@@ -44,17 +53,39 @@ export type {
 } from "./payments/payment.types";
 export {
   parseCreatePaymentInput,
+  parseGenerateRentChargesInput,
   parseMarkPaymentPaidInput
 } from "./payments/payment.validation";
 export type {
   CreateMaintenanceRequestInput,
   CreateMaintenanceRequestOutput,
-  UpdateMaintenanceStatusInput,
-  UpdateMaintenanceStatusOutput,
+  UpdateMaintenanceRequestInput,
+  UpdateMaintenanceRequestOutput,
+  MaintenanceRequestDetailOutput,
   ListMaintenanceRequestsFilter,
   ListMaintenanceRequestsOutput
 } from "./maintenance/maintenance-request.types";
 export {
   parseCreateMaintenanceRequestInput,
-  parseUpdateMaintenanceStatusInput
+  parseUpdateMaintenanceRequestInput
 } from "./maintenance/maintenance-request.validation";
+export type {
+  CreateDocumentInput,
+  CreateDocumentOutput,
+  ListDocumentsFilter,
+  ListDocumentsOutput,
+  DeleteDocumentInput,
+  DeleteDocumentOutput
+} from "./documents/document.types";
+export {
+  createDocumentInputSchema,
+  listDocumentsFilterSchema,
+  deleteDocumentInputSchema
+} from "./documents/document.validation";
+export {
+  Permission,
+  TeamFunctionCode,
+  type TeamFunction,
+  type MemberFunction,
+  type MemberWithFunctions
+} from "./permissions.types";

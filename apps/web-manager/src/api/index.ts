@@ -5,6 +5,16 @@ export {
   type CreateOrganizationResponse
 } from "./organizations/create-organization";
 export {
+  listOrganizationMembers,
+  invitePropertyManager,
+  type ListOrganizationMembersDeps,
+  type ListOrganizationMembersRequest,
+  type ListOrganizationMembersResponse,
+  type InvitePropertyManagerDeps,
+  type InvitePropertyManagerRequest,
+  type InvitePropertyManagerResponse
+} from "./organizations/team-members";
+export {
   createProperty,
   type CreatePropertyDeps,
   type CreatePropertyRequest,
@@ -48,6 +58,7 @@ export {
   createPayment,
   markPaymentPaid,
   listPayments,
+  generateRentCharges,
   type CreatePaymentDeps,
   type CreatePaymentRequest,
   type CreatePaymentResponse,
@@ -56,19 +67,36 @@ export {
   type MarkPaymentPaidResponse,
   type ListPaymentsDeps,
   type ListPaymentsRequest,
-  type ListPaymentsResponse
+  type ListPaymentsResponse,
+  type GenerateRentChargesDeps,
+  type GenerateRentChargesRequest,
+  type GenerateRentChargesResponse
 } from "./payments/payment";
 export {
   createMaintenanceRequest,
-  updateMaintenanceStatus,
+  updateMaintenanceRequest,
   listMaintenanceRequests,
   type CreateMaintenanceRequestDeps,
   type CreateMaintenanceRequestRequest,
   type CreateMaintenanceRequestResponse,
-  type UpdateMaintenanceStatusDeps,
-  type UpdateMaintenanceStatusRequest,
-  type UpdateMaintenanceStatusResponse,
+  type UpdateMaintenanceRequestDeps,
+  type UpdateMaintenanceRequestRequest,
+  type UpdateMaintenanceRequestResponse,
   type ListMaintenanceRequestsDeps,
   type ListMaintenanceRequestsRequest,
   type ListMaintenanceRequestsResponse
 } from "./maintenance/maintenance-request";
+export {
+  createDocument,
+  listDocuments,
+  deleteDocument,
+  type CreateDocumentDeps,
+  type CreateDocumentRequest,
+  type CreateDocumentResponse,
+  type ListDocumentsDeps,
+  type ListDocumentsRequest,
+  type ListDocumentsResponse,
+  type DeleteDocumentDeps,
+  type DeleteDocumentRequest,
+  type DeleteDocumentResponse
+} from "./documents/document";

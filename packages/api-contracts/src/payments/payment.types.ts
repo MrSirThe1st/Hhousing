@@ -1,5 +1,15 @@
 import type { Payment } from "@hhousing/domain";
 
+export interface GenerateRentChargesInput {
+  organizationId: string;
+  period: string; // YYYY-MM
+}
+
+export interface GenerateRentChargesOutput {
+  period: string;
+  generated: number;
+}
+
 export interface CreatePaymentInput {
   organizationId: string;
   leaseId: string;

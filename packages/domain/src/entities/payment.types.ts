@@ -7,9 +7,10 @@ export interface Payment {
   tenantId: string;
   amount: number;
   currencyCode: string;
-  dueDate: string;       // YYYY-MM-DD
+  dueDate: string;              // YYYY-MM-DD
   paidDate: string | null;
   status: PaymentStatus;
   note: string | null;
+  chargePeriod: string | null;  // YYYY-MM, null for manual payments
   createdAtIso: string;
 }

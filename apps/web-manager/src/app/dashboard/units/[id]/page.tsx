@@ -3,8 +3,9 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { Unit } from "@hhousing/domain";
-import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
+import type { Lease, Tenant, Unit } from "@hhousing/domain";
+import { deleteWithAuth, patchWithAuth, postWithAuth } from "../../../../lib/api-client";
+import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -35,30 +36,56 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenantIdToAssign, setTenantIdToAssign] = useState("");
+  const [leaseStartDate, setLeaseStartDate] = useState(new Date().toISOString().substring(0, 10));
+  const [leaseEndDate, setLeaseEndDate] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [assignMessage, setAssignMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchUnit(): Promise<void> {
+    async function fetchUnitAndTenants(): Promise<void> {
       try {
-        const response = await fetch(`/api/units/${id}`, {
-          credentials: "include"
-        });
+        const [unitResponse, tenantsResponse] = await Promise.all([
+          fetch(`/api/units/${id}`, {
+            credentials: "include"
+          }),
+          fetch("/api/tenants", {
+            credentials: "include"
+          })
+        ]);
 
-        if (!response.ok) {
+        if (!unitResponse.ok) {
           setError("Unité introuvable");
           setLoading(false);
           return;
         }
 
-        const data = await response.json() as { success: boolean; data?: Unit };
-        if (data.success && data.data) {
-          setUnit(data.data);
+        const unitData = await unitResponse.json() as { success: boolean; data?: Unit };
+        if (unitData.success && unitData.data) {
+          setUnit(unitData.data);
           setFormData({
-            propertyId: data.data.propertyId,
-            unitNumber: data.data.unitNumber,
-            monthlyRentAmount: data.data.monthlyRentAmount,
-            currencyCode: data.data.currencyCode,
-            status: data.data.status
+            propertyId: unitData.data.propertyId,
+            unitNumber: unitData.data.unitNumber,
+            monthlyRentAmount: unitData.data.monthlyRentAmount,
+            currencyCode: unitData.data.currencyCode,
+            status: unitData.data.status
           });
+        }
+
+        if (tenantsResponse.ok) {
+          const tenantsData = await tenantsResponse.json() as {
+            success: boolean;
+            data?: { tenants: Tenant[] };
+          };
+
+          if (tenantsData.success) {
+            const tenantItems = tenantsData.data?.tenants ?? [];
+            setTenants(tenantItems);
+            if (tenantItems[0]) {
+              setTenantIdToAssign((current) => current || tenantItems[0].id);
+            }
+          }
         }
 
         setLoading(false);
@@ -68,8 +95,51 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
       }
     }
 
-    fetchUnit();
+    fetchUnitAndTenants();
   }, [id]);
+
+  async function handleAssignTenant(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+
+    if (!unit || tenantIdToAssign.trim().length === 0) {
+      setError("Sélectionnez un locataire pour continuer.");
+      return;
+    }
+
+    setAssigning(true);
+    setError(null);
+    setAssignMessage(null);
+
+    const createLeaseResult = await postWithAuth<Lease>("/api/leases", {
+      organizationId: unit.organizationId,
+      unitId: unit.id,
+      tenantId: tenantIdToAssign,
+      startDate: leaseStartDate,
+      endDate: leaseEndDate.trim() || null,
+      monthlyRentAmount: unit.monthlyRentAmount,
+      currencyCode: unit.currencyCode
+    });
+
+    if (!createLeaseResult.success) {
+      setError(createLeaseResult.error);
+      setAssigning(false);
+      return;
+    }
+
+    setUnit((previous) => {
+      if (!previous) return previous;
+      return {
+        ...previous,
+        status: "occupied"
+      };
+    });
+    setFormData((previous) => ({
+      ...previous,
+      status: "occupied"
+    }));
+    setAssignMessage("Locataire assigné et bail créé avec succès.");
+    setAssigning(false);
+  }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
@@ -174,6 +244,65 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
                 </button>
               </div>
             </div>
+
+            {unit.status === "vacant" ? (
+              <form onSubmit={handleAssignTenant} className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <h2 className="text-sm font-semibold text-[#010a19]">Assigner un locataire</h2>
+                <p className="text-xs text-gray-600">
+                  Crée un bail actif pour cette unité vacante et bascule automatiquement l&apos;unité en occupée.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <select
+                    value={tenantIdToAssign}
+                    onChange={(event) => setTenantIdToAssign(event.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    required
+                    disabled={assigning || tenants.length === 0}
+                  >
+                    {tenants.length === 0 ? (
+                      <option value="">Aucun locataire disponible</option>
+                    ) : null}
+                    {tenants.map((tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.fullName}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="date"
+                    value={leaseStartDate}
+                    onChange={(event) => setLeaseStartDate(event.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    required
+                    disabled={assigning}
+                  />
+
+                  <input
+                    type="date"
+                    value={leaseEndDate}
+                    onChange={(event) => setLeaseEndDate(event.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    disabled={assigning}
+                  />
+                </div>
+
+                {assignMessage ? (
+                  <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3.5 py-2.5">
+                    {assignMessage}
+                  </p>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={assigning || tenants.length === 0}
+                  className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0052d4] disabled:opacity-60"
+                >
+                  {assigning ? "Assignation..." : "Assigner et créer le bail"}
+                </button>
+              </form>
+            ) : null}
           </>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">
@@ -257,6 +386,8 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
           </form>
         )}
       </div>
+
+      <ContextualDocumentPanel attachmentType="unit" attachmentId={id} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ export { readDatabaseEnv } from "./database/database-env";
 export { createAuthRepositoryFromEnv, createPostgresAuthRepository } from "./auth/postgres-auth.repository";
 export type {
   AuthRepository,
+  CreateOrganizationMembershipRecordInput,
   CreateOperatorAccountRecordInput,
   CreateOperatorAccountRecordOutput
 } from "./auth/auth-record.types";
@@ -47,7 +48,17 @@ export {
 } from "./maintenance/postgres-maintenance-request.repository";
 export type {
   CreateMaintenanceRequestRecordInput,
-  UpdateMaintenanceStatusRecordInput,
+  UpdateMaintenanceRequestRecordInput,
   MaintenanceRequestRepository
 } from "./maintenance/maintenance-request-record.types";
 export type { MaintenanceRequestQueryable } from "./maintenance/postgres-maintenance-request.repository";
+export {
+  createPostgresDocumentRepository,
+  createDocumentRepositoryFromEnv
+} from "./documents/postgres-document.repository";
+export type {
+  CreateDocumentRecordInput,
+  DocumentRepository
+} from "./documents/document-record.types";
+export type { DocumentQueryable } from "./documents/postgres-document.repository";
+export { TeamFunctionsRepository, createTeamFunctionsRepositoryFromEnv } from "./auth/team-functions.repository";

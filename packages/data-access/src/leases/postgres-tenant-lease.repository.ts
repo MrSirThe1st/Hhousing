@@ -25,8 +25,8 @@ interface LeaseRow extends QueryResultRow {
   organization_id: string;
   unit_id: string;
   tenant_id: string;
-  start_date: string;
-  end_date: string | null;
+  start_date: string | Date;
+  end_date: string | Date | null;
   monthly_rent_amount: string | number;
   currency_code: string;
   status: "active" | "ended" | "pending";
@@ -42,7 +42,7 @@ export interface TenantLeaseQueryable {
   query<Row extends QueryResultRow>(
     text: string,
     values?: readonly unknown[]
-  ): Promise<{ rows: Row[] }>;
+  ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
 const poolCache = new Map<string, Pool>();
@@ -55,8 +55,10 @@ function toNumber(value: string | number): number {
   return typeof value === "number" ? value : Number(value);
 }
 
-function toIsoDate(value: string): string {
-  // pg returns dates as YYYY-MM-DD strings, keep as-is
+function toIsoDate(value: string | Date): string {
+  if (value instanceof Date) {
+    return value.toISOString().substring(0, 10);
+  }
   return value.substring(0, 10);
 }
 
@@ -120,13 +122,31 @@ export function createPostgresTenantLeaseRepository(
 
     async createLease(input: CreateLeaseRecordInput): Promise<Lease> {
       const result = await client.query<LeaseRow>(
-        `insert into leases (
-          id, organization_id, unit_id, tenant_id,
-          start_date, end_date, monthly_rent_amount, currency_code
-        ) values ($1, $2, $3, $4, $5, $6, $7, $8)
-        returning
-          id, organization_id, unit_id, tenant_id,
-          start_date, end_date, monthly_rent_amount, currency_code, status, created_at`,
+        `with created_lease as (
+           insert into leases (
+             id, organization_id, unit_id, tenant_id,
+             start_date, end_date, monthly_rent_amount, currency_code, status
+           )
+           select $1, $2, $3, $4, $5, $6, $7, $8, 'active'
+           from units u
+           where u.id = $3
+             and u.organization_id = $2
+             and u.status = 'vacant'
+           returning
+             id, organization_id, unit_id, tenant_id,
+             start_date, end_date, monthly_rent_amount, currency_code, status, created_at
+         ), updated_unit as (
+           update units
+           set status = 'occupied'
+           where id = $3
+             and organization_id = $2
+             and exists (select 1 from created_lease)
+           returning id
+         )
+         select
+           id, organization_id, unit_id, tenant_id,
+           start_date, end_date, monthly_rent_amount, currency_code, status, created_at
+         from created_lease`,
         [
           input.id,
           input.organizationId,
@@ -138,6 +158,11 @@ export function createPostgresTenantLeaseRepository(
           input.currencyCode
         ]
       );
+
+      if (!result.rows[0]) {
+        throw new Error("UNIT_NOT_AVAILABLE");
+      }
+
       return mapLease(result.rows[0]);
     },
 

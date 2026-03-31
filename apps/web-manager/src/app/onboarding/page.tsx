@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 type FlowType = "self_managed_owner" | "manager_for_others" | "mixed_operator" | "tenant";
 
@@ -57,9 +54,15 @@ function getContent(flow: FlowType): { title: string; subtitle: string; steps: s
   };
 }
 
-export default function OnboardingPage(): React.ReactElement {
-  const searchParams = useSearchParams();
-  const flow = getFlowType(searchParams.get("flow"));
+type OnboardingPageProps = {
+  searchParams?: Promise<{
+    flow?: string;
+  }>;
+};
+
+export default async function OnboardingPage({ searchParams }: OnboardingPageProps): Promise<React.ReactElement> {
+  const params = await searchParams;
+  const flow = getFlowType(params?.flow ?? null);
   const content = getContent(flow);
 
   return (

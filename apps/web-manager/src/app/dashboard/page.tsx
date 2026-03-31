@@ -82,7 +82,7 @@ async function fetchDashboardMetrics(organizationId: string): Promise<DashboardM
       propertyRepo.data.listPropertiesWithUnits(organizationId),
       tenantLeaseRepo.listTenantsByOrganization(organizationId),
       tenantLeaseRepo.listLeasesByOrganization(organizationId),
-      maintenanceRepo.listMaintenanceRequests({ organizationId, unitId: null, status: null })
+      maintenanceRepo.listMaintenanceRequests({ organizationId, unitId: undefined, status: undefined })
     ]);
 
     const unitCount = properties.reduce((sum, prop) => sum + prop.units.length, 0);
@@ -92,7 +92,9 @@ async function fetchDashboardMetrics(organizationId: string): Promise<DashboardM
       unitCount,
       tenantCount: tenants.length,
       leaseCount: leases.length,
-      maintenanceCount: maintenanceRequests.length
+      maintenanceCount: maintenanceRequests.filter(
+        (request) => request.status === "open" || request.status === "in_progress"
+      ).length
     };
   } catch {
     return {

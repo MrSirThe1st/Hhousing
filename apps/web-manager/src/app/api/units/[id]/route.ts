@@ -1,19 +1,76 @@
+import type { ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../../shared";
+
+type PatchUnitBody = {
+  propertyId: string;
+  unitNumber: string;
+  monthlyRentAmount: number;
+  currencyCode: string;
+  status: "vacant" | "occupied" | "inactive";
+};
+
+function validatePatchUnitBody(input: unknown): ApiResult<PatchUnitBody> {
+  if (typeof input !== "object" || input === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Body must be an object"
+    };
+  }
+
+  const payload = input as Record<string, unknown>;
+  const propertyId = typeof payload.propertyId === "string" ? payload.propertyId.trim() : "";
+  const unitNumber = typeof payload.unitNumber === "string" ? payload.unitNumber.trim() : "";
+  const monthlyRentAmount = typeof payload.monthlyRentAmount === "number" ? payload.monthlyRentAmount : Number.NaN;
+  const currencyCode = typeof payload.currencyCode === "string" ? payload.currencyCode.trim().toUpperCase() : "";
+
+  if (!propertyId || !unitNumber || !currencyCode || !Number.isFinite(monthlyRentAmount) || monthlyRentAmount <= 0) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "propertyId, unitNumber, monthlyRentAmount, currencyCode are required"
+    };
+  }
+
+  if (currencyCode.length !== 3) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "currencyCode must be a 3-letter ISO code"
+    };
+  }
+
+  if (typeof payload.status !== "string" || !["vacant", "occupied", "inactive"].includes(payload.status)) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "status must be one of: vacant, occupied, inactive"
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      propertyId,
+      unitNumber,
+      monthlyRentAmount,
+      currencyCode,
+      status: payload.status as "vacant" | "occupied" | "inactive"
+    }
+  };
+}
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
   const repositoryResult = createRepositoryFromEnv();
@@ -22,7 +79,7 @@ export async function GET(
   }
 
   try {
-    const unit = await repositoryResult.data.getUnitById(id, session.organizationId);
+    const unit = await repositoryResult.data.getUnitById(id, access.data.organizationId);
 
     if (!unit) {
       return jsonResponse(404, {
@@ -51,14 +108,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
   let body: unknown;
@@ -77,32 +130,20 @@ export async function PATCH(
     return jsonResponse(500, repositoryResult);
   }
 
-  const payload = body as Record<string, unknown>;
-  const propertyId = typeof payload.propertyId === "string" ? payload.propertyId.trim() : "";
-  const unitNumber = typeof payload.unitNumber === "string" ? payload.unitNumber.trim() : "";
-  const monthlyRentAmount = typeof payload.monthlyRentAmount === "number" ? payload.monthlyRentAmount : 0;
-  const currencyCode = typeof payload.currencyCode === "string" ? payload.currencyCode.trim() : "";
-  const status = typeof payload.status === "string" && ["vacant", "occupied", "inactive"].includes(payload.status)
-    ? payload.status as "vacant" | "occupied" | "inactive"
-    : "vacant";
-
-  if (!propertyId || !unitNumber || !currencyCode || monthlyRentAmount <= 0) {
-    return jsonResponse(400, {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "propertyId, unitNumber, monthlyRentAmount, currencyCode are required"
-    });
+  const parsed = validatePatchUnitBody(body);
+  if (!parsed.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(parsed.code), parsed);
   }
 
   try {
     const unit = await repositoryResult.data.updateUnit({
       id,
-      organizationId: session.organizationId,
-      propertyId,
-      unitNumber,
-      monthlyRentAmount,
-      currencyCode,
-      status
+      organizationId: access.data.organizationId,
+      propertyId: parsed.data.propertyId,
+      unitNumber: parsed.data.unitNumber,
+      monthlyRentAmount: parsed.data.monthlyRentAmount,
+      currencyCode: parsed.data.currencyCode,
+      status: parsed.data.status
     });
 
     if (!unit) {
@@ -132,14 +173,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
   const repositoryResult = createRepositoryFromEnv();
@@ -148,7 +185,7 @@ export async function DELETE(
   }
 
   try {
-    const deleted = await repositoryResult.data.deleteUnit(id, session.organizationId);
+    const deleted = await repositoryResult.data.deleteUnit(id, access.data.organizationId);
 
     if (!deleted) {
       return jsonResponse(404, {

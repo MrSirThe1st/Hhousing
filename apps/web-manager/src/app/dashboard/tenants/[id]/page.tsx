@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Tenant } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
+import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -233,6 +234,8 @@ export default function TenantDetailPage({ params }: PageProps): React.ReactElem
           </form>
         )}
       </div>
+
+      <ContextualDocumentPanel attachmentType="tenant" attachmentId={id} />
     </div>
   );
 }

@@ -1,25 +1,61 @@
+import type { ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
+
+type PatchTenantBody = {
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+};
+
+function validatePatchTenantBody(input: unknown): ApiResult<PatchTenantBody> {
+  if (typeof input !== "object" || input === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Body must be an object"
+    };
+  }
+
+  const payload = input as Record<string, unknown>;
+  const fullName = typeof payload.fullName === "string" ? payload.fullName.trim() : "";
+  const email = typeof payload.email === "string" ? payload.email.trim() || null : null;
+  const phone = typeof payload.phone === "string" ? payload.phone.trim() || null : null;
+
+  if (!fullName) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "fullName is required"
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      fullName,
+      email,
+      phone
+    }
+  };
+}
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
   const repository = createTenantLeaseRepo();
 
   try {
-    const tenant = await repository.getTenantById(id, session.organizationId);
+    const tenant = await repository.getTenantById(id, access.data.organizationId);
 
     if (!tenant) {
       return jsonResponse(404, {
@@ -48,14 +84,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
   let body: unknown;
@@ -71,26 +103,18 @@ export async function PATCH(
 
   const repository = createTenantLeaseRepo();
 
-  const payload = body as Record<string, unknown>;
-  const fullName = typeof payload.fullName === "string" ? payload.fullName.trim() : "";
-  const email = typeof payload.email === "string" ? payload.email.trim() || null : null;
-  const phone = typeof payload.phone === "string" ? payload.phone.trim() || null : null;
-
-  if (!fullName) {
-    return jsonResponse(400, {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "fullName is required"
-    });
+  const parsed = validatePatchTenantBody(body);
+  if (!parsed.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(parsed.code), parsed);
   }
 
   try {
     const tenant = await repository.updateTenant({
       id,
-      organizationId: session.organizationId,
-      fullName,
-      email,
-      phone
+      organizationId: access.data.organizationId,
+      fullName: parsed.data.fullName,
+      email: parsed.data.email,
+      phone: parsed.data.phone
     });
 
     if (!tenant) {
@@ -120,20 +144,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
   const repository = createTenantLeaseRepo();
 
   try {
-    const deleted = await repository.deleteTenant(id, session.organizationId);
+    const deleted = await repository.deleteTenant(id, access.data.organizationId);
 
     if (!deleted) {
       return jsonResponse(404, {

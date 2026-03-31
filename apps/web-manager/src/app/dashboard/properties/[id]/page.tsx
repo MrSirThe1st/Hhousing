@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Property, Unit } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
+import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -148,6 +149,19 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
     );
   }
 
+  const totalUnits = units.length;
+  const occupiedUnits = units.filter(u => u.status === "occupied").length;
+  const vacantUnits = units.filter(u => u.status === "vacant").length;
+  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+
+  const monthlyIncomeByCurrency = units
+    .filter(u => u.status === "occupied")
+    .reduce((acc, unit) => {
+      const currency = unit.currencyCode;
+      acc[currency] = (acc[currency] || 0) + unit.monthlyRentAmount;
+      return acc;
+    }, {} as Record<string, number>);
+
   return (
     <div className="p-8">
       <div className="mb-6">
@@ -249,6 +263,43 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
         )}
       </div>
 
+      {totalUnits > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p className="text-sm text-gray-500 mb-1">Total d'unités</p>
+            <p className="text-2xl font-semibold text-[#010a19]">{totalUnits}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p className="text-sm text-gray-500 mb-1">Unités occupées</p>
+            <p className="text-2xl font-semibold text-green-700">{occupiedUnits}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p className="text-sm text-gray-500 mb-1">Unités vacantes</p>
+            <p className="text-2xl font-semibold text-blue-700">{vacantUnits}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p className="text-sm text-gray-500 mb-1">Taux d'occupation</p>
+            <p className="text-2xl font-semibold text-[#010a19]">{occupancyRate}%</p>
+          </div>
+        </div>
+      )}
+
+      {Object.keys(monthlyIncomeByCurrency).length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold text-[#010a19] mb-4">Revenu mensuel</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(monthlyIncomeByCurrency).map(([currency, amount]) => (
+              <div key={currency} className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600 mb-1">{currency}</p>
+                <p className="text-xl font-semibold text-[#010a19]">
+                  {amount.toLocaleString("fr-FR")} {currency}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h2 className="text-lg font-semibold text-[#010a19] mb-4">Unités ({units.length})</h2>
 
@@ -282,6 +333,8 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
           </div>
         )}
       </div>
+
+      <ContextualDocumentPanel attachmentType="property" attachmentId={id} />
     </div>
   );
 }

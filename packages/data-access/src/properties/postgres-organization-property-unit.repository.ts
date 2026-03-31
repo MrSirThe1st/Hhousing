@@ -64,7 +64,7 @@ export interface DatabaseQueryable {
   query<Row extends QueryResultRow>(
     text: string,
     values?: readonly unknown[]
-  ): Promise<{ rows: Row[] }>;
+  ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
 const poolCache = new Map<string, Pool>();

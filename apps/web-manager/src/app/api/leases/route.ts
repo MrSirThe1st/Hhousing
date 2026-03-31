@@ -1,6 +1,6 @@
 import { createLease, listLeases } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
-import { createId, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
+import { createId, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -21,6 +21,7 @@ export async function POST(request: Request): Promise<Response> {
     },
     {
       repository: createTenantLeaseRepo(),
+      teamFunctionsRepository: createTeamFunctionsRepo(),
       createId: () => createId("lease")
     }
   );
@@ -38,7 +39,8 @@ export async function GET(request: Request): Promise<Response> {
       session: await extractAuthSessionFromCookies()
     },
     {
-      repository: createTenantLeaseRepo()
+      repository: createTenantLeaseRepo(),
+      teamFunctionsRepository: createTeamFunctionsRepo()
     }
   );
 

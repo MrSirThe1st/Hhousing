@@ -14,9 +14,20 @@ export interface CreateOperatorAccountRecordOutput {
   membership: OrganizationMembership;
 }
 
+export interface CreateOrganizationMembershipRecordInput {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: UserRole;
+  status: "active" | "invited" | "inactive";
+  canOwnProperties: boolean;
+}
+
 export interface AuthRepository {
   listMembershipsByUserId(userId: string): Promise<OrganizationMembership[]>;
+  listMembershipsByOrganization(organizationId: string): Promise<OrganizationMembership[]>;
   getMembershipByUserAndOrg(userId: string, organizationId: string): Promise<OrganizationMembership | null>;
+  createOrganizationMembership(input: CreateOrganizationMembershipRecordInput): Promise<OrganizationMembership>;
   createOperatorAccount(
     input: CreateOperatorAccountRecordInput
   ): Promise<CreateOperatorAccountRecordOutput>;

@@ -13,5 +13,12 @@ export type { Payment, PaymentStatus } from "./entities/payment.types";
 export type {
   MaintenanceRequest,
   MaintenancePriority,
-  MaintenanceStatus
+  MaintenanceStatus,
+  MaintenanceTimelineEvent,
+  MaintenanceEventType
 } from "./entities/maintenance-request.types";
+export type {
+  Document,
+  DocumentType,
+  DocumentAttachmentType
+} from "./entities/document.types";

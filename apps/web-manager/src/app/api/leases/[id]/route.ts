@@ -1,25 +1,79 @@
+import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
-import { createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { requirePermission } from "../../../../api/organizations/permissions";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
+import { createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
+
+type PatchLeaseBody = {
+  endDate: string | null;
+  status: "active" | "ended" | "pending";
+};
+
+function validatePatchLeaseBody(input: unknown): ApiResult<PatchLeaseBody> {
+  if (typeof input !== "object" || input === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Body must be an object"
+    };
+  }
+
+  const payload = input as Record<string, unknown>;
+  const rawEndDate = payload.endDate;
+  let endDate: string | null = null;
+
+  if (rawEndDate !== null && rawEndDate !== undefined) {
+    if (typeof rawEndDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(rawEndDate.trim())) {
+      return {
+        success: false,
+        code: "VALIDATION_ERROR",
+        error: "endDate must be YYYY-MM-DD or null"
+      };
+    }
+    endDate = rawEndDate.trim();
+  }
+
+  if (typeof payload.status !== "string" || !["active", "ended", "pending"].includes(payload.status)) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "status must be one of: active, ended, pending"
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      endDate,
+      status: payload.status as "active" | "ended" | "pending"
+    }
+  };
+}
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.VIEW_LEASE,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
   }
 
   const repository = createTenantLeaseRepo();
 
   try {
-    const lease = await repository.getLeaseById(id, session.organizationId);
+    const lease = await repository.getLeaseById(id, access.data.organizationId);
 
     if (!lease) {
       return jsonResponse(404, {
@@ -48,14 +102,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
 
-  if (!session) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.EDIT_LEASE,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
   }
 
   let body: unknown;
@@ -71,18 +130,17 @@ export async function PATCH(
 
   const repository = createTenantLeaseRepo();
 
-  const payload = body as Record<string, unknown>;
-  const endDate = typeof payload.endDate === "string" ? payload.endDate.trim() || null : null;
-  const status = typeof payload.status === "string" && ["active", "ended", "pending"].includes(payload.status)
-    ? payload.status as "active" | "ended" | "pending"
-    : "active";
+  const parsed = validatePatchLeaseBody(body);
+  if (!parsed.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(parsed.code), parsed);
+  }
 
   try {
     const lease = await repository.updateLease({
       id,
-      organizationId: session.organizationId,
-      endDate,
-      status
+      organizationId: access.data.organizationId,
+      endDate: parsed.data.endDate,
+      status: parsed.data.status
     });
 
     if (!lease) {

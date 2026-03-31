@@ -2,6 +2,117 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-03-31
+- Change type: API + Authorization
+- Description: Implemented Phase 3 (first vertical) by enforcing function-based permissions on leases. Added real permission helper behavior (`requirePermission`) with landlord bypass and property_manager function checks (`listMemberFunctions`). Leases operations now guarded by capabilities: `CREATE_LEASE` for create, `VIEW_LEASE` for list/detail read, `EDIT_LEASE` for detail patch. Wired `teamFunctionsRepository` dependency through leases route handlers and dashboard lease-loading paths to keep server-rendered pages aligned with API authorization rules.
+- Impact: Team functions now affect real behavior, not only invite metadata. A property_manager lacking lease permissions is blocked from lease read/write operations (403). Existing managers with no assigned functions keep temporary backward-compatible access.
+- Tests: Included in passing root `pnpm typecheck`, `pnpm test`, and `pnpm build` (12 test files, 38 tests). Added coverage for missing `view_lease` (route) and missing `create_lease` (service).
+- Notes: Remaining modules (payments, maintenance, properties, tenants, documents) still use role-based access and should be migrated to permission guards in subsequent slices.
+
+## 2026-03-31
+- Change type: API + Frontend + Data Layer
+- Description: Implemented Phase 2 of the team functions system. Team invite flow now supports assigning real org-scoped functions during invite (`functions[]` in payload) with server-side validation and persistence through `TeamFunctionsRepository`. Added business rules: `property_manager` invites must include at least one function, landlords cannot receive functions, and only landlords can assign `ADMIN`. Team dashboard now renders available functions in the invite form, filters out `ADMIN` for property managers, and shows assigned function badges per member.
+- Impact: Team members can now be onboarded with structured work functions instead of implicit full access. The team page is now the operational control point for function-aware invites and visibility, while preserving the existing base role model.
+- Tests: Included in passing root `pnpm typecheck`, `pnpm test`, `pnpm lint`, and `pnpm build` (12 test files, 36 tests).
+- Notes: Route-level permission enforcement across properties/leases/payments/maintenance is still pending; current phase only makes membership invites and team visibility function-aware.
+
+## 2026-03-31
+- Change type: DB + API + Data Layer
+- Description: Implemented Phase 1 of Role vs Function (Permissions) System. Separated concerns: roles (who you are: landlord/property_manager) now distinct from functions (what you can do: LEASING_AGENT/ACCOUNTANT/MAINTENANCE_MANAGER/ADMIN). Added two new database tables (`team_functions` and `member_functions`) with org-scoped function templates and member function assignments. Created migrations `0009_team_functions_and_permissions.sql` (schema + validation triggers) and `0010_seed_default_team_functions.sql` (seeds 4 default functions per org). Added `Permission` enum and `TeamFunctionCode` enum to api-contracts. Extended data-access with `TeamFunctionsRepository` (19 methods: list/get functions, assign/revoke member functions, check member permissions). Updated team-members service to support function-based escalation guards (property_manager cannot assign ADMIN function). Updated invite validation to accept optional `functions` array in payload. All gates passing: typecheck, lint, build.
+- Impact: Codebase now has permissions infrastructure ready for Phase 2 (UI) and Phase 3 (route guards). Org teams can be built on granular access control model while preserving backward-compatible role-based defaults. Database triggers ensure data integrity (cross-org assignments blocked).
+- Tests: No new tests in Phase 1 (schema + data-layer setup); quality gates: `pnpm typecheck` ✓, `pnpm lint` ✓, `pnpm build` ✓.
+- Notes: Function assignment in invite payload prepared but commented out in service (ready for Phase 2 UI). Seeds create full permission buckets per org on first deploy.
+
+## 2026-03-31
+- Change type: API + Frontend
+- Description: Expanded Teams/Memberships invite model so both `landlord` and `property_manager` can invite team members. Invite payload now supports target role selection (`property_manager` or `landlord`) via contracts validator updates. Added escalation guard: property managers cannot invite landlords. Updated Team UI invite form with role selector and inviter-role-aware options.
+- Impact: Team growth no longer bottlenecked on landlord-only flow; organizations can delegate team onboarding to managers while preventing upward role escalation.
+- Tests: Included in passing root `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` (12 test files, 34 tests).
+
+## 2026-03-31
+- Change type: API + Frontend
+- Description: Implemented Teams/Memberships slice for web-manager. Added new API contracts for memberships (`ListOrganizationMembersOutput`, `InvitePropertyManagerInput/Output`) and validator `parseInvitePropertyManagerInput`. Extended auth repository with organization member listing and membership creation methods (`listMembershipsByOrganization`, `createOrganizationMembership`). Added app service layer for team operations (`listOrganizationMembers`, `invitePropertyManager`) with organization scoping and landlord-only invite enforcement. Added new route `GET/POST /api/organizations/members`. Added new dashboard page `/dashboard/team` and `TeamManagementPanel` UI to list members and add a `property_manager` by user ID with optional `canOwnProperties` capability. Added route tests for auth rejection, validation, success list, and invite creation.
+- Impact: Landlords can now manage team memberships inside their current organization context and add property managers without touching database manually. Access remains scoped to `session.organizationId` and non-landlord operators cannot invite members.
+- Tests: Included in passing root `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` (12 test files, 32 tests).
+
+## 2026-03-31
+- Change type: API + Frontend
+- Description: Implemented Slice 4 — Documents Depth. Added `GET /api/session` route returning `{ userId, organizationId, role }` for client-component consumption. Created `ContextualDocumentPanel` component: fetches its own session context, lists documents filtered to a specific attachment (type + id), and handles real Supabase Storage upload (`documents` bucket: `{orgId}/{attachmentType}/{attachmentId}/{ts}-{filename}`) then records metadata via `POST /api/documents`. Replaced placeholder URL in `DocumentManagementPanel` with the same real Supabase Storage upload flow. Added `ContextualDocumentPanel` to the bottom of all four entity detail pages: lease, tenant, unit, and property — pre-wired with the appropriate `attachmentType` and `attachmentId`.
+- Impact: Documents are now contextually accessible from every entity detail page; upload creates a real file in Supabase Storage and records metadata in the `documents` table; standalone documents page upload also fixed. Prerequisite: `documents` storage bucket must be created in Supabase dashboard as a public bucket.
+- Tests: Included in passing root `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` (29 routes).
+
+## 2026-03-31
+- Change type: API + DB + Frontend
+- Description: Implemented Slice 3 — Maintenance Workflow Depth. Added migration `0008_maintenance_workflow_depth.sql` with assignee/notes/update timestamp fields on `maintenance_requests` plus new `maintenance_request_events` timeline table. Extended maintenance domain/contracts/repository with actionable fields (`assignedToName`, `internalNotes`, `resolutionNotes`) and timeline events. Replaced status-only PATCH flow with richer maintenance-update flow (status + assignment + notes). Upgraded maintenance detail route GET to return `{ request, timeline }` and maintenance detail UI to support assignment, note updates, status transitions, and lifecycle history rendering. Updated maintenance list filter label from "En cours" to "Assignées" and made dashboard maintenance count reflect active workload only (`open` + `in_progress`).
+- Impact: Operators can assign requests, maintain internal/resolution notes, and track visible lifecycle history; request detail is now operationally actionable while preserving existing status controls.
+- Tests: Included in passing root `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: API + DB + Frontend
+- Description: Implemented Slice 2 — Rent Ledger / Monthly Charge Generation. Added `charge_period TEXT` column + partial unique index on `payments` table (`0007_add_charge_period_to_payments.sql`). Extended `Payment` domain type with `chargePeriod`. Added `GenerateRentChargesInput/Output` contracts and `parseGenerateRentChargesInput` validator. Added `generateMonthlyCharges` to `PaymentRepository` and implemented via single INSERT…SELECT using `gen_random_uuid()` with `ON CONFLICT DO NOTHING`. Added `generateRentCharges` app-service function. Created `POST /api/payments/generate` route. Updated payments UI with a period picker + "Générer loyers" button; table now shows a "Période" column distinguishing generated charges (YYYY-MM badge) from manual entries.
+- Impact: Active leases can now generate monthly rent obligations deterministically; duplicate generation for the same lease+month is blocked at DB level; overdue logic runs on page load; manual payment recording unchanged.
+- Tests: Included in passing root `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: Frontend
+- Description: Refocused leases dashboard page on read-side lease information only by removing in-page lease creation/assignment controls and deleting related unused form/types wiring.
+- Impact: Lease assignment now lives on unit detail flow; leases page now serves status-filtered lease visibility (summary + table) without duplicate assignment entry point or lingering dead UI code.
+- Tests: Included in passing root `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: API
+- Description: Expanded detail-route test coverage with one happy-path GET case for each hardened manager route family: properties, tenants, leases, units, maintenance, and payments.
+- Impact: Route coverage is now less failure-path-heavy, giving a basic safety net for successful operator retrieval flows across the main detail endpoints without widening runtime scope.
+- Tests: Included in passing root `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: API
+- Description: Hardened payment detail GET route with operator-only access enforcement and added lightweight payment detail route tests covering tenant-role rejection on `GET` and invalid `paidDate` validation on `PATCH`.
+- Impact: Payment detail endpoints now match the same route-level safety pattern as properties, tenants, leases, units, and maintenance, removing the last remaining session-only detail GET among core manager routes.
+- Tests: Included in passing root `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: API
+- Description: Hardened unit detail route with operator-only access enforcement and explicit PATCH validation, and extended maintenance detail GET to the same operator guard. Added lightweight detail-route tests for `/api/units/[id]` and `/api/maintenance/[id]` covering tenant-role rejection and invalid PATCH payloads.
+- Impact: Unit and maintenance detail endpoints now follow the same route-level safety pattern as properties, tenants, and leases, removing remaining session-only detail access and preventing silent fallback on invalid unit status updates.
+- Tests: Included in passing root `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: API
+- Description: Hardened tenant and lease detail routes with operator-only access enforcement and explicit PATCH validation. Added lightweight tests covering tenant-role rejection and invalid PATCH payloads for both `/api/tenants/[id]` and `/api/leases/[id]`.
+- Impact: Week 2 now extends the same safe detail-route guard/validation pattern used for properties to tenant and lease records, removing session-only access on these endpoints and preventing silent fallback behavior on invalid lease updates.
+- Tests: Included in passing root `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: API
+- Description: Added lightweight access-control sanity coverage for operator dashboard and middleware redirects. Created tests for dashboard layout redirects (unauthenticated and tenant) plus middleware redirect behavior for unauthenticated dashboard access and authenticated login access.
+- Impact: Week 1 Lite stabilization now covers both route-level property protections and top-level shell/navigation access control, reducing regression risk on the main operator entry flow.
+- Tests: Included in passing root `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
+
+## 2026-03-31
+- Change type: Infra
+- Description: Started Week 1 Lite stabilization pass. Replaced root placeholder quality scripts with real workspace commands, added minimal web-manager test harness (Vitest), and created initial API route tests for properties (POST and detail route guard/validation cases).
+- Impact: Quality commands now execute real checks from repo root (`lint`, `typecheck`, `test`, `build`). Properties route coverage now includes success/auth/forbidden/validation paths with lightweight tests to prevent regressions while keeping scope small.
+- Tests: `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` pass from root.
+
+## 2026-03-31
+- Change type: Other
+- Description: Split `project-context.md` into focused on-demand docs under `docs/context/` (`roles-and-auth`, `features-tenant`, `features-manager`, `features-owner-admin`, `brand`) and slimmed `project-context.md` to core product/architecture context plus links. Updated workspace `.claude/CLAUDE.md` to keep ADR docs on-demand only (no auto-injection).
+- Impact: Agent context loading is lighter by default, while detailed role/feature/brand guidance remains available by targeted file reads.
+- Tests: N/A (documentation and agent-instruction update only).
+
+## 2026-03-31
+- Change type: Frontend
+- Description: Fixed onboarding build blocker by converting `/onboarding` page from client-side `useSearchParams` usage to server-side `searchParams` props.
+- Impact: Next.js production build no longer fails with missing Suspense boundary error on onboarding prerender.
+- Tests: Included in root `pnpm build` pass.
+
+## 2026-03-30
+- Change type: Feature
+- Description: Implemented document management system (Slice 5) with DB migration `0006_init_documents.sql`, domain entities, API contracts, data-access repository, API routes (`/api/documents`, `/api/documents/[id]`), and frontend dashboard page with document upload/list/delete. Documents support 6 types (lease_agreement, receipt, notice, id, contract, other) and attach to 4 entity types (property, unit, tenant, lease). Created `DocumentManagementPanel` component with filtering, type badges, and file metadata display. Added documents link to sidebar navigation.
+- Impact: Users can now upload, view, filter, and delete documents attached to properties, units, tenants, or leases. Document metadata tracked in DB (filename, URL, size, MIME type, document type, attachment info, uploader). UI provides type filtering and visual organization.
+- Tests: Migration applied successfully (`0006_init_documents.sql`), TypeScript compilation passed with no errors.
+
 ## 2026-03-30
 - Change type: Frontend
 - Description: Converted dashboard from client component with placeholder data to async server component showing real metrics. Created `fetchDashboardMetrics()` helper that queries DB for property count, unit count, tenant count, lease count, and maintenance request count. Updated variant-specific stat cards to display real data. Calculated occupancy rate (leases/units). Added empty state with "Ajouter une propriété" CTA when no data exists. Dashboard now shows live operational metrics instead of "—" placeholders.

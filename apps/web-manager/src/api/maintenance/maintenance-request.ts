@@ -2,12 +2,12 @@ import type {
   ApiResult,
   AuthSession,
   CreateMaintenanceRequestOutput,
-  UpdateMaintenanceStatusOutput,
+  UpdateMaintenanceRequestOutput,
   ListMaintenanceRequestsOutput
 } from "@hhousing/api-contracts";
 import {
   parseCreateMaintenanceRequestInput,
-  parseUpdateMaintenanceStatusInput
+  parseUpdateMaintenanceRequestInput
 } from "@hhousing/api-contracts";
 import type { MaintenanceRequestRepository } from "@hhousing/data-access";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
@@ -61,31 +61,31 @@ export async function createMaintenanceRequest(
   return { status: 201, body: { success: true, data: req } };
 }
 
-export interface UpdateMaintenanceStatusRequest {
+export interface UpdateMaintenanceRequestRequest {
   requestId: string;
   body: unknown;
   session: AuthSession | null;
 }
 
-export interface UpdateMaintenanceStatusResponse {
+export interface UpdateMaintenanceRequestResponse {
   status: number;
-  body: ApiResult<UpdateMaintenanceStatusOutput>;
+  body: ApiResult<UpdateMaintenanceRequestOutput>;
 }
 
-export interface UpdateMaintenanceStatusDeps {
+export interface UpdateMaintenanceRequestDeps {
   repository: MaintenanceRequestRepository;
 }
 
-export async function updateMaintenanceStatus(
-  request: UpdateMaintenanceStatusRequest,
-  deps: UpdateMaintenanceStatusDeps
-): Promise<UpdateMaintenanceStatusResponse> {
+export async function updateMaintenanceRequest(
+  request: UpdateMaintenanceRequestRequest,
+  deps: UpdateMaintenanceRequestDeps
+): Promise<UpdateMaintenanceRequestResponse> {
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }
 
-  const parsed = parseUpdateMaintenanceStatusInput(
+  const parsed = parseUpdateMaintenanceRequestInput(
     request.requestId,
     request.body,
     sessionResult.data.organizationId ?? ""
@@ -94,7 +94,7 @@ export async function updateMaintenanceStatus(
     return { status: mapErrorCodeToHttpStatus(parsed.code), body: parsed };
   }
 
-  const updated = await deps.repository.updateMaintenanceStatus(parsed.data);
+  const updated = await deps.repository.updateMaintenanceRequest(parsed.data);
   if (updated === null) {
     return {
       status: 404,

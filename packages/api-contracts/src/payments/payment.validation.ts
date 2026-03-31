@@ -1,5 +1,5 @@
 import type { ApiResult } from "../api-result.types";
-import type { CreatePaymentInput, MarkPaymentPaidInput } from "./payment.types";
+import type { CreatePaymentInput, GenerateRentChargesInput, MarkPaymentPaidInput } from "./payment.types";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -67,6 +67,25 @@ export function parseCreatePaymentInput(input: unknown): ApiResult<CreatePayment
       dueDate,
       note: asOptionalText(input.note)
     }
+  };
+}
+
+export function parseGenerateRentChargesInput(
+  input: unknown,
+  sessionOrganizationId: string
+): ApiResult<GenerateRentChargesInput> {
+  if (!isObject(input)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  }
+
+  const period = asNonEmptyText(input.period);
+  if (period === null || !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(period)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "period must be YYYY-MM" };
+  }
+
+  return {
+    success: true,
+    data: { organizationId: sessionOrganizationId, period }
   };
 }
 

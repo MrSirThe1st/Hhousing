@@ -1,4 +1,9 @@
-import type { MaintenanceRequest, MaintenancePriority } from "@hhousing/domain";
+import type {
+  MaintenanceRequest,
+  MaintenancePriority,
+  MaintenanceStatus,
+  MaintenanceTimelineEvent
+} from "@hhousing/domain";
 
 export interface CreateMaintenanceRequestInput {
   organizationId: string;
@@ -11,13 +16,21 @@ export interface CreateMaintenanceRequestInput {
 
 export type CreateMaintenanceRequestOutput = MaintenanceRequest;
 
-export interface UpdateMaintenanceStatusInput {
+export interface UpdateMaintenanceRequestInput {
   requestId: string;
   organizationId: string;
-  status: "open" | "in_progress" | "resolved" | "cancelled";
+  status?: MaintenanceStatus;
+  assignedToName?: string | null;
+  internalNotes?: string | null;
+  resolutionNotes?: string | null;
 }
 
-export type UpdateMaintenanceStatusOutput = MaintenanceRequest;
+export type UpdateMaintenanceRequestOutput = MaintenanceRequest;
+
+export interface MaintenanceRequestDetailOutput {
+  request: MaintenanceRequest;
+  timeline: MaintenanceTimelineEvent[];
+}
 
 export interface ListMaintenanceRequestsFilter {
   organizationId: string;

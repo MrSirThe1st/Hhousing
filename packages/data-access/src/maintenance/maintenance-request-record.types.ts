@@ -1,4 +1,4 @@
-import type { MaintenanceRequest } from "@hhousing/domain";
+import type { MaintenanceRequest, MaintenanceStatus, MaintenanceTimelineEvent } from "@hhousing/domain";
 import type { ListMaintenanceRequestsFilter } from "@hhousing/api-contracts";
 
 export interface CreateMaintenanceRequestRecordInput {
@@ -11,14 +11,22 @@ export interface CreateMaintenanceRequestRecordInput {
   priority: string;
 }
 
-export interface UpdateMaintenanceStatusRecordInput {
+export interface UpdateMaintenanceRequestRecordInput {
   requestId: string;
   organizationId: string;
-  status: string;
+  status?: MaintenanceStatus;
+  assignedToName?: string | null;
+  internalNotes?: string | null;
+  resolutionNotes?: string | null;
 }
 
 export interface MaintenanceRequestRepository {
   createMaintenanceRequest(input: CreateMaintenanceRequestRecordInput): Promise<MaintenanceRequest>;
-  updateMaintenanceStatus(input: UpdateMaintenanceStatusRecordInput): Promise<MaintenanceRequest | null>;
+  updateMaintenanceRequest(input: UpdateMaintenanceRequestRecordInput): Promise<MaintenanceRequest | null>;
   listMaintenanceRequests(filter: ListMaintenanceRequestsFilter): Promise<MaintenanceRequest[]>;
+  getMaintenanceRequestById(requestId: string, organizationId: string): Promise<MaintenanceRequest | null>;
+  listMaintenanceRequestTimeline(
+    requestId: string,
+    organizationId: string
+  ): Promise<MaintenanceTimelineEvent[]>;
 }

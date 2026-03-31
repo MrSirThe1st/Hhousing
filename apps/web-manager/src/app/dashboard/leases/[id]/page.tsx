@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { Lease } from "@hhousing/domain";
 import { patchWithAuth } from "../../../../lib/api-client";
+import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -187,6 +188,8 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
           </div>
         )}
       </div>
+
+      <ContextualDocumentPanel attachmentType="lease" attachmentId={id} />
     </div>
   );
 }

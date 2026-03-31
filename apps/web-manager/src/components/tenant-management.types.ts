@@ -1,4 +1,4 @@
-import type { PropertyWithUnitsView, LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { Tenant } from "@hhousing/domain";
 
 export interface TenantManagementPanelProps {
@@ -13,17 +13,5 @@ export interface TenantFormState {
 }
 
 export interface LeaseManagementPanelProps {
-  organizationId: string;
   leases: LeaseWithTenantView[];
-  tenants: Tenant[];
-  properties: PropertyWithUnitsView[];
-}
-
-export interface LeaseFormState {
-  tenantId: string;
-  unitId: string;
-  startDate: string;
-  endDate: string;
-  monthlyRentAmount: string;
-  currencyCode: string;
 }
