@@ -7,12 +7,15 @@ import type {
   ListPaymentsOutput
 } from "@hhousing/api-contracts";
 import {
+  Permission,
   parseCreatePaymentInput,
   parseGenerateRentChargesInput,
   parseMarkPaymentPaidInput
 } from "@hhousing/api-contracts";
 import type { PaymentRepository } from "@hhousing/data-access";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import type { TeamPermissionRepository } from "../organizations/permissions";
+import { requirePermission } from "../organizations/permissions";
 
 export interface CreatePaymentRequest {
   body: unknown;
@@ -27,6 +30,7 @@ export interface CreatePaymentResponse {
 export interface CreatePaymentDeps {
   repository: PaymentRepository;
   createId: () => string;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function createPayment(
@@ -36,6 +40,15 @@ export async function createPayment(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.RECORD_PAYMENT,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: 403, body: permissionResult };
   }
 
   const parsed = parseCreatePaymentInput(request.body);
@@ -77,6 +90,7 @@ export interface MarkPaymentPaidResponse {
 
 export interface MarkPaymentPaidDeps {
   repository: PaymentRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function markPaymentPaid(
@@ -86,6 +100,15 @@ export async function markPaymentPaid(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.RECORD_PAYMENT,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: 403, body: permissionResult };
   }
 
   const parsed = parseMarkPaymentPaidInput(
@@ -122,6 +145,7 @@ export interface ListPaymentsResponse {
 
 export interface ListPaymentsDeps {
   repository: PaymentRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function listPayments(
@@ -131,6 +155,15 @@ export async function listPayments(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.VIEW_PAYMENTS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: 403, body: permissionResult };
   }
 
   const organizationId = request.organizationId ?? sessionResult.data.organizationId ?? "";
@@ -163,6 +196,7 @@ export interface GenerateRentChargesResponse {
 
 export interface GenerateRentChargesDeps {
   repository: PaymentRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function generateRentCharges(
@@ -172,6 +206,15 @@ export async function generateRentCharges(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.RECORD_PAYMENT,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: 403, body: permissionResult };
   }
 
   const parsed = parseGenerateRentChargesInput(

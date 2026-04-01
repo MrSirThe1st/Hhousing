@@ -6,7 +6,8 @@ import type {
   ApiResult,
   AuthSession,
   InvitePropertyManagerOutput,
-  ListOrganizationMembersOutput
+  ListOrganizationMembersOutput,
+  TeamFunction
 } from "@hhousing/api-contracts";
 import type { AuthRepository } from "@hhousing/data-access";
 import { TeamFunctionsRepository } from "@hhousing/data-access";
@@ -256,4 +257,237 @@ export async function invitePropertyManager(
   }
 
   return { status: 201, body: { success: true, data: membership } };
+}
+
+export interface UpdateMemberFunctionsRequest {
+  memberId: string;
+  body: unknown;
+  session: AuthSession | null;
+}
+
+export interface UpdateMemberFunctionsResponse {
+  status: number;
+  body: ApiResult<{ functions: TeamFunction[] }>;
+}
+
+export interface UpdateMemberFunctionsDeps {
+  repository: AuthRepository;
+  teamFunctionsRepository: TeamFunctionsRepository;
+}
+
+export async function updateMemberFunctions(
+  request: UpdateMemberFunctionsRequest,
+  deps: UpdateMemberFunctionsDeps
+): Promise<UpdateMemberFunctionsResponse> {
+  const sessionResult = requireOperatorSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const operatorResult = requireOperator(sessionResult.data);
+  if (!operatorResult.success) {
+    return { status: mapErrorCodeToHttpStatus(operatorResult.code), body: operatorResult };
+  }
+
+  // Parse the incoming function codes
+  if (!Array.isArray((request.body as Record<string, unknown>)?.functions)) {
+    return {
+      status: 400,
+      body: { success: false, code: "VALIDATION_ERROR", error: "functions must be an array" }
+    };
+  }
+
+  const rawFunctions = (request.body as { functions: unknown[] }).functions;
+  const validCodes = Object.values(TeamFunctionCode) as string[];
+  const newFunctionCodes: TeamFunctionCode[] = [];
+
+  for (const item of rawFunctions) {
+    if (typeof item !== "string" || !validCodes.includes(item)) {
+      return {
+        status: 400,
+        body: { success: false, code: "VALIDATION_ERROR", error: `Invalid function code: ${String(item)}` }
+      };
+    }
+    newFunctionCodes.push(item as TeamFunctionCode);
+  }
+
+  // Verify the target membership exists and belongs to the same org
+  const membership = await deps.repository.getMembershipById(request.memberId);
+  if (!membership || membership.organizationId !== sessionResult.data.organizationId) {
+    return {
+      status: 404,
+      body: { success: false, code: "NOT_FOUND", error: "Member not found" }
+    };
+  }
+
+  // Landlords cannot have functions
+  if (membership.role === "landlord") {
+    return {
+      status: 400,
+      body: { success: false, code: "VALIDATION_ERROR", error: "Landlords cannot have functions" }
+    };
+  }
+
+  // property_manager must keep at least one function
+  if (newFunctionCodes.length === 0) {
+    return {
+      status: 400,
+      body: { success: false, code: "VALIDATION_ERROR", error: "Select at least one function for a property manager" }
+    };
+  }
+
+  // Validate escalation: property_manager cannot assign ADMIN
+  for (const functionCode of newFunctionCodes) {
+    const escalationCheck = validateFunctionEscalation(
+      sessionResult.data.role as "landlord" | "property_manager",
+      functionCode
+    );
+    if (!escalationCheck.success) {
+      return { status: mapErrorCodeToHttpStatus(escalationCheck.code), body: escalationCheck };
+    }
+  }
+
+  let organizationFunctions: Awaited<
+    ReturnType<UpdateMemberFunctionsDeps["teamFunctionsRepository"]["listFunctionsByOrganization"]>
+  >;
+
+  try {
+    organizationFunctions = await deps.teamFunctionsRepository.listFunctionsByOrganization(
+      sessionResult.data.organizationId
+    );
+  } catch (error) {
+    if (!isMissingTeamFunctionsSchema(error)) {
+      throw error;
+    }
+    return {
+      status: 503,
+      body: { success: false, code: "INTERNAL_ERROR", error: "Team permissions schema is missing. Apply migrations 0009 and 0010." }
+    };
+  }
+
+  const functionsByCode = new Map(
+    organizationFunctions.map((teamFunction) => [teamFunction.functionCode, teamFunction])
+  );
+
+  for (const functionCode of newFunctionCodes) {
+    if (!functionsByCode.has(functionCode)) {
+      return {
+        status: 400,
+        body: { success: false, code: "VALIDATION_ERROR", error: `Unknown function for this organization: ${functionCode}` }
+      };
+    }
+  }
+
+  // Replace: clear all current functions then assign the new set
+  await deps.teamFunctionsRepository.clearMemberFunctions(request.memberId);
+
+  const assignedFunctions: TeamFunction[] = [];
+  for (const functionCode of newFunctionCodes) {
+    const functionDefinition = functionsByCode.get(functionCode);
+    if (!functionDefinition) continue;
+    await deps.teamFunctionsRepository.assignFunctionToMember(
+      request.memberId,
+      functionDefinition.id,
+      sessionResult.data.organizationId,
+      sessionResult.data.userId
+    );
+    assignedFunctions.push(functionDefinition);
+  }
+
+  return { status: 200, body: { success: true, data: { functions: assignedFunctions } } };
+}
+
+export interface LookupUserByEmailRequest {
+  body: unknown;
+  session: AuthSession | null;
+}
+
+export interface LookupUserByEmailResponse {
+  status: number;
+  body: ApiResult<{ userId: string; email: string }>;
+}
+
+export interface LookupUserByEmailDeps {
+  supabaseAdminUrl: string;
+  supabaseServiceRoleKey: string;
+}
+
+export async function lookupUserByEmail(
+  request: LookupUserByEmailRequest,
+  deps: LookupUserByEmailDeps
+): Promise<LookupUserByEmailResponse> {
+  const sessionResult = requireOperatorSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const { parseLookupUserByEmailInput } = await import("@hhousing/api-contracts");
+  const parsed = parseLookupUserByEmailInput(request.body);
+  if (!parsed.success) {
+    return { status: mapErrorCodeToHttpStatus(parsed.code), body: parsed };
+  }
+
+  try {
+    // Call Supabase Admin API to lookup user by email
+    const adminUrl = deps.supabaseAdminUrl;
+    const serviceRoleKey = deps.supabaseServiceRoleKey;
+
+    const response = await fetch(`${adminUrl}/auth/v1/admin/users`, {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${serviceRoleKey}`,
+        "content-type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      return {
+        status: 500,
+        body: {
+          success: false,
+          code: "INTERNAL_ERROR",
+          error: "Failed to query user directory"
+        }
+      };
+    }
+
+    const data = (await response.json()) as { users?: Array<{ id: string; email: string }> };
+    const users = data.users ?? [];
+
+    const matchingUser = users.find(
+      (u) => u.email && u.email.toLowerCase() === parsed.data.email.toLowerCase()
+    );
+
+    if (!matchingUser) {
+      return {
+        status: 404,
+        body: {
+          success: false,
+          code: "NOT_FOUND",
+          error: `No user found with email: ${parsed.data.email}`
+        }
+      };
+    }
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        data: {
+          userId: matchingUser.id,
+          email: matchingUser.email
+        }
+      }
+    };
+  } catch (error) {
+    console.error("Lookup user by email error:", error);
+    return {
+      status: 500,
+      body: {
+        success: false,
+        code: "INTERNAL_ERROR",
+        error: "Failed to lookup user"
+      }
+    };
+  }
 }

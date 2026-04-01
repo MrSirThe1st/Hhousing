@@ -1,6 +1,6 @@
 import { generateRentCharges } from "../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
-import { createPaymentRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createPaymentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -19,7 +19,7 @@ export async function POST(request: Request): Promise<Response> {
       body,
       session: await extractAuthSessionFromCookies()
     },
-    { repository: createPaymentRepo() }
+    { repository: createPaymentRepo(), teamFunctionsRepository: createTeamFunctionsRepo() }
   );
 
   return jsonResponse(result.status, result.body);

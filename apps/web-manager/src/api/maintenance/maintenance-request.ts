@@ -6,11 +6,14 @@ import type {
   ListMaintenanceRequestsOutput
 } from "@hhousing/api-contracts";
 import {
+  Permission,
   parseCreateMaintenanceRequestInput,
   parseUpdateMaintenanceRequestInput
 } from "@hhousing/api-contracts";
 import type { MaintenanceRequestRepository } from "@hhousing/data-access";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import type { TeamPermissionRepository } from "../organizations/permissions";
+import { requirePermission } from "../organizations/permissions";
 
 export interface CreateMaintenanceRequestRequest {
   body: unknown;
@@ -25,6 +28,7 @@ export interface CreateMaintenanceRequestResponse {
 export interface CreateMaintenanceRequestDeps {
   repository: MaintenanceRequestRepository;
   createId: () => string;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function createMaintenanceRequest(
@@ -34,6 +38,15 @@ export async function createMaintenanceRequest(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.MANAGE_MAINTENANCE,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: 403, body: permissionResult };
   }
 
   const parsed = parseCreateMaintenanceRequestInput(request.body);
@@ -74,6 +87,7 @@ export interface UpdateMaintenanceRequestResponse {
 
 export interface UpdateMaintenanceRequestDeps {
   repository: MaintenanceRequestRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function updateMaintenanceRequest(
@@ -83,6 +97,15 @@ export async function updateMaintenanceRequest(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.UPDATE_MAINTENANCE_STATUS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: 403, body: permissionResult };
   }
 
   const parsed = parseUpdateMaintenanceRequestInput(
@@ -119,6 +142,7 @@ export interface ListMaintenanceRequestsResponse {
 
 export interface ListMaintenanceRequestsDeps {
   repository: MaintenanceRequestRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function listMaintenanceRequests(
@@ -128,6 +152,15 @@ export async function listMaintenanceRequests(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.VIEW_MAINTENANCE,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: 403, body: permissionResult };
   }
 
   const organizationId = request.organizationId ?? sessionResult.data.organizationId ?? "";

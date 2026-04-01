@@ -169,6 +169,26 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
       return result.rows.length > 0 ? mapMembership(result.rows[0]) : null;
     },
 
+    async getMembershipById(membershipId: string): Promise<OrganizationMembership | null> {
+      const result = await pool.query<OrganizationMembershipRow>(
+        `select
+           membership.id,
+           membership.user_id,
+           membership.organization_id,
+           organization.name as organization_name,
+           membership.role,
+           membership.status,
+           membership.can_own_properties,
+           membership.created_at
+         from organization_memberships membership
+         join organizations organization on organization.id = membership.organization_id
+         where membership.id = $1`,
+        [membershipId]
+      );
+
+      return result.rows.length > 0 ? mapMembership(result.rows[0]) : null;
+    },
+
     async createOrganizationMembership(
       input: CreateOrganizationMembershipRecordInput
     ): Promise<OrganizationMembership> {

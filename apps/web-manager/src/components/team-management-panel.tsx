@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OrganizationMembership } from "@hhousing/domain";
 import { TeamFunctionCode, type TeamFunction, type TeamInviteRole } from "@hhousing/api-contracts";
-import { postWithAuth } from "../lib/api-client";
+import { postWithAuth, patchWithAuth } from "../lib/api-client";
 
 export interface TeamMemberRow {
   membership: OrganizationMembership;
@@ -27,13 +27,20 @@ export default function TeamManagementPanel({
   functionsUnavailable
 }: TeamManagementPanelProps): React.ReactElement {
   const router = useRouter();
-  const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<TeamInviteRole>("property_manager");
   const [selectedFunctions, setSelectedFunctions] = useState<TeamFunctionCode[]>([]);
   const [canOwnProperties, setCanOwnProperties] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Edit-functions state
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editFunctions, setEditFunctions] = useState<TeamFunctionCode[]>([]);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const assignableFunctions = availableFunctions.filter((teamFunction) => {
     if (inviterRole === "landlord") {
@@ -64,25 +71,85 @@ export default function TeamManagementPanel({
     setMessage(null);
     setError(null);
 
-    const result = await postWithAuth<OrganizationMembership>("/api/organizations/members", {
-      userId: userId.trim(),
-      role,
-      canOwnProperties,
-      functions: role === "property_manager" ? selectedFunctions : undefined
-    });
+    try {
+      // Step 1: If userId not yet resolved, look it up from email
+      let resolvedUserId = userId;
+      if (!resolvedUserId) {
+        const lookupResult = await postWithAuth<{ userId: string; email: string }>(
+          "/api/organizations/members/lookup",
+          { email: email.trim() }
+        );
+
+        if (!lookupResult.success) {
+          setError(lookupResult.error);
+          setBusy(false);
+          return;
+        }
+
+        resolvedUserId = lookupResult.data.userId;
+        setUserId(resolvedUserId);
+      }
+
+      // Step 2: Invite with resolved userId
+      const result = await postWithAuth<OrganizationMembership>("/api/organizations/members", {
+        userId: resolvedUserId,
+        role,
+        canOwnProperties,
+        functions: role === "property_manager" ? selectedFunctions : undefined
+      });
+
+      if (!result.success) {
+        setError(result.error);
+        setBusy(false);
+        return;
+      }
+
+      setMessage("Membre ajouté à votre organisation.");
+      setEmail("");
+      setUserId(null);
+      setRole("property_manager");
+      setSelectedFunctions([]);
+      setCanOwnProperties(false);
+      setBusy(false);
+      router.refresh();
+    } catch (err) {
+      setError("Erreur lors de l'invitation");
+      setBusy(false);
+    }
+  }
+
+  function openEditFunctions(memberId: string, currentFunctions: TeamFunction[]): void {
+    setEditingMemberId(memberId);
+    setEditFunctions(currentFunctions.map((f) => f.functionCode as TeamFunctionCode));
+    setEditError(null);
+  }
+
+  function handleEditFunctionToggle(functionCode: TeamFunctionCode): void {
+    setEditFunctions((current) =>
+      current.includes(functionCode)
+        ? current.filter((v) => v !== functionCode)
+        : [...current, functionCode]
+    );
+  }
+
+  async function handleSaveFunctions(memberId: string): Promise<void> {
+    setEditBusy(true);
+    setEditError(null);
+
+    const result = await patchWithAuth<{ functions: TeamFunction[] }>(
+      `/api/organizations/members/${memberId}/functions`,
+      { functions: editFunctions }
+    );
 
     if (!result.success) {
-      setError(result.error);
-      setBusy(false);
+      setEditError(result.error);
+      setEditBusy(false);
       return;
     }
 
-    setMessage("Membre ajouté à votre organisation.");
-    setUserId("");
-    setRole("property_manager");
-    setSelectedFunctions([]);
-    setCanOwnProperties(false);
-    setBusy(false);
+    setEditingMemberId(null);
+    setEditFunctions([]);
+    setEditBusy(false);
     router.refresh();
   }
 
@@ -98,7 +165,7 @@ export default function TeamManagementPanel({
       <form onSubmit={handleInvite} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
         <h2 className="text-base font-semibold text-[#010a19]">Inviter un membre</h2>
         <p className="text-sm text-gray-500">
-          Entrez l&apos;ID utilisateur Supabase, choisissez un rôle système puis assignez les fonctions de travail.
+          Entrez l&apos;adresse email du membre, choisissez un rôle système puis assignez les fonctions de travail.
         </p>
 
         {functionsUnavailable ? (
@@ -109,10 +176,11 @@ export default function TeamManagementPanel({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input
-            value={userId}
-            onChange={(event) => setUserId(event.target.value)}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="user_id"
+            placeholder="email@example.com"
+            type="email"
             required
           />
           <select
@@ -182,7 +250,7 @@ export default function TeamManagementPanel({
           type="submit"
           disabled={
             busy ||
-            userId.trim().length === 0 ||
+            email.trim().length === 0 ||
             (role === "property_manager" && (functionsUnavailable || selectedFunctions.length === 0))
           }
           className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
@@ -215,6 +283,7 @@ export default function TeamManagementPanel({
                 <th className="px-4 py-3 text-left">Statut</th>
                 <th className="px-4 py-3 text-left">Capabilities</th>
                 <th className="px-4 py-3 text-left">Ajouté le</th>
+                <th className="px-4 py-3 text-left"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -223,7 +292,48 @@ export default function TeamManagementPanel({
                   <td className="px-4 py-3 font-mono text-xs text-gray-700">{membership.userId}</td>
                   <td className="px-4 py-3">{membership.role}</td>
                   <td className="px-4 py-3">
-                    {functions.length > 0 ? (
+                    {editingMemberId === membership.id ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {assignableFunctions.map((teamFunction) => {
+                            const checked = editFunctions.includes(teamFunction.functionCode);
+                            return (
+                              <label
+                                key={teamFunction.id}
+                                className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => handleEditFunctionToggle(teamFunction.functionCode)}
+                                />
+                                {teamFunction.displayName}
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {editError ? (
+                          <p className="text-xs text-red-600">{editError}</p>
+                        ) : null}
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={editBusy || editFunctions.length === 0}
+                            onClick={() => handleSaveFunctions(membership.id)}
+                            className="rounded bg-[#0063fe] px-2.5 py-1 text-xs font-medium text-white disabled:opacity-60"
+                          >
+                            {editBusy ? "..." : "Enregistrer"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingMemberId(null)}
+                            className="rounded border border-gray-300 px-2.5 py-1 text-xs text-gray-600"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    ) : functions.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {functions.map((teamFunction) => (
                           <span
@@ -244,6 +354,17 @@ export default function TeamManagementPanel({
                   <td className="px-4 py-3">{membership.capabilities.canOwnProperties ? "canOwnProperties" : "-"}</td>
                   <td className="px-4 py-3 text-gray-500">
                     {new Date(membership.createdAtIso).toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3">
+                    {membership.role === "property_manager" && !functionsUnavailable && editingMemberId !== membership.id ? (
+                      <button
+                        type="button"
+                        onClick={() => openEditFunctions(membership.id, functions)}
+                        className="rounded border border-gray-300 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                      >
+                        Éditer
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}

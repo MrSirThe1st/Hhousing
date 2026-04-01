@@ -28,6 +28,9 @@ vi.mock("../../shared", async () => {
 
   return {
     ...actual,
+    createTeamFunctionsRepo: () => ({
+      listMemberFunctions: vi.fn().mockResolvedValue([])
+    }),
     createPaymentRepo: (): {
       getPaymentById: typeof getPaymentByIdMock;
     } => ({
@@ -67,7 +70,7 @@ describe("/api/payments/[id]", () => {
   it("returns payment detail for operators", async () => {
     extractAuthSessionFromCookiesMock.mockResolvedValue({
       userId: "user-1",
-      role: "manager",
+      role: "landlord",
       organizationId: "org-1",
       membershipId: "membership-1"
     });

@@ -99,3 +99,26 @@ export function parseInvitePropertyManagerInput(
     }
   };
 }
+
+export function parseLookupUserByEmailInput(
+  input: unknown
+): ApiResult<{ email: string }> {
+  if (!isObject(input)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  }
+
+  const email = asNonEmptyText(input.email);
+  if (email === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "email is required" };
+  }
+
+  // Basic email validation
+  if (!email.includes("@") || email.length < 5) {
+    return { success: false, code: "VALIDATION_ERROR", error: "email is not valid" };
+  }
+
+  return {
+    success: true,
+    data: { email }
+  };
+}

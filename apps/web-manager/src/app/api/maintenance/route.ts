@@ -3,7 +3,7 @@ import {
   listMaintenanceRequests
 } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
-import { createId, createMaintenanceRepo, jsonResponse, parseJsonBody } from "../shared";
+import { createId, createMaintenanceRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -24,7 +24,8 @@ export async function POST(request: Request): Promise<Response> {
     },
     {
       repository: createMaintenanceRepo(),
-      createId: () => createId("mnt")
+      createId: () => createId("mnt"),
+      teamFunctionsRepository: createTeamFunctionsRepo()
     }
   );
 
@@ -41,7 +42,7 @@ export async function GET(request: Request): Promise<Response> {
       status: searchParams.get("status"),
       session: await extractAuthSessionFromCookies()
     },
-    { repository: createMaintenanceRepo() }
+    { repository: createMaintenanceRepo(), teamFunctionsRepository: createTeamFunctionsRepo() }
   );
 
   return jsonResponse(result.status, result.body);

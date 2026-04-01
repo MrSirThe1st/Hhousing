@@ -19,7 +19,7 @@ export default async function PaymentsPage(): Promise<React.ReactElement> {
   const [paymentsResult, leasesResult] = await Promise.all([
     listPayments(
       { session, organizationId: session.organizationId ?? "", leaseId: null, status: null },
-      { repository: paymentRepo }
+      { repository: paymentRepo, teamFunctionsRepository: teamFunctionsRepo }
     ),
     listLeases(
       { session, organizationId: session.organizationId ?? "" },

@@ -1,6 +1,6 @@
 import { createPayment, listPayments } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
-import { createId, createPaymentRepo, jsonResponse, parseJsonBody } from "../shared";
+import { createId, createPaymentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -21,7 +21,8 @@ export async function POST(request: Request): Promise<Response> {
     },
     {
       repository: createPaymentRepo(),
-      createId: () => createId("pay")
+      createId: () => createId("pay"),
+      teamFunctionsRepository: createTeamFunctionsRepo()
     }
   );
 
@@ -38,7 +39,7 @@ export async function GET(request: Request): Promise<Response> {
       status: searchParams.get("status"),
       session: await extractAuthSessionFromCookies()
     },
-    { repository: createPaymentRepo() }
+    { repository: createPaymentRepo(), teamFunctionsRepository: createTeamFunctionsRepo() }
   );
 
   return jsonResponse(result.status, result.body);

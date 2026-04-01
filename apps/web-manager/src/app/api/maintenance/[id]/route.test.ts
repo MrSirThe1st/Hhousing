@@ -30,6 +30,9 @@ vi.mock("../../shared", async () => {
 
   return {
     ...actual,
+    createTeamFunctionsRepo: () => ({
+      listMemberFunctions: vi.fn().mockResolvedValue([])
+    }),
     createMaintenanceRepo: (): {
       getMaintenanceRequestById: typeof getMaintenanceRequestByIdMock;
       listMaintenanceRequestTimeline: typeof listMaintenanceRequestTimelineMock;
@@ -72,7 +75,7 @@ describe("/api/maintenance/[id]", () => {
   it("returns maintenance detail for operators", async () => {
     extractAuthSessionFromCookiesMock.mockResolvedValue({
       userId: "user-1",
-      role: "manager",
+      role: "landlord",
       organizationId: "org-1",
       membershipId: "membership-1"
     });

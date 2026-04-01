@@ -16,3 +16,12 @@ export interface InvitePropertyManagerInput {
 }
 
 export type InvitePropertyManagerOutput = OrganizationMembership;
+
+export interface LookupUserByEmailInput {
+  email: string;
+}
+
+export interface LookupUserByEmailOutput {
+  userId: string;
+  email: string;
+}

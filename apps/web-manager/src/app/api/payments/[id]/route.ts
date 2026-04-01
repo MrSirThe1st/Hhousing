@@ -1,7 +1,9 @@
 import { markPaymentPaid } from "../../../../api";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
+import { requirePermission } from "../../../../api/organizations/permissions";
+import { Permission } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
-import { createPaymentRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createPaymentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function GET(
   request: Request,
@@ -12,6 +14,15 @@ export async function GET(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.VIEW_PAYMENTS,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(403, permissionResult);
   }
 
   const repository = createPaymentRepo();
@@ -64,7 +75,7 @@ export async function PATCH(
       body,
       session: await extractAuthSessionFromCookies()
     },
-    { repository: createPaymentRepo() }
+    { repository: createPaymentRepo(), teamFunctionsRepository: createTeamFunctionsRepo() }
   );
 
   return jsonResponse(result.status, result.body);

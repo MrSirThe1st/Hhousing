@@ -2,6 +2,20 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-02
+- Change type: API + Frontend + Authorization
+- Description: Implemented permission guards for payments and maintenance verticals (same pattern as leases). Payments: RECORD_PAYMENT on create/mark-paid/generate, VIEW_PAYMENTS on list/detail. Maintenance: MANAGE_MAINTENANCE on create, VIEW_MAINTENANCE on list/detail, UPDATE_MAINTENANCE_STATUS on patch. All route handlers and dashboard pages wired with `createTeamFunctionsRepo()`. Added `getMembershipById` to `AuthRepository` interface and `PostgresAuthRepository`. Added `updateMemberFunctions` service + `PATCH /api/organizations/members/:id/functions` endpoint to reassign functions for existing property_manager members. Team management panel updated with inline "Éditer" button per property_manager row and inline checkbox editor with save/cancel.
+- Impact: Payments and maintenance operations now enforce function-based access. Team leads can update a member's assigned functions post-invite without reinviting.
+- Tests: 38 passed (12 test files); typecheck clean. Updated payments/[id] and maintenance/[id] test mocks to include `createTeamFunctionsRepo` and corrected happy-path session role to `"landlord"` to bypass permission check in GET route unit tests.
+- Notes: Properties, tenants, and documents modules still use role-based access; migrate in subsequent slices.
+
+## 2026-04-01
+- Change type: API + Frontend
+- Description: Implemented email-based user lookup for team member invites. Replaced raw UUID (`userId`) input with email-based workflow: team invite form now takes email, validates it, calls new `POST /api/organizations/members/lookup` endpoint which queries Supabase Admin API to resolve email to `userId`, then proceeds with existing invite flow. Added contract types `LookupUserByEmailInput` + `LookupUserByEmailOutput` and validator `parseLookupUserByEmailInput`. Endpoint requires `SUPABASE_SERVICE_ROLE_KEY` for admin queries.
+- Impact: Team members can now be invited by email instead of requiring manual UUID entry. Better UX: email input field with validation, automatic lookup on form submission, single-step invite flow.
+- Tests: All 38 tests pass; `pnpm typecheck`, `pnpm lint`, `pnpm build` clean.
+- Notes: Requires `SUPABASE_SERVICE_ROLE_KEY` environment variable to be set on server (Node.js API routes only, not middleware/Edge).
+
 ## 2026-03-31
 - Change type: API + Authorization
 - Description: Implemented Phase 3 (first vertical) by enforcing function-based permissions on leases. Added real permission helper behavior (`requirePermission`) with landlord bypass and property_manager function checks (`listMemberFunctions`). Leases operations now guarded by capabilities: `CREATE_LEASE` for create, `VIEW_LEASE` for list/detail read, `EDIT_LEASE` for detail patch. Wired `teamFunctionsRepository` dependency through leases route handlers and dashboard lease-loading paths to keep server-rendered pages aligned with API authorization rules.

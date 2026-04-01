@@ -27,6 +27,7 @@ export interface AuthRepository {
   listMembershipsByUserId(userId: string): Promise<OrganizationMembership[]>;
   listMembershipsByOrganization(organizationId: string): Promise<OrganizationMembership[]>;
   getMembershipByUserAndOrg(userId: string, organizationId: string): Promise<OrganizationMembership | null>;
+  getMembershipById(membershipId: string): Promise<OrganizationMembership | null>;
   createOrganizationMembership(input: CreateOrganizationMembershipRecordInput): Promise<OrganizationMembership>;
   createOperatorAccount(
     input: CreateOperatorAccountRecordInput

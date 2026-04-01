@@ -4,9 +4,11 @@ export type {
   ListOrganizationMembersOutput,
   TeamInviteRole,
   InvitePropertyManagerInput,
-  InvitePropertyManagerOutput
+  InvitePropertyManagerOutput,
+  LookupUserByEmailInput,
+  LookupUserByEmailOutput
 } from "./auth/memberships.types";
-export { parseInvitePropertyManagerInput } from "./auth/memberships.validation";
+export { parseInvitePropertyManagerInput, parseLookupUserByEmailInput } from "./auth/memberships.validation";
 export type {
   CreateOperatorAccountInput,
   CreateOperatorAccountOutput,
