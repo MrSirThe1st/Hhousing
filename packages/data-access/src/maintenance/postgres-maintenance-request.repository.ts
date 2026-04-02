@@ -316,6 +316,26 @@ export function createPostgresMaintenanceRequestRepository(
         [requestId, organizationId]
       );
       return result.rows.map(mapMaintenanceEvent);
+    },
+
+    async listMaintenanceRequestsByTenantAuthUserId(
+      tenantAuthUserId: string,
+      organizationId: string
+    ): Promise<MaintenanceRequest[]> {
+      const result = await client.query<MaintenanceRequestRow>(
+        `select
+           mr.id, mr.organization_id, mr.unit_id, mr.tenant_id,
+           mr.title, mr.description, mr.priority, mr.status,
+           mr.assigned_to_name, mr.internal_notes, mr.resolution_notes,
+           mr.resolved_at, mr.updated_at, mr.created_at
+         from maintenance_requests mr
+         join tenants t on t.id = mr.tenant_id
+         where t.auth_user_id = $1 and mr.organization_id = $2
+         order by mr.created_at desc
+         limit 100`,
+        [tenantAuthUserId, organizationId]
+      );
+      return result.rows.map(mapMaintenanceRequest);
     }
   };
 }

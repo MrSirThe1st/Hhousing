@@ -29,4 +29,8 @@ export interface MaintenanceRequestRepository {
     requestId: string,
     organizationId: string
   ): Promise<MaintenanceTimelineEvent[]>;
+  listMaintenanceRequestsByTenantAuthUserId(
+    tenantAuthUserId: string,
+    organizationId: string
+  ): Promise<MaintenanceRequest[]>;
 }

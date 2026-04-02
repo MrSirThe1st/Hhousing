@@ -23,6 +23,9 @@ importers:
       '@hhousing/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
+      '@hhousing/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@react-native-async-storage/async-storage':
         specifier: 2.1.2
         version: 2.1.2(react-native@0.79.6(@babel/core@7.29.0)(@types/react@19.0.14)(react@19.0.0))

@@ -48,3 +48,24 @@ export async function getWithAuth<T>(path: string): Promise<ApiResult<T>> {
 
   return parseResponse<T>(response);
 }
+
+export async function postWithAuth<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    return { success: false, code: "UNAUTHORIZED", error: "Not authenticated" };
+  }
+
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  return parseResponse<T>(response);
+}
