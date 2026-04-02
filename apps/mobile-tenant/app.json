@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Hhousing Tenant",
+    "slug": "hhousing-mobile-tenant",
+    "scheme": "hhousing-tenant",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.hhousing.tenant"
+    },
+    "android": {
+      "package": "com.hhousing.tenant"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

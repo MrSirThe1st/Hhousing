@@ -11,5 +11,10 @@
   "dependencies": {
     "@types/pg": "^8.20.0",
     "pg": "^8.20.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.0.14"
+    }
   }
 }

@@ -38,6 +38,40 @@ export function requireOperatorSession(session: AuthSession | null): ApiResult<A
 }
 
 /**
+ * Require authenticated tenant session for mobile app APIs.
+ */
+export function requireTenantSession(session: AuthSession | null): ApiResult<AuthSession> {
+  if (session === null) {
+    return {
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    };
+  }
+
+  if (session.role !== "tenant") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "This endpoint is only available to tenants"
+    };
+  }
+
+  if (!session.organizationId) {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Organization context is required"
+    };
+  }
+
+  return {
+    success: true,
+    data: session
+  };
+}
+
+/**
  * Require write access (landlord or property_manager can write)
  * Returns error if session fails requireOperatorSession
  */

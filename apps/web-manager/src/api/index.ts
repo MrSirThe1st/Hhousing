@@ -39,6 +39,20 @@ export {
   type CreateTenantResponse
 } from "./tenants/create-tenant";
 export {
+  createTenantInvitation,
+  validateTenantInvitation,
+  acceptTenantInvitation,
+  type CreateTenantInvitationDeps,
+  type CreateTenantInvitationRequest,
+  type CreateTenantInvitationResponse,
+  type ValidateTenantInvitationDeps,
+  type ValidateTenantInvitationRequest,
+  type ValidateTenantInvitationResponse,
+  type AcceptTenantInvitationDeps,
+  type AcceptTenantInvitationRequest,
+  type AcceptTenantInvitationResponse
+} from "./tenants/tenant-invitations";
+export {
   listTenants,
   type ListTenantsDeps,
   type ListTenantsRequest,

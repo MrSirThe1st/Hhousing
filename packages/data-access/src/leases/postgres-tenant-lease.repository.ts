@@ -5,6 +5,9 @@ import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-en
 import type {
   CreateTenantRecordInput,
   CreateLeaseRecordInput,
+  CreateTenantInvitationRecordInput,
+  TenantInvitationPreviewRecord,
+  TenantInvitationRecord,
   UpdateTenantRecordInput,
   UpdateLeaseRecordInput,
   TenantLeaseRepository
@@ -36,6 +39,34 @@ interface LeaseRow extends QueryResultRow {
 interface LeaseWithTenantRow extends LeaseRow {
   tenant_full_name: string;
   tenant_email: string | null;
+}
+
+interface TenantInvitationRow extends QueryResultRow {
+  id: string;
+  tenant_id: string;
+  organization_id: string;
+  email: string;
+  expires_at: Date | string;
+  used_at: Date | string | null;
+  revoked_at: Date | string | null;
+  created_at: Date | string;
+}
+
+interface TenantInvitationPreviewRow extends QueryResultRow {
+  invitation_id: string;
+  tenant_id: string;
+  organization_id: string;
+  organization_name: string;
+  tenant_full_name: string;
+  tenant_email: string;
+  tenant_phone: string | null;
+  lease_id: string | null;
+  unit_id: string | null;
+  lease_start_date: string | Date | null;
+  lease_end_date: string | Date | null;
+  monthly_rent_amount: string | number | null;
+  currency_code: string | null;
+  expires_at: Date | string;
 }
 
 export interface TenantLeaseQueryable {
@@ -97,6 +128,39 @@ function mapLeaseWithTenant(row: LeaseWithTenantRow): LeaseWithTenantView {
   };
 }
 
+function mapTenantInvitation(row: TenantInvitationRow): TenantInvitationRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    organizationId: row.organization_id,
+    email: row.email,
+    expiresAtIso: toIso(row.expires_at),
+    usedAtIso: row.used_at ? toIso(row.used_at) : null,
+    revokedAtIso: row.revoked_at ? toIso(row.revoked_at) : null,
+    createdAtIso: toIso(row.created_at)
+  };
+}
+
+function mapTenantInvitationPreview(row: TenantInvitationPreviewRow): TenantInvitationPreviewRecord {
+  return {
+    invitationId: row.invitation_id,
+    tenantId: row.tenant_id,
+    organizationId: row.organization_id,
+    organizationName: row.organization_name,
+    tenantFullName: row.tenant_full_name,
+    tenantEmail: row.tenant_email,
+    tenantPhone: row.tenant_phone,
+    leaseId: row.lease_id,
+    unitId: row.unit_id,
+    leaseStartDate: row.lease_start_date ? toIsoDate(row.lease_start_date) : null,
+    leaseEndDate: row.lease_end_date ? toIsoDate(row.lease_end_date) : null,
+    monthlyRentAmount:
+      row.monthly_rent_amount === null ? null : toNumber(row.monthly_rent_amount),
+    currencyCode: row.currency_code,
+    expiresAtIso: toIso(row.expires_at)
+  };
+}
+
 function getOrCreatePool(connectionString: string): Pool {
   const existing = poolCache.get(connectionString);
   if (existing) return existing;
@@ -118,6 +182,119 @@ export function createPostgresTenantLeaseRepository(
         [input.id, input.organizationId, input.authUserId, input.fullName, input.email, input.phone]
       );
       return mapTenant(result.rows[0]);
+    },
+
+    async revokeActiveTenantInvitations(tenantId: string, organizationId: string): Promise<void> {
+      await client.query(
+        `update tenant_invitations
+         set revoked_at = now()
+         where tenant_id = $1
+           and organization_id = $2
+           and used_at is null
+           and revoked_at is null`,
+        [tenantId, organizationId]
+      );
+    },
+
+    async createTenantInvitation(input: CreateTenantInvitationRecordInput): Promise<TenantInvitationRecord> {
+      const result = await client.query<TenantInvitationRow>(
+        `insert into tenant_invitations (
+           id,
+           tenant_id,
+           organization_id,
+           email,
+           token_hash,
+           expires_at,
+           created_by_user_id
+         )
+         values ($1, $2, $3, $4, $5, $6::timestamptz, $7)
+         returning id, tenant_id, organization_id, email, expires_at, used_at, revoked_at, created_at`,
+        [
+          input.id,
+          input.tenantId,
+          input.organizationId,
+          input.email,
+          input.tokenHash,
+          input.expiresAtIso,
+          input.createdByUserId
+        ]
+      );
+
+      return mapTenantInvitation(result.rows[0]);
+    },
+
+    async getTenantInvitationPreviewByTokenHash(tokenHash: string): Promise<TenantInvitationPreviewRecord | null> {
+      const result = await client.query<TenantInvitationPreviewRow>(
+        `select
+           invitation.id as invitation_id,
+           tenant.id as tenant_id,
+           tenant.organization_id,
+           organization.name as organization_name,
+           tenant.full_name as tenant_full_name,
+           invitation.email as tenant_email,
+           tenant.phone as tenant_phone,
+           lease.id as lease_id,
+           lease.unit_id,
+           lease.start_date as lease_start_date,
+           lease.end_date as lease_end_date,
+           lease.monthly_rent_amount,
+           lease.currency_code,
+           invitation.expires_at
+         from tenant_invitations invitation
+         join tenants tenant on tenant.id = invitation.tenant_id
+         join organizations organization on organization.id = invitation.organization_id
+         left join lateral (
+           select
+             l.id,
+             l.unit_id,
+             l.start_date,
+             l.end_date,
+             l.monthly_rent_amount,
+             l.currency_code
+           from leases l
+           where l.tenant_id = tenant.id
+             and l.organization_id = tenant.organization_id
+             and l.status in ('active', 'pending')
+           order by
+             case when l.status = 'active' then 0 else 1 end,
+             l.start_date desc
+           limit 1
+         ) lease on true
+         where invitation.token_hash = $1
+           and invitation.used_at is null
+           and invitation.revoked_at is null
+           and invitation.expires_at > now()`,
+        [tokenHash]
+      );
+
+      return result.rows[0] ? mapTenantInvitationPreview(result.rows[0]) : null;
+    },
+
+    async markTenantInvitationUsed(invitationId: string): Promise<void> {
+      await client.query(
+        `update tenant_invitations
+         set used_at = now()
+         where id = $1`,
+        [invitationId]
+      );
+    },
+
+    async linkTenantAuthUser(
+      tenantId: string,
+      organizationId: string,
+      authUserId: string,
+      phone: string | null
+    ): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `update tenants
+         set auth_user_id = $1,
+             phone = coalesce($2, phone)
+         where id = $3 and organization_id = $4 and auth_user_id is null
+         returning id, organization_id, auth_user_id, full_name, email, phone, created_at`,
+        [authUserId, phone, tenantId, organizationId]
+      );
+
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
     },
 
     async createLease(input: CreateLeaseRecordInput): Promise<Lease> {
@@ -180,6 +357,31 @@ export function createPostgresTenantLeaseRepository(
         [organizationId]
       );
       return result.rows.map(mapLeaseWithTenant);
+    },
+
+    async getCurrentLeaseByTenantAuthUserId(
+      tenantAuthUserId: string,
+      organizationId: string
+    ): Promise<LeaseWithTenantView | null> {
+      const result = await client.query<LeaseWithTenantRow>(
+        `select
+           l.id, l.organization_id, l.unit_id, l.tenant_id,
+           l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code, l.status, l.created_at,
+           t.full_name  as tenant_full_name,
+           t.email      as tenant_email
+         from leases l
+         join tenants t on t.id = l.tenant_id
+         where t.auth_user_id = $1
+           and l.organization_id = $2
+           and l.status in ('active', 'pending')
+         order by
+           case when l.status = 'active' then 0 else 1 end,
+           l.start_date desc
+         limit 1`,
+        [tenantAuthUserId, organizationId]
+      );
+
+      return result.rows[0] ? mapLeaseWithTenant(result.rows[0]) : null;
     },
 
     async listTenantsByOrganization(organizationId: string): Promise<Tenant[]> {

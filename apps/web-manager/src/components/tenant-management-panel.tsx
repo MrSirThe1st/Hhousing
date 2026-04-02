@@ -23,8 +23,35 @@ export default function TenantManagementPanel({
   const router = useRouter();
   const [tenantForm, setTenantForm] = useState<TenantFormState>(INITIAL_TENANT_FORM);
   const [busy, setBusy] = useState(false);
+  const [inviteBusyTenantId, setInviteBusyTenantId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activationLink, setActivationLink] = useState<string | null>(null);
+
+  async function handleCreateInvitation(tenant: Tenant): Promise<void> {
+    setInviteBusyTenantId(tenant.id);
+    setMessage(null);
+    setError(null);
+    setActivationLink(null);
+
+    const result = await postWithAuth<{
+      invitationId: string;
+      tenantId: string;
+      email: string;
+      expiresAtIso: string;
+      activationLink: string;
+    }>(`/api/tenants/${tenant.id}/invite`, {});
+
+    if (!result.success) {
+      setError(result.error);
+      setInviteBusyTenantId(null);
+      return;
+    }
+
+    setMessage(`Invitation générée pour ${tenant.fullName}.`);
+    setActivationLink(result.data.activationLink);
+    setInviteBusyTenantId(null);
+  }
 
   async function handleCreateTenant(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -60,6 +87,11 @@ export default function TenantManagementPanel({
       {message ? (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {message}
+          {activationLink ? (
+            <div className="mt-2 break-all">
+              <span className="font-medium">Lien d&apos;activation:</span> {activationLink}
+            </div>
+          ) : null}
         </div>
       ) : null}
       {error ? (
@@ -126,13 +158,22 @@ export default function TenantManagementPanel({
                   <td className="px-4 py-3 text-gray-500">
                     {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
                   </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/dashboard/tenants/${tenant.id}`}
-                      className="text-[#0063fe] hover:underline text-sm font-medium"
-                    >
+                  <td className="px-4 py-3 space-x-3">
+                    <Link href={`/dashboard/tenants/${tenant.id}`} className="text-[#0063fe] hover:underline text-sm font-medium">
                       Voir détails
                     </Link>
+                    {tenant.email && !tenant.authUserId ? (
+                      <button
+                        type="button"
+                        disabled={inviteBusyTenantId === tenant.id}
+                        onClick={() => {
+                          void handleCreateInvitation(tenant);
+                        }}
+                        className="text-sm font-medium text-[#010a19] hover:underline disabled:opacity-50"
+                      >
+                        {inviteBusyTenantId === tenant.id ? "Création..." : "Créer invitation"}
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}

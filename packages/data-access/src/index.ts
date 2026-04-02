@@ -29,6 +29,9 @@ export {
 export type {
   CreateTenantRecordInput,
   CreateLeaseRecordInput,
+  CreateTenantInvitationRecordInput,
+  TenantInvitationRecord,
+  TenantInvitationPreviewRecord,
   TenantLeaseRepository
 } from "./leases/tenant-lease-record.types";
 export type { TenantLeaseQueryable } from "./leases/postgres-tenant-lease.repository";

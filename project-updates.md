@@ -3,6 +3,24 @@
 Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-02
+- Change type: API + Infra
+- Description: Stabilized invite-activation slice quality gates. Updated invitation route unit tests (`/api/mobile/invitations/validate`, `/api/mobile/invitations/accept`, `/api/tenants/[id]/invite`) to mock shared repository factories so tests do not instantiate real Postgres dependencies in Vitest. Updated lease service tests to include newly required tenant-invitation repository methods in mocked `TenantLeaseRepository` objects. Added root pnpm override to pin `@types/react` to `19.0.14` and remove cross-workspace React type splits that were breaking web-manager typecheck/build.
+- Impact: Invite activation and lease test coverage now runs fully isolated from DB env (`DATABASE_URL` no longer required for these unit tests). Workspace type system is consistent across web and mobile package installs, eliminating React namespace incompatibility errors during Next.js type validation.
+- Tests: `pnpm typecheck` ✓, `pnpm test` ✓ (46 tests), `pnpm build` ✓.
+
+## 2026-04-02
+- Change type: Mobile + API
+- Description: Implemented Slice 5 item 3 (tenant lease read). Added tenant-only endpoint `GET /api/mobile/lease` in web-manager using bearer-token session extraction (`extractAuthSessionFromRequest`) and strict tenant-role guard (`requireTenantSession`). Extended `TenantLeaseRepository` with `getCurrentLeaseByTenantAuthUserId(...)` and implemented Postgres query selecting the latest active/pending lease for the authenticated tenant within organization scope. Mobile app `/(tabs)/lease` now calls this endpoint and renders loading, error (with retry), empty (no active lease), and data states.
+- Impact: Tenant mobile app now has real lease read functionality wired end-to-end from mobile UI to API and DB repository layer, with role-safe access boundaries.
+- Tests: Added route tests for `/api/mobile/lease` (unauthenticated, non-tenant forbidden, success) and updated lease service test mocks for expanded repository interface. Gates passing: `pnpm typecheck`, `pnpm -C apps/mobile-tenant typecheck`, `pnpm test`, `pnpm build`.
+
+## 2026-04-02
+- Change type: Mobile + Infra
+- Description: Scaffolded `apps/mobile-tenant` Slice 5 foundation and auth base with Expo + Expo Router. Added package setup (`package.json`, `app.json`, `babel.config.js`, `tsconfig.json`, `expo-env.d.ts`) and route structure: auth login (`/(auth)/login`) and guarded tabs (`Accueil`, `Bail`, `Maintenance`, `Paiements`, `Compte`). Implemented mobile auth context with Supabase session bootstrap, auth state listener, sign-in/sign-out methods, and route-guard redirects in root layout. Added env/config modules (`src/lib/env.ts`, `src/lib/supabase.ts`) plus typed API client seed (`src/lib/api-client.ts`) for next slices.
+- Impact: Tenant mobile app now has a real runnable shell with persistent authentication and protected navigation, ready to plug lease/maintenance/payments read/write APIs in follow-up slices.
+- Tests: Typecheck deferred until dependencies are installed in `apps/mobile-tenant` (`tsc` missing before install).
+
+## 2026-04-02
 - Change type: API + Frontend + Authorization
 - Description: Implemented permission guards for payments and maintenance verticals (same pattern as leases). Payments: RECORD_PAYMENT on create/mark-paid/generate, VIEW_PAYMENTS on list/detail. Maintenance: MANAGE_MAINTENANCE on create, VIEW_MAINTENANCE on list/detail, UPDATE_MAINTENANCE_STATUS on patch. All route handlers and dashboard pages wired with `createTeamFunctionsRepo()`. Added `getMembershipById` to `AuthRepository` interface and `PostgresAuthRepository`. Added `updateMemberFunctions` service + `PATCH /api/organizations/members/:id/functions` endpoint to reassign functions for existing property_manager members. Team management panel updated with inline "Éditer" button per property_manager row and inline checkbox editor with save/cancel.
 - Impact: Payments and maintenance operations now enforce function-based access. Team leads can update a member's assigned functions post-invite without reinviting.

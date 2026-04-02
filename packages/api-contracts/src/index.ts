@@ -10,6 +10,14 @@ export type {
 } from "./auth/memberships.types";
 export { parseInvitePropertyManagerInput, parseLookupUserByEmailInput } from "./auth/memberships.validation";
 export type {
+  CreateTenantInvitationOutput,
+  TenantInvitationPreview,
+  ValidateTenantInvitationOutput,
+  AcceptTenantInvitationInput,
+  AcceptTenantInvitationOutput
+} from "./auth/tenant-invitations.types";
+export { parseAcceptTenantInvitationInput } from "./auth/tenant-invitations.validation";
+export type {
   CreateOperatorAccountInput,
   CreateOperatorAccountOutput,
   OperatorAccountType
