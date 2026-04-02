@@ -141,6 +141,24 @@ export function createPostgresPaymentRepository(
       return result.rows.map(mapPayment);
     },
 
+    async listPaymentsByTenantAuthUserId(
+      tenantAuthUserId: string,
+      organizationId: string
+    ): Promise<Payment[]> {
+      const result = await client.query<PaymentRow>(
+        `select
+           p.id, p.organization_id, p.lease_id, p.tenant_id,
+           p.amount, p.currency_code, p.due_date, p.paid_date, p.status, p.note, p.charge_period, p.created_at
+         from payments p
+         join tenants t on t.id = p.tenant_id
+         where t.auth_user_id = $1 and p.organization_id = $2
+         order by p.due_date desc
+         limit 100`,
+        [tenantAuthUserId, organizationId]
+      );
+      return result.rows.map(mapPayment);
+    },
+
     async getPaymentById(paymentId: string, organizationId: string): Promise<Payment | null> {
       const result = await client.query<PaymentRow>(
         `select
