@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/leases", label: "Baux", icon: "📄" },
   { href: "/dashboard/payments", label: "Paiements", icon: "💰" },
   { href: "/dashboard/maintenance", label: "Maintenance", icon: "🔧" },
+  { href: "/dashboard/messages", label: "Messages", icon: "💬" },
   { href: "/dashboard/documents", label: "Documents", icon: "📎" },
   { href: "/dashboard/team", label: "Équipe", icon: "👥" },
 ];

@@ -35,6 +35,7 @@ interface SubmitMaintenanceBody {
   title: string;
   description: string;
   priority: string;
+  photoUrls: string[];
 }
 
 function parseSubmitBody(
@@ -51,7 +52,9 @@ function parseSubmitBody(
   const rawPriority = typeof obj.priority === "string" ? obj.priority : "medium";
   const validPriorities = ["low", "medium", "high", "urgent"];
   const priority = validPriorities.includes(rawPriority) ? rawPriority : "medium";
-  return { success: true, data: { title, description, priority } };
+  const rawPhotos = Array.isArray(obj.photoUrls) ? obj.photoUrls : [];
+  const photoUrls = rawPhotos.filter((u): u is string => typeof u === "string").slice(0, 10);
+  return { success: true, data: { title, description, priority, photoUrls } };
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -92,7 +95,8 @@ export async function POST(request: Request): Promise<Response> {
       tenantId: lease.tenantId,
       title: parsed.data.title,
       description: parsed.data.description,
-      priority: parsed.data.priority
+      priority: parsed.data.priority,
+      photoUrls: parsed.data.photoUrls
     });
 
     return jsonResponse(201, {

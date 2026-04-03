@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { MaintenanceRequest, MaintenanceTimelineEvent } from "@hhousing/domain";
 import type { ApiResult } from "@hhousing/api-contracts";
@@ -142,6 +142,26 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
             <View style={styles.resolutionSection}>
               <Text style={styles.fieldLabel}>Résolution</Text>
               <Text style={styles.resolutionNotes}>{request.resolutionNotes}</Text>
+            </View>
+          ) : null}
+
+          {request.photoUrls.length > 0 ? (
+            <View style={styles.photosSection}>
+              <Text style={styles.fieldLabel}>Photos</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.photosRow}
+              >
+                {request.photoUrls.map((url) => (
+                  <Pressable
+                    key={url}
+                    onPress={() => { void Linking.openURL(url); }}
+                  >
+                    <Image source={{ uri: url }} style={styles.photoThumb} />
+                  </Pressable>
+                ))}
+              </ScrollView>
             </View>
           ) : null}
         </View>
@@ -403,5 +423,13 @@ const styles = StyleSheet.create({
     color: "#374151",
     fontWeight: "600",
     fontSize: 14
+  },
+  photosSection: { marginTop: 12 },
+  photosRow: { gap: 10, paddingVertical: 4 },
+  photoThumb: {
+    width: 90,
+    height: 90,
+    borderRadius: 8,
+    backgroundColor: "#F3F4F6"
   }
 });

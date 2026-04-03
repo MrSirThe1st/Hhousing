@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,9 +10,11 @@ import {
   View
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import type { MaintenanceRequest, MaintenancePriority } from "@hhousing/domain";
 import type { ApiResult } from "@hhousing/api-contracts";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
+import { supabase } from "@/lib/supabase";
 import { ScreenShell } from "@/components/screen-shell";
 
 type MobileMaintenanceOutput = { requests: MaintenanceRequest[] };
@@ -51,8 +54,54 @@ export default function MaintenanceScreen(): React.ReactElement {
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formPriority, setFormPriority] = useState<MaintenancePriority>("medium");
+  const [formPhotos, setFormPhotos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const pickPhoto = useCallback(async (): Promise<void> => {
+    if (formPhotos.length >= 4) {
+      setSubmitError("Maximum 4 photos autorisées.");
+      return;
+    }
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      setSubmitError("Accès à la galerie refusé.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      allowsMultipleSelection: false
+    });
+    if (!result.canceled && result.assets[0]) {
+      setFormPhotos((prev) => [...prev, result.assets[0].uri]);
+    }
+  }, [formPhotos.length]);
+
+  const removePhoto = useCallback((uri: string): void => {
+    setFormPhotos((prev) => prev.filter((p) => p !== uri));
+  }, []);
+
+  const uploadPhotos = useCallback(async (): Promise<string[]> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return [];
+
+    const urls: string[] = [];
+    for (const uri of formPhotos) {
+      const ext = uri.split(".").pop() ?? "jpg";
+      const path = `${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const { error } = await supabase.storage
+        .from("maintenance-photos")
+        .upload(path, blob, { contentType: `image/${ext}`, upsert: false });
+      if (!error) {
+        const { data } = supabase.storage.from("maintenance-photos").getPublicUrl(path);
+        urls.push(data.publicUrl);
+      }
+    }
+    return urls;
+  }, [formPhotos]);
 
   const loadRequests = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -78,9 +127,10 @@ export default function MaintenanceScreen(): React.ReactElement {
     }
     setIsSubmitting(true);
     setSubmitError(null);
+    const photoUrls = await uploadPhotos();
     const result: ApiResult<MobileCreateOutput> = await postWithAuth<MobileCreateOutput>(
       "/api/mobile/maintenance",
-      { title: formTitle.trim(), description: formDescription.trim(), priority: formPriority }
+      { title: formTitle.trim(), description: formDescription.trim(), priority: formPriority, photoUrls }
     );
     setIsSubmitting(false);
     if (!result.success) {
@@ -90,9 +140,10 @@ export default function MaintenanceScreen(): React.ReactElement {
       setFormTitle("");
       setFormDescription("");
       setFormPriority("medium");
+      setFormPhotos([]);
       setView("list");
     }
-  }, [formTitle, formDescription, formPriority]);
+  }, [formTitle, formDescription, formPriority, uploadPhotos]);
 
   if (view === "form") {
     return (
@@ -137,6 +188,29 @@ export default function MaintenanceScreen(): React.ReactElement {
               </Pressable>
             ))}
           </View>
+
+          <Text style={styles.label}>Photos (optionnel, max 4)</Text>
+          {formPhotos.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.photoRow}
+            >
+              {formPhotos.map((uri) => (
+                <View key={uri} style={styles.photoThumb}>
+                  <Image source={{ uri }} style={styles.thumbImage} />
+                  <Pressable style={styles.removePhoto} onPress={() => { removePhoto(uri); }}>
+                    <Text style={styles.removePhotoText}>✕</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+          {formPhotos.length < 4 ? (
+            <Pressable style={styles.addPhotoBtn} onPress={() => { void pickPhoto(); }}>
+              <Text style={styles.addPhotoBtnText}>+ Ajouter une photo</Text>
+            </Pressable>
+          ) : null}
 
           {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
 
@@ -211,8 +285,8 @@ function MaintenanceCard({
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle} numberOfLines={2}>{request.title}</Text>
-          <View style={[styles.badge, { backgroundColor: STATUS_COLOR[request.status] + "20" }]}>
-            <Text style={[styles.badgeText, { color: STATUS_COLOR[request.status] }]}>
+          <View style={[styles.badge, { backgroundColor: STATUS_COLOR[request.status] + "20" }]}> 
+            <Text style={[styles.badgeText, { color: STATUS_COLOR[request.status] }]}> 
               {STATUS_LABEL[request.status]}
             </Text>
           </View>
@@ -288,5 +362,19 @@ const styles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1, borderColor: "#D1D5DB",
     paddingVertical: 12, alignItems: "center", marginTop: 10, marginBottom: 30
   },
-  cancelBtnText: { color: "#374151", fontWeight: "600", fontSize: 15 }
+  cancelBtnText: { color: "#374151", fontWeight: "600", fontSize: 15 },
+  photoRow: { gap: 10, paddingVertical: 4 },
+  photoThumb: { position: "relative", width: 80, height: 80 },
+  thumbImage: { width: 80, height: 80, borderRadius: 8, backgroundColor: "#F3F4F6" },
+  removePhoto: {
+    position: "absolute", top: -6, right: -6,
+    backgroundColor: "#EF4444", borderRadius: 10, width: 20, height: 20,
+    alignItems: "center", justifyContent: "center"
+  },
+  removePhotoText: { color: "#ffffff", fontSize: 10, fontWeight: "700" },
+  addPhotoBtn: {
+    borderWidth: 1, borderColor: "#D1D5DB", borderStyle: "dashed", borderRadius: 10,
+    paddingVertical: 10, alignItems: "center", marginTop: 4
+  },
+  addPhotoBtnText: { color: "#6B7280", fontSize: 14 }
 });

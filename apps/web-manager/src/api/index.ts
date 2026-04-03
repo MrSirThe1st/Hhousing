@@ -114,3 +114,21 @@ export {
   type DeleteDocumentRequest,
   type DeleteDocumentResponse
 } from "./documents/document";
+export {
+  listManagerConversations,
+  getManagerConversationDetail,
+  startManagerConversation,
+  sendManagerMessage,
+  type ListManagerConversationsDeps,
+  type ListManagerConversationsRequest,
+  type ListManagerConversationsResponse,
+  type GetManagerConversationDetailDeps,
+  type GetManagerConversationDetailRequest,
+  type GetManagerConversationDetailResponse,
+  type StartManagerConversationDeps,
+  type StartManagerConversationRequest,
+  type StartManagerConversationResponse,
+  type SendManagerMessageDeps,
+  type SendManagerMessageRequest,
+  type SendManagerMessageResponse
+} from "./messages/message";

@@ -9,6 +9,7 @@ export interface CreateMaintenanceRequestRecordInput {
   title: string;
   description: string;
   priority: string;
+  photoUrls?: string[];
 }
 
 export interface UpdateMaintenanceRequestRecordInput {

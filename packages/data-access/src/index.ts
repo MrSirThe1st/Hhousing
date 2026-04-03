@@ -64,4 +64,14 @@ export type {
   DocumentRepository
 } from "./documents/document-record.types";
 export type { DocumentQueryable } from "./documents/postgres-document.repository";
+export {
+  createPostgresMessageRepository,
+  createMessageRepositoryFromEnv
+} from "./messages/postgres-message.repository";
+export type {
+  MessageRepository,
+  StartManagerConversationRecordInput,
+  SendManagerMessageRecordInput
+} from "./messages/message-record.types";
+export type { MessageQueryable } from "./messages/postgres-message.repository";
 export { TeamFunctionsRepository, createTeamFunctionsRepositoryFromEnv } from "./auth/team-functions.repository";

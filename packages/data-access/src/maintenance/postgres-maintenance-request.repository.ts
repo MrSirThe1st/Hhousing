@@ -21,6 +21,7 @@ interface MaintenanceRequestRow extends QueryResultRow {
   internal_notes: string | null;
   resolution_notes: string | null;
   resolved_at: Date | string | null;
+  photo_urls: string[] | null;
   updated_at: Date | string;
   created_at: Date | string;
 }
@@ -55,6 +56,7 @@ function mapMaintenanceRequest(row: MaintenanceRequestRow): MaintenanceRequest {
     internalNotes: row.internal_notes,
     resolutionNotes: row.resolution_notes,
     resolvedAt: row.resolved_at ? toIso(row.resolved_at) : null,
+    photoUrls: row.photo_urls ?? [],
     updatedAtIso: toIso(row.updated_at),
     createdAtIso: toIso(row.created_at)
   };
@@ -101,13 +103,13 @@ export function createPostgresMaintenanceRequestRepository(
       const result = await client.query<MaintenanceRequestRow>(
         `insert into maintenance_requests (
           id, organization_id, unit_id, tenant_id,
-          title, description, priority
-        ) values ($1, $2, $3, $4, $5, $6, $7)
+          title, description, priority, photo_urls
+        ) values ($1, $2, $3, $4, $5, $6, $7, $8)
         returning
           id, organization_id, unit_id, tenant_id,
           title, description, priority, status,
           assigned_to_name, internal_notes, resolution_notes,
-          resolved_at, updated_at, created_at`,
+          resolved_at, photo_urls, updated_at, created_at`,
         [
           input.id,
           input.organizationId,
@@ -115,7 +117,8 @@ export function createPostgresMaintenanceRequestRepository(
           input.tenantId,
           input.title,
           input.description,
-          input.priority
+          input.priority,
+          input.photoUrls ?? []
         ]
       );
       const created = mapMaintenanceRequest(result.rows[0]);
@@ -139,7 +142,7 @@ export function createPostgresMaintenanceRequestRepository(
            id, organization_id, unit_id, tenant_id,
            title, description, priority, status,
            assigned_to_name, internal_notes, resolution_notes,
-           resolved_at, updated_at, created_at
+           resolved_at, photo_urls, updated_at, created_at
          from maintenance_requests
          where id = $1 and organization_id = $2`,
         [input.requestId, input.organizationId]
@@ -169,7 +172,7 @@ export function createPostgresMaintenanceRequestRepository(
            id, organization_id, unit_id, tenant_id,
            title, description, priority, status,
            assigned_to_name, internal_notes, resolution_notes,
-           resolved_at, updated_at, created_at`,
+           resolved_at, photo_urls, updated_at, created_at`,
         [
           nextStatus,
           nextAssignedToName,
@@ -269,7 +272,7 @@ export function createPostgresMaintenanceRequestRepository(
            id, organization_id, unit_id, tenant_id,
             title, description, priority, status,
             assigned_to_name, internal_notes, resolution_notes,
-            resolved_at, updated_at, created_at
+            resolved_at, photo_urls, updated_at, created_at
          from maintenance_requests
          where ${where}
          order by created_at desc`,
@@ -287,7 +290,7 @@ export function createPostgresMaintenanceRequestRepository(
            id, organization_id, unit_id, tenant_id,
            title, description, priority, status,
            assigned_to_name, internal_notes, resolution_notes,
-           resolved_at, updated_at, created_at
+           resolved_at, photo_urls, updated_at, created_at
          from maintenance_requests
          where id = $1 and organization_id = $2`,
         [requestId, organizationId]
@@ -327,7 +330,7 @@ export function createPostgresMaintenanceRequestRepository(
            mr.id, mr.organization_id, mr.unit_id, mr.tenant_id,
            mr.title, mr.description, mr.priority, mr.status,
            mr.assigned_to_name, mr.internal_notes, mr.resolution_notes,
-           mr.resolved_at, mr.updated_at, mr.created_at
+           mr.resolved_at, mr.photo_urls, mr.updated_at, mr.created_at
          from maintenance_requests mr
          join tenants t on t.id = mr.tenant_id
          where t.auth_user_id = $1 and mr.organization_id = $2

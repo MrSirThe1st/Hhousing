@@ -92,6 +92,22 @@ export {
   listDocumentsFilterSchema,
   deleteDocumentInputSchema
 } from "./documents/document.validation";
+export type {
+  ListManagerConversationsFilter,
+  ManagerConversationListItem,
+  ListManagerConversationsOutput,
+  ManagerConversationContext,
+  GetManagerConversationDetailOutput,
+  StartManagerConversationInput,
+  StartManagerConversationOutput,
+  SendManagerMessageInput,
+  SendManagerMessageOutput
+} from "./messages/message.types";
+export {
+  parseListManagerConversationsFilter,
+  parseStartManagerConversationInput,
+  parseSendManagerMessageInput
+} from "./messages/message.validation";
 export {
   Permission,
   TeamFunctionCode,

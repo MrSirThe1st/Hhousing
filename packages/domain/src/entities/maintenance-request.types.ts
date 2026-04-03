@@ -14,6 +14,7 @@ export interface MaintenanceRequest {
   internalNotes: string | null;
   resolutionNotes: string | null;
   resolvedAt: string | null; // ISO datetime
+  photoUrls: string[];
   updatedAtIso: string;
   createdAtIso: string;
 }

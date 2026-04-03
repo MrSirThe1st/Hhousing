@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import type { Payment } from "@hhousing/domain";
 import type { ApiResult } from "@hhousing/api-contracts";
 import { getWithAuth } from "@/lib/api-client";
@@ -76,6 +77,7 @@ export default function PaymentsScreen(): React.ReactElement {
 }
 
 function PaymentRow({ payment }: { payment: Payment }): React.ReactElement {
+  const router = useRouter();
   const formatted = new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: payment.currencyCode,
@@ -98,6 +100,14 @@ function PaymentRow({ payment }: { payment: Payment }): React.ReactElement {
       </Text>
       {payment.paidDate ? (
         <Text style={styles.paidDate}>Payé le {payment.paidDate}</Text>
+      ) : null}
+      {payment.status === "paid" ? (
+        <Pressable
+          style={styles.receiptLink}
+          onPress={() => { router.push("/(tabs)/documents"); }}
+        >
+          <Text style={styles.receiptLinkText}>Voir les reçus →</Text>
+        </Pressable>
       ) : null}
     </View>
   );
@@ -127,5 +137,7 @@ const styles = StyleSheet.create({
   badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 12, fontWeight: "600" },
   meta: { fontSize: 13, color: "#6B7280" },
-  paidDate: { fontSize: 12, color: "#16A34A" }
+  paidDate: { fontSize: 12, color: "#16A34A" },
+  receiptLink: { alignSelf: "flex-start", marginTop: 6 },
+  receiptLinkText: { fontSize: 12, color: "#2563EB", fontWeight: "600" }
 });

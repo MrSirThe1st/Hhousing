@@ -38,27 +38,32 @@ export default function HomeScreen(): React.ReactElement {
     setIsLoading(true);
     setError(null);
 
-    const [leaseRes, paymentsRes] = await Promise.all([
-      getWithAuth<LeaseOutput>("/api/mobile/lease"),
-      getWithAuth<PaymentsOutput>("/api/mobile/payments")
-    ]);
+    try {
+      const [leaseRes, paymentsRes] = await Promise.all([
+        getWithAuth<LeaseOutput>("/api/mobile/lease"),
+        getWithAuth<PaymentsOutput>("/api/mobile/payments")
+      ]);
 
-    if (!leaseRes.success) {
-      setError(leaseRes.error);
-      return;
+      if (!leaseRes.success) {
+        setError(leaseRes.error);
+        setData({ lease: null, nextPayment: null });
+        return;
+      }
+
+      if (!paymentsRes.success) {
+        setError(paymentsRes.error);
+        setData({ lease: null, nextPayment: null });
+        return;
+      }
+
+      const nextPayment = paymentsRes.data.payments[0] ?? null;
+      setData({
+        lease: leaseRes.data.lease,
+        nextPayment
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    if (!paymentsRes.success) {
-      setError(paymentsRes.error);
-      return;
-    }
-
-    const nextPayment = paymentsRes.data.payments[0] ?? null;
-    setData({
-      lease: leaseRes.data.lease,
-      nextPayment
-    });
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {

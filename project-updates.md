@@ -2,6 +2,38 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-03
+- Change type: Messaging + DB + API + Frontend
+- Description: Implemented manager-side messaging v1 across schema, contracts, repositories, routes, services, tests, and dashboard UI. Added migration `0013_init_conversations_messages.sql` with `conversations` + `messages` tables (org-scoped), sender-side constraint, and indexes. Enforced one conversation per `(organization_id, tenant_id, unit_id)` and create-on-first-outbound-message via upsert in repository. Added manager inbox APIs: `GET/POST /api/messages/conversations`, `GET /api/messages/conversations/[id]`, `POST /api/messages/conversations/[id]/messages`. Added manager dashboard page `/dashboard/messages` + `MessagingManagementPanel` with search, property filter, conversation list sorting, thread view, context panel, and send/start actions. Added manager unread model using `manager_last_read_at` and tenant-authored message timestamps only.
+- Impact: Managers now have a functional tenant messaging inbox with scoped conversations, quick context, and deterministic unread behavior per approved v1 constraints.
+- Notes: Current slice is manager-side only; tenant-side UI/routes are next.
+- Tests: `pnpm typecheck` ✓, `pnpm test` ✓ (23 files / 73 tests), `pnpm lint` ✓, `pnpm build` ✓.
+
+## 2026-04-03
+- Change type: Mobile + DB + API
+- Description: Implemented maintenance photo upload and payment receipt navigation. Added `photo_urls text[]` column to `maintenance_requests` (migration `0012_maintenance_photo_urls.sql`). Extended `MaintenanceRequest` domain entity with `photoUrls: string[]`. Updated all SELECT/INSERT queries in the Postgres maintenance repository. Updated `POST /api/mobile/maintenance` to accept and store `photoUrls[]` (capped at 10, validated as strings). Mobile create form now supports picking up to 4 images via `expo-image-picker`, uploads them directly to Supabase Storage `maintenance-photos` bucket before submission, and shows a deletable thumbnail strip. Maintenance detail screen renders photo thumbnails that open full image on tap. Paid payment rows now show a "Voir les reçus →" link that navigates to the Documents tab.
+- Impact: Tenants can attach visual evidence to maintenance requests. Documents tab accessible from paid payments for receipt lookup.
+- Notes: Requires a `maintenance-photos` Supabase Storage bucket (public read, authenticated write).
+- Tests: `pnpm typecheck` ✓, `pnpm -C apps/mobile-tenant typecheck` ✓, `pnpm test` ✓ (64 tests), `pnpm build` ✓.
+
+## 2026-04-03
+- Change type: Mobile + Infra
+- Description: Made tenant mobile API base URL auto-resolve in dev by Expo host/platform, so no manual `.env` API URL switching. `EXPO_PUBLIC_API_BASE_URL` remains supported as explicit override and remains required outside dev.
+- Impact: `apps/mobile-tenant/src/lib/env.ts` now resolves `apiBaseUrl` in order: explicit env -> Expo host URI -> platform fallback (`10.0.2.2` on Android emulator, `127.0.0.1` on others). `apps/mobile-tenant/.env` no longer hardcodes a local API URL.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-04-03
+- Change type: Mobile + Infra
+- Description: Fixed tenant mobile runtime regressions after the maintenance detail slice. Hardened the mobile API client to return structured failures on network/non-JSON server errors instead of throwing unhandled fetch exceptions. Fixed home dashboard to exit loading state when lease/payments requests fail. Restructured maintenance routes from a conflicting `maintenance.tsx` + `maintenance/[id].tsx` shape to a nested Expo Router stack (`maintenance/index.tsx`, `maintenance/[id].tsx`, `maintenance/_layout.tsx`) so the tab no longer lands on the detail screen with a missing id.
+- Impact: Mobile tabs now fail visibly instead of hanging, and the maintenance tab opens its list screen correctly. Server reachability issues now surface as an explicit API/network error message in-app.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓, `pnpm build` ✓, `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-04-03
+- Change type: Mobile + API
+- Description: Implemented tenant documents read flow. Added tenant-only endpoint `GET /api/mobile/documents` in web-manager using bearer-token session extraction and lease-scoped document visibility. The route resolves the authenticated tenant's current lease, combines lease-attached and tenant-attached documents, deduplicates, sorts by newest first, and returns a mobile-safe document list. Added mobile tenant `Documents` tab with type filters, loading/error/empty states, and tap-to-open document links.
+- Impact: Tenant mobile app now exposes lease agreements, receipts, and notices as a real read surface instead of a missing tab. Documents remain scoped to the authenticated tenant's current lease context.
+- Tests: Added route tests for `/api/mobile/documents` (unauthenticated, forbidden, no active lease, success). Full gates pending current run.
+
 ## 2026-04-02
 - Change type: API + Infra
 - Description: Stabilized invite-activation slice quality gates. Updated invitation route unit tests (`/api/mobile/invitations/validate`, `/api/mobile/invitations/accept`, `/api/tenants/[id]/invite`) to mock shared repository factories so tests do not instantiate real Postgres dependencies in Vitest. Updated lease service tests to include newly required tenant-invitation repository methods in mocked `TenantLeaseRepository` objects. Added root pnpm override to pin `@types/react` to `19.0.14` and remove cross-workspace React type splits that were breaking web-manager typecheck/build.
