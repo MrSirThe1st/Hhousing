@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getScopedPortfolioDataMock,
   getPaymentByIdMock,
   markPaymentPaidMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   getPaymentByIdMock: vi.fn(),
   markPaymentPaidMock: vi.fn()
 }));
@@ -39,11 +41,24 @@ vi.mock("../../shared", async () => {
   };
 });
 
+vi.mock("../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/payments/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "owned",
+      properties: [],
+      propertyIds: new Set(),
+      unitIds: new Set(),
+      leases: [],
+      leaseIds: new Set(["lease-1"]),
+      tenantIds: new Set()
+    });
   });
 
   it("rejects tenant-role access on get", async () => {
@@ -77,6 +92,7 @@ describe("/api/payments/[id]", () => {
 
     getPaymentByIdMock.mockResolvedValue({
       id: "payment-1",
+      leaseId: "lease-1",
       status: "pending"
     });
 
@@ -89,6 +105,7 @@ describe("/api/payments/[id]", () => {
       success: true,
       data: {
         id: "payment-1",
+        leaseId: "lease-1",
         status: "pending"
       }
     });
@@ -101,6 +118,12 @@ describe("/api/payments/[id]", () => {
       role: "manager",
       organizationId: "org-1",
       membershipId: "membership-1"
+    });
+
+    getPaymentByIdMock.mockResolvedValue({
+      id: "payment-1",
+      leaseId: "lease-1",
+      status: "pending"
     });
 
     markPaymentPaidMock.mockResolvedValue({

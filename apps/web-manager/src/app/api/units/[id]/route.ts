@@ -1,5 +1,6 @@
 import type { ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../../shared";
 
@@ -67,7 +68,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(session);
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
@@ -82,6 +84,15 @@ export async function GET(
     const unit = await repositoryResult.data.getUnitById(id, access.data.organizationId);
 
     if (!unit) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Unit not found"
+      });
+    }
+
+    const scopedPortfolio = await getScopedPortfolioData(access.data);
+    if (!scopedPortfolio.unitIds.has(unit.id)) {
       return jsonResponse(404, {
         success: false,
         code: "NOT_FOUND",
@@ -108,7 +119,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(session);
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
@@ -136,6 +148,24 @@ export async function PATCH(
   }
 
   try {
+    const existingUnit = await repositoryResult.data.getUnitById(id, access.data.organizationId);
+    if (!existingUnit) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Unit not found"
+      });
+    }
+
+    const scopedPortfolio = await getScopedPortfolioData(access.data);
+    if (!scopedPortfolio.unitIds.has(existingUnit.id) || !scopedPortfolio.propertyIds.has(parsed.data.propertyId)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Unit not found"
+      });
+    }
+
     const unit = await repositoryResult.data.updateUnit({
       id,
       organizationId: access.data.organizationId,
@@ -173,7 +203,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(session);
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
@@ -185,6 +216,24 @@ export async function DELETE(
   }
 
   try {
+    const unit = await repositoryResult.data.getUnitById(id, access.data.organizationId);
+    if (!unit) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Unit not found"
+      });
+    }
+
+    const scopedPortfolio = await getScopedPortfolioData(access.data);
+    if (!scopedPortfolio.unitIds.has(unit.id)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Unit not found"
+      });
+    }
+
     const deleted = await repositoryResult.data.deleteUnit(id, access.data.organizationId);
 
     if (!deleted) {

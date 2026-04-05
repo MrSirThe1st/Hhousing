@@ -104,7 +104,7 @@ function PaymentRow({ payment }: { payment: Payment }): React.ReactElement {
       {payment.status === "paid" ? (
         <Pressable
           style={styles.receiptLink}
-          onPress={() => { router.push("/(tabs)/documents"); }}
+          onPress={() => { router.push("/(tabs)/account/documents"); }}
         >
           <Text style={styles.receiptLinkText}>Voir les reçus →</Text>
         </Pressable>

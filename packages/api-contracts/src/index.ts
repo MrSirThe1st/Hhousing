@@ -28,8 +28,10 @@ export type {
   CreateOrganizationOutput,
   CreatePropertyInput,
   CreatePropertyOutput,
+  CreatePropertyUnitTemplateInput,
   CreateUnitInput,
   CreateUnitOutput,
+  ListPropertiesFilter,
   PropertyWithUnitsView,
   ListPropertiesWithUnitsOutput
 } from "./properties/organization-property-unit.types";
@@ -39,8 +41,17 @@ export {
   parseCreateUnitInput
 } from "./properties/organization-property-unit.validation";
 export type {
+  CreateOwnerClientInput,
+  CreateOwnerClientOutput,
+  ListOwnerClientsOutput
+} from "./properties/owner-client.types";
+export {
+  parseCreateOwnerClientInput
+} from "./properties/owner-client.validation";
+export type {
   CreateTenantInput,
   CreateTenantOutput,
+  CreateLeaseChargeInput,
   CreateLeaseInput,
   CreateLeaseOutput,
   LeaseWithTenantView,
@@ -101,12 +112,19 @@ export type {
   StartManagerConversationInput,
   StartManagerConversationOutput,
   SendManagerMessageInput,
-  SendManagerMessageOutput
+  SendManagerMessageOutput,
+  TenantConversationListItem,
+  ListTenantConversationsOutput,
+  TenantConversationContext,
+  GetTenantConversationDetailOutput,
+  SendTenantMessageInput,
+  SendTenantMessageOutput
 } from "./messages/message.types";
 export {
   parseListManagerConversationsFilter,
   parseStartManagerConversationInput,
-  parseSendManagerMessageInput
+  parseSendManagerMessageInput,
+  parseSendTenantMessageInput
 } from "./messages/message.validation";
 export {
   Permission,

@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getScopedPortfolioDataMock,
   getLeaseByIdMock,
   updateLeaseMock,
   listMemberFunctionsMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   getLeaseByIdMock: vi.fn(),
   updateLeaseMock: vi.fn(),
   listMemberFunctionsMock: vi.fn()
@@ -36,11 +38,24 @@ vi.mock("../../shared", async () => {
   };
 });
 
+vi.mock("../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/leases/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "managed",
+      properties: [],
+      propertyIds: new Set(),
+      unitIds: new Set(["unit-1"]),
+      leases: [],
+      leaseIds: new Set(["lease-1"]),
+      tenantIds: new Set()
+    });
     listMemberFunctionsMock.mockResolvedValue([
       {
         id: "fn-lease",
@@ -96,6 +111,7 @@ describe("/api/leases/[id]", () => {
 
     getLeaseByIdMock.mockResolvedValue({
       id: "lease-1",
+      unitId: "unit-1",
       status: "active"
     });
 
@@ -108,6 +124,7 @@ describe("/api/leases/[id]", () => {
       success: true,
       data: {
         id: "lease-1",
+        unitId: "unit-1",
         status: "active"
       }
     });

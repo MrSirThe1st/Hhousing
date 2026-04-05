@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getScopedPortfolioDataMock,
   getManagerConversationDetailMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   getManagerConversationDetailMock: vi.fn()
 }));
 
@@ -37,11 +39,24 @@ vi.mock("../../../../../api", async () => {
   };
 });
 
+vi.mock("../../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { GET } from "./route";
 
 describe("GET /api/messages/conversations/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "owned",
+      properties: [],
+      propertyIds: new Set(["prop-1"]),
+      unitIds: new Set(["unit-1"]),
+      leases: [],
+      leaseIds: new Set(),
+      tenantIds: new Set(["tenant-1"])
+    });
   });
 
   it("returns 404 when conversation does not exist", async () => {

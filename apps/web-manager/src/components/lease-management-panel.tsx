@@ -31,6 +31,9 @@ export default function LeaseManagementPanel({
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[#010a19]">Baux</h1>
+        <Link href="/dashboard/leases/move-in" className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0]">
+          Move in
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

@@ -74,3 +74,53 @@ export interface SendManagerMessageInput {
 export interface SendManagerMessageOutput {
   message: Message;
 }
+
+export interface TenantConversationListItem {
+  conversationId: string;
+  organizationName: string;
+  propertyId: string;
+  propertyName: string;
+  unitId: string;
+  unitNumber: string;
+  leaseId: string | null;
+  lastMessagePreview: string;
+  lastMessageAtIso: string;
+}
+
+export interface ListTenantConversationsOutput {
+  conversations: TenantConversationListItem[];
+}
+
+export interface TenantConversationContext {
+  unit: {
+    id: string;
+    unitNumber: string;
+    propertyId: string;
+    propertyName: string;
+  };
+  lease: {
+    id: string;
+    startDate: string;
+    endDate: string | null;
+    monthlyRentAmount: number;
+    currencyCode: string;
+    status: LeaseStatus;
+  } | null;
+}
+
+export interface GetTenantConversationDetailOutput {
+  conversation: TenantConversationListItem;
+  messages: Message[];
+  context: TenantConversationContext;
+}
+
+export interface SendTenantMessageInput {
+  conversationId: string;
+  organizationId: string;
+  tenantAuthUserId: string;
+  body: string;
+}
+
+export interface SendTenantMessageOutput {
+  message: Message;
+}

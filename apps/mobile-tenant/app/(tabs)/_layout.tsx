@@ -8,16 +8,14 @@ export default function TabsLayout(): React.ReactElement {
           color: "#010A19",
           fontWeight: "700"
         },
-        tabBarActiveTintColor: "#0063FE",
-        tabBarInactiveTintColor: "#6B7280"
+        tabBarActiveTintColor: "#0063FE"
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Accueil" }} />
-      <Tabs.Screen name="lease" options={{ title: "Bail" }} />
-      <Tabs.Screen name="documents" options={{ title: "Documents" }} />
-      <Tabs.Screen name="maintenance" options={{ title: "Maintenance" }} />
       <Tabs.Screen name="payments" options={{ title: "Paiements" }} />
-      <Tabs.Screen name="account" options={{ title: "Compte" }} />
+      <Tabs.Screen name="maintenance" options={{ title: "Maintenance" }} />
+      <Tabs.Screen name="messages" options={{ title: "Inbox" }} />
+      <Tabs.Screen name="account" options={{ title: "Profil" }} />
     </Tabs>
   );
 }

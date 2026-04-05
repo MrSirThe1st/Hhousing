@@ -122,6 +122,16 @@ export function createPostgresDocumentRepository(
       return result.rows.map(mapDocument);
     },
 
+    async getDocumentById(documentId: string, organizationId: string): Promise<Document | null> {
+      const result = await client.query<DocumentRow>(
+        `select * from documents
+         where id = $1 and organization_id = $2`,
+        [documentId, organizationId]
+      );
+
+      return result.rows[0] ? mapDocument(result.rows[0]) : null;
+    },
+
     async deleteDocument(documentId: string, organizationId: string): Promise<void> {
       await client.query(
         `delete from documents

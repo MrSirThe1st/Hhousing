@@ -1,28 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Tenant } from "@hhousing/domain";
 import { postWithAuth } from "../lib/api-client";
-import type {
-  TenantFormState,
-  TenantManagementPanelProps
-} from "./tenant-management.types";
-
-const INITIAL_TENANT_FORM: TenantFormState = {
-  fullName: "",
-  email: "",
-  phone: ""
-};
+import type { TenantManagementPanelProps } from "./tenant-management.types";
 
 export default function TenantManagementPanel({
   organizationId,
   tenants
 }: TenantManagementPanelProps): React.ReactElement {
-  const router = useRouter();
-  const [tenantForm, setTenantForm] = useState<TenantFormState>(INITIAL_TENANT_FORM);
-  const [busy, setBusy] = useState(false);
   const [inviteBusyTenantId, setInviteBusyTenantId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,31 +40,6 @@ export default function TenantManagementPanel({
     setInviteBusyTenantId(null);
   }
 
-  async function handleCreateTenant(event: React.FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    setBusy(true);
-    setMessage(null);
-    setError(null);
-
-    const result = await postWithAuth<Tenant>("/api/tenants", {
-      organizationId,
-      fullName: tenantForm.fullName.trim(),
-      email: tenantForm.email.trim() || null,
-      phone: tenantForm.phone.trim() || null
-    });
-
-    if (!result.success) {
-      setError(result.error);
-      setBusy(false);
-      return;
-    }
-
-    setTenantForm(INITIAL_TENANT_FORM);
-    setMessage("Locataire créé avec succès.");
-    setBusy(false);
-    router.refresh();
-  }
-
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -100,38 +62,22 @@ export default function TenantManagementPanel({
         </div>
       ) : null}
 
-      <form onSubmit={handleCreateTenant} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-3 max-w-2xl">
-        <h2 className="text-base font-semibold text-[#010a19]">Ajouter un locataire</h2>
-        <input
-          value={tenantForm.fullName}
-          onChange={(event) => setTenantForm((prev) => ({ ...prev, fullName: event.target.value }))}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          placeholder="Nom complet"
-          required
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input
-            value={tenantForm.email}
-            onChange={(event) => setTenantForm((prev) => ({ ...prev, email: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="E-mail"
-            type="email"
-          />
-          <input
-            value={tenantForm.phone}
-            onChange={(event) => setTenantForm((prev) => ({ ...prev, phone: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Téléphone"
-          />
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm max-w-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-[#010a19]">Ajouter un locataire</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Ouvrez un écran dédié pour ajouter un locataire avec ses informations de profil et sa photo.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/tenants/add"
+            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0]"
+          >
+            Ajouter un locataire
+          </Link>
         </div>
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
-        >
-          {busy ? "Création..." : "Créer le locataire"}
-        </button>
-      </form>
+      </div>
 
       {tenants.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-6 text-sm text-gray-400">
@@ -152,7 +98,24 @@ export default function TenantManagementPanel({
             <tbody className="divide-y divide-gray-100">
               {tenants.map((tenant) => (
                 <tr key={tenant.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-[#010a19]">{tenant.fullName}</td>
+                  <td className="px-4 py-3 font-medium text-[#010a19]">
+                    <div className="flex items-center gap-3">
+                      {tenant.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={tenant.photoUrl} alt={tenant.fullName} className="h-9 w-9 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-500">
+                          {tenant.fullName.substring(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div>{tenant.fullName}</div>
+                        {tenant.dateOfBirth ? (
+                          <div className="text-xs font-normal text-gray-500">Né le {tenant.dateOfBirth}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{tenant.email ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-600">{tenant.phone ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">

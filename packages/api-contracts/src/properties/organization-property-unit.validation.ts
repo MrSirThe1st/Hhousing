@@ -1,96 +1,131 @@
+import { z } from "zod";
 import type { ApiResult } from "../api-result.types";
-import type {
-  CreateOrganizationInput,
-  CreatePropertyInput,
-  CreateUnitInput
-} from "./organization-property-unit.types";
+import type { CreateOrganizationInput, CreatePropertyInput, CreateUnitInput } from "./organization-property-unit.types";
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+const nonEmptyText = z.string().trim().min(1);
+const positiveNumber = z.number().finite().positive();
+const nonNegativeNumber = z.number().finite().min(0);
+const optionalWholeNumber = z.number().int().min(0).nullable().optional();
+const optionalDecimalNumber = z.number().finite().min(0).nullable().optional();
+const textList = z.array(nonEmptyText).max(32);
 
-function asNonEmptyText(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
+const createOrganizationSchema = z.object({
+  name: nonEmptyText
+});
+
+const createPropertyUnitTemplateSchema = z.object({
+  monthlyRentAmount: positiveNumber,
+  depositAmount: nonNegativeNumber,
+  currencyCode: nonEmptyText,
+  bedroomCount: optionalWholeNumber,
+  bathroomCount: optionalDecimalNumber,
+  sizeSqm: optionalDecimalNumber.refine((value) => value === undefined || value === null || value > 0, {
+    message: "sizeSqm must be greater than 0"
+  }),
+  amenities: textList.optional(),
+  features: textList.optional(),
+  unitCount: z.number().int().min(1).max(200).optional()
+});
+
+const createPropertySchema = z.object({
+  organizationId: nonEmptyText,
+  name: nonEmptyText,
+  address: nonEmptyText,
+  city: nonEmptyText,
+  countryCode: nonEmptyText,
+  managementContext: z.enum(["owned", "managed"]),
+  propertyType: z.enum(["single_unit", "multi_unit"]),
+  yearBuilt: z.number().int().min(1800).max(2200).nullable().optional(),
+  photoUrls: z.array(nonEmptyText).max(20).optional(),
+  clientId: nonEmptyText.nullable().optional(),
+  unitTemplate: createPropertyUnitTemplateSchema.optional()
+}).superRefine((value, context) => {
+  if (value.propertyType === "single_unit") {
+    if (!value.unitTemplate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "unitTemplate is required",
+        path: ["unitTemplate"]
+      });
+      return;
+    }
+
+    if (value.unitTemplate.unitCount !== undefined && value.unitTemplate.unitCount !== 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "unitCount must be 1 for single_unit properties",
+        path: ["unitTemplate", "unitCount"]
+      });
+    }
   }
 
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
+  if (value.propertyType === "multi_unit") {
+    if (!value.unitTemplate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "unitTemplate is required",
+        path: ["unitTemplate"]
+      });
+      return;
+    }
 
-function asPositiveNumber(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return null;
+    if ((value.unitTemplate.unitCount ?? 0) < 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "unitCount is required for multi_unit properties",
+        path: ["unitTemplate", "unitCount"]
+      });
+    }
   }
+});
 
-  return value;
+const createUnitSchema = z.object({
+  organizationId: nonEmptyText,
+  propertyId: nonEmptyText,
+  unitNumber: nonEmptyText,
+  monthlyRentAmount: positiveNumber,
+  depositAmount: nonNegativeNumber.optional(),
+  currencyCode: nonEmptyText,
+  bedroomCount: optionalWholeNumber,
+  bathroomCount: optionalDecimalNumber,
+  sizeSqm: optionalDecimalNumber.refine((value) => value === undefined || value === null || value > 0, {
+    message: "sizeSqm must be greater than 0"
+  }),
+  amenities: textList.optional(),
+  features: textList.optional()
+});
+
+function mapZodError(error: z.ZodError): ApiResult<never> {
+  return {
+    success: false,
+    code: "VALIDATION_ERROR",
+    error: error.issues[0]?.message ?? "Invalid input"
+  };
 }
 
 export function parseCreateOrganizationInput(input: unknown): ApiResult<CreateOrganizationInput> {
-  if (!isObject(input)) {
-    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  const parsed = createOrganizationSchema.safeParse(input);
+  if (!parsed.success) {
+    return mapZodError(parsed.error);
   }
 
-  const name = asNonEmptyText(input.name);
-  if (name === null) {
-    return { success: false, code: "VALIDATION_ERROR", error: "name is required" };
-  }
-
-  return { success: true, data: { name } };
+  return { success: true, data: parsed.data };
 }
 
 export function parseCreatePropertyInput(input: unknown): ApiResult<CreatePropertyInput> {
-  if (!isObject(input)) {
-    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  const parsed = createPropertySchema.safeParse(input);
+  if (!parsed.success) {
+    return mapZodError(parsed.error);
   }
 
-  const organizationId = asNonEmptyText(input.organizationId);
-  const name = asNonEmptyText(input.name);
-  const address = asNonEmptyText(input.address);
-  const city = asNonEmptyText(input.city);
-  const countryCode = asNonEmptyText(input.countryCode);
-
-  if (organizationId === null || name === null || address === null || city === null || countryCode === null) {
-    return {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "organizationId, name, address, city, countryCode are required"
-    };
-  }
-
-  return {
-    success: true,
-    data: { organizationId, name, address, city, countryCode }
-  };
+  return { success: true, data: parsed.data };
 }
 
 export function parseCreateUnitInput(input: unknown): ApiResult<CreateUnitInput> {
-  if (!isObject(input)) {
-    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  const parsed = createUnitSchema.safeParse(input);
+  if (!parsed.success) {
+    return mapZodError(parsed.error);
   }
 
-  const organizationId = asNonEmptyText(input.organizationId);
-  const propertyId = asNonEmptyText(input.propertyId);
-  const unitNumber = asNonEmptyText(input.unitNumber);
-  const monthlyRentAmount = asPositiveNumber(input.monthlyRentAmount);
-  const currencyCode = asNonEmptyText(input.currencyCode);
-
-  if (
-    organizationId === null ||
-    propertyId === null ||
-    unitNumber === null ||
-    monthlyRentAmount === null ||
-    currencyCode === null
-  ) {
-    return {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "organizationId, propertyId, unitNumber, monthlyRentAmount, currencyCode are required"
-    };
-  }
-
-  return {
-    success: true,
-    data: { organizationId, propertyId, unitNumber, monthlyRentAmount, currencyCode }
-  };
+  return { success: true, data: parsed.data };
 }

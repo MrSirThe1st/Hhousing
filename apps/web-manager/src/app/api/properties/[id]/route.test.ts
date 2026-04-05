@@ -5,6 +5,7 @@ const {
   createRepositoryFromEnvMock,
   parseJsonBodyMock,
   getPropertyByIdMock,
+  getScopedPortfolioDataMock,
   requireOperatorSessionMock,
   mapErrorCodeToHttpStatusMock
 } = vi.hoisted(() => ({
@@ -12,6 +13,7 @@ const {
   createRepositoryFromEnvMock: vi.fn(),
   parseJsonBodyMock: vi.fn(),
   getPropertyByIdMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   requireOperatorSessionMock: vi.fn(),
   mapErrorCodeToHttpStatusMock: vi.fn()
 }));
@@ -37,11 +39,24 @@ vi.mock("../../../../api/shared", () => ({
   mapErrorCodeToHttpStatus: mapErrorCodeToHttpStatusMock
 }));
 
+vi.mock("../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/properties/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "managed",
+      properties: [],
+      propertyIds: new Set(["prp_1"]),
+      unitIds: new Set(),
+      leases: [],
+      leaseIds: new Set(),
+      tenantIds: new Set()
+    });
   });
 
   it("blocks tenant access", async () => {

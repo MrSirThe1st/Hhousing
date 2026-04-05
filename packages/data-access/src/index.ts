@@ -12,8 +12,10 @@ export {
   createOrganizationPropertyUnitRepositoryFromEnv
 } from "./properties/postgres-organization-property-unit.repository";
 export type {
+  CreateOwnerClientRecordInput,
   CreateOrganizationRecordInput,
   CreatePropertyRecordInput,
+  CreatePropertyWithUnitsRecordInput,
   CreateUnitRecordInput,
   PropertyWithUnitsRecord,
   OrganizationPropertyUnitRepository
@@ -29,6 +31,7 @@ export {
 export type {
   CreateTenantRecordInput,
   CreateLeaseRecordInput,
+  CreateLeaseChargeRecordInput,
   CreateTenantInvitationRecordInput,
   TenantInvitationRecord,
   TenantInvitationPreviewRecord,
@@ -71,7 +74,8 @@ export {
 export type {
   MessageRepository,
   StartManagerConversationRecordInput,
-  SendManagerMessageRecordInput
+  SendManagerMessageRecordInput,
+  SendTenantMessageRecordInput
 } from "./messages/message-record.types";
 export type { MessageQueryable } from "./messages/postgres-message.repository";
 export { TeamFunctionsRepository, createTeamFunctionsRepositoryFromEnv } from "./auth/team-functions.repository";

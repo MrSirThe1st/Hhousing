@@ -4,6 +4,7 @@ const {
   extractAuthSessionFromCookiesMock,
   createRepositoryFromEnvMock,
   parseJsonBodyMock,
+  getScopedPortfolioDataMock,
   getUnitByIdMock,
   updateUnitMock,
   deleteUnitMock
@@ -11,6 +12,7 @@ const {
   extractAuthSessionFromCookiesMock: vi.fn(),
   createRepositoryFromEnvMock: vi.fn(),
   parseJsonBodyMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   getUnitByIdMock: vi.fn(),
   updateUnitMock: vi.fn(),
   deleteUnitMock: vi.fn()
@@ -30,11 +32,24 @@ vi.mock("../../shared", async () => {
   };
 });
 
+vi.mock("../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/units/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "managed",
+      properties: [],
+      propertyIds: new Set(["property-1"]),
+      unitIds: new Set(["unit-1"]),
+      leases: [],
+      leaseIds: new Set(),
+      tenantIds: new Set()
+    });
 
     createRepositoryFromEnvMock.mockReturnValue({
       success: true,
@@ -77,6 +92,7 @@ describe("/api/units/[id]", () => {
 
     getUnitByIdMock.mockResolvedValue({
       id: "unit-1",
+      propertyId: "property-1",
       unitNumber: "A1"
     });
 
@@ -89,6 +105,7 @@ describe("/api/units/[id]", () => {
       success: true,
       data: {
         id: "unit-1",
+        propertyId: "property-1",
         unitNumber: "A1"
       }
     });

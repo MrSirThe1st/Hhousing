@@ -1,14 +1,25 @@
-import type { Tenant } from "@hhousing/domain";
-import type { Lease } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeasePaymentFrequency, LeaseTermType, Tenant } from "@hhousing/domain";
 
 export interface CreateTenantInput {
   organizationId: string;
   fullName: string;
   email: string | null;
   phone: string | null;
+  dateOfBirth?: string | null;
+  photoUrl?: string | null;
 }
 
 export type CreateTenantOutput = Tenant;
+
+export interface CreateLeaseChargeInput {
+  label: string;
+  chargeType: LeaseChargeType;
+  amount: number;
+  currencyCode: string;
+  frequency: LeaseChargeFrequency;
+  startDate: string;
+  endDate?: string | null;
+}
 
 export interface CreateLeaseInput {
   organizationId: string;
@@ -18,6 +29,13 @@ export interface CreateLeaseInput {
   endDate: string | null;
   monthlyRentAmount: number;
   currencyCode: string;
+  termType?: LeaseTermType;
+  fixedTermMonths?: number | null;
+  autoRenewToMonthly?: boolean;
+  paymentFrequency?: LeasePaymentFrequency;
+  paymentStartDate?: string;
+  dueDayOfMonth?: number;
+  charges?: CreateLeaseChargeInput[];
 }
 
 export type CreateLeaseOutput = Lease;

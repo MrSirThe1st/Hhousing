@@ -1,5 +1,5 @@
 import type { ApiResult } from "../api-result.types";
-import type { CreateTenantInput, CreateLeaseInput } from "./tenant-lease.types";
+import type { CreateLeaseChargeInput, CreateLeaseInput, CreateTenantInput } from "./tenant-lease.types";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -28,6 +28,60 @@ function asIsoDate(value: unknown): string | null {
   return text;
 }
 
+function asBoolean(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function asInteger(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value)) return null;
+  return value;
+}
+
+function parseLeaseChargeInput(input: unknown): ApiResult<CreateLeaseChargeInput> {
+  if (!isObject(input)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "Each charge must be an object" };
+  }
+
+  const label = asNonEmptyText(input.label);
+  const chargeType = input.chargeType === "deposit" || input.chargeType === "other" ? input.chargeType : null;
+  const amount = asPositiveNumber(input.amount);
+  const currencyCode = asNonEmptyText(input.currencyCode);
+  const frequency = input.frequency === "one_time" || input.frequency === "monthly" || input.frequency === "quarterly" || input.frequency === "annually"
+    ? input.frequency
+    : null;
+  const startDate = asIsoDate(input.startDate);
+
+  if (label === null || chargeType === null || amount === null || currencyCode === null || frequency === null || startDate === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Each charge requires label, chargeType, amount, currencyCode, frequency, and startDate"
+    };
+  }
+
+  const endDateRaw = input.endDate;
+  let endDate: string | null = null;
+  if (endDateRaw !== null && endDateRaw !== undefined) {
+    endDate = asIsoDate(endDateRaw);
+    if (endDate === null) {
+      return { success: false, code: "VALIDATION_ERROR", error: "charge endDate must be YYYY-MM-DD or null" };
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      label,
+      chargeType,
+      amount,
+      currencyCode,
+      frequency,
+      startDate,
+      endDate
+    }
+  };
+}
+
 export function parseCreateTenantInput(input: unknown): ApiResult<CreateTenantInput> {
   if (!isObject(input)) {
     return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
@@ -51,6 +105,8 @@ export function parseCreateTenantInput(input: unknown): ApiResult<CreateTenantIn
       fullName,
       email: asOptionalText(input.email),
       phone: asOptionalText(input.phone),
+      dateOfBirth: input.dateOfBirth === null || input.dateOfBirth === undefined ? null : asIsoDate(input.dateOfBirth),
+      photoUrl: asOptionalText(input.photoUrl)
     }
   };
 }
@@ -66,6 +122,22 @@ export function parseCreateLeaseInput(input: unknown): ApiResult<CreateLeaseInpu
   const startDate = asIsoDate(input.startDate);
   const monthlyRentAmount = asPositiveNumber(input.monthlyRentAmount);
   const currencyCode = asNonEmptyText(input.currencyCode);
+  const termType = input.termType === undefined
+    ? null
+    : input.termType === "fixed" || input.termType === "month_to_month"
+      ? input.termType
+      : null;
+  const fixedTermMonths = input.fixedTermMonths === undefined || input.fixedTermMonths === null
+    ? null
+    : asInteger(input.fixedTermMonths);
+  const autoRenewToMonthly = input.autoRenewToMonthly === undefined ? false : asBoolean(input.autoRenewToMonthly);
+  const paymentFrequency = input.paymentFrequency === undefined
+    ? "monthly"
+    : input.paymentFrequency === "monthly" || input.paymentFrequency === "quarterly" || input.paymentFrequency === "annually"
+      ? input.paymentFrequency
+      : null;
+  const paymentStartDate = input.paymentStartDate === undefined ? startDate : asIsoDate(input.paymentStartDate);
+  const dueDayOfMonth = input.dueDayOfMonth === undefined ? null : asInteger(input.dueDayOfMonth);
 
   if (organizationId === null || unitId === null || tenantId === null) {
     return {
@@ -87,6 +159,30 @@ export function parseCreateLeaseInput(input: unknown): ApiResult<CreateLeaseInpu
     return { success: false, code: "VALIDATION_ERROR", error: "currencyCode is required" };
   }
 
+  if (termType === null && input.termType !== undefined) {
+    return { success: false, code: "VALIDATION_ERROR", error: "termType must be fixed or month_to_month" };
+  }
+
+  if (fixedTermMonths !== null && fixedTermMonths <= 0) {
+    return { success: false, code: "VALIDATION_ERROR", error: "fixedTermMonths must be a positive integer" };
+  }
+
+  if (autoRenewToMonthly === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "autoRenewToMonthly must be a boolean" };
+  }
+
+  if (paymentFrequency === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "paymentFrequency must be monthly, quarterly, or annually" };
+  }
+
+  if (paymentStartDate === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "paymentStartDate must be YYYY-MM-DD" };
+  }
+
+  if (dueDayOfMonth !== null && (dueDayOfMonth < 1 || dueDayOfMonth > 31)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "dueDayOfMonth must be between 1 and 31" };
+  }
+
   const endDateRaw = input.endDate;
   let endDate: string | null = null;
   if (endDateRaw !== null && endDateRaw !== undefined) {
@@ -94,6 +190,26 @@ export function parseCreateLeaseInput(input: unknown): ApiResult<CreateLeaseInpu
     if (endDate === null) {
       return { success: false, code: "VALIDATION_ERROR", error: "endDate must be YYYY-MM-DD or null" };
     }
+  }
+
+  const resolvedTermType = termType ?? (endDate === null ? "month_to_month" : "fixed");
+
+  if (resolvedTermType === "fixed" && fixedTermMonths === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "fixedTermMonths is required for fixed leases" };
+  }
+
+  if (resolvedTermType === "month_to_month" && fixedTermMonths !== null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "fixedTermMonths is only allowed for fixed leases" };
+  }
+
+  const chargesRaw = Array.isArray(input.charges) ? input.charges : [];
+  const charges: CreateLeaseChargeInput[] = [];
+  for (const charge of chargesRaw) {
+    const parsedCharge = parseLeaseChargeInput(charge);
+    if (!parsedCharge.success) {
+      return parsedCharge;
+    }
+    charges.push(parsedCharge.data);
   }
 
   return {
@@ -106,6 +222,13 @@ export function parseCreateLeaseInput(input: unknown): ApiResult<CreateLeaseInpu
       endDate,
       monthlyRentAmount,
       currencyCode,
+      termType: resolvedTermType,
+      fixedTermMonths,
+      autoRenewToMonthly,
+      paymentFrequency,
+      paymentStartDate,
+      dueDayOfMonth: dueDayOfMonth ?? Number(paymentStartDate.substring(8, 10)),
+      charges
     }
   };
 }

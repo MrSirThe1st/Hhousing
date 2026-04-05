@@ -1,4 +1,4 @@
-import type { Organization, Property, Unit } from "@hhousing/domain";
+import type { Organization, Property, PropertyManagementContext, PropertyType, Unit } from "@hhousing/domain";
 
 export interface CreateOrganizationInput {
   name: string;
@@ -14,10 +14,29 @@ export interface CreatePropertyInput {
   address: string;
   city: string;
   countryCode: string;
+  managementContext: PropertyManagementContext;
+  propertyType: PropertyType;
+  yearBuilt?: number | null;
+  photoUrls?: string[];
+  clientId?: string | null;
+  unitTemplate?: CreatePropertyUnitTemplateInput;
 }
 
 export interface CreatePropertyOutput {
   property: Property;
+  units: Unit[];
+}
+
+export interface CreatePropertyUnitTemplateInput {
+  monthlyRentAmount: number;
+  depositAmount: number;
+  currencyCode: string;
+  bedroomCount?: number | null;
+  bathroomCount?: number | null;
+  sizeSqm?: number | null;
+  amenities?: string[];
+  features?: string[];
+  unitCount?: number;
 }
 
 export interface CreateUnitInput {
@@ -25,7 +44,13 @@ export interface CreateUnitInput {
   propertyId: string;
   unitNumber: string;
   monthlyRentAmount: number;
+  depositAmount?: number;
   currencyCode: string;
+  bedroomCount?: number | null;
+  bathroomCount?: number | null;
+  sizeSqm?: number | null;
+  amenities?: string[];
+  features?: string[];
 }
 
 export interface CreateUnitOutput {
@@ -39,4 +64,8 @@ export interface PropertyWithUnitsView {
 
 export interface ListPropertiesWithUnitsOutput {
   items: PropertyWithUnitsView[];
+}
+
+export interface ListPropertiesFilter {
+  managementContext?: PropertyManagementContext;
 }

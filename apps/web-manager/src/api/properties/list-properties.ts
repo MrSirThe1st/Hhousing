@@ -1,14 +1,17 @@
 import type {
   ApiResult,
   AuthSession,
+  ListPropertiesFilter,
   ListPropertiesWithUnitsOutput
 } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
+import { isScopeAllowedForSession } from "../../lib/operator-context";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface ListPropertiesRequest {
   session: AuthSession | null;
   organizationId: string;
+  filter?: ListPropertiesFilter;
 }
 
 export interface ListPropertiesResponse {
@@ -43,7 +46,24 @@ export async function listProperties(
     };
   }
 
-  const items = await deps.repository.listPropertiesWithUnits(request.organizationId);
+  if (
+    request.filter?.managementContext !== undefined &&
+    !isScopeAllowedForSession(sessionResult.data, request.filter.managementContext)
+  ) {
+    return {
+      status: 403,
+      body: {
+        success: false,
+        code: "FORBIDDEN",
+        error: "Management context not allowed for current operator"
+      }
+    };
+  }
+
+  const items = await deps.repository.listPropertiesWithUnits(
+    request.organizationId,
+    request.filter?.managementContext
+  );
 
   return {
     status: 200,

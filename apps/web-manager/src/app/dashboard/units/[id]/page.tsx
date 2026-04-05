@@ -191,7 +191,7 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
       <div className="p-8">
         <p className="text-red-600">{error}</p>
         <Link href="/dashboard/properties" className="text-[#0063fe] hover:underline">
-          Retour aux propriétés
+          Retour au portfolio
         </Link>
       </div>
     );

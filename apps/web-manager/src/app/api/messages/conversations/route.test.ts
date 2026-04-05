@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getScopedPortfolioDataMock,
   listManagerConversationsMock,
   startManagerConversationMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   listManagerConversationsMock: vi.fn(),
   startManagerConversationMock: vi.fn()
 }));
@@ -40,11 +42,26 @@ vi.mock("../../../../api", async () => {
   };
 });
 
+vi.mock("../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock,
+  filterManagerConversationsByScope: (conversations: Array<{ propertyId: string }>, scoped: { propertyIds: Set<string> }) =>
+    conversations.filter((conversation) => scoped.propertyIds.has(conversation.propertyId))
+}));
+
 import { GET, POST } from "./route";
 
 describe("/api/messages/conversations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "owned",
+      properties: [],
+      propertyIds: new Set(["prop-1"]),
+      unitIds: new Set(["unit-1"]),
+      leases: [],
+      leaseIds: new Set(["lease-1"]),
+      tenantIds: new Set(["tenant-1"])
+    });
   });
 
   it("GET passes through auth failures", async () => {

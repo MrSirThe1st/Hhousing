@@ -17,5 +17,6 @@ export interface CreateDocumentRecordInput {
 export interface DocumentRepository {
   createDocument(input: CreateDocumentRecordInput): Promise<Document>;
   listDocuments(filter: ListDocumentsFilter): Promise<Document[]>;
+  getDocumentById(documentId: string, organizationId: string): Promise<Document | null>;
   deleteDocument(documentId: string, organizationId: string): Promise<void>;
 }

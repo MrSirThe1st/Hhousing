@@ -1,15 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getServerAuthSession } from "../../lib/session";
+import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
 import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
-
-type DashboardVariant = "self_managed_owner" | "manager_for_others" | "mixed_operator" | "tenant" | "standard";
-
-type DashboardPageProps = {
-  searchParams?: Promise<{
-    variant?: string;
-  }>;
-};
 
 type DashboardMetrics = {
   propertyCount: number;
@@ -17,52 +10,34 @@ type DashboardMetrics = {
   tenantCount: number;
   leaseCount: number;
   maintenanceCount: number;
+  occupiedUnitCount: number;
 };
 
-function getVariant(raw?: string): DashboardVariant {
-  if (raw === "self_managed_owner") return raw;
-  if (raw === "manager_for_others") return raw;
-  if (raw === "mixed_operator") return raw;
-  if (raw === "tenant") return raw;
-  return "standard";
-}
-
-function getVariantHeader(variant: DashboardVariant): { title: string; subtitle: string } {
-  if (variant === "self_managed_owner") {
+function getVariantHeader(experience: "self_managed_owner" | "manager_for_others" | "mixed_operator"): { title: string; subtitle: string } {
+  if (experience === "self_managed_owner") {
     return {
-      title: "Vue propriétaire-opérateur",
+      title: "Vue proprietaire-operateur",
       subtitle: "Focus revenus, occupation, profit"
     };
   }
 
-  if (variant === "manager_for_others") {
+  if (experience === "manager_for_others") {
     return {
       title: "Vue property manager",
       subtitle: "Focus tâches, maintenance, collecte"
     };
   }
 
-  if (variant === "mixed_operator") {
-    return {
-      title: "Vue hybride",
-      subtitle: "Revenus owned + opérations managed"
-    };
-  }
-
-  if (variant === "tenant") {
-    return {
-      title: "Vue démarrage",
-      subtitle: "Créez votre première propriété ou rejoignez une organisation"
-    };
-  }
-
   return {
-    title: "Vue d'ensemble",
-    subtitle: "Suivi global de vos opérations"
+    title: "Vue hybride",
+    subtitle: "Revenus owned + operations managed"
   };
 }
 
-async function fetchDashboardMetrics(organizationId: string): Promise<DashboardMetrics> {
+async function fetchDashboardMetrics(
+  organizationId: string,
+  managementContext: "owned" | "managed"
+): Promise<DashboardMetrics> {
   const propertyRepo = createRepositoryFromEnv();
   const tenantLeaseRepo = createTenantLeaseRepo();
   const maintenanceRepo = createMaintenanceRepo();
@@ -73,28 +48,37 @@ async function fetchDashboardMetrics(organizationId: string): Promise<DashboardM
       unitCount: 0,
       tenantCount: 0,
       leaseCount: 0,
-      maintenanceCount: 0
+      maintenanceCount: 0,
+      occupiedUnitCount: 0
     };
   }
 
   try {
-    const [properties, tenants, leases, maintenanceRequests] = await Promise.all([
-      propertyRepo.data.listPropertiesWithUnits(organizationId),
-      tenantLeaseRepo.listTenantsByOrganization(organizationId),
+    const [properties, leases, maintenanceRequests] = await Promise.all([
+      propertyRepo.data.listPropertiesWithUnits(organizationId, managementContext),
       tenantLeaseRepo.listLeasesByOrganization(organizationId),
       maintenanceRepo.listMaintenanceRequests({ organizationId, unitId: undefined, status: undefined })
     ]);
 
     const unitCount = properties.reduce((sum, prop) => sum + prop.units.length, 0);
+    const unitIds = new Set(properties.flatMap((property) => property.units.map((unit) => unit.id)));
+    const occupiedUnitCount = properties.reduce(
+      (sum, property) => sum + property.units.filter((unit) => unit.status === "occupied").length,
+      0
+    );
+    const scopedLeases = leases.filter((lease) => unitIds.has(lease.unitId));
+    const tenantIds = new Set(scopedLeases.map((lease) => lease.tenantId));
+    const scopedMaintenance = maintenanceRequests.filter((request) => unitIds.has(request.unitId));
 
     return {
       propertyCount: properties.length,
       unitCount,
-      tenantCount: tenants.length,
-      leaseCount: leases.length,
-      maintenanceCount: maintenanceRequests.filter(
+      tenantCount: tenantIds.size,
+      leaseCount: scopedLeases.length,
+      maintenanceCount: scopedMaintenance.filter(
         (request) => request.status === "open" || request.status === "in_progress"
-      ).length
+      ).length,
+      occupiedUnitCount
     };
   } catch {
     return {
@@ -102,19 +86,24 @@ async function fetchDashboardMetrics(organizationId: string): Promise<DashboardM
       unitCount: 0,
       tenantCount: 0,
       leaseCount: 0,
-      maintenanceCount: 0
+      maintenanceCount: 0,
+      occupiedUnitCount: 0
     };
   }
 }
 
-function getStats(variant: DashboardVariant, metrics: DashboardMetrics): Array<{ label: string; value: string }> {
+function getStats(
+  experience: "self_managed_owner" | "manager_for_others" | "mixed_operator",
+  scopeLabel: string,
+  metrics: DashboardMetrics
+): Array<{ label: string; value: string }> {
   const occupancyRate = metrics.unitCount > 0
-    ? Math.round((metrics.leaseCount / metrics.unitCount) * 100)
+    ? Math.round((metrics.occupiedUnitCount / metrics.unitCount) * 100)
     : 0;
 
-  if (variant === "self_managed_owner") {
+  if (experience === "self_managed_owner") {
     return [
-      { label: "Vos propriétés", value: metrics.propertyCount.toString() },
+      { label: `Proprietes (${scopeLabel})`, value: metrics.propertyCount.toString() },
       { label: "Unités totales", value: metrics.unitCount.toString() },
       { label: "Taux d'occupation", value: `${occupancyRate}%` },
       { label: "Locataires actifs", value: metrics.tenantCount.toString() },
@@ -123,10 +112,10 @@ function getStats(variant: DashboardVariant, metrics: DashboardMetrics): Array<{
     ];
   }
 
-  if (variant === "manager_for_others") {
+  if (experience === "manager_for_others") {
     return [
-      { label: "Biens gérés", value: metrics.propertyCount.toString() },
-      { label: "Unités gérées", value: metrics.unitCount.toString() },
+      { label: `Biens (${scopeLabel})`, value: metrics.propertyCount.toString() },
+      { label: `Unites (${scopeLabel})`, value: metrics.unitCount.toString() },
       { label: "Locataires actifs", value: metrics.tenantCount.toString() },
       { label: "Taux d'occupation", value: `${occupancyRate}%` },
       { label: "Incidents maintenance", value: metrics.maintenanceCount.toString() },
@@ -134,30 +123,9 @@ function getStats(variant: DashboardVariant, metrics: DashboardMetrics): Array<{
     ];
   }
 
-  if (variant === "mixed_operator") {
-    return [
-      { label: "Propriétés totales", value: metrics.propertyCount.toString() },
-      { label: "Unités totales", value: metrics.unitCount.toString() },
-      { label: "Occupation globale", value: `${occupancyRate}%` },
-      { label: "Locataires actifs", value: metrics.tenantCount.toString() },
-      { label: "Baux actifs", value: metrics.leaseCount.toString() },
-      { label: "Demandes en cours", value: metrics.maintenanceCount.toString() }
-    ];
-  }
-
-  if (variant === "tenant") {
-    return [
-      { label: "Propriétés", value: metrics.propertyCount.toString() },
-      { label: "Unités", value: metrics.unitCount.toString() },
-      { label: "Locataires", value: metrics.tenantCount.toString() },
-      { label: "Baux actifs", value: metrics.leaseCount.toString() },
-      { label: "Progression setup", value: metrics.propertyCount > 0 ? "50%" : "0%" }
-    ];
-  }
-
   return [
-    { label: "Propriétés", value: metrics.propertyCount.toString() },
-    { label: "Unités", value: metrics.unitCount.toString() },
+    { label: `Proprietes (${scopeLabel})`, value: metrics.propertyCount.toString() },
+    { label: `Unites (${scopeLabel})`, value: metrics.unitCount.toString() },
     { label: "Locataires actifs", value: metrics.tenantCount.toString() },
     { label: "Baux actifs", value: metrics.leaseCount.toString() },
     { label: "Taux d'occupation", value: `${occupancyRate}%` },
@@ -165,16 +133,16 @@ function getStats(variant: DashboardVariant, metrics: DashboardMetrics): Array<{
   ];
 }
 
-export default async function DashboardPage({ searchParams }: DashboardPageProps): Promise<React.ReactElement> {
+export default async function DashboardPage(): Promise<React.ReactElement> {
   const session = await getServerAuthSession();
   if (!session) redirect("/login");
 
-  const params = await searchParams;
-  const variant = getVariant(params?.variant);
-  const header = getVariantHeader(variant);
+  const operatorContext = await getServerOperatorContext(session);
+  const scopeLabel = getOperatorScopeLabel(operatorContext.currentScope);
+  const header = getVariantHeader(operatorContext.experience);
 
-  const metrics = await fetchDashboardMetrics(session.organizationId);
-  const stats = getStats(variant, metrics);
+  const metrics = await fetchDashboardMetrics(session.organizationId, operatorContext.currentScope);
+  const stats = getStats(operatorContext.experience, scopeLabel, metrics);
 
   const hasNoData = metrics.propertyCount === 0;
 
@@ -184,29 +152,30 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div>
           <h1 className="text-2xl font-semibold text-[#010a19] mb-1">{header.title}</h1>
           <p className="text-sm text-gray-600">{header.subtitle}</p>
+          <p className="mt-1 text-sm text-gray-500">Affichage courant: {scopeLabel}</p>
         </div>
         {hasNoData && (
           <Link
-            href="/dashboard/properties"
+            href="/dashboard/properties/add"
             className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0052d4]"
           >
-            Ajouter une propriété
+            Ajouter un bien
           </Link>
         )}
       </div>
 
       {hasNoData && (
         <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6">
-          <h2 className="text-lg font-semibold text-[#010a19] mb-2">Commencez par créer votre première propriété</h2>
+          <h2 className="text-lg font-semibold text-[#010a19] mb-2">Commencez par alimenter votre portfolio</h2>
           <p className="text-sm text-gray-700 mb-4">
-            Votre tableau de bord affichera les métriques une fois que vous aurez ajouté des propriétés et unités.
+            Votre tableau de bord affichera les métriques une fois que vous aurez ajouté des biens et unités.
           </p>
           <div className="flex gap-3">
             <Link
-              href="/dashboard/properties"
+              href="/dashboard/properties/add"
               className="inline-flex items-center gap-2 rounded-lg border border-[#0063fe] bg-white px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
             >
-              Créer une propriété
+              Ajouter un bien
             </Link>
           </div>
         </div>

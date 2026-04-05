@@ -1,5 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
-import type { Payment } from "@hhousing/domain";
+import type { Payment, PropertyManagementContext } from "@hhousing/domain";
 import type { ListPaymentsFilter } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
@@ -183,9 +183,18 @@ export function createPostgresPaymentRepository(
       return result.rowCount ?? 0;
     },
 
-    async generateMonthlyCharges(organizationId: string, period: string): Promise<number> {
+    async generateMonthlyCharges(
+      organizationId: string,
+      period: string,
+      managementContext?: PropertyManagementContext
+    ): Promise<number> {
       // due_date = first day of the period month
       const dueDate = `${period}-01`;
+      const managementContextClause = managementContext ? "and p.management_context = $4" : "";
+      const values: readonly unknown[] = managementContext
+        ? [organizationId, dueDate, period, managementContext]
+        : [organizationId, dueDate, period];
+
       const result = await client.query(
         `insert into payments (
            id, organization_id, lease_id, tenant_id,
@@ -201,14 +210,17 @@ export function createPostgresPaymentRepository(
            $2::date,
            $3
          from leases l
+         join units u on u.id = l.unit_id
+         join properties p on p.id = u.property_id
          where l.organization_id = $1
            and l.status = 'active'
+           ${managementContextClause}
            and not exists (
              select 1 from payments p
              where p.lease_id = l.id and p.charge_period = $3
            )
          on conflict (lease_id, charge_period) where charge_period is not null do nothing`,
-        [organizationId, dueDate, period]
+        values
       );
       return result.rowCount ?? 0;
     }

@@ -94,10 +94,10 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
               Accéder au tableau de bord
             </Link>
             <Link
-              href="/dashboard/properties"
+              href="/dashboard/properties/add"
               className="rounded-lg border border-[#0063fe] px-4 py-2.5 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
             >
-              Ajouter une propriété
+              Ajouter un bien
             </Link>
           </div>
         </div>

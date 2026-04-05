@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getScopedPortfolioDataMock,
   getTenantByIdMock,
   updateTenantMock,
   deleteTenantMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   getTenantByIdMock: vi.fn(),
   updateTenantMock: vi.fn(),
   deleteTenantMock: vi.fn()
@@ -33,11 +35,24 @@ vi.mock("../../shared", async () => {
   };
 });
 
+vi.mock("../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/tenants/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "managed",
+      properties: [],
+      propertyIds: new Set(),
+      unitIds: new Set(),
+      leases: [],
+      leaseIds: new Set(),
+      tenantIds: new Set(["tenant-1"])
+    });
   });
 
   it("rejects tenant-role access", async () => {

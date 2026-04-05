@@ -2,6 +2,138 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-05
+- Change type: Web + API + DB
+- Description: Added a dedicated tenant onboarding page at `/dashboard/tenants/add` and a dedicated lease move-in workflow at `/dashboard/leases/move-in`. Added migration `0018_tenant_profiles_and_move_in.sql` to extend tenants with `date_of_birth` and `photo_url`, extend leases with term and billing metadata, and create `lease_charge_templates` for deposits and extra lease charges. Extended shared domain/contracts/data-access layers, updated tenant and lease services, moved tenants list UI to the same CTA-to-add-page pattern used for properties and units, and updated tenant detail edit/view to preserve the new profile fields.
+- Impact: Operators can now create tenants through a focused add flow with DOB and photo support, then move a tenant into a property/unit from the leases area while capturing fixed vs month-to-month terms, billing schedule defaults, deposits, and other charges in one workflow.
+- Notes: Invite-by-email is present as a placeholder in the move-in UI only; persisted lease charge templates and billing-frequency fields are not yet consumed by downstream payment generation or lease detail screens.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (32 files / 94 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-05
+- Change type: Web + Frontend
+- Description: Moved unit creation out of the Portfolio `Unités` tab and into a dedicated `/dashboard/units/add` screen. Extracted the richer unit creation flow into `UnitCreateForm`, kept the multi-unit bulk-create behavior, and replaced the in-tab form with an add-unit CTA card plus the existing unit list/filter view.
+- Impact: The portfolio units tab is now focused on browsing and filtering existing units, while unit creation gets its own dedicated screen with the full expanded form.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (31 files / 93 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-05
+- Change type: Web + Frontend
+- Description: Upgraded the Portfolio `Unités` tab create form to match the richer property setup model. The in-tab unit form now captures rent, deposit, currency, bedrooms, bathrooms, surface, amenities, and features, and can create multiple units in one action for existing multi-unit properties by treating the entered unit number as a shared prefix. Shared amenity/feature option lists were extracted so the property-add and unit-add forms stay aligned.
+- Impact: Operators can add realistic units to an existing property without falling back to the old thin unit form, and bulk unit creation is available directly from the units workspace for eligible multi-unit properties.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (31 files / 93 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-05
+- Change type: Web + API + DB
+- Description: Added hard enforcement for single-unit properties so they cannot receive a second unit after creation. Added migration `0017_single_unit_max_one_unit.sql` with a `units` trigger that rejects inserts or property moves when the target property is `single_unit` and already has a unit. Also updated the unit-create service to return a clean validation error and filtered the Portfolio `Unités` add-unit dropdown to hide ineligible single-unit properties.
+- Impact: Operators can no longer accidentally add extra units to single-unit assets from the UI, and direct DB or API writes are blocked as well.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (31 files / 93 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-05
+- Change type: Web + API + DB
+- Description: Rebuilt `/dashboard/properties/add` into a real property setup flow. Added migration `0016_property_setup_fields.sql` for `properties.property_type`, `year_built`, `photo_urls`, plus richer unit metadata (`deposit_amount`, bedrooms, bathrooms, size, amenities, features). Extended domain/contracts/repositories and replaced the old property-create path with a transactional property-plus-units create flow: single-unit creates one unit, multi-unit creates many units from one shared template. The add form now supports single vs multi-unit selection, year built, rent, deposit, bedrooms, bathrooms, surface, amenities, features, managed-client selection, and shared photo uploads through Supabase Storage.
+- Impact: Operators can onboard a realistic property portfolio in one submit instead of creating a thin property first and filling unit details later. Multi-unit setup now creates the requested number of units immediately while keeping photos shared at property level.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (30 files / 91 tests), `pnpm build` ✓.
+
+## 2026-04-05
+- Change type: Web + Infra
+- Description: Disabled Next.js experimental `devtoolSegmentExplorer` in `apps/web-manager/next.config.ts` to avoid intermittent dev-only React Client Manifest failures involving `next-devtools/.../segment-explorer-node.js#SegmentViewNode` during dashboard navigation.
+- Impact: Development navigation should stop hitting the transient `/dashboard/properties` 500 caused by the Next devtools segment explorer path, while production behavior remains unchanged.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-05
+- Change type: Web + Frontend
+- Description: Moved property creation out of the `Biens` tab and into a dedicated `/dashboard/properties/add` screen. The main portfolio tab now shows a simple CTA card instead of the full property-create form, while the dedicated add page reuses the same scope-aware create flow and managed-client selection.
+- Impact: The portfolio screen is lighter and more browseable, while property creation gets its own focused page.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-05
+- Change type: Web + Frontend
+- Description: Added a property filter to the `Unités` tab inside `/dashboard/properties`. Operators can now narrow the units table to a single parent property while staying in the portfolio workspace.
+- Impact: The new tabbed portfolio page is easier to scan when an organization manages many units across multiple properties.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-05
+- Change type: Web + Frontend
+- Description: Renamed the `/dashboard/properties` area in operator navigation to `Portfolio` and split the screen into two tabs backed by the existing data: `Biens` and `Unités`. The portfolio page now separates property creation/listing from unit creation/listing while keeping the same route and scope-aware data source.
+- Impact: Operators can switch between the building-level and unit-level view without leaving the same workspace, and the navigation language now reflects a broader portfolio surface instead of a single flat properties page.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-05
+- Change type: Web + Frontend
+- Description: Restructured the operator sidebar into clearer navigation groups instead of one flat list. The shell now separates `Tableau de bord`, `Opérations locatives`, `Finances`, `Services`, and `Organisation`, while keeping the managed `Clients` entry inside the property-operations section when that capability exists.
+- Impact: The main shell better matches operator mental models and prepares the navigation for future finance/service expansion without turning the sidebar into a long unstructured list.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-05
+- Change type: Web + Frontend
+- Description: Upgraded `/dashboard/clients` from a static summary grid into a triage-friendly list. Each client card now includes active tenant count, overdue payment count, open maintenance count, urgent maintenance alerts, and the page sorts clients so the most operationally stressed portfolios appear first.
+- Impact: Operators can spot which client portfolios need attention before drilling into the detail view, instead of opening each client one by one.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-04
+- Change type: Web + Frontend
+- Description: Expanded `/dashboard/clients/[id]` from financial-only reporting into a more operational client portfolio view. Added client-scoped tenant and maintenance rollups derived from the managed property set: active tenant count, recent active leases/tenant roster, open/in-progress/urgent maintenance counters, and a recent maintenance snapshot with status and priority context.
+- Impact: Client detail now helps operators monitor occupancy, cash, tenants, and maintenance from one place before drilling into tenants or maintenance modules separately.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-04
+- Change type: Web + API + Frontend
+- Description: Expanded managed client detail into an actionable portfolio view. Added financial rollups on `/dashboard/clients/[id]` using the client-scoped managed property set plus filtered leases/payments: active leases, expected monthly rent, cash collected this month, and overdue balance. Added direct reassignment flow from client detail via new `PATCH /api/properties/[id]/client`, allowing managed properties to move between clients or become unassigned without opening property edit.
+- Impact: Client pages now work as real portfolio management screens instead of passive summaries. Operators can inspect client-level financial health and rebalance managed properties directly from the client context.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (29 files / 89 tests), `pnpm build` ✓.
+
+## 2026-04-04
+- Change type: Web + Frontend
+- Description: Added operator-facing managed clients navigation and portfolio views. Dashboard sidebar now exposes `Clients` only for operators with managed scope capability. Added `/dashboard/clients` list view with client-level property/unit/occupancy summaries and `/dashboard/clients/[id]` detail view with managed properties for that client. Property list/detail screens now deep-link client labels to the new client portfolio pages.
+- Impact: Owner-client records are now navigable and useful in the shell instead of only being selectable during property edit/create. Operators can inspect managed portfolios grouped by client directly from the web app.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (28 files / 86 tests), `pnpm build` ✓.
+
+## 2026-04-04
+- Change type: Web + DB + API
+- Description: Replaced free-text managed property client labeling with real org-scoped owner-client records. Added migration `0015_init_owner_clients.sql` with `owner_clients` table, `properties.client_id`, and backfill from legacy `client_name`. Extended property/domain/data-access layers so properties now carry `clientId` + display `clientName`. Added `GET/POST /api/owner-clients` plus property create/update validation against real client ids. Properties dashboard now loads owner clients, allows inline client creation, and uses client selection instead of free-text entry for managed properties.
+- Impact: Managed portfolios can now be grouped on stable client entities instead of loose text labels, which is the foundation for client-level reporting and navigation later.
+- Notes: `client_name` is still kept as a denormalized display field during this transition; the new source of truth is `properties.client_id -> owner_clients.id`.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (28 files / 86 tests), `pnpm build` ✓.
+
+## 2026-04-04
+- Change type: Web + API + Authorization
+- Description: Closed remaining operator-scope refetch gaps in web-manager. `GET /api/tenants`, `GET /api/leases`, and `GET /api/payments` now filter results through the active owned/managed portfolio before returning to client-side screens. `POST /api/units` now rejects property targets outside the active scope, and `GET/PATCH/DELETE /api/units/[id]` now validate the unit against the active portfolio before read/write/delete.
+- Impact: Client-hydrated pages such as unit detail can no longer pull org-wide tenants, leases, payments, or units after mount when the shell is set to `Mon parc` or `Parc gere`.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (27 files / 83 tests), `pnpm build` ✓.
+
+## 2026-04-04
+- Change type: Web + API + Authorization
+- Description: Propagated the hybrid operator scope deeper across web-manager. Added scoped portfolio helper usage across tenants, leases, payments, maintenance, messages, and documents server pages plus route handlers. Property detail editing now supports `managementContext` and optional `clientName`. Tightened route authorization so payment and maintenance mutations validate active scope before write. Payment creation, lease creation, maintenance creation, and monthly rent-charge generation now reject cross-scope targets and rent generation is filtered by `properties.management_context` in the repository layer.
+- Impact: `Mon parc` vs `Parc gere` now changes more than the shell. Operators see and mutate only the active portfolio slice across major modules, and recurring charge generation no longer leaks across owned/managed portfolios.
+- Notes: Owner-client portfolio modeling is still intentionally deferred; managed grouping is still based on free-text `clientName`.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (27 files / 83 tests), `pnpm build` ✓.
+
+## 2026-04-04
+- Change type: Web + DB + UX
+- Description: Implemented the first hybrid operator context slice for web-manager. Added cookie-backed operator scope resolution (`owned` vs `managed`) with `GET/POST /api/operator-context`, a dashboard shell switcher, scope-aware sidebar labeling, and server helpers derived from persisted role + `canOwnProperties`. Added migration `0014_property_management_context.sql` introducing `properties.management_context` and optional `client_name`. Extended property/domain/contracts/repository create/list flow to persist and filter by management context. Dashboard metrics and the properties page now resolve the active operator scope server-side and scope property/unit/lease/maintenance counts plus property creation accordingly.
+- Impact: Mixed operators can switch between `Mon parc` and `Parc gere` in the shell; self-managed owners and pure managers are locked to their valid scope. Properties now carry explicit portfolio context, enabling real scoped filtering instead of onboarding-only variant copy.
+- Notes: This slice scopes dashboard + properties only. Remaining modules (tenants, payments, maintenance detail flows, messages, documents) still need the same context propagated through their join paths.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (27 files / 83 tests), `pnpm build` ✓.
+
+## 2026-04-03
+- Change type: Infra + Frontend
+- Description: Pinned `apps/web-manager` Next.js workspace root explicitly in `next.config.ts` via `outputFileTracingRoot` and `turbopack.root` to stop root inference from an unrelated external lockfile (`/Users/marcim/package-lock.json`).
+- Impact: Web-manager dev/build now resolves against the repo root deterministically instead of an inferred parent directory, reducing stale asset and file-watching issues in local development.
+- Tests: `pnpm -C apps/web-manager build` ✓. `pnpm -C apps/web-manager typecheck` still fails in existing `.next/types/validator.ts` generated state (`Cannot find module './routes.js'`), unrelated to this config change.
+
+## 2026-04-03
+- Change type: Mobile + Messaging + Navigation
+- Description: Simplified tenant mobile information architecture to five top-level tabs only: `Accueil`, `Paiements`, `Maintenance`, `Inbox`, `Profil`. Moved lease and documents into a nested `Profil` stack (`/(tabs)/account/lease`, `/(tabs)/account/documents`) and replaced the flat tenant messages tab with a nested inbox flow (`/(tabs)/messages`, `/(tabs)/messages/[id]`). Tenant inbox cards now emphasize sender organization name, property name, and last message preview instead of lease/unit-heavy context. Added `organizationName` to tenant conversation payloads from the shared messaging repository so mobile can show who the thread is from cleanly.
+- Impact: Tenant mobile navigation is narrower and more realistic, and messaging now behaves like a plain inbox/thread flow instead of a manager-style operations console.
+- Notes: Home quick action for bail now routes into the profile stack. Tenant message detail intentionally hides the previous context card.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (26 files / 80 tests), `pnpm build` ✓, `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-04-03
+- Change type: Messaging + Mobile + API
+- Description: Implemented tenant-side messaging read/send flow to complete two-way conversations. Added tenant messaging contracts/validators in `packages/api-contracts` and extended `MessageRepository` with tenant list/detail/send methods in Postgres data-access (ownership enforced by `tenants.auth_user_id`). Added mobile API routes in web-manager: `GET /api/mobile/messages/conversations`, `GET /api/mobile/messages/conversations/[id]`, `POST /api/mobile/messages/conversations/[id]/messages`. Added route tests for all three endpoints (auth, not found/validation, success). Added tenant mobile `Messages` tab with conversation search, conversation thread view, context card, and message composer wired to new endpoints.
+- Impact: Tenant app now has live two-way messaging with management on existing conversation threads, matching manager-side messaging model.
+- Notes: Conversation creation remains manager-initiated by design (approved v1 rule).
+- Tests: `pnpm typecheck` ✓, `pnpm test` ✓ (26 files / 80 tests), `pnpm lint` ✓, `pnpm build` ✓, `pnpm -C apps/mobile-tenant typecheck` ✓.
+
 ## 2026-04-03
 - Change type: Messaging + DB + API + Frontend
 - Description: Implemented manager-side messaging v1 across schema, contracts, repositories, routes, services, tests, and dashboard UI. Added migration `0013_init_conversations_messages.sql` with `conversations` + `messages` tables (org-scoped), sender-side constraint, and indexes. Enforced one conversation per `(organization_id, tenant_id, unit_id)` and create-on-first-outbound-message via upsert in repository. Added manager inbox APIs: `GET/POST /api/messages/conversations`, `GET /api/messages/conversations/[id]`, `POST /api/messages/conversations/[id]/messages`. Added manager dashboard page `/dashboard/messages` + `MessagingManagementPanel` with search, property filter, conversation list sorting, thread view, context panel, and send/start actions. Added manager unread model using `manager_last_read_at` and tenant-authored message timestamps only.

@@ -21,6 +21,15 @@ export {
   type CreatePropertyResponse
 } from "./properties/create-property";
 export {
+  createOwnerClient,
+  listOwnerClients,
+  type CreateOwnerClientRequest,
+  type CreateOwnerClientResponse,
+  type ListOwnerClientsRequest,
+  type ListOwnerClientsResponse,
+  type OwnerClientsDeps
+} from "./properties/owner-clients";
+export {
   createUnit,
   type CreateUnitDeps,
   type CreateUnitRequest,
@@ -119,6 +128,9 @@ export {
   getManagerConversationDetail,
   startManagerConversation,
   sendManagerMessage,
+  listTenantConversations,
+  getTenantConversationDetail,
+  sendTenantMessage,
   type ListManagerConversationsDeps,
   type ListManagerConversationsRequest,
   type ListManagerConversationsResponse,
@@ -130,5 +142,14 @@ export {
   type StartManagerConversationResponse,
   type SendManagerMessageDeps,
   type SendManagerMessageRequest,
-  type SendManagerMessageResponse
+  type SendManagerMessageResponse,
+  type ListTenantConversationsDeps,
+  type ListTenantConversationsRequest,
+  type ListTenantConversationsResponse,
+  type GetTenantConversationDetailDeps,
+  type GetTenantConversationDetailRequest,
+  type GetTenantConversationDetailResponse,
+  type SendTenantMessageDeps,
+  type SendTenantMessageRequest,
+  type SendTenantMessageResponse
 } from "./messages/message";

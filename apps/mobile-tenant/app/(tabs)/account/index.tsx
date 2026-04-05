@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import type { Lease } from "@hhousing/domain";
 import type { ApiResult } from "@hhousing/api-contracts";
 import { getWithAuth } from "@/lib/api-client";
@@ -9,6 +10,7 @@ import { useAuth } from "@/contexts/auth-context";
 type LeaseOutput = { lease: Lease | null };
 
 export default function AccountScreen(): React.ReactElement {
+  const router = useRouter();
   const { session, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +23,7 @@ export default function AccountScreen(): React.ReactElement {
     const result: ApiResult<LeaseOutput> = await getWithAuth<LeaseOutput>("/api/mobile/lease");
     if (!result.success) {
       setError(result.error);
+      setLease(null);
     } else {
       setLease(result.data.lease);
     }
@@ -40,7 +43,7 @@ export default function AccountScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <ScreenShell title="Compte" subtitle={email}>
+      <ScreenShell title="Profil" subtitle={email}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#0063FE" />
         </View>
@@ -49,7 +52,7 @@ export default function AccountScreen(): React.ReactElement {
   }
 
   return (
-    <ScreenShell title="Compte" subtitle={email}>
+    <ScreenShell title="Profil" subtitle={email}>
       <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
         {error ? (
           <View style={styles.notice}>
@@ -60,62 +63,39 @@ export default function AccountScreen(): React.ReactElement {
           </View>
         ) : null}
 
-        {/* Profile Card */}
         <View style={styles.profileCard}>
-          <Text style={styles.profileLabel}>Informations de votre compte</Text>
-
+          <Text style={styles.profileLabel}>Compte</Text>
           <View style={styles.profileField}>
             <Text style={styles.fieldLabel}>Email</Text>
             <Text style={styles.fieldValue}>{email}</Text>
           </View>
-
           {lease ? (
-            <>
-              <View style={styles.divider} />
-
-              <View style={styles.profileField}>
-                <Text style={styles.fieldLabel}>Unité de location</Text>
-                <Text style={styles.fieldValue}>{lease.unitId}</Text>
-              </View>
-
-              <View style={styles.profileField}>
-                <Text style={styles.fieldLabel}>Loyer mensuel</Text>
-                <Text style={styles.fieldValue}>
-                  {new Intl.NumberFormat("fr-FR", {
-                    style: "currency",
-                    currency: lease.currencyCode,
-                    maximumFractionDigits: 0
-                  }).format(lease.monthlyRentAmount)}
-                </Text>
-              </View>
-
-              <View style={styles.profileField}>
-                <Text style={styles.fieldLabel}>Contrat de location</Text>
-                <Text style={styles.fieldValue}>
-                  Du {new Date(lease.startDate).toLocaleDateString("fr-FR")}
-                  {lease.endDate
-                    ? ` au ${new Date(lease.endDate).toLocaleDateString("fr-FR")}`
-                    : " (durée indéterminée)"}
-                </Text>
-              </View>
-
-              <View style={styles.profileField}>
-                <Text style={styles.fieldLabel}>Statut du contrat</Text>
-                <Text style={[styles.fieldValue, { color: lease.status === "active" ? "#16A34A" : "#6B7280" }]}>
-                  {lease.status === "active"
-                    ? "Actif"
-                    : lease.status === "pending"
-                      ? "En attente"
-                      : "Terminé"}
-                </Text>
-              </View>
-            </>
-          ) : (
-            <Text style={styles.noLeaseText}>Aucun contrat de location trouvé.</Text>
-          )}
+            <View style={styles.profileField}>
+              <Text style={styles.fieldLabel}>Loyer mensuel</Text>
+              <Text style={styles.fieldValue}>
+                {new Intl.NumberFormat("fr-FR", {
+                  style: "currency",
+                  currency: lease.currencyCode,
+                  maximumFractionDigits: 0
+                }).format(lease.monthlyRentAmount)}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
-        {/* Logout Button */}
+        <View style={styles.menuCard}>
+          <MenuItem
+            label="Mon bail"
+            subtitle="Voir les détails du contrat"
+            onPress={() => { router.push("/(tabs)/account/lease"); }}
+          />
+          <MenuItem
+            label="Documents"
+            subtitle="Bail, reçus et avis"
+            onPress={() => { router.push("/(tabs)/account/documents"); }}
+          />
+        </View>
+
         <Pressable
           style={[styles.logoutButton, isSigningOut && styles.buttonDisabled]}
           onPress={() => { void handleSignOut(); }}
@@ -132,13 +112,29 @@ export default function AccountScreen(): React.ReactElement {
   );
 }
 
+function MenuItem({
+  label,
+  subtitle,
+  onPress
+}: {
+  label: string;
+  subtitle: string;
+  onPress: () => void;
+}): React.ReactElement {
+  return (
+    <Pressable style={styles.menuItem} onPress={onPress}>
+      <View style={styles.menuCopy}>
+        <Text style={styles.menuLabel}>{label}</Text>
+        <Text style={styles.menuSubtitle}>{subtitle}</Text>
+      </View>
+      <Text style={styles.menuArrow}>›</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center"
-  },
+  centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   notice: {
     borderRadius: 12,
     borderWidth: 1,
@@ -164,34 +160,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     padding: 16,
     gap: 14,
-    marginBottom: 20
+    marginBottom: 16
   },
-  profileLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#010A19"
+  profileLabel: { fontSize: 15, fontWeight: "700", color: "#010A19" },
+  profileField: { gap: 4 },
+  fieldLabel: { fontSize: 12, fontWeight: "600", color: "#6B7280" },
+  fieldValue: { fontSize: 14, color: "#010A19" },
+  menuCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#ffffff",
+    marginBottom: 20,
+    overflow: "hidden"
   },
-  profileField: {
-    gap: 4
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB"
   },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280"
-  },
-  fieldValue: {
-    fontSize: 14,
-    color: "#010A19"
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#E5E7EB"
-  },
-  noLeaseText: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontStyle: "italic"
-  },
+  menuCopy: { flex: 1, gap: 4 },
+  menuLabel: { fontSize: 15, fontWeight: "700", color: "#010A19" },
+  menuSubtitle: { fontSize: 13, color: "#6B7280" },
+  menuArrow: { fontSize: 24, color: "#94A3B8", marginLeft: 12 },
   logoutButton: {
     borderRadius: 10,
     paddingHorizontal: 14,
@@ -200,12 +195,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#DC2626",
     marginBottom: 30
   },
-  buttonDisabled: {
-    backgroundColor: "#FCA5A5"
-  },
-  logoutButtonText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700"
-  }
+  buttonDisabled: { backgroundColor: "#FCA5A5" },
+  logoutButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "700" }
 });

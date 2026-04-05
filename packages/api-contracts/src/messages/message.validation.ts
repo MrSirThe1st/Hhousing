@@ -1,6 +1,7 @@
 import type { ApiResult } from "../api-result.types";
 import type {
   ListManagerConversationsFilter,
+  SendTenantMessageInput,
   StartManagerConversationInput,
   SendManagerMessageInput
 } from "./message.types";
@@ -86,6 +87,32 @@ export function parseSendManagerMessageInput(
     data: {
       conversationId,
       organizationId: sessionOrganizationId,
+      body
+    }
+  };
+}
+
+export function parseSendTenantMessageInput(
+  conversationId: string,
+  input: unknown,
+  sessionOrganizationId: string,
+  tenantAuthUserId: string
+): ApiResult<SendTenantMessageInput> {
+  if (!isObject(input)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  }
+
+  const body = asNonEmptyText(input.body);
+  if (body === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "body is required" };
+  }
+
+  return {
+    success: true,
+    data: {
+      conversationId,
+      organizationId: sessionOrganizationId,
+      tenantAuthUserId,
       body
     }
   };

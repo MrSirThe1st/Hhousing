@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getScopedPortfolioDataMock,
   getMaintenanceRequestByIdMock,
   listMaintenanceRequestTimelineMock,
   updateMaintenanceRequestMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   getMaintenanceRequestByIdMock: vi.fn(),
   listMaintenanceRequestTimelineMock: vi.fn(),
   updateMaintenanceRequestMock: vi.fn()
@@ -43,11 +45,24 @@ vi.mock("../../shared", async () => {
   };
 });
 
+vi.mock("../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/maintenance/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "managed",
+      properties: [],
+      propertyIds: new Set(),
+      unitIds: new Set(["unit-1"]),
+      leases: [],
+      leaseIds: new Set(),
+      tenantIds: new Set()
+    });
     listMaintenanceRequestTimelineMock.mockResolvedValue([]);
   });
 
@@ -82,6 +97,7 @@ describe("/api/maintenance/[id]", () => {
 
     getMaintenanceRequestByIdMock.mockResolvedValue({
       id: "request-1",
+      unitId: "unit-1",
       status: "open"
     });
 
@@ -95,6 +111,7 @@ describe("/api/maintenance/[id]", () => {
       data: {
         request: {
           id: "request-1",
+          unitId: "unit-1",
           status: "open"
         },
         timeline: []
@@ -110,6 +127,12 @@ describe("/api/maintenance/[id]", () => {
       role: "manager",
       organizationId: "org-1",
       membershipId: "membership-1"
+    });
+
+    getMaintenanceRequestByIdMock.mockResolvedValue({
+      id: "request-1",
+      unitId: "unit-1",
+      status: "open"
     });
 
     updateMaintenanceRequestMock.mockResolvedValue({

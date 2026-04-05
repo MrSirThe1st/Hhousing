@@ -49,7 +49,9 @@ export async function createTenant(
     authUserId: null,
     fullName: parsed.data.fullName,
     email: parsed.data.email,
-    phone: parsed.data.phone
+    phone: parsed.data.phone,
+    dateOfBirth: parsed.data.dateOfBirth ?? null,
+    photoUrl: parsed.data.photoUrl ?? null
   });
 
   return { status: 201, body: { success: true, data: tenant } };

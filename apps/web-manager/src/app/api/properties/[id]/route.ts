@@ -1,5 +1,7 @@
 import type { ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { isScopeAllowedForSession } from "../../../../lib/operator-context";
+import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../../shared";
 
@@ -8,6 +10,8 @@ type PatchPropertyBody = {
   address: string;
   city: string;
   countryCode: string;
+  managementContext: "owned" | "managed";
+  clientId: string | null;
 };
 
 function validatePatchPropertyBody(input: unknown): ApiResult<PatchPropertyBody> {
@@ -24,12 +28,20 @@ function validatePatchPropertyBody(input: unknown): ApiResult<PatchPropertyBody>
   const address = typeof payload.address === "string" ? payload.address.trim() : "";
   const city = typeof payload.city === "string" ? payload.city.trim() : "";
   const countryCode = typeof payload.countryCode === "string" ? payload.countryCode.trim().toUpperCase() : "";
+  const managementContext = payload.managementContext === "owned" || payload.managementContext === "managed"
+    ? payload.managementContext
+    : null;
+  const clientId = typeof payload.clientId === "string"
+    ? payload.clientId.trim() || null
+    : payload.clientId === null || payload.clientId === undefined
+    ? null
+    : null;
 
-  if (!name || !address || !city || !countryCode) {
+  if (!name || !address || !city || !countryCode || managementContext === null) {
     return {
       success: false,
       code: "VALIDATION_ERROR",
-      error: "name, address, city, countryCode are required"
+      error: "name, address, city, countryCode, managementContext are required"
     };
   }
 
@@ -47,7 +59,9 @@ function validatePatchPropertyBody(input: unknown): ApiResult<PatchPropertyBody>
       name,
       address,
       city,
-      countryCode
+      countryCode,
+      managementContext,
+      clientId
     }
   };
 }
@@ -72,6 +86,15 @@ export async function GET(
     const property = await repositoryResult.data.getPropertyById(id, access.data.organizationId);
 
     if (!property) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Property not found"
+      });
+    }
+
+    const scoped = await getScopedPortfolioData(access.data);
+    if (!scoped.propertyIds.has(property.id)) {
       return jsonResponse(404, {
         success: false,
         code: "NOT_FOUND",
@@ -120,19 +143,68 @@ export async function PATCH(
     return jsonResponse(mapErrorCodeToHttpStatus(parsed.code), parsed);
   }
 
+  if (!isScopeAllowedForSession(access.data, parsed.data.managementContext)) {
+    return jsonResponse(403, {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Management context not allowed for current operator"
+    });
+  }
+
+  if (parsed.data.managementContext === "owned" && parsed.data.clientId) {
+    return jsonResponse(400, {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Owned properties cannot be linked to a client"
+    });
+  }
+
   const repositoryResult = createRepositoryFromEnv();
   if (!repositoryResult.success) {
     return jsonResponse(500, repositoryResult);
   }
 
   try {
+    const scoped = await getScopedPortfolioData(access.data);
+    if (!scoped.propertyIds.has(id)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Property not found"
+      });
+    }
+
+    let clientId: string | null = null;
+    let clientName: string | null = null;
+
+    if (parsed.data.clientId) {
+      const ownerClient = await repositoryResult.data.getOwnerClientById(
+        parsed.data.clientId,
+        access.data.organizationId
+      );
+
+      if (!ownerClient) {
+        return jsonResponse(404, {
+          success: false,
+          code: "NOT_FOUND",
+          error: "Client not found"
+        });
+      }
+
+      clientId = ownerClient.id;
+      clientName = ownerClient.name;
+    }
+
     const property = await repositoryResult.data.updateProperty({
       id,
       organizationId: access.data.organizationId,
       name: parsed.data.name,
       address: parsed.data.address,
       city: parsed.data.city,
-      countryCode: parsed.data.countryCode
+      countryCode: parsed.data.countryCode,
+      managementContext: parsed.data.managementContext,
+      clientId,
+      clientName
     });
 
     if (!property) {
@@ -174,6 +246,15 @@ export async function DELETE(
   }
 
   try {
+    const scoped = await getScopedPortfolioData(access.data);
+    if (!scoped.propertyIds.has(id)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Property not found"
+      });
+    }
+
     const deleted = await repositoryResult.data.deleteProperty(id, access.data.organizationId);
 
     if (!deleted) {

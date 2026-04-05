@@ -15,6 +15,11 @@ import {
   createTeamFunctionsRepo,
   createTenantLeaseRepo
 } from "../../api/shared";
+import {
+  filterManagerConversationsByScope,
+  filterTenantsByScope,
+  getScopedPortfolioData
+} from "../../../lib/operator-scope-portfolio";
 import { getServerAuthSession } from "../../../lib/session";
 import MessagingManagementPanel from "../../../components/messaging-management-panel";
 
@@ -31,6 +36,7 @@ export default async function MessagesPage(): Promise<React.ReactElement> {
   const teamFunctionsRepo = createTeamFunctionsRepo();
   const tenantLeaseRepo = createTenantLeaseRepo();
   const propertyRepoResult = createRepositoryFromEnv();
+  const scopedPortfolio = await getScopedPortfolioData(session);
 
   const conversationsResult = await listManagerConversations(
     {
@@ -58,7 +64,8 @@ export default async function MessagesPage(): Promise<React.ReactElement> {
     ? await listProperties(
         {
           session,
-          organizationId: session.organizationId ?? ""
+          organizationId: session.organizationId ?? "",
+          filter: { managementContext: scopedPortfolio.currentScope }
         },
         {
           repository: propertyRepoResult.data
@@ -70,10 +77,12 @@ export default async function MessagesPage(): Promise<React.ReactElement> {
       };
 
   const conversations: ManagerConversationListItem[] = conversationsResult.body.success
-    ? conversationsResult.body.data.conversations
+    ? filterManagerConversationsByScope(conversationsResult.body.data.conversations, scopedPortfolio)
     : [];
 
-  const tenants: Tenant[] = tenantsResult.body.success ? tenantsResult.body.data.tenants : [];
+  const tenants: Tenant[] = tenantsResult.body.success
+    ? filterTenantsByScope(tenantsResult.body.data.tenants, scopedPortfolio)
+    : [];
   const properties: PropertyOption[] = propertiesResult.body.success
     ? propertiesResult.body.data.items.map((item) => ({
         id: item.property.id,

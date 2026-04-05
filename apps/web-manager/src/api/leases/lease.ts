@@ -67,7 +67,25 @@ export async function createLease(
       startDate: parsed.data.startDate,
       endDate: parsed.data.endDate,
       monthlyRentAmount: parsed.data.monthlyRentAmount,
-      currencyCode: parsed.data.currencyCode
+      currencyCode: parsed.data.currencyCode,
+      termType: parsed.data.termType ?? (parsed.data.endDate === null ? "month_to_month" : "fixed"),
+      fixedTermMonths: parsed.data.fixedTermMonths ?? null,
+      autoRenewToMonthly: parsed.data.autoRenewToMonthly ?? false,
+      paymentFrequency: parsed.data.paymentFrequency ?? "monthly",
+      paymentStartDate: parsed.data.paymentStartDate ?? parsed.data.startDate,
+      dueDayOfMonth: parsed.data.dueDayOfMonth ?? Number((parsed.data.paymentStartDate ?? parsed.data.startDate).substring(8, 10)),
+      depositAmount: parsed.data.charges?.filter((charge) => charge.chargeType === "deposit").reduce((sum, charge) => sum + charge.amount, 0) ?? 0,
+      charges: (parsed.data.charges ?? []).map((charge) => ({
+        id: deps.createId(),
+        organizationId: parsed.data.organizationId,
+        label: charge.label,
+        chargeType: charge.chargeType,
+        amount: charge.amount,
+        currencyCode: charge.currencyCode,
+        frequency: charge.frequency,
+        startDate: charge.startDate,
+        endDate: charge.endDate ?? null
+      }))
     });
 
     return { status: 201, body: { success: true, data: lease } };

@@ -27,7 +27,7 @@ export async function POST(request: Request): Promise<Response> {
       },
       {
         repository: repositoryResult.data,
-        createId: () => createId("prp")
+        createId
       }
     );
 

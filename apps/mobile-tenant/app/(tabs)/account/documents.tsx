@@ -91,11 +91,7 @@ export default function DocumentsScreen(): React.ReactElement {
 
       {!isLoading && !error ? (
         <>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
             {FILTERS.map((value) => (
               <Pressable
                 key={value}
@@ -119,12 +115,21 @@ export default function DocumentsScreen(): React.ReactElement {
           ) : (
             <ScrollView showsVerticalScrollIndicator={false} style={styles.list}>
               {filteredDocuments.map((document) => (
-                <DocumentCard
-                  key={document.id}
-                  document={document}
-                  isOpening={openingId === document.id}
-                  onOpen={handleOpenDocument}
-                />
+                <Pressable key={document.id} style={styles.card} onPress={() => { void handleOpenDocument(document); }}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle} numberOfLines={2}>{document.fileName}</Text>
+                    <View style={[styles.badge, { backgroundColor: DOCUMENT_TYPE_COLOR[document.documentType] + "20" }]}>
+                      <Text style={[styles.badgeText, { color: DOCUMENT_TYPE_COLOR[document.documentType] }]}>
+                        {DOCUMENT_TYPE_LABEL[document.documentType]}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.meta}>
+                    Ajouté le {new Date(document.createdAtIso).toLocaleDateString("fr-FR")}
+                  </Text>
+                  <Text style={styles.meta}>{document.fileSize < 1024 * 1024 ? `${(document.fileSize / 1024).toFixed(1)} KB` : `${(document.fileSize / (1024 * 1024)).toFixed(1)} MB`}</Text>
+                  <Text style={styles.openText}>{openingId === document.id ? "Ouverture..." : "Appuyer pour ouvrir"}</Text>
+                </Pressable>
               ))}
             </ScrollView>
           )}
@@ -132,46 +137,6 @@ export default function DocumentsScreen(): React.ReactElement {
       ) : null}
     </ScreenShell>
   );
-}
-
-function DocumentCard({
-  document,
-  isOpening,
-  onOpen
-}: {
-  document: Document;
-  isOpening: boolean;
-  onOpen: (document: Document) => Promise<void>;
-}): React.ReactElement {
-  const color = DOCUMENT_TYPE_COLOR[document.documentType];
-
-  return (
-    <Pressable style={styles.card} onPress={() => { void onOpen(document); }}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle} numberOfLines={2}>{document.fileName}</Text>
-        <View style={[styles.badge, { backgroundColor: color + "20" }]}>
-          <Text style={[styles.badgeText, { color }]}>{DOCUMENT_TYPE_LABEL[document.documentType]}</Text>
-        </View>
-      </View>
-      <Text style={styles.meta}>
-        Ajouté le {new Date(document.createdAtIso).toLocaleDateString("fr-FR")}
-      </Text>
-      <Text style={styles.meta}>{formatFileSize(document.fileSize)}</Text>
-      <Text style={styles.openText}>{isOpening ? "Ouverture..." : "Appuyer pour ouvrir"}</Text>
-    </Pressable>
-  );
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const styles = StyleSheet.create({
@@ -202,18 +167,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8
   },
-  filterChipActive: {
-    borderColor: "#0063FE",
-    backgroundColor: "#EFF6FF"
-  },
-  filterText: {
-    color: "#6B7280",
-    fontSize: 12,
-    fontWeight: "600"
-  },
-  filterTextActive: {
-    color: "#0063FE"
-  },
+  filterChipActive: { borderColor: "#0063FE", backgroundColor: "#EFF6FF" },
+  filterText: { color: "#6B7280", fontSize: 12, fontWeight: "600" },
+  filterTextActive: { color: "#0063FE" },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#010A19" },
   emptyText: { fontSize: 14, color: "#4B5563" },
   list: { flex: 1 },
@@ -226,12 +182,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 10
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 8
-  },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
   cardTitle: { flex: 1, fontSize: 15, fontWeight: "700", color: "#010A19" },
   badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, flexShrink: 0 },
   badgeText: { fontSize: 12, fontWeight: "600" },

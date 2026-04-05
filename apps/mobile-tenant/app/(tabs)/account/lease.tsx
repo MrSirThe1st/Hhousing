@@ -52,21 +52,13 @@ export default function LeaseScreen(): React.ReactElement {
       : null;
 
   return (
-    <ScreenShell
-      title="Bail"
-      subtitle="Résumé de votre contrat et période active."
-    >
+    <ScreenShell title="Mon bail" subtitle="Résumé de votre contrat et période active.">
       {isLoading ? <Text>Chargement du bail...</Text> : null}
 
       {!isLoading && error ? (
         <View style={styles.noticeCard}>
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={() => {
-              void loadLease();
-            }}
-          >
+          <Pressable style={styles.retryButton} onPress={() => { void loadLease(); }}>
             <Text style={styles.retryButtonText}>Réessayer</Text>
           </Pressable>
         </View>
@@ -95,12 +87,7 @@ export default function LeaseScreen(): React.ReactElement {
   );
 }
 
-type LeaseRowProps = {
-  label: string;
-  value: string;
-};
-
-function LeaseRow({ label, value }: LeaseRowProps): React.ReactElement {
+function LeaseRow({ label, value }: { label: string; value: string }): React.ReactElement {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -118,10 +105,7 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 10
   },
-  errorText: {
-    color: "#B91C1C",
-    fontSize: 14
-  },
+  errorText: { color: "#B91C1C", fontSize: 14 },
   retryButton: {
     alignSelf: "flex-start",
     borderRadius: 8,
@@ -129,20 +113,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8
   },
-  retryButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 13
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#4B5563"
-  },
+  retryButtonText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#010A19" },
+  emptyText: { fontSize: 14, color: "#4B5563" },
   leaseCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -151,17 +124,7 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12
   },
-  row: {
-    gap: 4
-  },
-  rowLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    textTransform: "uppercase"
-  },
-  rowValue: {
-    fontSize: 15,
-    color: "#010A19",
-    fontWeight: "600"
-  }
+  row: { gap: 4 },
+  rowLabel: { fontSize: 12, color: "#6B7280", textTransform: "uppercase" },
+  rowValue: { fontSize: 15, color: "#010A19", fontWeight: "600" }
 });

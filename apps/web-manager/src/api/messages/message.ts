@@ -2,18 +2,22 @@ import type {
   ApiResult,
   AuthSession,
   GetManagerConversationDetailOutput,
+  GetTenantConversationDetailOutput,
   ListManagerConversationsOutput,
+  ListTenantConversationsOutput,
   SendManagerMessageOutput,
+  SendTenantMessageOutput,
   StartManagerConversationOutput
 } from "@hhousing/api-contracts";
 import {
   Permission,
   parseListManagerConversationsFilter,
   parseSendManagerMessageInput,
+  parseSendTenantMessageInput,
   parseStartManagerConversationInput
 } from "@hhousing/api-contracts";
 import type { MessageRepository } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession, requireTenantSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
 
@@ -257,6 +261,148 @@ export async function sendManagerMessage(
     conversationId: parsed.data.conversationId,
     organizationId: parsed.data.organizationId,
     senderUserId: sessionResult.data.userId,
+    body: parsed.data.body
+  });
+
+  if (!message) {
+    return {
+      status: 404,
+      body: { success: false, code: "NOT_FOUND", error: "Conversation not found" }
+    };
+  }
+
+  return {
+    status: 201,
+    body: {
+      success: true,
+      data: {
+        message
+      }
+    }
+  };
+}
+
+export interface ListTenantConversationsRequest {
+  session: AuthSession | null;
+}
+
+export interface ListTenantConversationsResponse {
+  status: number;
+  body: ApiResult<ListTenantConversationsOutput>;
+}
+
+export interface ListTenantConversationsDeps {
+  repository: MessageRepository;
+}
+
+export async function listTenantConversations(
+  request: ListTenantConversationsRequest,
+  deps: ListTenantConversationsDeps
+): Promise<ListTenantConversationsResponse> {
+  const sessionResult = requireTenantSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const conversations = await deps.repository.listTenantConversations(
+    sessionResult.data.organizationId,
+    sessionResult.data.userId
+  );
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      data: {
+        conversations
+      }
+    }
+  };
+}
+
+export interface GetTenantConversationDetailRequest {
+  session: AuthSession | null;
+  conversationId: string;
+}
+
+export interface GetTenantConversationDetailResponse {
+  status: number;
+  body: ApiResult<GetTenantConversationDetailOutput>;
+}
+
+export interface GetTenantConversationDetailDeps {
+  repository: MessageRepository;
+}
+
+export async function getTenantConversationDetail(
+  request: GetTenantConversationDetailRequest,
+  deps: GetTenantConversationDetailDeps
+): Promise<GetTenantConversationDetailResponse> {
+  const sessionResult = requireTenantSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const detail = await deps.repository.getTenantConversationDetail(
+    request.conversationId,
+    sessionResult.data.organizationId,
+    sessionResult.data.userId
+  );
+
+  if (!detail) {
+    return {
+      status: 404,
+      body: { success: false, code: "NOT_FOUND", error: "Conversation not found" }
+    };
+  }
+
+  return {
+    status: 200,
+    body: { success: true, data: detail }
+  };
+}
+
+export interface SendTenantMessageRequest {
+  session: AuthSession | null;
+  conversationId: string;
+  body: unknown;
+}
+
+export interface SendTenantMessageResponse {
+  status: number;
+  body: ApiResult<SendTenantMessageOutput>;
+}
+
+export interface SendTenantMessageDeps {
+  repository: MessageRepository;
+  createId: (prefix: string) => string;
+}
+
+export async function sendTenantMessage(
+  request: SendTenantMessageRequest,
+  deps: SendTenantMessageDeps
+): Promise<SendTenantMessageResponse> {
+  const sessionResult = requireTenantSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const parsed = parseSendTenantMessageInput(
+    request.conversationId,
+    request.body,
+    sessionResult.data.organizationId,
+    sessionResult.data.userId
+  );
+
+  if (!parsed.success) {
+    return { status: mapErrorCodeToHttpStatus(parsed.code), body: parsed };
+  }
+
+  const message = await deps.repository.sendTenantMessage({
+    messageId: deps.createId("msg"),
+    conversationId: parsed.data.conversationId,
+    organizationId: parsed.data.organizationId,
+    tenantAuthUserId: parsed.data.tenantAuthUserId,
     body: parsed.data.body
   });
 

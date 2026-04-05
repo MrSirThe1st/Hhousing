@@ -51,6 +51,13 @@ describe("createLease", () => {
         endDate: null,
         monthlyRentAmount: 500,
         currencyCode: "CDF",
+        termType: "month_to_month",
+        fixedTermMonths: null,
+        autoRenewToMonthly: false,
+        paymentFrequency: "monthly",
+        paymentStartDate: "2026-04-01",
+        dueDayOfMonth: 1,
+        depositAmount: 200,
         status: "active",
         createdAtIso: "2026-03-31T00:00:00.000Z"
       }),
@@ -80,7 +87,19 @@ describe("createLease", () => {
           startDate: "2026-04-01",
           endDate: null,
           monthlyRentAmount: 500,
-          currencyCode: "CDF"
+          currencyCode: "CDF",
+          paymentStartDate: "2026-04-01",
+          dueDayOfMonth: 1,
+          charges: [
+            {
+              label: "Caution principale",
+              chargeType: "deposit",
+              amount: 200,
+              currencyCode: "CDF",
+              frequency: "one_time",
+              startDate: "2026-04-01"
+            }
+          ]
         }
       },
       {
@@ -93,6 +112,20 @@ describe("createLease", () => {
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
     expect(repository.createLease).toHaveBeenCalledTimes(1);
+    expect(repository.createLease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        depositAmount: 200,
+        paymentFrequency: "monthly",
+        dueDayOfMonth: 1,
+        charges: [
+          expect.objectContaining({
+            chargeType: "deposit",
+            amount: 200,
+            startDate: "2026-04-01"
+          })
+        ]
+      })
+    );
   });
 
   it("returns validation error when unit is not vacant", async () => {

@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { Property, Unit } from "@hhousing/domain";
+import type { OwnerClient, Property, Unit } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
 import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
 
@@ -16,6 +16,8 @@ type PropertyFormData = {
   address: string;
   city: string;
   countryCode: string;
+  managementContext: "owned" | "managed";
+  clientId: string;
 };
 
 export default function PropertyDetailPage({ params }: PageProps): React.ReactElement {
@@ -23,6 +25,7 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
   const { id } = use(params);
 
   const [property, setProperty] = useState<Property | null>(null);
+  const [ownerClients, setOwnerClients] = useState<OwnerClient[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +34,9 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
     name: "",
     address: "",
     city: "",
-    countryCode: "CD"
+    countryCode: "CD",
+    managementContext: "owned",
+    clientId: ""
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -39,9 +44,14 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
   useEffect(() => {
     async function fetchProperty(): Promise<void> {
       try {
-        const response = await fetch(`/api/properties/${id}`, {
-          credentials: "include"
-        });
+        const [response, ownerClientsResponse] = await Promise.all([
+          fetch(`/api/properties/${id}`, {
+            credentials: "include"
+          }),
+          fetch("/api/owner-clients", {
+            credentials: "include"
+          })
+        ]);
 
         if (!response.ok) {
           setError("Propriété introuvable");
@@ -56,12 +66,21 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
             name: data.data.name,
             address: data.data.address,
             city: data.data.city,
-            countryCode: data.data.countryCode
+            countryCode: data.data.countryCode,
+            managementContext: data.data.managementContext,
+            clientId: data.data.clientId ?? ""
           });
         }
 
+        if (ownerClientsResponse.ok) {
+          const ownerClientsData = await ownerClientsResponse.json() as { success: boolean; data?: { clients: OwnerClient[] } };
+          if (ownerClientsData.success) {
+            setOwnerClients(ownerClientsData.data?.clients ?? []);
+          }
+        }
+
         // Fetch all properties with units to get units for this property
-        const propsResponse = await fetch(`/api/properties/with-units?organizationId=${data.data?.organizationId}`, {
+        const propsResponse = await fetch(`/api/properties/with-units?organizationId=${data.data?.organizationId}&managementContext=${data.data?.managementContext}`, {
           credentials: "include"
         });
 
@@ -135,7 +154,7 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
       <div className="p-8">
         <p className="text-red-600">{error}</p>
         <Link href="/dashboard/properties" className="text-[#0063fe] hover:underline">
-          Retour aux propriétés
+          Retour au portfolio
         </Link>
       </div>
     );
@@ -166,7 +185,7 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
     <div className="p-8">
       <div className="mb-6">
         <Link href="/dashboard/properties" className="text-sm text-[#0063fe] hover:underline mb-4 inline-block">
-          ← Retour aux propriétés
+          ← Retour au portfolio
         </Link>
       </div>
 
@@ -178,6 +197,23 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
                 <h1 className="text-2xl font-semibold text-[#010a19]">{property.name}</h1>
                 <p className="text-gray-600">{property.address}, {property.city}</p>
                 <p className="text-sm text-gray-500">{property.countryCode}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                    {property.managementContext === "owned" ? "Mon parc" : "Parc gere"}
+                  </span>
+                  {property.clientName ? (
+                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                      Client:{" "}
+                      {property.clientId ? (
+                        <Link href={`/dashboard/clients/${property.clientId}`} className="hover:underline">
+                          {property.clientName}
+                        </Link>
+                      ) : (
+                        property.clientName
+                      )}
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button
@@ -228,6 +264,41 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Contexte de gestion</label>
+              <select
+                value={formData.managementContext}
+                onChange={(e) => {
+                  const nextManagementContext = e.target.value as "owned" | "managed";
+                  setFormData((prev) => ({
+                    ...prev,
+                    managementContext: nextManagementContext,
+                    clientId: nextManagementContext === "managed" ? prev.clientId : ""
+                  }));
+                }}
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
+              >
+                <option value="owned">Mon parc</option>
+                <option value="managed">Parc gere</option>
+              </select>
+            </div>
+            {formData.managementContext === "managed" ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Client / proprietaire</label>
+                <select
+                  value={formData.clientId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, clientId: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
+                >
+                  <option value="">Aucun client lie</option>
+                  {ownerClients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
 
             {error && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
@@ -251,7 +322,9 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
                     name: property.name,
                     address: property.address,
                     city: property.city,
-                    countryCode: property.countryCode
+                    countryCode: property.countryCode,
+                    managementContext: property.managementContext,
+                    clientId: property.clientId ?? ""
                   });
                 }}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"

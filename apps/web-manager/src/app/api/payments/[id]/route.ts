@@ -3,6 +3,7 @@ import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../ap
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { Permission } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { createPaymentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function GET(
@@ -38,6 +39,15 @@ export async function GET(
       });
     }
 
+    const scopedPortfolio = await getScopedPortfolioData(access.data);
+    if (!scopedPortfolio.leaseIds.has(payment.leaseId)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Payment not found"
+      });
+    }
+
     return jsonResponse(200, {
       success: true,
       data: payment
@@ -57,6 +67,32 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
+  const session = await extractAuthSessionFromCookies();
+
+  const access = requireOperatorSession(session);
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const paymentRepository = createPaymentRepo();
+  const existingPayment = await paymentRepository.getPaymentById(id, access.data.organizationId);
+
+  if (!existingPayment) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Payment not found"
+    });
+  }
+
+  const scopedPortfolio = await getScopedPortfolioData(access.data);
+  if (!scopedPortfolio.leaseIds.has(existingPayment.leaseId)) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Payment not found"
+    });
+  }
 
   let body: unknown;
   try {
@@ -73,9 +109,9 @@ export async function PATCH(
     {
       paymentId: id,
       body,
-      session: await extractAuthSessionFromCookies()
+      session
     },
-    { repository: createPaymentRepo(), teamFunctionsRepository: createTeamFunctionsRepo() }
+    { repository: paymentRepository, teamFunctionsRepository: createTeamFunctionsRepo() }
   );
 
   return jsonResponse(result.status, result.body);

@@ -13,6 +13,7 @@ import {
   parseMarkPaymentPaidInput
 } from "@hhousing/api-contracts";
 import type { PaymentRepository } from "@hhousing/data-access";
+import type { PropertyManagementContext } from "@hhousing/domain";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
@@ -187,6 +188,7 @@ export async function listPayments(
 export interface GenerateRentChargesRequest {
   body: unknown;
   session: AuthSession | null;
+  managementContext?: PropertyManagementContext;
 }
 
 export interface GenerateRentChargesResponse {
@@ -227,7 +229,8 @@ export async function generateRentCharges(
 
   const generated = await deps.repository.generateMonthlyCharges(
     parsed.data.organizationId,
-    parsed.data.period
+    parsed.data.period,
+    request.managementContext
   );
 
   return {

@@ -1,5 +1,6 @@
 import { createTenant, listTenants } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
+import { filterTenantsByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createId, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
@@ -30,14 +31,25 @@ export async function POST(request: Request): Promise<Response> {
 
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
+  const session = await extractAuthSessionFromCookies();
 
   const result = await listTenants(
     {
       organizationId: searchParams.get("organizationId"),
-      session: await extractAuthSessionFromCookies()
+      session
     },
     { repository: createTenantLeaseRepo() }
   );
+
+  if (result.body.success && session !== null) {
+    const scopedPortfolio = await getScopedPortfolioData(session);
+    return jsonResponse(result.status, {
+      success: true,
+      data: {
+        tenants: filterTenantsByScope(result.body.data.tenants, scopedPortfolio)
+      }
+    });
+  }
 
   return jsonResponse(result.status, result.body);
 }

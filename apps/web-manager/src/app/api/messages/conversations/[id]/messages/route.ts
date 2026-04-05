@@ -1,5 +1,6 @@
 import { sendManagerMessage } from "../../../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../../../auth/session-adapter";
+import { getScopedPortfolioData } from "../../../../../../lib/operator-scope-portfolio";
 import {
   createId,
   createMessageRepo,
@@ -14,6 +15,8 @@ interface RouteParams {
 
 export async function POST(request: Request, { params }: RouteParams): Promise<Response> {
   const { id } = await params;
+  const session = await extractAuthSessionFromCookies();
+  const messageRepo = createMessageRepo();
 
   let body: unknown;
 
@@ -27,14 +30,34 @@ export async function POST(request: Request, { params }: RouteParams): Promise<R
     });
   }
 
+  if (session !== null) {
+    const detail = await messageRepo.getManagerConversationDetail(id, session.organizationId);
+    if (!detail) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Conversation not found"
+      });
+    }
+
+    const scopedPortfolio = await getScopedPortfolioData(session);
+    if (!scopedPortfolio.propertyIds.has(detail.context.unit.propertyId)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Conversation not found"
+      });
+    }
+  }
+
   const result = await sendManagerMessage(
     {
-      session: await extractAuthSessionFromCookies(),
+      session,
       conversationId: id,
       body
     },
     {
-      repository: createMessageRepo(),
+      repository: messageRepo,
       createId,
       teamFunctionsRepository: createTeamFunctionsRepo()
     }

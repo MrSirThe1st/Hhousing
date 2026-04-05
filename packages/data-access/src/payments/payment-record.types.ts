@@ -1,3 +1,4 @@
+import type { PropertyManagementContext } from "@hhousing/domain";
 import type { Payment } from "@hhousing/domain";
 import type { ListPaymentsFilter } from "@hhousing/api-contracts";
 
@@ -25,5 +26,9 @@ export interface PaymentRepository {
   listPaymentsByTenantAuthUserId(tenantAuthUserId: string, organizationId: string): Promise<Payment[]>;
   getPaymentById(paymentId: string, organizationId: string): Promise<Payment | null>;
   updateOverduePayments(organizationId: string): Promise<number>;
-  generateMonthlyCharges(organizationId: string, period: string): Promise<number>;
+  generateMonthlyCharges(
+    organizationId: string,
+    period: string,
+    managementContext?: PropertyManagementContext
+  ): Promise<number>;
 }

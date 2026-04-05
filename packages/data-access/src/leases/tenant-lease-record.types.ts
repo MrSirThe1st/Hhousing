@@ -1,4 +1,4 @@
-import type { Tenant, Lease } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 
 export interface CreateTenantInvitationRecordInput {
@@ -46,6 +46,20 @@ export interface CreateTenantRecordInput {
   fullName: string;
   email: string | null;
   phone: string | null;
+  dateOfBirth: string | null;
+  photoUrl: string | null;
+}
+
+export interface CreateLeaseChargeRecordInput {
+  id: string;
+  organizationId: string;
+  label: string;
+  chargeType: LeaseChargeType;
+  amount: number;
+  currencyCode: string;
+  frequency: LeaseChargeFrequency;
+  startDate: string;
+  endDate: string | null;
 }
 
 export interface CreateLeaseRecordInput {
@@ -57,6 +71,14 @@ export interface CreateLeaseRecordInput {
   endDate: string | null;
   monthlyRentAmount: number;
   currencyCode: string;
+  termType: "fixed" | "month_to_month";
+  fixedTermMonths: number | null;
+  autoRenewToMonthly: boolean;
+  paymentFrequency: "monthly" | "quarterly" | "annually";
+  paymentStartDate: string;
+  dueDayOfMonth: number;
+  depositAmount: number;
+  charges: CreateLeaseChargeRecordInput[];
 }
 
 export interface UpdateTenantRecordInput {
@@ -65,6 +87,8 @@ export interface UpdateTenantRecordInput {
   fullName: string;
   email: string | null;
   phone: string | null;
+  dateOfBirth: string | null;
+  photoUrl: string | null;
 }
 
 export interface UpdateLeaseRecordInput {

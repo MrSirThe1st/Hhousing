@@ -1,5 +1,6 @@
 import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
@@ -83,6 +84,15 @@ export async function GET(
       });
     }
 
+    const scopedPortfolio = await getScopedPortfolioData(access.data);
+    if (!scopedPortfolio.unitIds.has(lease.unitId)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Lease not found"
+      });
+    }
+
     return jsonResponse(200, {
       success: true,
       data: lease
@@ -136,6 +146,15 @@ export async function PATCH(
   }
 
   try {
+    const scopedPortfolio = await getScopedPortfolioData(access.data);
+    if (!scopedPortfolio.leaseIds.has(id)) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Lease not found"
+      });
+    }
+
     const lease = await repository.updateLease({
       id,
       organizationId: access.data.organizationId,

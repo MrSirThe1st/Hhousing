@@ -5,5 +5,7 @@ export interface Tenant {
   fullName: string;
   email: string | null;
   phone: string | null;
+  dateOfBirth: string | null;
+  photoUrl: string | null;
   createdAtIso: string;
 }

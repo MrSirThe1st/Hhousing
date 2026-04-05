@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { listLeases } from "../../../api";
 import LeaseManagementPanel from "../../../components/lease-management-panel";
+import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import { getServerAuthSession } from "../../../lib/session";
 
@@ -17,7 +18,11 @@ export default async function LeasesPage(): Promise<React.ReactElement> {
     { repository: tenantRepo, teamFunctionsRepository: teamFunctionsRepo }
   );
 
-  const leases: LeaseWithTenantView[] = result.body.success ? result.body.data.leases : [];
+  const scopedPortfolio = await getScopedPortfolioData(session);
+
+  const leases: LeaseWithTenantView[] = result.body.success
+    ? filterLeasesByScope(result.body.data.leases, scopedPortfolio)
+    : [];
 
   return <LeaseManagementPanel leases={leases} />;
 }

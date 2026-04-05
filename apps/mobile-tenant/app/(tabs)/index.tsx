@@ -101,7 +101,7 @@ export default function HomeScreen(): React.ReactElement {
           <QuickActionButton
             label="Bail"
             icon="📄"
-            onPress={() => { router.push("/(tabs)/lease"); }}
+            onPress={() => { router.push("/(tabs)/account/lease"); }}
           />
           <QuickActionButton
             label="Paiements"
@@ -114,7 +114,7 @@ export default function HomeScreen(): React.ReactElement {
             onPress={() => { router.push("/(tabs)/maintenance"); }}
           />
           <QuickActionButton
-            label="Compte"
+            label="Profil"
             icon="👤"
             onPress={() => { router.push("/(tabs)/account"); }}
           />

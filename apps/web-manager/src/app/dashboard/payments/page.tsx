@@ -2,6 +2,11 @@ import { redirect } from "next/navigation";
 import type { Payment } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { listPayments, listLeases } from "../../../api";
+import {
+  filterLeasesByScope,
+  filterPaymentsByScope,
+  getScopedPortfolioData
+} from "../../../lib/operator-scope-portfolio";
 import { createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import { getServerAuthSession } from "../../../lib/session";
 import PaymentManagementPanel from "../../../components/payment-management-panel";
@@ -27,8 +32,14 @@ export default async function PaymentsPage(): Promise<React.ReactElement> {
     )
   ]);
 
-  const payments: Payment[] = paymentsResult.body.success ? paymentsResult.body.data.payments : [];
-  const leases: LeaseWithTenantView[] = leasesResult.body.success ? leasesResult.body.data.leases : [];
+  const scopedPortfolio = await getScopedPortfolioData(session);
+
+  const payments: Payment[] = paymentsResult.body.success
+    ? filterPaymentsByScope(paymentsResult.body.data.payments, scopedPortfolio)
+    : [];
+  const leases: LeaseWithTenantView[] = leasesResult.body.success
+    ? filterLeasesByScope(leasesResult.body.data.leases, scopedPortfolio)
+    : [];
 
   return (
     <PaymentManagementPanel

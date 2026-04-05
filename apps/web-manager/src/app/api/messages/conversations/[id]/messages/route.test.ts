@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getManagerConversationDetailMock,
+  getScopedPortfolioDataMock,
   sendManagerMessageMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getManagerConversationDetailMock: vi.fn(),
+  getScopedPortfolioDataMock: vi.fn(),
   sendManagerMessageMock: vi.fn()
 }));
 
@@ -18,7 +22,7 @@ vi.mock("../../../../shared", async () => {
     ...actual,
     createMessageRepo: () => ({
       listManagerConversations: vi.fn(),
-      getManagerConversationDetail: vi.fn(),
+      getManagerConversationDetail: getManagerConversationDetailMock,
       startManagerConversation: vi.fn(),
       sendManagerMessage: vi.fn(),
       markManagerConversationRead: vi.fn()
@@ -37,11 +41,33 @@ vi.mock("../../../../../../api", async () => {
   };
 });
 
+vi.mock("../../../../../../lib/operator-scope-portfolio", () => ({
+  getScopedPortfolioData: getScopedPortfolioDataMock
+}));
+
 import { POST } from "./route";
 
 describe("POST /api/messages/conversations/[id]/messages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getManagerConversationDetailMock.mockResolvedValue({
+      context: {
+        unit: {
+          id: "unit-1",
+          propertyId: "prop-1",
+          propertyName: "Sunset"
+        }
+      }
+    });
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "owned",
+      properties: [],
+      propertyIds: new Set(["prop-1"]),
+      unitIds: new Set(["unit-1"]),
+      leases: [],
+      leaseIds: new Set(),
+      tenantIds: new Set(["tenant-1"])
+    });
   });
 
   it("returns validation error for invalid json", async () => {

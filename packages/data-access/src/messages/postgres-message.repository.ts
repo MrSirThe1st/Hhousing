@@ -1,15 +1,19 @@
 import { Pool, type QueryResultRow } from "pg";
 import type {
+  GetTenantConversationDetailOutput,
   GetManagerConversationDetailOutput,
   ListManagerConversationsFilter,
   ManagerConversationContext,
-  ManagerConversationListItem
+  ManagerConversationListItem,
+  TenantConversationContext,
+  TenantConversationListItem
 } from "@hhousing/api-contracts";
 import type { LeaseStatus, Message, MessageSenderSide } from "@hhousing/domain";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
   MessageRepository,
   SendManagerMessageRecordInput,
+  SendTenantMessageRecordInput,
   StartManagerConversationRecordInput
 } from "./message-record.types";
 
@@ -27,6 +31,18 @@ interface ConversationListRow extends QueryResultRow {
   unread_count: number | string;
 }
 
+interface TenantConversationListRow extends QueryResultRow {
+  conversation_id: string;
+  organization_name: string;
+  property_id: string;
+  property_name: string;
+  unit_id: string;
+  unit_number: string;
+  lease_id: string | null;
+  last_message_preview: string;
+  last_message_at: Date | string;
+}
+
 interface MessageRow extends QueryResultRow {
   id: string;
   organization_id: string;
@@ -42,6 +58,19 @@ interface ContextRow extends QueryResultRow {
   tenant_full_name: string;
   tenant_email: string | null;
   tenant_phone: string | null;
+  unit_id: string;
+  unit_number: string;
+  property_id: string;
+  property_name: string;
+  lease_id: string | null;
+  lease_start_date: Date | string | null;
+  lease_end_date: Date | string | null;
+  lease_monthly_rent_amount: string | number | null;
+  lease_currency_code: string | null;
+  lease_status: LeaseStatus | null;
+}
+
+interface TenantContextRow extends QueryResultRow {
   unit_id: string;
   unit_number: string;
   property_id: string;
@@ -109,6 +138,20 @@ function mapConversationListRow(row: ConversationListRow): ManagerConversationLi
   };
 }
 
+function mapTenantConversationListRow(row: TenantConversationListRow): TenantConversationListItem {
+  return {
+    conversationId: row.conversation_id,
+    organizationName: row.organization_name,
+    propertyId: row.property_id,
+    propertyName: row.property_name,
+    unitId: row.unit_id,
+    unitNumber: row.unit_number,
+    leaseId: row.lease_id,
+    lastMessagePreview: row.last_message_preview,
+    lastMessageAtIso: toIso(row.last_message_at)
+  };
+}
+
 function mapMessageRow(row: MessageRow): Message {
   return {
     id: row.id,
@@ -129,6 +172,28 @@ function mapContextRow(row: ContextRow): ManagerConversationContext {
       email: row.tenant_email,
       phone: row.tenant_phone
     },
+    unit: {
+      id: row.unit_id,
+      unitNumber: row.unit_number,
+      propertyId: row.property_id,
+      propertyName: row.property_name
+    },
+    lease: row.lease_id
+      ? {
+          id: row.lease_id,
+          startDate: row.lease_start_date ? toDateOnly(row.lease_start_date) : "",
+          endDate: row.lease_end_date ? toDateOnly(row.lease_end_date) : null,
+          monthlyRentAmount:
+            row.lease_monthly_rent_amount === null ? 0 : toNumber(row.lease_monthly_rent_amount),
+          currencyCode: row.lease_currency_code ?? "USD",
+          status: row.lease_status ?? "pending"
+        }
+      : null
+  };
+}
+
+function mapTenantContextRow(row: TenantContextRow): TenantConversationContext {
+  return {
     unit: {
       id: row.unit_id,
       unitNumber: row.unit_number,
@@ -260,6 +325,43 @@ export function createPostgresMessageRepository(client: MessageQueryable): Messa
       return result.rows.map(mapConversationListRow);
     },
 
+    async listTenantConversations(
+      organizationId: string,
+      tenantAuthUserId: string
+    ): Promise<TenantConversationListItem[]> {
+      const result = await client.query<TenantConversationListRow>(
+        `select
+           c.id as conversation_id,
+            o.name as organization_name,
+           p.id as property_id,
+           p.name as property_name,
+           u.id as unit_id,
+           u.unit_number,
+           c.lease_id,
+           lm.body as last_message_preview,
+           lm.created_at as last_message_at
+         from conversations c
+         join organizations o on o.id = c.organization_id
+         join tenants t on t.id = c.tenant_id and t.organization_id = c.organization_id
+         join units u on u.id = c.unit_id and u.organization_id = c.organization_id
+         join properties p on p.id = u.property_id and p.organization_id = c.organization_id
+         join lateral (
+           select m.body, m.created_at
+           from messages m
+           where m.conversation_id = c.id
+           order by m.created_at desc
+           limit 1
+         ) lm on true
+         where c.organization_id = $1
+           and t.auth_user_id = $2
+         order by lm.created_at desc
+         limit 200`,
+        [organizationId, tenantAuthUserId]
+      );
+
+      return result.rows.map(mapTenantConversationListRow);
+    },
+
     async getManagerConversationDetail(
       conversationId: string,
       organizationId: string
@@ -345,6 +447,88 @@ export function createPostgresMessageRepository(client: MessageQueryable): Messa
         conversation: mapConversationListRow(summary),
         messages: messagesResult.rows.map(mapMessageRow),
         context: mapContextRow(context)
+      };
+    },
+
+    async getTenantConversationDetail(
+      conversationId: string,
+      organizationId: string,
+      tenantAuthUserId: string
+    ): Promise<GetTenantConversationDetailOutput | null> {
+      const summaryResult = await client.query<TenantConversationListRow>(
+        `select
+           c.id as conversation_id,
+            o.name as organization_name,
+           p.id as property_id,
+           p.name as property_name,
+           u.id as unit_id,
+           u.unit_number,
+           c.lease_id,
+           lm.body as last_message_preview,
+           lm.created_at as last_message_at
+         from conversations c
+         join organizations o on o.id = c.organization_id
+         join tenants t on t.id = c.tenant_id and t.organization_id = c.organization_id
+         join units u on u.id = c.unit_id and u.organization_id = c.organization_id
+         join properties p on p.id = u.property_id and p.organization_id = c.organization_id
+         join lateral (
+           select m.body, m.created_at
+           from messages m
+           where m.conversation_id = c.id
+           order by m.created_at desc
+           limit 1
+         ) lm on true
+         where c.id = $1
+           and c.organization_id = $2
+           and t.auth_user_id = $3`,
+        [conversationId, organizationId, tenantAuthUserId]
+      );
+
+      const summary = summaryResult.rows[0];
+      if (!summary) {
+        return null;
+      }
+
+      const messagesResult = await client.query<MessageRow>(
+        `select id, organization_id, conversation_id, sender_side, sender_user_id, body, created_at
+         from messages
+         where conversation_id = $1 and organization_id = $2
+         order by created_at asc`,
+        [conversationId, organizationId]
+      );
+
+      const contextResult = await client.query<TenantContextRow>(
+        `select
+           u.id as unit_id,
+           u.unit_number,
+           p.id as property_id,
+           p.name as property_name,
+           l.id as lease_id,
+           l.start_date as lease_start_date,
+           l.end_date as lease_end_date,
+           l.monthly_rent_amount as lease_monthly_rent_amount,
+           l.currency_code as lease_currency_code,
+           l.status as lease_status
+         from conversations c
+         join tenants t on t.id = c.tenant_id and t.organization_id = c.organization_id
+         join units u on u.id = c.unit_id and u.organization_id = c.organization_id
+         join properties p on p.id = u.property_id and p.organization_id = c.organization_id
+         left join leases l on l.id = c.lease_id and l.organization_id = c.organization_id
+         where c.id = $1
+           and c.organization_id = $2
+           and t.auth_user_id = $3`,
+        [conversationId, organizationId, tenantAuthUserId]
+      );
+
+      const context = contextResult.rows[0];
+      if (!context) {
+        return null;
+      }
+
+      return {
+        conversation: mapTenantConversationListRow(summary),
+        messages: messagesResult.rows.map(mapMessageRow),
+        context: mapTenantContextRow(context)
       };
     },
 
@@ -453,6 +637,49 @@ export function createPostgresMessageRepository(client: MessageQueryable): Messa
           input.organizationId,
           input.conversationId,
           input.senderUserId,
+          input.body
+        ]
+      );
+
+      await client.query(
+        `update conversations
+         set updated_at = now()
+         where id = $1 and organization_id = $2`,
+        [input.conversationId, input.organizationId]
+      );
+
+      return mapMessageRow(result.rows[0]);
+    },
+
+    async sendTenantMessage(input: SendTenantMessageRecordInput): Promise<Message | null> {
+      const conversationExists = await client.query<ConversationIdRow>(
+        `select c.id
+         from conversations c
+         join tenants t on t.id = c.tenant_id and t.organization_id = c.organization_id
+         where c.id = $1
+           and c.organization_id = $2
+           and t.auth_user_id = $3`,
+        [input.conversationId, input.organizationId, input.tenantAuthUserId]
+      );
+
+      if (!conversationExists.rows[0]) {
+        return null;
+      }
+
+      const result = await client.query<MessageRow>(
+        `insert into messages (
+           id,
+           organization_id,
+           conversation_id,
+           sender_side,
+           sender_user_id,
+           body
+         ) values ($1, $2, $3, 'tenant', null, $4)
+         returning id, organization_id, conversation_id, sender_side, sender_user_id, body, created_at`,
+        [
+          input.messageId,
+          input.organizationId,
+          input.conversationId,
           input.body
         ]
       );

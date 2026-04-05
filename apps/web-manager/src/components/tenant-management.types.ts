@@ -10,6 +10,8 @@ export interface TenantFormState {
   fullName: string;
   email: string;
   phone: string;
+  dateOfBirth: string;
+  photoUrl: string;
 }
 
 export interface LeaseManagementPanelProps {

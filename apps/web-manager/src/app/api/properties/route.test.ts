@@ -46,7 +46,9 @@ describe("POST /api/properties", () => {
       name: "Residence 24",
       address: "Avenue Test",
       city: "Kinshasa",
-      countryCode: "CD"
+      countryCode: "CD",
+      managementContext: "managed",
+      clientId: "ocl_1"
     });
 
     extractAuthSessionFromCookiesMock.mockResolvedValue({
@@ -88,7 +90,9 @@ describe("POST /api/properties", () => {
       name: "Residence 24",
       address: "Avenue Test",
       city: "Kinshasa",
-      countryCode: "CD"
+      countryCode: "CD",
+      managementContext: "managed",
+      clientId: null
     });
 
     extractAuthSessionFromCookiesMock.mockResolvedValue(null);
