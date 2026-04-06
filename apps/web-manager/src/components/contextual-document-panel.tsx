@@ -32,11 +32,25 @@ type SessionInfo = {
 type ContextualDocumentPanelProps = {
   attachmentType: DocumentAttachmentType;
   attachmentId: string;
+  title?: string;
+  description?: string;
+  addButtonLabel?: string;
+  defaultDocumentType?: DocumentType;
+  preferredDocumentType?: DocumentType;
+  preferredDocumentEmptyMessage?: string;
+  preferredDocumentReadyMessage?: string;
 };
 
 export default function ContextualDocumentPanel({
   attachmentType,
-  attachmentId
+  attachmentId,
+  title = "Documents",
+  description,
+  addButtonLabel = "+ Ajouter",
+  defaultDocumentType = "other",
+  preferredDocumentType,
+  preferredDocumentEmptyMessage,
+  preferredDocumentReadyMessage
 }: ContextualDocumentPanelProps): React.ReactElement {
   const router = useRouter();
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
@@ -44,7 +58,7 @@ export default function ContextualDocumentPanel({
   const [loading, setLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState<DocumentType>("other");
+  const [documentType, setDocumentType] = useState<DocumentType>(defaultDocumentType);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +96,10 @@ export default function ContextualDocumentPanel({
     }
     init();
   }, [fetchDocuments]);
+
+  useEffect(() => {
+    setDocumentType(defaultDocumentType);
+  }, [defaultDocumentType]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
     setFile(e.target.files?.[0] ?? null);
@@ -131,7 +149,7 @@ export default function ContextualDocumentPanel({
     }
 
     setFile(null);
-    setDocumentType("other");
+    setDocumentType(defaultDocumentType);
     setShowUploadForm(false);
     setMessage("Document téléchargé.");
     setBusy(false);
@@ -164,19 +182,34 @@ export default function ContextualDocumentPanel({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  const preferredDocuments = preferredDocumentType
+    ? documents.filter((document) => document.documentType === preferredDocumentType)
+    : [];
+
   return (
     <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold text-[#010a19]">Documents</h2>
+        <div>
+          <h2 className="text-base font-semibold text-[#010a19]">{title}</h2>
+          {description ? <p className="mt-1 text-xs text-gray-500">{description}</p> : null}
+        </div>
         {!loading && sessionInfo && (
           <button
             onClick={() => setShowUploadForm(!showUploadForm)}
             className="rounded-lg bg-[#0063fe] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#0050d0]"
           >
-            {showUploadForm ? "Annuler" : "+ Ajouter"}
+            {showUploadForm ? "Annuler" : addButtonLabel}
           </button>
         )}
       </div>
+
+      {preferredDocumentType ? (
+        <div className={`mb-4 rounded-lg border px-3 py-2 text-xs ${preferredDocuments.length > 0 ? "border-green-200 bg-green-50 text-green-700" : "border-yellow-200 bg-yellow-50 text-yellow-700"}`}>
+          {preferredDocuments.length > 0
+            ? preferredDocumentReadyMessage ?? "Document attendu déjà importé."
+            : preferredDocumentEmptyMessage ?? "Document attendu manquant."}
+        </div>
+      ) : null}
 
       {message && (
         <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">

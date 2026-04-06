@@ -1,4 +1,4 @@
-import type { Payment } from "@hhousing/domain";
+import type { Payment, PaymentBillingFrequency, PaymentKind } from "@hhousing/domain";
 
 export interface GenerateRentChargesInput {
   organizationId: string;
@@ -18,6 +18,10 @@ export interface CreatePaymentInput {
   currencyCode: string;
   dueDate: string;
   note: string | null;
+  paymentKind?: PaymentKind;
+  billingFrequency?: PaymentBillingFrequency;
+  sourceLeaseChargeTemplateId?: string | null;
+  isInitialCharge?: boolean;
 }
 
 export type CreatePaymentOutput = Payment;

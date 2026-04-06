@@ -19,6 +19,10 @@ interface PaymentRow extends QueryResultRow {
   paid_date: string | Date | null;
   status: "pending" | "paid" | "overdue" | "cancelled";
   note: string | null;
+  payment_kind: "rent" | "deposit" | "prorated_rent" | "fee" | "other";
+  billing_frequency: "one_time" | "monthly" | "quarterly" | "annually";
+  source_lease_charge_template_id: string | null;
+  is_initial_charge: boolean;
   charge_period: string | null;
   created_at: Date | string;
 }
@@ -50,6 +54,10 @@ function mapPayment(row: PaymentRow): Payment {
     paidDate: row.paid_date ? toIsoDate(row.paid_date) : null,
     status: row.status,
     note: row.note,
+    paymentKind: row.payment_kind,
+    billingFrequency: row.billing_frequency,
+    sourceLeaseChargeTemplateId: row.source_lease_charge_template_id,
+    isInitialCharge: row.is_initial_charge,
     chargePeriod: row.charge_period ?? null,
     createdAtIso: toIso(row.created_at)
   };
@@ -80,11 +88,14 @@ export function createPostgresPaymentRepository(
       const result = await client.query<PaymentRow>(
         `insert into payments (
           id, organization_id, lease_id, tenant_id,
-          amount, currency_code, due_date, note
-        ) values ($1, $2, $3, $4, $5, $6, $7, $8)
+          amount, currency_code, due_date, note,
+          payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge
+        ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         returning
           id, organization_id, lease_id, tenant_id,
-          amount, currency_code, due_date, paid_date, status, note, charge_period, created_at`,
+          amount, currency_code, due_date, paid_date, status, note,
+          payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge,
+          charge_period, created_at`,
         [
           input.id,
           input.organizationId,
@@ -93,7 +104,11 @@ export function createPostgresPaymentRepository(
           input.amount,
           input.currencyCode,
           input.dueDate,
-          input.note
+          input.note,
+          input.paymentKind,
+          input.billingFrequency,
+          input.sourceLeaseChargeTemplateId,
+          input.isInitialCharge
         ]
       );
       return mapPayment(result.rows[0]);
@@ -106,7 +121,9 @@ export function createPostgresPaymentRepository(
          where id = $2 and organization_id = $3 and status != 'cancelled'
          returning
            id, organization_id, lease_id, tenant_id,
-           amount, currency_code, due_date, paid_date, status, note, charge_period, created_at`,
+           amount, currency_code, due_date, paid_date, status, note,
+           payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge,
+           charge_period, created_at`,
         [input.paidDate, input.paymentId, input.organizationId]
       );
       if (result.rows.length === 0) return null;
@@ -132,7 +149,9 @@ export function createPostgresPaymentRepository(
       const result = await client.query<PaymentRow>(
         `select
            id, organization_id, lease_id, tenant_id,
-           amount, currency_code, due_date, paid_date, status, note, charge_period, created_at
+            amount, currency_code, due_date, paid_date, status, note,
+            payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge,
+            charge_period, created_at
          from payments
          where ${where}
          order by due_date desc`,
@@ -148,7 +167,9 @@ export function createPostgresPaymentRepository(
       const result = await client.query<PaymentRow>(
         `select
            p.id, p.organization_id, p.lease_id, p.tenant_id,
-           p.amount, p.currency_code, p.due_date, p.paid_date, p.status, p.note, p.charge_period, p.created_at
+            p.amount, p.currency_code, p.due_date, p.paid_date, p.status, p.note,
+            p.payment_kind, p.billing_frequency, p.source_lease_charge_template_id, p.is_initial_charge,
+            p.charge_period, p.created_at
          from payments p
          join tenants t on t.id = p.tenant_id
          where t.auth_user_id = $1 and p.organization_id = $2
@@ -163,7 +184,9 @@ export function createPostgresPaymentRepository(
       const result = await client.query<PaymentRow>(
         `select
            id, organization_id, lease_id, tenant_id,
-           amount, currency_code, due_date, paid_date, status, note, charge_period, created_at
+            amount, currency_code, due_date, paid_date, status, note,
+            payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge,
+            charge_period, created_at
          from payments
          where id = $1 and organization_id = $2`,
         [paymentId, organizationId]
@@ -188,38 +211,165 @@ export function createPostgresPaymentRepository(
       period: string,
       managementContext?: PropertyManagementContext
     ): Promise<number> {
-      // due_date = first day of the period month
-      const dueDate = `${period}-01`;
-      const managementContextClause = managementContext ? "and p.management_context = $4" : "";
+      const managementContextClause = managementContext ? "and p.management_context = $3" : "";
       const values: readonly unknown[] = managementContext
-        ? [organizationId, dueDate, period, managementContext]
-        : [organizationId, dueDate, period];
+        ? [organizationId, period, managementContext]
+        : [organizationId, period];
 
       const result = await client.query(
-        `insert into payments (
+        `with period_bounds as (
+           select
+             to_date($2 || '-01', 'YYYY-MM-DD') as period_start,
+             (date_trunc('month', to_date($2 || '-01', 'YYYY-MM-DD')) + interval '1 month - 1 day')::date as period_end,
+             extract(day from (date_trunc('month', to_date($2 || '-01', 'YYYY-MM-DD')) + interval '1 month - 1 day'))::int as period_last_day,
+             (
+               extract(year from to_date($2 || '-01', 'YYYY-MM-DD'))::int * 12
+               + extract(month from to_date($2 || '-01', 'YYYY-MM-DD'))::int
+             ) as period_month_index
+         ), recurring_rent as (
+           select
+             'pay_' || replace(gen_random_uuid()::text, '-', '') as id,
+             l.organization_id,
+             l.id as lease_id,
+             l.tenant_id,
+             l.monthly_rent_amount as amount,
+             l.currency_code,
+             make_date(
+               extract(year from pb.period_start)::int,
+               extract(month from pb.period_start)::int,
+               least(l.due_day_of_month, pb.period_last_day)
+             ) as due_date,
+             ('Loyer ' || to_char(pb.period_start, 'MM/YYYY'))::text as note,
+             'rent'::text as payment_kind,
+             l.payment_frequency::text as billing_frequency,
+             null::text as source_lease_charge_template_id,
+             false as is_initial_charge,
+             $2::text as charge_period
+           from leases l
+           join units u on u.id = l.unit_id
+           join properties p on p.id = u.property_id
+           cross join period_bounds pb
+           where l.organization_id = $1
+             and l.status = 'active'
+             ${managementContextClause}
+             and l.payment_start_date <= pb.period_end
+             and (l.end_date is null or l.end_date >= pb.period_start)
+             and (
+               l.payment_frequency = 'monthly'
+               or (
+                 l.payment_frequency = 'quarterly'
+                 and mod(
+                   pb.period_month_index - (
+                     extract(year from l.payment_start_date)::int * 12
+                     + extract(month from l.payment_start_date)::int
+                   ),
+                   3
+                 ) = 0
+               )
+               or (
+                 l.payment_frequency = 'annually'
+                 and mod(
+                   pb.period_month_index - (
+                     extract(year from l.payment_start_date)::int * 12
+                     + extract(month from l.payment_start_date)::int
+                   ),
+                   12
+                 ) = 0
+               )
+             )
+             and not exists (
+               select 1
+               from payments existing
+               where existing.lease_id = l.id
+                 and existing.charge_period = $2
+                 and coalesce(existing.source_lease_charge_template_id, '') = ''
+             )
+         ), recurring_templates as (
+           select
+             'pay_' || replace(gen_random_uuid()::text, '-', '') as id,
+             l.organization_id,
+             l.id as lease_id,
+             l.tenant_id,
+             ct.amount,
+             ct.currency_code,
+             make_date(
+               extract(year from pb.period_start)::int,
+               extract(month from pb.period_start)::int,
+               least(extract(day from ct.start_date)::int, pb.period_last_day)
+             ) as due_date,
+             ct.label as note,
+             ct.charge_type::text as payment_kind,
+             ct.frequency::text as billing_frequency,
+             ct.id as source_lease_charge_template_id,
+             false as is_initial_charge,
+             $2::text as charge_period
+           from leases l
+           join lease_charge_templates ct on ct.lease_id = l.id and ct.organization_id = l.organization_id
+           join units u on u.id = l.unit_id
+           join properties p on p.id = u.property_id
+           cross join period_bounds pb
+           where l.organization_id = $1
+             and l.status = 'active'
+             ${managementContextClause}
+             and ct.frequency != 'one_time'
+             and ct.start_date <= pb.period_end
+             and (ct.end_date is null or ct.end_date >= pb.period_start)
+             and (
+               ct.frequency = 'monthly'
+               or (
+                 ct.frequency = 'quarterly'
+                 and mod(
+                   pb.period_month_index - (
+                     extract(year from ct.start_date)::int * 12
+                     + extract(month from ct.start_date)::int
+                   ),
+                   3
+                 ) = 0
+               )
+               or (
+                 ct.frequency = 'annually'
+                 and mod(
+                   pb.period_month_index - (
+                     extract(year from ct.start_date)::int * 12
+                     + extract(month from ct.start_date)::int
+                   ),
+                   12
+                 ) = 0
+               )
+             )
+             and not exists (
+               select 1
+               from payments existing
+               where existing.lease_id = l.id
+                 and existing.charge_period = $2
+                 and coalesce(existing.source_lease_charge_template_id, '') = ct.id
+             )
+         )
+         insert into payments (
            id, organization_id, lease_id, tenant_id,
-           amount, currency_code, due_date, charge_period
+           amount, currency_code, due_date, note,
+           payment_kind, billing_frequency, source_lease_charge_template_id,
+           is_initial_charge, charge_period
          )
          select
-           'pay_' || replace(gen_random_uuid()::text, '-', ''),
-           l.organization_id,
-           l.id,
-           l.tenant_id,
-           l.monthly_rent_amount,
-           l.currency_code,
-           $2::date,
-           $3
-         from leases l
-         join units u on u.id = l.unit_id
-         join properties p on p.id = u.property_id
-         where l.organization_id = $1
-           and l.status = 'active'
-           ${managementContextClause}
-           and not exists (
-             select 1 from payments p
-             where p.lease_id = l.id and p.charge_period = $3
-           )
-         on conflict (lease_id, charge_period) where charge_period is not null do nothing`,
+           id, organization_id, lease_id, tenant_id,
+           amount, currency_code, due_date, note,
+           payment_kind::text,
+           billing_frequency::text,
+           source_lease_charge_template_id,
+           is_initial_charge,
+           charge_period
+         from recurring_rent
+         union all
+         select
+           id, organization_id, lease_id, tenant_id,
+           amount, currency_code, due_date, note,
+           payment_kind::text,
+           billing_frequency::text,
+           source_lease_charge_template_id,
+           is_initial_charge,
+           charge_period
+         from recurring_templates`,
         values
       );
       return result.rowCount ?? 0;

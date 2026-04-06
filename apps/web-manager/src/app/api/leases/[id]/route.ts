@@ -1,13 +1,17 @@
-import { Permission, type ApiResult } from "@hhousing/api-contracts";
+import { Permission, parseFinalizeLeaseInput, type ApiResult } from "@hhousing/api-contracts";
+import { createTenantInvitation } from "../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { createTenantInvitationEmailSenderFromEnv } from "../../../../lib/email/resend";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
-import { createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createId, createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 type PatchLeaseBody = {
   endDate: string | null;
   status: "active" | "ended" | "pending";
+  signedAt?: string | null;
+  signingMethod?: "physical" | "scanned" | "email_confirmation" | null;
 };
 
 function validatePatchLeaseBody(input: unknown): ApiResult<PatchLeaseBody> {
@@ -42,11 +46,40 @@ function validatePatchLeaseBody(input: unknown): ApiResult<PatchLeaseBody> {
     };
   }
 
+  const signedAt = payload.signedAt === undefined || payload.signedAt === null
+    ? null
+    : typeof payload.signedAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.signedAt.trim())
+      ? payload.signedAt.trim()
+      : null;
+  const signingMethod = payload.signingMethod === undefined || payload.signingMethod === null
+    ? null
+    : payload.signingMethod === "physical" || payload.signingMethod === "scanned" || payload.signingMethod === "email_confirmation"
+      ? payload.signingMethod
+      : null;
+
+  if (payload.signedAt !== undefined && payload.signedAt !== null && signedAt === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "signedAt must be YYYY-MM-DD or null"
+    };
+  }
+
+  if (payload.signingMethod !== undefined && payload.signingMethod !== null && signingMethod === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "signingMethod must be physical, scanned, or email_confirmation"
+    };
+  }
+
   return {
     success: true,
     data: {
       endDate,
-      status: payload.status as "active" | "ended" | "pending"
+      status: payload.status as "active" | "ended" | "pending",
+      signedAt,
+      signingMethod
     }
   };
 }
@@ -140,6 +173,121 @@ export async function PATCH(
 
   const repository = createTenantLeaseRepo();
 
+  if (typeof body === "object" && body !== null && (body as Record<string, unknown>).action === "finalize") {
+    const paymentRepository = createPaymentRepo();
+    const finalized = parseFinalizeLeaseInput(body);
+    if (!finalized.success) {
+      return jsonResponse(mapErrorCodeToHttpStatus(finalized.code), finalized);
+    }
+
+    if (finalized.data.organizationId !== access.data.organizationId) {
+      return jsonResponse(403, {
+        success: false,
+        code: "FORBIDDEN",
+        error: "Organization mismatch"
+      });
+    }
+
+    try {
+      const scopedPortfolio = await getScopedPortfolioData(access.data);
+      if (!scopedPortfolio.leaseIds.has(id)) {
+        return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Lease not found" });
+      }
+
+      const lease = await repository.getLeaseById(id, access.data.organizationId);
+      if (!lease) {
+        return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Lease not found" });
+      }
+
+      if (lease.status !== "pending") {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Only pending move-ins can be finalized"
+        });
+      }
+
+      const initialPayments = (await paymentRepository.listPayments({
+        organizationId: access.data.organizationId,
+        leaseId: id
+      })).filter((payment) => payment.isInitialCharge);
+
+      if (initialPayments.length === 0) {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Initial move-in charges must exist before finalization"
+        });
+      }
+
+      const unpaidInitialPayments = initialPayments.filter((payment) => payment.status !== "paid");
+      if (unpaidInitialPayments.length > 0) {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "All initial move-in charges must be marked as paid before finalization"
+        });
+      }
+
+      if (!lease.tenantEmail) {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Tenant email is required before activation"
+        });
+      }
+
+      const tenant = await repository.getTenantById(lease.tenantId, access.data.organizationId);
+      if (!tenant || tenant.authUserId) {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: tenant?.authUserId ? "Tenant already has login access" : "Tenant not found"
+        });
+      }
+
+      const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
+      const invitationResult = await createTenantInvitation(
+        {
+          tenantId: lease.tenantId,
+          session: access.data
+        },
+        {
+          repository,
+          createId: () => createId("tin"),
+          inviteLinkBaseUrl,
+          sendInvitationEmail: createTenantInvitationEmailSenderFromEnv()
+        }
+      );
+
+      if (!invitationResult.body.success) {
+        return jsonResponse(invitationResult.status, invitationResult.body);
+      }
+
+      const updatedLease = await repository.updateLease({
+        id,
+        organizationId: access.data.organizationId,
+        endDate: lease.endDate,
+        status: "active",
+        signedAt: finalized.data.signedAt,
+        signingMethod: finalized.data.signingMethod
+      });
+
+      if (!updatedLease) {
+        return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Lease not found" });
+      }
+
+      return jsonResponse(200, { success: true, data: updatedLease });
+    } catch (error) {
+      console.error("Failed to finalize lease", error);
+      return jsonResponse(500, {
+        success: false,
+        code: "INTERNAL_ERROR",
+        error: "Failed to finalize lease"
+      });
+    }
+  }
+
   const parsed = validatePatchLeaseBody(body);
   if (!parsed.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(parsed.code), parsed);
@@ -159,7 +307,9 @@ export async function PATCH(
       id,
       organizationId: access.data.organizationId,
       endDate: parsed.data.endDate,
-      status: parsed.data.status
+      status: parsed.data.status,
+      signedAt: parsed.data.signedAt,
+      signingMethod: parsed.data.signingMethod
     });
 
     if (!lease) {

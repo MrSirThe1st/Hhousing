@@ -1,5 +1,5 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
-import type { Lease, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseSigningMethod, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
@@ -43,6 +43,9 @@ interface LeaseRow extends QueryResultRow {
   due_day_of_month: number;
   deposit_amount: string | number;
   status: "active" | "ended" | "pending";
+  signed_at: string | Date | null;
+  signing_method: LeaseSigningMethod | null;
+  activated_at: Date | string | null;
   created_at: Date | string;
 }
 
@@ -143,6 +146,9 @@ function mapLease(row: LeaseRow): Lease {
     dueDayOfMonth: row.due_day_of_month,
     depositAmount: toNumber(row.deposit_amount),
     status: row.status,
+    signedAt: row.signed_at ? toIsoDate(row.signed_at) : null,
+    signingMethod: row.signing_method,
+    activatedAtIso: row.activated_at ? toIso(row.activated_at) : null,
     createdAtIso: toIso(row.created_at)
   };
 }
@@ -358,9 +364,9 @@ export function createPostgresTenantLeaseRepository(
                start_date, end_date, monthly_rent_amount, currency_code,
                term_type, fixed_term_months, auto_renew_to_monthly,
                payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
-               status
+               status, signed_at, signing_method, activated_at
              )
-             select $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'active'
+             select $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, null, null, null
              from units u
              where u.id = $3
                and u.organization_id = $2
@@ -370,12 +376,13 @@ export function createPostgresTenantLeaseRepository(
                start_date, end_date, monthly_rent_amount, currency_code,
                term_type, fixed_term_months, auto_renew_to_monthly,
                payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
-               status, created_at
+               status, signed_at, signing_method, activated_at, created_at
            ), updated_unit as (
              update units
              set status = 'occupied'
              where id = $3
                and organization_id = $2
+               and $16 = 'active'
                and exists (select 1 from created_lease)
              returning id
            )
@@ -384,7 +391,7 @@ export function createPostgresTenantLeaseRepository(
              start_date, end_date, monthly_rent_amount, currency_code,
              term_type, fixed_term_months, auto_renew_to_monthly,
              payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
-             status, created_at
+             status, signed_at, signing_method, activated_at, created_at
            from created_lease`,
           [
             input.id,
@@ -401,7 +408,8 @@ export function createPostgresTenantLeaseRepository(
             input.paymentFrequency,
             input.paymentStartDate,
             input.dueDayOfMonth,
-            input.depositAmount
+            input.depositAmount,
+            input.status
           ]
         );
 
@@ -441,7 +449,7 @@ export function createPostgresTenantLeaseRepository(
             l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
             l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
             l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
-            l.status, l.created_at,
+            l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
            t.full_name  as tenant_full_name,
            t.email      as tenant_email
          from leases l
@@ -463,7 +471,7 @@ export function createPostgresTenantLeaseRepository(
             l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
             l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
             l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
-            l.status, l.created_at,
+            l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
            t.full_name  as tenant_full_name,
            t.email      as tenant_email
          from leases l
@@ -509,7 +517,7 @@ export function createPostgresTenantLeaseRepository(
            l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
            l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
            l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
-           l.status, l.created_at,
+           l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
            t.full_name  as tenant_full_name,
            t.email      as tenant_email
          from leases l
@@ -532,19 +540,42 @@ export function createPostgresTenantLeaseRepository(
     },
 
     async updateLease(input: UpdateLeaseRecordInput): Promise<Lease | null> {
-      const result = await client.query<LeaseRow>(
-        `update leases
-         set end_date = $1, status = $2
-         where id = $3 and organization_id = $4
-         returning
-           id, organization_id, unit_id, tenant_id,
-           start_date, end_date, monthly_rent_amount, currency_code,
-           term_type, fixed_term_months, auto_renew_to_monthly,
-           payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
-           status, created_at`,
-        [input.endDate, input.status, input.id, input.organizationId]
-      );
-      return result.rows[0] ? mapLease(result.rows[0]) : null;
+      return withTransaction(transactionCapableClient, async (queryable) => {
+        const result = await queryable.query<LeaseRow>(
+          `with updated_lease as (
+             update leases
+             set end_date = $1,
+                 status = $2,
+                 signed_at = coalesce($5, signed_at),
+                 signing_method = coalesce($6, signing_method),
+                 activated_at = case
+                   when $2 = 'active' and activated_at is null then now()
+                   else activated_at
+                 end
+             where id = $3 and organization_id = $4
+             returning
+               id, organization_id, unit_id, tenant_id,
+               start_date, end_date, monthly_rent_amount, currency_code,
+               term_type, fixed_term_months, auto_renew_to_monthly,
+               payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
+               status, signed_at, signing_method, activated_at, created_at
+           ), updated_unit as (
+             update units
+             set status = 'occupied'
+             where id in (select unit_id from updated_lease where status = 'active')
+             returning id
+           )
+           select
+             id, organization_id, unit_id, tenant_id,
+             start_date, end_date, monthly_rent_amount, currency_code,
+             term_type, fixed_term_months, auto_renew_to_monthly,
+             payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
+             status, signed_at, signing_method, activated_at, created_at
+           from updated_lease`,
+          [input.endDate, input.status, input.id, input.organizationId, input.signedAt ?? null, input.signingMethod ?? null]
+        );
+        return result.rows[0] ? mapLease(result.rows[0]) : null;
+      });
     },
 
     async deleteTenant(tenantId: string, organizationId: string): Promise<boolean> {

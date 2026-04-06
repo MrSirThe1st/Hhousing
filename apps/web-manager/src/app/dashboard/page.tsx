@@ -4,6 +4,14 @@ import { getServerAuthSession } from "../../lib/session";
 import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
 import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
 
+type DashboardTab = "overview" | "tasks" | "calendar";
+
+type DashboardPageProps = {
+  searchParams?: Promise<{
+    tab?: string;
+  }>;
+};
+
 type DashboardMetrics = {
   propertyCount: number;
   unitCount: number;
@@ -12,6 +20,14 @@ type DashboardMetrics = {
   maintenanceCount: number;
   occupiedUnitCount: number;
 };
+
+function getDashboardTab(tab: string | undefined): DashboardTab {
+  if (tab === "tasks" || tab === "calendar") {
+    return tab;
+  }
+
+  return "overview";
+}
 
 function getVariantHeader(experience: "self_managed_owner" | "manager_for_others" | "mixed_operator"): { title: string; subtitle: string } {
   if (experience === "self_managed_owner") {
@@ -133,9 +149,12 @@ function getStats(
   ];
 }
 
-export default async function DashboardPage(): Promise<React.ReactElement> {
+export default async function DashboardPage({ searchParams }: DashboardPageProps): Promise<React.ReactElement> {
   const session = await getServerAuthSession();
   if (!session) redirect("/login");
+
+  const params = await searchParams;
+  const activeTab = getDashboardTab(params?.tab);
 
   const operatorContext = await getServerOperatorContext(session);
   const scopeLabel = getOperatorScopeLabel(operatorContext.currentScope);
@@ -145,6 +164,11 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   const stats = getStats(operatorContext.experience, scopeLabel, metrics);
 
   const hasNoData = metrics.propertyCount === 0;
+  const tabs: Array<{ id: DashboardTab; label: string; href: string }> = [
+    { id: "overview", label: "Overview", href: "/dashboard" },
+    { id: "tasks", label: "Tasks", href: "/dashboard?tab=tasks" },
+    { id: "calendar", label: "Calendar", href: "/dashboard?tab=calendar" },
+  ];
 
   return (
     <div className="p-8">
@@ -164,34 +188,63 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         )}
       </div>
 
-      {hasNoData && (
-        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6">
-          <h2 className="text-lg font-semibold text-[#010a19] mb-2">Commencez par alimenter votre portfolio</h2>
-          <p className="text-sm text-gray-700 mb-4">
-            Votre tableau de bord affichera les métriques une fois que vous aurez ajouté des biens et unités.
-          </p>
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard/properties/add"
-              className="inline-flex items-center gap-2 rounded-lg border border-[#0063fe] bg-white px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
-            >
-              Ajouter un bien
-            </Link>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+      <div className="mb-6 inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.id}
+            href={tab.href}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "bg-[#0063fe] text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
           >
-            <p className="text-sm text-gray-500">{stat.label}</p>
-            <p className="mt-1 text-3xl font-semibold text-[#010a19]">{stat.value}</p>
-          </div>
+            {tab.label}
+          </Link>
         ))}
       </div>
+
+      {activeTab === "overview" ? (
+        <>
+          {hasNoData && (
+            <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6">
+              <h2 className="text-lg font-semibold text-[#010a19] mb-2">Commencez par alimenter votre portfolio</h2>
+              <p className="text-sm text-gray-700 mb-4">
+                Votre tableau de bord affichera les métriques une fois que vous aurez ajouté des biens et unités.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  href="/dashboard/properties/add"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#0063fe] bg-white px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
+                >
+                  Ajouter un bien
+                </Link>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              >
+                <p className="text-sm text-gray-500">{stat.label}</p>
+                <p className="mt-1 text-3xl font-semibold text-[#010a19]">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+          <h2 className="text-lg font-semibold text-[#010a19]">
+            {activeTab === "tasks" ? "Tasks" : "Calendar"}
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Cet onglet est prêt mais reste vide pour l&apos;instant.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

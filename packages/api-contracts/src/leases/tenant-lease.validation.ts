@@ -1,5 +1,5 @@
 import type { ApiResult } from "../api-result.types";
-import type { CreateLeaseChargeInput, CreateLeaseInput, CreateTenantInput } from "./tenant-lease.types";
+import type { CreateLeaseChargeInput, CreateLeaseInput, CreateTenantInput, FinalizeLeaseInput } from "./tenant-lease.types";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -43,7 +43,13 @@ function parseLeaseChargeInput(input: unknown): ApiResult<CreateLeaseChargeInput
   }
 
   const label = asNonEmptyText(input.label);
-  const chargeType = input.chargeType === "deposit" || input.chargeType === "other" ? input.chargeType : null;
+  const chargeType = input.chargeType === "deposit"
+    || input.chargeType === "rent"
+    || input.chargeType === "prorated_rent"
+    || input.chargeType === "fee"
+    || input.chargeType === "other"
+    ? input.chargeType
+    : null;
   const amount = asPositiveNumber(input.amount);
   const currencyCode = asNonEmptyText(input.currencyCode);
   const frequency = input.frequency === "one_time" || input.frequency === "monthly" || input.frequency === "quarterly" || input.frequency === "annually"
@@ -78,6 +84,45 @@ function parseLeaseChargeInput(input: unknown): ApiResult<CreateLeaseChargeInput
       frequency,
       startDate,
       endDate
+    }
+  };
+}
+
+export function parseFinalizeLeaseInput(input: unknown): ApiResult<FinalizeLeaseInput> {
+  if (!isObject(input)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  }
+
+  const organizationId = asNonEmptyText(input.organizationId);
+  const signedAt = asIsoDate(input.signedAt);
+  const signingMethod = input.signingMethod === "physical"
+    || input.signingMethod === "scanned"
+    || input.signingMethod === "email_confirmation"
+    ? input.signingMethod
+    : null;
+
+  if (organizationId === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "organizationId is required" };
+  }
+
+  if (signedAt === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "signedAt must be YYYY-MM-DD" };
+  }
+
+  if (signingMethod === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "signingMethod must be physical, scanned, or email_confirmation"
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      organizationId,
+      signedAt,
+      signingMethod
     }
   };
 }

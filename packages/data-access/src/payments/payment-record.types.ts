@@ -1,5 +1,4 @@
-import type { PropertyManagementContext } from "@hhousing/domain";
-import type { Payment } from "@hhousing/domain";
+import type { Payment, PaymentBillingFrequency, PaymentKind, PropertyManagementContext } from "@hhousing/domain";
 import type { ListPaymentsFilter } from "@hhousing/api-contracts";
 
 export interface CreatePaymentRecordInput {
@@ -11,6 +10,10 @@ export interface CreatePaymentRecordInput {
   currencyCode: string;
   dueDate: string;
   note: string | null;
+  paymentKind: PaymentKind;
+  billingFrequency: PaymentBillingFrequency;
+  sourceLeaseChargeTemplateId: string | null;
+  isInitialCharge: boolean;
 }
 
 export interface MarkPaymentPaidRecordInput {

@@ -1,11 +1,16 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Lease, Tenant, Unit } from "@hhousing/domain";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../../../../lib/api-client";
-import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
+
+const ContextualDocumentPanel = dynamic(
+  () => import("../../../../components/contextual-document-panel"),
+  { ssr: false }
+);
 
 type PageProps = {
   params: Promise<{ id: string }>;

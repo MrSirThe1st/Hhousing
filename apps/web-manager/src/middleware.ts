@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   async function getMembershipCount(userId: string): Promise<number> {
     try {
       const { count } = await supabase
-        .from('organization_memberships')
+        .from   ('organization_memberships')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       return count ?? 0;

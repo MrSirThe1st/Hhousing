@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AuthSession } from "@hhousing/api-contracts";
-import type { TenantLeaseRepository } from "@hhousing/data-access";
+import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { createLease } from "./lease";
+
+const sendLeaseDraftEmailMock = vi.fn().mockResolvedValue(undefined);
 
 const operatorSession: AuthSession = {
   userId: "user-1",
@@ -39,6 +41,34 @@ function createTeamFunctionsRepositoryMock(permissions: string[]): TeamPermissio
   };
 }
 
+function createPaymentRepositoryMock(): PaymentRepository {
+  return {
+    createPayment: vi.fn().mockResolvedValue({
+      id: "pay-1",
+      organizationId: "org-1",
+      leaseId: "lease-1",
+      tenantId: "tenant-1",
+      amount: 200,
+      currencyCode: "CDF",
+      dueDate: "2026-04-01",
+      paidDate: null,
+      status: "pending",
+      note: "Caution principale",
+      paymentKind: "deposit",
+      billingFrequency: "one_time",
+      sourceLeaseChargeTemplateId: "charge-1",
+      isInitialCharge: true,
+      createdAtIso: "2026-03-31T00:00:00.000Z"
+    }),
+    markPaymentPaid: vi.fn(),
+    listPayments: vi.fn(),
+    listPaymentsByTenantAuthUserId: vi.fn(),
+    getPaymentById: vi.fn(),
+    updateOverduePayments: vi.fn(),
+    generateMonthlyCharges: vi.fn()
+  };
+}
+
 describe("createLease", () => {
   it("creates lease successfully", async () => {
     const repository: TenantLeaseRepository = {
@@ -58,24 +88,46 @@ describe("createLease", () => {
         paymentStartDate: "2026-04-01",
         dueDayOfMonth: 1,
         depositAmount: 200,
-        status: "active",
+        status: "pending",
         createdAtIso: "2026-03-31T00:00:00.000Z"
       }),
       createTenant: vi.fn(),
-      revokeActiveTenantInvitations: vi.fn(),
-      createTenantInvitation: vi.fn(),
+      revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
+      createTenantInvitation: vi.fn().mockResolvedValue({
+        id: "tin-1",
+        tenantId: "tenant-1",
+        organizationId: "org-1",
+        email: "tenant@example.com",
+        tokenHash: "hash",
+        expiresAtIso: "2026-04-09T00:00:00.000Z",
+        createdByUserId: "user-1",
+        usedAtIso: null,
+        revokedAtIso: null,
+        createdAtIso: "2026-03-31T00:00:00.000Z"
+      }),
       getTenantInvitationPreviewByTokenHash: vi.fn(),
       markTenantInvitationUsed: vi.fn(),
       linkTenantAuthUser: vi.fn(),
       listLeasesByOrganization: vi.fn(),
       getCurrentLeaseByTenantAuthUserId: vi.fn(),
       listTenantsByOrganization: vi.fn(),
-      getTenantById: vi.fn(),
+      getTenantById: vi.fn().mockResolvedValue({
+        id: "tenant-1",
+        organizationId: "org-1",
+        authUserId: null,
+        fullName: "Tenant One",
+        email: "tenant@example.com",
+        phone: null,
+        dateOfBirth: null,
+        photoUrl: null,
+        createdAtIso: "2026-03-31T00:00:00.000Z"
+      }),
       getLeaseById: vi.fn(),
       updateTenant: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
     };
+    const paymentRepository = createPaymentRepositoryMock();
 
     const response = await createLease(
       {
@@ -104,8 +156,11 @@ describe("createLease", () => {
       },
       {
         repository,
+        paymentRepository,
         teamFunctionsRepository: createTeamFunctionsRepositoryMock(["create_lease"]),
-        createId: () => "lease-1"
+        createId: () => "lease-1",
+        createPaymentId: () => "pay-1",
+        sendLeaseDraftEmail: sendLeaseDraftEmailMock
       }
     );
 
@@ -114,6 +169,7 @@ describe("createLease", () => {
     expect(repository.createLease).toHaveBeenCalledTimes(1);
     expect(repository.createLease).toHaveBeenCalledWith(
       expect.objectContaining({
+        status: "pending",
         depositAmount: 200,
         paymentFrequency: "monthly",
         dueDayOfMonth: 1,
@@ -126,13 +182,16 @@ describe("createLease", () => {
         ]
       })
     );
+    expect(paymentRepository.createPayment).toHaveBeenCalledTimes(2);
+    expect(repository.createTenantInvitation).not.toHaveBeenCalled();
+    expect(sendLeaseDraftEmailMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns validation error when unit is not vacant", async () => {
     const repository: TenantLeaseRepository = {
       createLease: vi.fn().mockRejectedValue(new Error("UNIT_NOT_AVAILABLE")),
       createTenant: vi.fn(),
-      revokeActiveTenantInvitations: vi.fn(),
+      revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
       createTenantInvitation: vi.fn(),
       getTenantInvitationPreviewByTokenHash: vi.fn(),
       markTenantInvitationUsed: vi.fn(),
@@ -146,6 +205,7 @@ describe("createLease", () => {
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
     };
+    const paymentRepository = createPaymentRepositoryMock();
 
     const response = await createLease(
       {
@@ -162,8 +222,11 @@ describe("createLease", () => {
       },
       {
         repository,
+        paymentRepository,
         teamFunctionsRepository: createTeamFunctionsRepositoryMock(["create_lease"]),
-        createId: () => "lease-1"
+        createId: () => "lease-1",
+        createPaymentId: () => "pay-1",
+        sendLeaseDraftEmail: sendLeaseDraftEmailMock
       }
     );
 
@@ -179,7 +242,7 @@ describe("createLease", () => {
     const repository: TenantLeaseRepository = {
       createLease: vi.fn(),
       createTenant: vi.fn(),
-      revokeActiveTenantInvitations: vi.fn(),
+      revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
       createTenantInvitation: vi.fn(),
       getTenantInvitationPreviewByTokenHash: vi.fn(),
       markTenantInvitationUsed: vi.fn(),
@@ -193,6 +256,7 @@ describe("createLease", () => {
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
     };
+    const paymentRepository = createPaymentRepositoryMock();
 
     const response = await createLease(
       {
@@ -209,8 +273,11 @@ describe("createLease", () => {
       },
       {
         repository,
+        paymentRepository,
         teamFunctionsRepository: createTeamFunctionsRepositoryMock(["view_lease"]),
-        createId: () => "lease-1"
+        createId: () => "lease-1",
+        createPaymentId: () => "pay-1",
+        sendLeaseDraftEmail: sendLeaseDraftEmailMock
       }
     );
 

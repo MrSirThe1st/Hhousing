@@ -2,6 +2,60 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-06
+- Change type: Web + API + Frontend
+- Description: Moved tenant invitation delivery from lease finalization to draft move-in creation. Lease creation now creates the invitation immediately and can send the activation email through a new Resend-backed mail adapter (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) using the tenant email captured in the move-in flow. Finalization now only activates the lease after signature metadata and paid initial charges are in place. Also redesigned the payments workspace to group records by tenant first, with one table row per tenant and a chronological charge ledger shown for the selected tenant.
+- Impact: Tenants can receive their access email as soon as the draft move-in is created, matching the move-in form expectation. Managers now review payments as tenant dossiers instead of one flat row per charge, which keeps recurring and one-time charges readable over time.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (34 files / 101 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + API + DB
+- Description: Upgraded manual payment generation from rent-only to recurring-charge generation. Added migration `0020_recurring_charge_generation_alignment.sql` to align `lease_charge_templates.charge_type` with the current domain model and to key generated payment uniqueness by `lease_id + charge_period + source_lease_charge_template_id`. The Postgres payment repository now generates scheduled base rent rows from each active lease billing schedule and additional recurring payment rows from `lease_charge_templates` for monthly, quarterly, and annual recurring charges. Added route tests for `POST /api/payments/generate` and updated payments UI copy to reflect recurring charge generation instead of rent-only generation.
+- Impact: Operators can manually generate the full recurring billing set for a period, including rent plus recurring fees configured on the lease, without creating duplicates for the same lease/template/period.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (34 files / 101 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + Frontend
+- Description: Refined the lease detail document workflow to make signed lease collection explicit during move-in finalization. The contextual document panel now supports lease-specific copy, preferred document highlighting, and default upload type configuration. Lease detail uses that to default uploads to `Contrat de bail` and show whether a signed lease file has already been attached.
+- Impact: Operators now get a clearer manual-signature workflow on pending leases without changing the existing document backend or generic document panel behavior elsewhere.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (33 files / 98 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + API + DB
+- Description: Refactored the lease move-in flow into a draft-first workflow. New move-ins now save leases as `pending`, prefill rent/currency/email from the selected unit and tenant in the move-in form, and generate initial payment rows in `payments` for deposits, one-time fees, prorated rent, or first-month rent. Lease detail now exposes a finalize surface that captures signature metadata and only activates the lease once all initial charges are paid. Tenant invitation creation was removed from the renters list and moved into lease finalization.
+- Impact: Unit occupancy now waits for lease activation instead of draft creation, operators can manage move-in onboarding from the lease detail page, and initial billing is tracked in the existing payments backbone instead of a parallel invoice model.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (33 files / 98 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + Infra
+- Description: Hardened detail pages against a Next.js dev/runtime vendor-chunk resolution failure involving Supabase browser dependencies from `ContextualDocumentPanel`. Switched the contextual document panel import on property, unit, lease, and tenant detail pages to `next/dynamic` with `ssr: false`, so the browser-only document/upload panel is no longer pulled into the server worker bundle.
+- Impact: Detail pages such as `/dashboard/tenants/[id]` no longer depend on the missing `@supabase/auth-js` server vendor chunk during dev rendering.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (33 files / 96 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + Frontend
+- Description: Expanded `/dashboard/tenants` with a second display mode in cards alongside the existing table view. Tenant rows/cards now show a lease-status badge (`Avec bail` / `Sans bail`) based on whether the tenant currently has an `active` or `pending` lease, and the page now includes filters to show all tenants, only those with a lease, or only those without one.
+- Impact: Operators can switch between dense table review and card browsing, and can quickly isolate unassigned renters who still need a move-in or lease setup.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (33 files / 96 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + API + Frontend
+- Description: Changed the renters page and `GET /api/tenants` to return all tenants created in the current organization, instead of filtering the list down to tenants attached to leases within the active owned/managed portfolio scope. Added a route test to lock that behavior.
+- Impact: Newly created tenants now appear immediately on `/dashboard/tenants`, even before they have been moved into a unit or linked to a lease.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (33 files / 96 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + API + Frontend
+- Description: Fixed the tenant creation follow-up flow where `/dashboard/tenants/[id]` could show `Locataire introuvable` immediately after creating an unassigned tenant. The tenant detail API now allows org tenants that do not yet belong to any lease in the current scoped portfolio, while still rejecting tenants attached to out-of-scope leases. Also cleaned up the add-tenant form with explicit field labels and removed the manual photo URL input, keeping photo upload file-only.
+- Impact: Newly created tenants can be opened and edited immediately after creation, and the add-tenant form is clearer and less error-prone.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (32 files / 95 tests), `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-06
+- Change type: Web + Frontend
+- Description: Split `/dashboard` into three top-level tabs on the page itself: `Overview`, `Tasks`, and `Calendar`. The dashboard route now reads a `tab` search param server-side, keeps the existing metrics/cards on `Overview`, and renders empty placeholder states for `Tasks` and `Calendar` until those workspaces are implemented.
+- Impact: Operators can navigate the dashboard as a multi-surface workspace without changing the existing overview metrics behavior.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (32 files / 94 tests), `pnpm -C apps/web-manager build` ✓.
+
 ## 2026-04-05
 - Change type: Web + API + DB
 - Description: Added a dedicated tenant onboarding page at `/dashboard/tenants/add` and a dedicated lease move-in workflow at `/dashboard/leases/move-in`. Added migration `0018_tenant_profiles_and_move_in.sql` to extend tenants with `date_of_birth` and `photo_url`, extend leases with term and billing metadata, and create `lease_charge_templates` for deposits and extra lease charges. Extended shared domain/contracts/data-access layers, updated tenant and lease services, moved tenants list UI to the same CTA-to-add-page pattern used for properties and units, and updated tenant detail edit/view to preserve the new profile fields.

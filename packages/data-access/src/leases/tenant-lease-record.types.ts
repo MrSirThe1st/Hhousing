@@ -1,4 +1,4 @@
-import type { Lease, LeaseChargeFrequency, LeaseChargeType, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 
 export interface CreateTenantInvitationRecordInput {
@@ -78,6 +78,7 @@ export interface CreateLeaseRecordInput {
   paymentStartDate: string;
   dueDayOfMonth: number;
   depositAmount: number;
+  status: "active" | "ended" | "pending";
   charges: CreateLeaseChargeRecordInput[];
 }
 
@@ -96,6 +97,8 @@ export interface UpdateLeaseRecordInput {
   organizationId: string;
   endDate: string | null;
   status: "active" | "ended" | "pending";
+  signedAt?: string | null;
+  signingMethod?: LeaseSigningMethod | null;
 }
 
 export interface TenantLeaseRepository {

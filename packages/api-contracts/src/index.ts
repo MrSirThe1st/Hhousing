@@ -60,7 +60,8 @@ export type {
 } from "./leases/tenant-lease.types";
 export {
   parseCreateTenantInput,
-  parseCreateLeaseInput
+  parseCreateLeaseInput,
+  parseFinalizeLeaseInput
 } from "./leases/tenant-lease.validation";
 export type {
   CreatePaymentInput,

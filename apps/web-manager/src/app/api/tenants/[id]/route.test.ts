@@ -4,12 +4,14 @@ const {
   extractAuthSessionFromCookiesMock,
   getScopedPortfolioDataMock,
   getTenantByIdMock,
+  listLeasesByOrganizationMock,
   updateTenantMock,
   deleteTenantMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
   getScopedPortfolioDataMock: vi.fn(),
   getTenantByIdMock: vi.fn(),
+  listLeasesByOrganizationMock: vi.fn(),
   updateTenantMock: vi.fn(),
   deleteTenantMock: vi.fn()
 }));
@@ -25,10 +27,12 @@ vi.mock("../../shared", async () => {
     ...actual,
     createTenantLeaseRepo: (): {
       getTenantById: typeof getTenantByIdMock;
+      listLeasesByOrganization: typeof listLeasesByOrganizationMock;
       updateTenant: typeof updateTenantMock;
       deleteTenant: typeof deleteTenantMock;
     } => ({
       getTenantById: getTenantByIdMock,
+      listLeasesByOrganization: listLeasesByOrganizationMock,
       updateTenant: updateTenantMock,
       deleteTenant: deleteTenantMock
     })
@@ -44,6 +48,7 @@ import { GET, PATCH } from "./route";
 describe("/api/tenants/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    listLeasesByOrganizationMock.mockResolvedValue([]);
     getScopedPortfolioDataMock.mockResolvedValue({
       currentScope: "managed",
       properties: [],
@@ -52,6 +57,43 @@ describe("/api/tenants/[id]", () => {
       leases: [],
       leaseIds: new Set(),
       tenantIds: new Set(["tenant-1"])
+    });
+  });
+
+  it("returns unassigned tenant detail even when not yet in scoped portfolio", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "manager",
+      organizationId: "org-1",
+      membershipId: "membership-1"
+    });
+
+    getScopedPortfolioDataMock.mockResolvedValue({
+      currentScope: "managed",
+      properties: [],
+      propertyIds: new Set(),
+      unitIds: new Set(),
+      leases: [],
+      leaseIds: new Set(),
+      tenantIds: new Set()
+    });
+
+    getTenantByIdMock.mockResolvedValue({
+      id: "tenant-unassigned",
+      fullName: "Marie Sans Bail"
+    });
+
+    const response = await GET(new Request("http://localhost/api/tenants/tenant-unassigned"), {
+      params: Promise.resolve({ id: "tenant-unassigned" })
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      success: true,
+      data: {
+        id: "tenant-unassigned",
+        fullName: "Marie Sans Bail"
+      }
     });
   });
 

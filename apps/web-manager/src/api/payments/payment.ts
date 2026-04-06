@@ -72,7 +72,11 @@ export async function createPayment(
     amount: parsed.data.amount,
     currencyCode: parsed.data.currencyCode,
     dueDate: parsed.data.dueDate,
-    note: parsed.data.note
+    note: parsed.data.note,
+    paymentKind: parsed.data.paymentKind ?? "other",
+    billingFrequency: parsed.data.billingFrequency ?? "one_time",
+    sourceLeaseChargeTemplateId: parsed.data.sourceLeaseChargeTemplateId ?? null,
+    isInitialCharge: parsed.data.isInitialCharge ?? false
   });
 
   return { status: 201, body: { success: true, data: payment } };

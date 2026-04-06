@@ -1,24 +1,36 @@
 import { redirect } from "next/navigation";
-import type { Tenant } from "@hhousing/domain";
 import { listTenants } from "../../../api";
-import { filterTenantsByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
+import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { createTenantLeaseRepo } from "../../api/shared";
 import { getServerAuthSession } from "../../../lib/session";
 import TenantManagementPanel from "../../../components/tenant-management-panel";
+import type { TenantListItem } from "../../../components/tenant-management.types";
 
 export default async function TenantsPage(): Promise<React.ReactElement> {
   const session = await getServerAuthSession();
   if (!session) redirect("/login");
 
-  const result = await listTenants(
-    { session, organizationId: session.organizationId ?? "" },
-    { repository: createTenantLeaseRepo() }
+  const tenantLeaseRepo = createTenantLeaseRepo();
+
+  const [result, leases] = await Promise.all([
+    listTenants(
+      { session, organizationId: session.organizationId ?? "" },
+      { repository: tenantLeaseRepo }
+    ),
+    tenantLeaseRepo.listLeasesByOrganization(session.organizationId ?? "")
+  ]);
+
+  const currentLeaseTenantIds = new Set(
+    leases
+      .filter((lease: LeaseWithTenantView) => lease.status === "active" || lease.status === "pending")
+      .map((lease: LeaseWithTenantView) => lease.tenantId)
   );
 
-  const scopedPortfolio = await getScopedPortfolioData(session);
-
-  const tenants: Tenant[] = result.body.success
-    ? filterTenantsByScope(result.body.data.tenants, scopedPortfolio)
+  const tenants: TenantListItem[] = result.body.success
+    ? result.body.data.tenants.map((tenant) => ({
+        tenant,
+        hasLease: currentLeaseTenantIds.has(tenant.id)
+      }))
     : [];
 
   return <TenantManagementPanel organizationId={session.organizationId ?? ""} tenants={tenants} />;

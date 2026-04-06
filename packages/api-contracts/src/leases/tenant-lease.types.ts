@@ -1,4 +1,4 @@
-import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeasePaymentFrequency, LeaseTermType, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeasePaymentFrequency, LeaseTermType, LeaseSigningMethod, Tenant } from "@hhousing/domain";
 
 export interface CreateTenantInput {
   organizationId: string;
@@ -36,6 +36,12 @@ export interface CreateLeaseInput {
   paymentStartDate?: string;
   dueDayOfMonth?: number;
   charges?: CreateLeaseChargeInput[];
+}
+
+export interface FinalizeLeaseInput {
+  organizationId: string;
+  signedAt: string;
+  signingMethod: LeaseSigningMethod;
 }
 
 export type CreateLeaseOutput = Lease;

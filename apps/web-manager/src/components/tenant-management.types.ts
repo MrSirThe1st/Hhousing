@@ -1,9 +1,14 @@
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { Tenant } from "@hhousing/domain";
 
+export interface TenantListItem {
+  tenant: Tenant;
+  hasLease: boolean;
+}
+
 export interface TenantManagementPanelProps {
   organizationId: string;
-  tenants: Tenant[];
+  tenants: TenantListItem[];
 }
 
 export interface TenantFormState {
@@ -11,7 +16,6 @@ export interface TenantFormState {
   email: string;
   phone: string;
   dateOfBirth: string;
-  photoUrl: string;
 }
 
 export interface LeaseManagementPanelProps {

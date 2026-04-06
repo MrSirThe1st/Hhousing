@@ -12,6 +12,18 @@ type PatchTenantBody = {
   photoUrl: string | null;
 };
 
+function canAccessTenantInCurrentScope(
+  tenantId: string,
+  scopedTenantIds: Set<string>,
+  organizationLeases: Array<{ tenantId: string }>
+): boolean {
+  if (scopedTenantIds.has(tenantId)) {
+    return true;
+  }
+
+  return !organizationLeases.some((lease) => lease.tenantId === tenantId);
+}
+
 function validatePatchTenantBody(input: unknown): ApiResult<PatchTenantBody> {
   if (typeof input !== "object" || input === null) {
     return {
@@ -73,7 +85,9 @@ export async function GET(
     }
 
     const scopedPortfolio = await getScopedPortfolioData(access.data);
-    if (!scopedPortfolio.tenantIds.has(tenant.id)) {
+    const organizationLeases = await repository.listLeasesByOrganization(access.data.organizationId);
+
+    if (!canAccessTenantInCurrentScope(tenant.id, scopedPortfolio.tenantIds, organizationLeases)) {
       return jsonResponse(404, {
         success: false,
         code: "NOT_FOUND",
@@ -126,7 +140,9 @@ export async function PATCH(
 
   try {
     const scopedPortfolio = await getScopedPortfolioData(access.data);
-    if (!scopedPortfolio.tenantIds.has(id)) {
+    const organizationLeases = await repository.listLeasesByOrganization(access.data.organizationId);
+
+    if (!canAccessTenantInCurrentScope(id, scopedPortfolio.tenantIds, organizationLeases)) {
       return jsonResponse(404, {
         success: false,
         code: "NOT_FOUND",
@@ -191,7 +207,9 @@ export async function DELETE(
 
   try {
     const scopedPortfolio = await getScopedPortfolioData(access.data);
-    if (!scopedPortfolio.tenantIds.has(id)) {
+    const organizationLeases = await repository.listLeasesByOrganization(access.data.organizationId);
+
+    if (!canAccessTenantInCurrentScope(id, scopedPortfolio.tenantIds, organizationLeases)) {
       return jsonResponse(404, {
         success: false,
         code: "NOT_FOUND",

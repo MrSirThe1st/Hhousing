@@ -2,10 +2,11 @@ import type {
   ApiResult,
   AuthSession,
   CreateLeaseOutput,
+  CreateLeaseChargeInput,
   ListLeasesOutput
 } from "@hhousing/api-contracts";
 import { Permission, parseCreateLeaseInput } from "@hhousing/api-contracts";
-import type { TenantLeaseRepository } from "@hhousing/data-access";
+import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
@@ -21,8 +22,74 @@ export interface CreateLeaseResponse {
 
 export interface CreateLeaseDeps {
   repository: TenantLeaseRepository;
+  paymentRepository: PaymentRepository;
   teamFunctionsRepository: TeamPermissionRepository;
   createId: () => string;
+  createPaymentId: () => string;
+  sendLeaseDraftEmail?: (input: {
+    to: string;
+    tenantFullName: string;
+    organizationName?: string | null;
+  }) => Promise<void>;
+}
+
+function buildInitialCharges(
+  chargeRecords: Array<CreateLeaseChargeInput & { id: string }>,
+  startDate: string,
+  monthlyRentAmount: number
+): Array<{
+  label: string;
+  amount: number;
+  dueDate: string;
+  paymentKind: "rent" | "deposit" | "prorated_rent" | "fee" | "other";
+  billingFrequency: "one_time" | "monthly" | "quarterly" | "annually";
+  sourceLeaseChargeTemplateId: string | null;
+}> {
+  const initialCharges: Array<{
+    label: string;
+    amount: number;
+    dueDate: string;
+    paymentKind: "rent" | "deposit" | "prorated_rent" | "fee" | "other";
+    billingFrequency: "one_time" | "monthly" | "quarterly" | "annually";
+    sourceLeaseChargeTemplateId: string | null;
+  }> = chargeRecords.flatMap((charge) => {
+    if (charge.frequency !== "one_time") {
+      return [];
+    }
+
+    const paymentKind: "rent" | "deposit" | "prorated_rent" | "fee" | "other" = charge.chargeType === "deposit"
+      ? "deposit"
+      : charge.chargeType === "prorated_rent"
+        ? "prorated_rent"
+        : charge.chargeType === "fee"
+          ? "fee"
+          : charge.chargeType === "rent"
+            ? "rent"
+            : "other";
+
+    return [{
+      label: charge.label,
+      amount: charge.amount,
+      dueDate: charge.startDate,
+      paymentKind,
+      billingFrequency: "one_time",
+      sourceLeaseChargeTemplateId: charge.id
+    }];
+  });
+
+  const hasProratedRent = initialCharges.some((charge) => charge.paymentKind === "prorated_rent");
+  if (!hasProratedRent) {
+    initialCharges.push({
+      label: "Premier mois de loyer",
+      amount: monthlyRentAmount,
+      dueDate: startDate,
+      paymentKind: "rent",
+      billingFrequency: "monthly",
+      sourceLeaseChargeTemplateId: null
+    });
+  }
+
+  return initialCharges;
 }
 
 export async function createLease(
@@ -59,6 +126,18 @@ export async function createLease(
   }
 
   try {
+    const chargeRecords = (parsed.data.charges ?? []).map((charge) => ({
+      id: deps.createId(),
+      organizationId: parsed.data.organizationId,
+      label: charge.label,
+      chargeType: charge.chargeType,
+      amount: charge.amount,
+      currencyCode: charge.currencyCode,
+      frequency: charge.frequency,
+      startDate: charge.startDate,
+      endDate: charge.endDate ?? null
+    }));
+
     const lease = await deps.repository.createLease({
       id: deps.createId(),
       organizationId: parsed.data.organizationId,
@@ -75,18 +154,50 @@ export async function createLease(
       paymentStartDate: parsed.data.paymentStartDate ?? parsed.data.startDate,
       dueDayOfMonth: parsed.data.dueDayOfMonth ?? Number((parsed.data.paymentStartDate ?? parsed.data.startDate).substring(8, 10)),
       depositAmount: parsed.data.charges?.filter((charge) => charge.chargeType === "deposit").reduce((sum, charge) => sum + charge.amount, 0) ?? 0,
-      charges: (parsed.data.charges ?? []).map((charge) => ({
-        id: deps.createId(),
-        organizationId: parsed.data.organizationId,
-        label: charge.label,
-        chargeType: charge.chargeType,
-        amount: charge.amount,
-        currencyCode: charge.currencyCode,
-        frequency: charge.frequency,
-        startDate: charge.startDate,
-        endDate: charge.endDate ?? null
-      }))
+      status: "pending",
+      charges: chargeRecords
     });
+
+    const initialCharges = buildInitialCharges(
+      chargeRecords,
+      parsed.data.startDate,
+      parsed.data.monthlyRentAmount
+    );
+
+    await Promise.all(initialCharges.map((charge) => deps.paymentRepository.createPayment({
+      id: deps.createPaymentId(),
+      organizationId: parsed.data.organizationId,
+      leaseId: lease.id,
+      tenantId: parsed.data.tenantId,
+      amount: charge.amount,
+      currencyCode: parsed.data.currencyCode,
+      dueDate: charge.dueDate,
+      note: charge.label,
+      paymentKind: charge.paymentKind,
+      billingFrequency: charge.billingFrequency,
+      sourceLeaseChargeTemplateId: charge.sourceLeaseChargeTemplateId,
+      isInitialCharge: true
+    })));
+
+    if (deps.sendLeaseDraftEmail) {
+      const tenant = await deps.repository.getTenantById(parsed.data.tenantId, parsed.data.organizationId);
+      if (!tenant?.email) {
+        return {
+          status: 400,
+          body: {
+            success: false,
+            code: "VALIDATION_ERROR",
+            error: "Tenant email is required before sending the lease"
+          }
+        };
+      }
+
+      await deps.sendLeaseDraftEmail({
+        to: tenant.email,
+        tenantFullName: tenant.fullName,
+        organizationName: sessionResult.data.memberships[0]?.organizationName ?? null
+      });
+    }
 
     return { status: 201, body: { success: true, data: lease } };
   } catch (error) {

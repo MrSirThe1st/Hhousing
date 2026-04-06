@@ -12,8 +12,7 @@ const INITIAL_TENANT_FORM: TenantFormState = {
   fullName: "",
   email: "",
   phone: "",
-  dateOfBirth: "",
-  photoUrl: ""
+  dateOfBirth: ""
 };
 
 interface TenantCreateFormProps {
@@ -29,7 +28,7 @@ export default function TenantCreateForm({ organizationId }: TenantCreateFormPro
 
   async function uploadPhoto(): Promise<string | null> {
     if (!photo) {
-      return tenantForm.photoUrl.trim() || null;
+      return null;
     }
 
     const supabase = createSupabaseBrowserClient();
@@ -98,44 +97,53 @@ export default function TenantCreateForm({ organizationId }: TenantCreateFormPro
 
       <form onSubmit={handleCreateTenant} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 lg:max-w-3xl">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <input
-            value={tenantForm.fullName}
-            onChange={(event) => setTenantForm((previous) => ({ ...previous, fullName: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Nom complet"
-            required
-          />
-          <input
-            type="date"
-            value={tenantForm.dateOfBirth}
-            onChange={(event) => setTenantForm((previous) => ({ ...previous, dateOfBirth: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          />
-          <input
-            type="email"
-            value={tenantForm.email}
-            onChange={(event) => setTenantForm((previous) => ({ ...previous, email: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="E-mail"
-          />
-          <input
-            value={tenantForm.phone}
-            onChange={(event) => setTenantForm((previous) => ({ ...previous, phone: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Téléphone"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          />
-          <input
-            value={tenantForm.photoUrl}
-            onChange={(event) => setTenantForm((previous) => ({ ...previous, photoUrl: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Ou coller une URL de photo"
-          />
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Nom complet</span>
+            <input
+              value={tenantForm.fullName}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, fullName: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Nom complet"
+              required
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Date de naissance</span>
+            <input
+              type="date"
+              value={tenantForm.dateOfBirth}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, dateOfBirth: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">E-mail</span>
+            <input
+              type="email"
+              value={tenantForm.email}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, email: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="nom@exemple.com"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Téléphone</span>
+            <input
+              value={tenantForm.phone}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, phone: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Téléphone"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700 md:col-span-2">
+            <span className="mb-1.5 block">Photo du locataire</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
         </div>
 
         {error ? (

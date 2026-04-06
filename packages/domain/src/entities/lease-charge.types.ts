@@ -1,4 +1,4 @@
-export type LeaseChargeType = "deposit" | "other";
+export type LeaseChargeType = "deposit" | "rent" | "prorated_rent" | "fee" | "other";
 
 export type LeaseChargeFrequency = "one_time" | "monthly" | "quarterly" | "annually";
 

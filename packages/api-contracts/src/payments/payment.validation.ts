@@ -39,6 +39,25 @@ export function parseCreatePaymentInput(input: unknown): ApiResult<CreatePayment
   const amount = asPositiveNumber(input.amount);
   const currencyCode = asNonEmptyText(input.currencyCode);
   const dueDate = asIsoDate(input.dueDate);
+  const paymentKind = input.paymentKind === undefined
+    ? "other"
+    : input.paymentKind === "rent"
+      || input.paymentKind === "deposit"
+      || input.paymentKind === "prorated_rent"
+      || input.paymentKind === "fee"
+      || input.paymentKind === "other"
+      ? input.paymentKind
+      : null;
+  const billingFrequency = input.billingFrequency === undefined
+    ? "one_time"
+    : input.billingFrequency === "one_time"
+      || input.billingFrequency === "monthly"
+      || input.billingFrequency === "quarterly"
+      || input.billingFrequency === "annually"
+      ? input.billingFrequency
+      : null;
+  const sourceLeaseChargeTemplateId = asOptionalText(input.sourceLeaseChargeTemplateId);
+  const isInitialCharge = input.isInitialCharge === undefined ? false : typeof input.isInitialCharge === "boolean" ? input.isInitialCharge : null;
 
   if (organizationId === null || leaseId === null || tenantId === null) {
     return { success: false, code: "VALIDATION_ERROR", error: "organizationId, leaseId, tenantId are required" };
@@ -56,6 +75,18 @@ export function parseCreatePaymentInput(input: unknown): ApiResult<CreatePayment
     return { success: false, code: "VALIDATION_ERROR", error: "dueDate must be YYYY-MM-DD" };
   }
 
+  if (paymentKind === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "paymentKind is invalid" };
+  }
+
+  if (billingFrequency === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "billingFrequency is invalid" };
+  }
+
+  if (isInitialCharge === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "isInitialCharge must be a boolean" };
+  }
+
   return {
     success: true,
     data: {
@@ -65,7 +96,11 @@ export function parseCreatePaymentInput(input: unknown): ApiResult<CreatePayment
       amount,
       currencyCode,
       dueDate,
-      note: asOptionalText(input.note)
+      note: asOptionalText(input.note),
+      paymentKind,
+      billingFrequency,
+      sourceLeaseChargeTemplateId,
+      isInitialCharge
     }
   };
 }

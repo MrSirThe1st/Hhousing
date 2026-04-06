@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
-  createTenantInvitationMock
+  createTenantInvitationMock,
+  createTenantInvitationEmailSenderFromEnvMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
-  createTenantInvitationMock: vi.fn()
+  createTenantInvitationMock: vi.fn(),
+  createTenantInvitationEmailSenderFromEnvMock: vi.fn()
 }));
 
 vi.mock("../../../../../auth/session-adapter", () => ({
@@ -20,6 +22,10 @@ vi.mock("../../../../../api", async () => {
   };
 });
 
+vi.mock("../../../../../lib/email/resend", () => ({
+  createTenantInvitationEmailSenderFromEnv: createTenantInvitationEmailSenderFromEnvMock
+}));
+
 vi.mock("../../../shared", async () => {
   const actual = await vi.importActual<typeof import("../../../shared")>("../../../shared");
   return {
@@ -33,6 +39,7 @@ import { POST } from "./route";
 describe("/api/tenants/[id]/invite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    createTenantInvitationEmailSenderFromEnvMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
   });
 
   it("forwards auth session and tenant id", async () => {

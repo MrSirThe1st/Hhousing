@@ -133,6 +133,12 @@ export interface CreateTenantInvitationDeps {
   createId: () => string;
   createToken?: () => string;
   inviteLinkBaseUrl: string;
+  sendInvitationEmail?: (input: {
+    to: string;
+    tenantFullName: string;
+    activationLink: string;
+    organizationName?: string | null;
+  }) => Promise<void>;
 }
 
 export async function createTenantInvitation(
@@ -185,6 +191,17 @@ export async function createTenantInvitation(
     createdByUserId: sessionResult.data.userId
   });
 
+  const activationLink = buildActivationLink(deps.inviteLinkBaseUrl, token);
+
+  if (deps.sendInvitationEmail) {
+    await deps.sendInvitationEmail({
+      to: invitation.email,
+      tenantFullName: tenant.fullName,
+      activationLink,
+      organizationName: sessionResult.data.memberships[0]?.organizationName ?? null
+    });
+  }
+
   return {
     status: 201,
     body: {
@@ -194,7 +211,7 @@ export async function createTenantInvitation(
         tenantId: invitation.tenantId,
         email: invitation.email,
         expiresAtIso: invitation.expiresAtIso,
-        activationLink: buildActivationLink(deps.inviteLinkBaseUrl, token)
+        activationLink
       }
     }
   };

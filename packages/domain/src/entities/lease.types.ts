@@ -4,6 +4,8 @@ export type LeaseTermType = "fixed" | "month_to_month";
 
 export type LeasePaymentFrequency = "monthly" | "quarterly" | "annually";
 
+export type LeaseSigningMethod = "physical" | "scanned" | "email_confirmation";
+
 export interface Lease {
   id: string;
   organizationId: string;
@@ -21,5 +23,8 @@ export interface Lease {
   dueDayOfMonth: number;
   depositAmount: number;
   status: LeaseStatus;
+  signedAt: string | null;
+  signingMethod: LeaseSigningMethod | null;
+  activatedAtIso: string | null;
   createdAtIso: string;
 }

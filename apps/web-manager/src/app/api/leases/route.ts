@@ -1,7 +1,8 @@
 import { createLease, listLeases } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
+import { createLeaseDraftEmailSenderFromEnv } from "../../../lib/email/resend";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
-import { createId, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
+import { createId, createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
   const session = await extractAuthSessionFromCookies();
@@ -39,8 +40,11 @@ export async function POST(request: Request): Promise<Response> {
     },
     {
       repository: createTenantLeaseRepo(),
+      paymentRepository: createPaymentRepo(),
       teamFunctionsRepository: createTeamFunctionsRepo(),
-      createId: () => createId("lease")
+      createId: () => createId("lease"),
+      createPaymentId: () => createId("pay"),
+      sendLeaseDraftEmail: createLeaseDraftEmailSenderFromEnv()
     }
   );
 
