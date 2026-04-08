@@ -3,6 +3,12 @@
 Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-08
+- Change type: Web + Mobile + Onboarding
+- Description: Added a public tenant invite landing page at `/invite` on web-manager. The page now acts as the HTTPS entry for tenant activation links, attempts to open the tenant app via `hhousing-tenant://accept-invite?token=...`, and falls back to App Store / Google Play download CTAs plus a manual reopen button. Also added associated-domain and Android app-link intent config in the Expo tenant app for `harakaproperty.com` and `www.harakaproperty.com`.
+- Impact: Tenant activation emails can now point to a real HTTPS page instead of a 404. Browser visitors get a download fallback, and the mobile app is prepared to receive future verified app/universal links once domain association files are deployed with real signing metadata.
+- Tests: `pnpm -C apps/web-manager typecheck` pending, `pnpm -C apps/mobile-tenant typecheck` pending.
+
+## 2026-04-08
 - Change type: Web + API + Infra + Payments
 - Description: Added automatic recurring charge generation for web-manager through a secret-protected internal route at `/api/internal/payments/generate-recurring`, plus a monthly Vercel cron entry. Extended the payment repository with org discovery so the job can run across all orgs that currently have active leases. The same route also supports a temporary manual test override via `period` and optional `organizationId` so monthly billing can be exercised immediately without waiting for the next calendar month.
 - Impact: Recurring rent/charge generation is no longer limited to the manual `POST /api/payments/generate` operator action. Production automation now depends on `CRON_SECRET` being configured in the deployed web-manager environment.

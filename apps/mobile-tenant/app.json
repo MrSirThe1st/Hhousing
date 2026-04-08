@@ -11,10 +11,36 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.hhousing.tenant"
+      "bundleIdentifier": "com.hhousing.tenant",
+      "associatedDomains": [
+        "applinks:harakaproperty.com",
+        "applinks:www.harakaproperty.com"
+      ]
     },
     "android": {
-      "package": "com.hhousing.tenant"
+      "package": "com.hhousing.tenant",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "harakaproperty.com",
+              "pathPrefix": "/invite"
+            },
+            {
+              "scheme": "https",
+              "host": "www.harakaproperty.com",
+              "pathPrefix": "/invite"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "plugins": [
       "expo-router",
