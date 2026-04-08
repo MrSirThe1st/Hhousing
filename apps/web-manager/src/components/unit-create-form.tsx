@@ -204,28 +204,31 @@ export default function UnitCreateForm({
           </p>
         </div>
 
-        <select
-          value={unitForm.propertyId}
-          onChange={(event) => {
-            const selectedId = event.target.value;
-            const selectedOption = unitCreateOptions.find(({ property }) => property.id === selectedId);
+        <label className="block text-sm font-medium text-gray-700">
+          <span className="mb-1.5 block">Bien</span>
+          <select
+            value={unitForm.propertyId}
+            onChange={(event) => {
+              const selectedId = event.target.value;
+              const selectedOption = unitCreateOptions.find(({ property }) => property.id === selectedId);
 
-            setUnitForm((previous) => ({
-              ...previous,
-              propertyId: selectedId,
-              unitCount: selectedOption?.property.propertyType === "single_unit" ? "1" : previous.unitCount
-            }));
-          }}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          required
-        >
-          <option value="">Sélectionner un bien</option>
-          {unitCreateOptions.map(({ property }) => (
-            <option key={property.id} value={property.id}>
-              {property.name}
-            </option>
-          ))}
-        </select>
+              setUnitForm((previous) => ({
+                ...previous,
+                propertyId: selectedId,
+                unitCount: selectedOption?.property.propertyType === "single_unit" ? "1" : previous.unitCount
+              }));
+            }}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+            required
+          >
+            <option value="">Sélectionner un bien</option>
+            {unitCreateOptions.map(({ property }) => (
+              <option key={property.id} value={property.id}>
+                {property.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {unitCreateOptions.length === 0 ? (
           <p className="text-sm text-gray-500">
@@ -234,67 +237,91 @@ export default function UnitCreateForm({
         ) : null}
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <input
-            value={unitForm.unitNumber}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, unitNumber: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm xl:col-span-2"
-            placeholder="Numéro ou préfixe d'unité"
-            required
-          />
-          <input
-            value={unitForm.monthlyRentAmount}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, monthlyRentAmount: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Loyer mensuel"
-            inputMode="decimal"
-            required
-          />
-          <input
-            value={unitForm.depositAmount}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, depositAmount: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Caution"
-            inputMode="decimal"
-            required
-          />
-          <input
-            value={unitForm.currencyCode}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, currencyCode: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase"
-            placeholder="Devise"
-            maxLength={3}
-            required
-          />
-          <input
-            value={unitForm.bedroomCount}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, bedroomCount: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Chambres"
-            inputMode="numeric"
-          />
-          <input
-            value={unitForm.bathroomCount}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, bathroomCount: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Salles de bain"
-            inputMode="decimal"
-          />
-          <input
-            value={unitForm.sizeSqm}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, sizeSqm: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Surface m²"
-            inputMode="decimal"
-          />
-          <input
-            value={unitForm.unitCount}
-            onChange={(event) => setUnitForm((previous) => ({ ...previous, unitCount: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Nombre d'unités"
-            inputMode="numeric"
-            disabled={selectedCreateProperty?.property.propertyType === "single_unit"}
-            required
-          />
+          <label className="block text-sm font-medium text-gray-700 xl:col-span-2">
+            <span className="mb-1.5 block">Numéro ou préfixe d'unité</span>
+            <input
+              value={unitForm.unitNumber}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, unitNumber: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+              placeholder="Numéro ou préfixe d'unité"
+              required
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Loyer mensuel</span>
+            <input
+              value={unitForm.monthlyRentAmount}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, monthlyRentAmount: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+              placeholder="Loyer mensuel"
+              inputMode="decimal"
+              required
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Caution</span>
+            <input
+              value={unitForm.depositAmount}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, depositAmount: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+              placeholder="Caution"
+              inputMode="decimal"
+              required
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Devise</span>
+            <input
+              value={unitForm.currencyCode}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, currencyCode: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal uppercase"
+              placeholder="Devise"
+              maxLength={3}
+              required
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Chambres</span>
+            <input
+              value={unitForm.bedroomCount}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, bedroomCount: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+              placeholder="Chambres"
+              inputMode="numeric"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Salles de bain</span>
+            <input
+              value={unitForm.bathroomCount}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, bathroomCount: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+              placeholder="Salles de bain"
+              inputMode="decimal"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Surface m²</span>
+            <input
+              value={unitForm.sizeSqm}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, sizeSqm: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+              placeholder="Surface m²"
+              inputMode="decimal"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Nombre d'unités</span>
+            <input
+              value={unitForm.unitCount}
+              onChange={(event) => setUnitForm((previous) => ({ ...previous, unitCount: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+              placeholder="Nombre d'unités"
+              inputMode="numeric"
+              disabled={selectedCreateProperty?.property.propertyType === "single_unit"}
+              required
+            />
+          </label>
         </div>
 
         <p className="text-sm text-gray-500">

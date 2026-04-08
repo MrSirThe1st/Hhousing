@@ -289,4 +289,158 @@ describe("createLease", () => {
     });
     expect(repository.createLease).not.toHaveBeenCalled();
   });
+
+  it("still creates the lease when the tenant has no email", async () => {
+    const repository: TenantLeaseRepository = {
+      createLease: vi.fn().mockResolvedValue({
+        id: "lease-1",
+        organizationId: "org-1",
+        unitId: "unit-1",
+        tenantId: "tenant-1",
+        startDate: "2026-04-01",
+        endDate: null,
+        monthlyRentAmount: 500,
+        currencyCode: "CDF",
+        termType: "month_to_month",
+        fixedTermMonths: null,
+        autoRenewToMonthly: false,
+        paymentFrequency: "monthly",
+        paymentStartDate: "2026-04-01",
+        dueDayOfMonth: 1,
+        depositAmount: 0,
+        status: "pending",
+        createdAtIso: "2026-03-31T00:00:00.000Z"
+      }),
+      createTenant: vi.fn(),
+      revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
+      createTenantInvitation: vi.fn(),
+      getTenantInvitationPreviewByTokenHash: vi.fn(),
+      markTenantInvitationUsed: vi.fn(),
+      linkTenantAuthUser: vi.fn(),
+      listLeasesByOrganization: vi.fn(),
+      getCurrentLeaseByTenantAuthUserId: vi.fn(),
+      listTenantsByOrganization: vi.fn(),
+      getTenantById: vi.fn().mockResolvedValue({
+        id: "tenant-1",
+        organizationId: "org-1",
+        authUserId: null,
+        fullName: "Tenant One",
+        email: null,
+        phone: null,
+        dateOfBirth: null,
+        photoUrl: null,
+        createdAtIso: "2026-03-31T00:00:00.000Z"
+      }),
+      getLeaseById: vi.fn(),
+      updateTenant: vi.fn(),
+      updateLease: vi.fn(),
+      deleteTenant: vi.fn()
+    };
+    const paymentRepository = createPaymentRepositoryMock();
+    const emailSender = vi.fn().mockResolvedValue(undefined);
+
+    const response = await createLease(
+      {
+        session: operatorSession,
+        body: {
+          organizationId: "org-1",
+          unitId: "unit-1",
+          tenantId: "tenant-1",
+          startDate: "2026-04-01",
+          endDate: null,
+          monthlyRentAmount: 500,
+          currencyCode: "CDF"
+        }
+      },
+      {
+        repository,
+        paymentRepository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock(["create_lease"]),
+        createId: () => "lease-1",
+        createPaymentId: () => "pay-1",
+        sendLeaseDraftEmail: emailSender
+      }
+    );
+
+    expect(response.status).toBe(201);
+    expect(response.body.success).toBe(true);
+    expect(emailSender).not.toHaveBeenCalled();
+  });
+
+  it("still creates the lease when email delivery fails", async () => {
+    const repository: TenantLeaseRepository = {
+      createLease: vi.fn().mockResolvedValue({
+        id: "lease-1",
+        organizationId: "org-1",
+        unitId: "unit-1",
+        tenantId: "tenant-1",
+        startDate: "2026-04-01",
+        endDate: null,
+        monthlyRentAmount: 500,
+        currencyCode: "CDF",
+        termType: "month_to_month",
+        fixedTermMonths: null,
+        autoRenewToMonthly: false,
+        paymentFrequency: "monthly",
+        paymentStartDate: "2026-04-01",
+        dueDayOfMonth: 1,
+        depositAmount: 0,
+        status: "pending",
+        createdAtIso: "2026-03-31T00:00:00.000Z"
+      }),
+      createTenant: vi.fn(),
+      revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
+      createTenantInvitation: vi.fn(),
+      getTenantInvitationPreviewByTokenHash: vi.fn(),
+      markTenantInvitationUsed: vi.fn(),
+      linkTenantAuthUser: vi.fn(),
+      listLeasesByOrganization: vi.fn(),
+      getCurrentLeaseByTenantAuthUserId: vi.fn(),
+      listTenantsByOrganization: vi.fn(),
+      getTenantById: vi.fn().mockResolvedValue({
+        id: "tenant-1",
+        organizationId: "org-1",
+        authUserId: null,
+        fullName: "Tenant One",
+        email: "tenant@example.com",
+        phone: null,
+        dateOfBirth: null,
+        photoUrl: null,
+        createdAtIso: "2026-03-31T00:00:00.000Z"
+      }),
+      getLeaseById: vi.fn(),
+      updateTenant: vi.fn(),
+      updateLease: vi.fn(),
+      deleteTenant: vi.fn()
+    };
+    const paymentRepository = createPaymentRepositoryMock();
+    const emailSender = vi.fn().mockRejectedValue(new Error("RESEND_EMAIL_NOT_CONFIGURED"));
+
+    const response = await createLease(
+      {
+        session: operatorSession,
+        body: {
+          organizationId: "org-1",
+          unitId: "unit-1",
+          tenantId: "tenant-1",
+          startDate: "2026-04-01",
+          endDate: null,
+          monthlyRentAmount: 500,
+          currencyCode: "CDF"
+        }
+      },
+      {
+        repository,
+        paymentRepository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock(["create_lease"]),
+        createId: () => "lease-1",
+        createPaymentId: () => "pay-1",
+        sendLeaseDraftEmail: emailSender
+      }
+    );
+
+    expect(response.status).toBe(201);
+    expect(response.body.success).toBe(true);
+    expect(emailSender).toHaveBeenCalledTimes(1);
+  });
 });

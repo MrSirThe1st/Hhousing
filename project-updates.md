@@ -3,6 +3,12 @@
 Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-08
+- Change type: Web + API
+- Description: Hardened draft move-in lease creation so notification email issues no longer fail `POST /api/leases`. Draft lease creation now succeeds even when the selected tenant has no email yet or local Resend configuration/email delivery is unavailable.
+- Impact: `/dashboard/leases/move-in` no longer returns a 500 during draft save just because the non-critical draft email side effect cannot run in local/dev or for incomplete tenant records.
+- Tests: `pnpm -C apps/web-manager test -- src/api/leases/lease.test.ts` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` pending.
+
+## 2026-04-08
 - Change type: Web + Frontend
 - Description: Replaced the dashboard calendar-tab placeholder with a real month-view calendar surface in web-manager. The new view adds month navigation, a six-week grid, a right-rail agenda, and seeded operational events derived from live dashboard metrics so the workspace is visually and structurally ready for later wiring to real lease, maintenance, and payment deadlines.
 - Impact: `/dashboard?tab=calendar` is now a usable planning surface instead of an empty state, while staying dependency-free and aligned with the existing French-first dashboard shell.
