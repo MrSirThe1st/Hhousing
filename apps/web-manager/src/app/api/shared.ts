@@ -6,6 +6,7 @@ import {
   createPaymentRepositoryFromEnv,
   createMaintenanceRequestRepositoryFromEnv,
   createDocumentRepositoryFromEnv,
+  createEmailTemplateRepositoryFromEnv,
   createMessageRepositoryFromEnv,
   createListingRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv,
@@ -15,6 +16,7 @@ import {
   type PaymentRepository,
   type MaintenanceRequestRepository,
   type DocumentRepository,
+  type EmailTemplateRepository,
   type MessageRepository,
   type ListingRepository,
   TeamFunctionsRepository
@@ -59,6 +61,10 @@ export function createMaintenanceRepo(): MaintenanceRequestRepository {
 
 export function createDocumentRepo(): DocumentRepository {
   return createDocumentRepositoryFromEnv(process.env);
+}
+
+export function createEmailTemplateRepo(): EmailTemplateRepository {
+  return createEmailTemplateRepositoryFromEnv(process.env);
 }
 
 export function createMessageRepo(): MessageRepository {

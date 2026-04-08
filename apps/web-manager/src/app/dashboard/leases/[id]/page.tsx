@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
-import type { Lease, Payment } from "@hhousing/domain";
+import type { Document, Lease, Payment } from "@hhousing/domain";
 import { patchWithAuth } from "../../../../lib/api-client";
 
 const ContextualDocumentPanel = dynamic(
@@ -35,6 +35,7 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
 
   const [lease, setLease] = useState<LeaseWithTenantView | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [availableDocuments, setAvailableDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [terminating, setTerminating] = useState(false);
@@ -42,6 +43,9 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
   const [signingMethod, setSigningMethod] = useState<"physical" | "scanned" | "email_confirmation">("physical");
   const [signedAt, setSignedAt] = useState(new Date().toISOString().substring(0, 10));
   const [finalizing, setFinalizing] = useState(false);
+  const [sendingDraftEmail, setSendingDraftEmail] = useState(false);
+  const [draftEmailMessage, setDraftEmailMessage] = useState<string | null>(null);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchLease(): Promise<void> {
@@ -70,6 +74,22 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
             const paymentsData = await paymentsResponse.json() as { success: boolean; data?: { payments: Payment[] } };
             if (paymentsData.success && paymentsData.data) {
               setPayments(paymentsData.data.payments);
+            }
+          }
+
+          const documentsParams = new URLSearchParams({ organizationId: data.data.organizationId });
+          const documentsResponse = await fetch(`/api/documents?${documentsParams.toString()}`, {
+            credentials: "include"
+          });
+          if (documentsResponse.ok) {
+            const documentsData = await documentsResponse.json() as { success: boolean; data?: { documents: Document[] } };
+            if (documentsData.success && documentsData.data) {
+              const currentLeaseId = data.data.id;
+              setAvailableDocuments(documentsData.data.documents);
+              const leaseDocuments = documentsData.data.documents
+                .filter((document) => document.attachmentType === "lease" && document.attachmentId === currentLeaseId)
+                .map((document) => document.id);
+              setSelectedDocumentIds(leaseDocuments);
             }
           }
         }
@@ -110,6 +130,7 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
   async function handleFinalize(): Promise<void> {
     setFinalizing(true);
     setError(null);
+    setDraftEmailMessage(null);
 
     const result = await patchWithAuth<Lease>(`/api/leases/${id}`, {
       action: "finalize",
@@ -126,6 +147,26 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
 
     router.refresh();
     setFinalizing(false);
+  }
+
+  async function handleSendDraftEmail(): Promise<void> {
+    setSendingDraftEmail(true);
+    setError(null);
+    setDraftEmailMessage(null);
+
+    const result = await patchWithAuth<LeaseWithTenantView>(`/api/leases/${id}`, {
+      action: "send_draft_email",
+      documentIds: selectedDocumentIds
+    });
+
+    if (!result.success) {
+      setError(result.error);
+      setSendingDraftEmail(false);
+      return;
+    }
+
+    setDraftEmailMessage("Email de brouillon envoyé au locataire.");
+    setSendingDraftEmail(false);
   }
 
   if (loading) {
@@ -159,6 +200,7 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
   const initialPayments = payments.filter((payment) => payment.isInitialCharge);
   const unpaidInitialPayments = initialPayments.filter((payment) => payment.status !== "paid");
   const canFinalize = lease.status === "pending" && unpaidInitialPayments.length === 0 && initialPayments.length > 0;
+  const sendableDocuments = availableDocuments.filter((document) => document.mimeType !== "message/rfc822");
 
   return (
     <div className="p-8">
@@ -241,6 +283,52 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
                   <option value="email_confirmation">Confirmation email</option>
                 </select>
               </label>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#010a19]">Envoyer le brouillon au locataire</h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Utilisez cette action quand le brouillon est prêt. Choisissez un ou plusieurs documents de la bibliothèque à joindre. Email cible: {lease.tenantEmail ?? "aucun e-mail renseigné"}.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSendDraftEmail}
+                  disabled={sendingDraftEmail || !lease.tenantEmail || selectedDocumentIds.length === 0}
+                  className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60"
+                >
+                  {sendingDraftEmail ? "Envoi..." : "Envoyer l'email du brouillon"}
+                </button>
+              </div>
+              <div className="mt-4 max-h-56 space-y-2 overflow-auto pr-1">
+                {sendableDocuments.length === 0 ? (
+                  <p className="text-sm text-gray-500">Aucun document disponible dans la bibliothèque.</p>
+                ) : (
+                  sendableDocuments.map((document) => (
+                    <label key={document.id} className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedDocumentIds.includes(document.id)}
+                        onChange={() => setSelectedDocumentIds((previous) => previous.includes(document.id)
+                          ? previous.filter((item) => item !== document.id)
+                          : [...previous, document.id])}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                      />
+                      <div>
+                        <div className="font-medium text-[#010a19]">{document.fileName}</div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {document.attachmentType && document.attachmentId
+                            ? `${document.attachmentType} · ${document.attachmentId}`
+                            : "Bibliothèque générale"}
+                        </div>
+                      </div>
+                    </label>
+                  ))
+                )}
+              </div>
+              {draftEmailMessage ? <p className="mt-3 text-sm text-green-700">{draftEmailMessage}</p> : null}
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">

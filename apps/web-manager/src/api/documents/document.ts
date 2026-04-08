@@ -56,8 +56,8 @@ export async function createDocument(
     fileSize: parsed.data.fileSize,
     mimeType: parsed.data.mimeType,
     documentType: parsed.data.documentType,
-    attachmentType: parsed.data.attachmentType,
-    attachmentId: parsed.data.attachmentId,
+    attachmentType: parsed.data.attachmentType ?? null,
+    attachmentId: parsed.data.attachmentId ?? null,
     uploadedBy: sessionResult.data.userId
   });
 

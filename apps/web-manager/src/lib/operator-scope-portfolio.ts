@@ -78,6 +78,10 @@ export function filterManagerConversationsByScope(
 
 export function filterDocumentsByScope(documents: Document[], scoped: ScopedPortfolioData): Document[] {
   return documents.filter((document) => {
+    if (document.attachmentType === null || document.attachmentId === null) {
+      return true;
+    }
+
     if (document.attachmentType === "property") {
       return scoped.propertyIds.has(document.attachmentId);
     }
@@ -100,9 +104,13 @@ export function filterDocumentsByScope(documents: Document[], scoped: ScopedPort
 
 export function isDocumentAttachmentInScope(
   attachmentType: Document["attachmentType"],
-  attachmentId: string,
+  attachmentId: string | null,
   scoped: ScopedPortfolioData
 ): boolean {
+  if (attachmentType === null || attachmentId === null) {
+    return true;
+  }
+
   if (attachmentType === "property") {
     return scoped.propertyIds.has(attachmentId);
   }

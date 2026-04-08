@@ -3,6 +3,30 @@
 Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-08
+- Change type: Web + API + Infra + Payments
+- Description: Added automatic recurring charge generation for web-manager through a secret-protected internal route at `/api/internal/payments/generate-recurring`, plus a monthly Vercel cron entry. Extended the payment repository with org discovery so the job can run across all orgs that currently have active leases. The same route also supports a temporary manual test override via `period` and optional `organizationId` so monthly billing can be exercised immediately without waiting for the next calendar month.
+- Impact: Recurring rent/charge generation is no longer limited to the manual `POST /api/payments/generate` operator action. Production automation now depends on `CRON_SECRET` being configured in the deployed web-manager environment.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/internal/payments/generate-recurring/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-08
+- Change type: Web + API + DB + Documents
+- Description: Corrected the documents/email workflow so central uploads are no longer forced onto a property, unit, tenant, or lease at upload time. Added migration `0024_documents_optional_attachment.sql`, made document attachments nullable through domain/contracts/data-access, updated document listing UIs to treat unattached files as `Bibliothèque générale`, and changed pending lease draft email sending so operators explicitly choose one or more library documents before sending.
+- Impact: The documents area now works as a real reusable library first, while lease draft sending matches the intended workflow of selecting documents later from inside the draft instead of relying on lease-bound attachments.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/leases/[id]/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-08
+- Change type: Web + API + DB + Documents
+- Description: Rebuilt `/dashboard/documents` into a three-tab workspace for document library, email templates, and outbound sends. Added org-scoped custom email templates plus built-in lease/welcome/rules templates, added generic Resend email sending with direct document attachments from uploaded files, and changed pending lease draft sending so `Envoyer l'email du brouillon` now sends the real lease email with attached lease documents from the documents library.
+- Impact: Operators can upload and label lease/property/unit/tenant documents from one place, create and edit reusable custom templates, compose/send emails with attached stored documents, and send pending lease drafts with the uploaded lease files instead of a placeholder message.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/email-templates/route.test.ts' 'src/app/api/email-templates/[id]/route.test.ts' 'src/app/api/emails/send/route.test.ts' 'src/app/api/leases/[id]/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-08
+- Change type: Web + API + Frontend
+- Description: Changed the draft move-in email workflow so saving a lease draft no longer sends mail automatically. Pending lease detail now exposes an explicit `Envoyer l'email du brouillon` action, backed by a new `send_draft_email` path on `PATCH /api/leases/[id]`.
+- Impact: Operators can save move-ins as quiet drafts, revisit the pending lease later, and manually trigger the tenant-facing draft email only when the draft is ready.
+- Tests: `pnpm -C apps/web-manager test -- src/api/leases/lease.test.ts 'src/app/api/leases/[id]/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-08
 - Change type: Web + API
 - Description: Hardened draft move-in lease creation so notification email issues no longer fail `POST /api/leases`. Draft lease creation now succeeds even when the selected tenant has no email yet or local Resend configuration/email delivery is unavailable.
 - Impact: `/dashboard/leases/move-in` no longer returns a 500 during draft save just because the non-critical draft email side effect cannot run in local/dev or for incomplete tenant records.

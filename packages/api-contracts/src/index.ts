@@ -134,6 +134,24 @@ export {
   deleteDocumentInputSchema
 } from "./documents/document.validation";
 export type {
+  EmailTemplateView,
+  EmailTemplateSource,
+  CreateEmailTemplateInput,
+  CreateEmailTemplateOutput,
+  UpdateEmailTemplateInput,
+  UpdateEmailTemplateOutput,
+  ListEmailTemplatesOutput,
+  DeleteEmailTemplateOutput,
+  SendManagedEmailInput,
+  SendManagedEmailOutput
+} from "./email-templates/email-template.types";
+export {
+  emailTemplateScenarioSchema,
+  createEmailTemplateInputSchema,
+  updateEmailTemplateInputSchema,
+  sendManagedEmailInputSchema
+} from "./email-templates/email-template.validation";
+export type {
   ListManagerConversationsFilter,
   ManagerConversationListItem,
   ListManagerConversationsOutput,

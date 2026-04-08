@@ -26,42 +26,6 @@ export interface CreateLeaseDeps {
   teamFunctionsRepository: TeamPermissionRepository;
   createId: () => string;
   createPaymentId: () => string;
-  sendLeaseDraftEmail?: (input: {
-    to: string;
-    tenantFullName: string;
-    organizationName?: string | null;
-  }) => Promise<void>;
-}
-
-async function sendLeaseDraftNotificationIfPossible(input: {
-  repository: TenantLeaseRepository;
-  tenantId: string;
-  organizationId: string;
-  organizationName?: string | null;
-  sendLeaseDraftEmail?: (input: {
-    to: string;
-    tenantFullName: string;
-    organizationName?: string | null;
-  }) => Promise<void>;
-}): Promise<void> {
-  if (!input.sendLeaseDraftEmail) {
-    return;
-  }
-
-  const tenant = await input.repository.getTenantById(input.tenantId, input.organizationId);
-  if (!tenant?.email) {
-    return;
-  }
-
-  try {
-    await input.sendLeaseDraftEmail({
-      to: tenant.email,
-      tenantFullName: tenant.fullName,
-      organizationName: input.organizationName ?? null
-    });
-  } catch (_error) {
-    return;
-  }
 }
 
 function buildInitialCharges(
@@ -209,14 +173,6 @@ export async function createLease(
       sourceLeaseChargeTemplateId: charge.sourceLeaseChargeTemplateId,
       isInitialCharge: true
     })));
-
-    await sendLeaseDraftNotificationIfPossible({
-      repository: deps.repository,
-      tenantId: parsed.data.tenantId,
-      organizationId: parsed.data.organizationId,
-      organizationName: sessionResult.data.memberships[0]?.organizationName ?? null,
-      sendLeaseDraftEmail: deps.sendLeaseDraftEmail
-    });
 
     return { status: 201, body: { success: true, data: lease } };
   } catch (error) {

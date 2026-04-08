@@ -28,6 +28,7 @@ export interface PaymentRepository {
   listPayments(filter: ListPaymentsFilter): Promise<Payment[]>;
   listPaymentsByTenantAuthUserId(tenantAuthUserId: string, organizationId: string): Promise<Payment[]>;
   getPaymentById(paymentId: string, organizationId: string): Promise<Payment | null>;
+  listOrganizationsWithActiveRecurringCharges(): Promise<string[]>;
   updateOverduePayments(organizationId: string): Promise<number>;
   generateMonthlyCharges(
     organizationId: string,

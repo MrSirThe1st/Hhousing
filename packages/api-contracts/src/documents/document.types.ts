@@ -7,8 +7,8 @@ export interface CreateDocumentInput {
   fileSize: number;
   mimeType: string;
   documentType: DocumentType;
-  attachmentType: DocumentAttachmentType;
-  attachmentId: string;
+  attachmentType?: DocumentAttachmentType;
+  attachmentId?: string;
 }
 
 export type CreateDocumentOutput = Document;

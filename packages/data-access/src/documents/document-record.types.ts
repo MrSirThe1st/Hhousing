@@ -9,8 +9,8 @@ export interface CreateDocumentRecordInput {
   fileSize: number;
   mimeType: string;
   documentType: DocumentType;
-  attachmentType: DocumentAttachmentType;
-  attachmentId: string;
+  attachmentType: DocumentAttachmentType | null;
+  attachmentId: string | null;
   uploadedBy: string;
 }
 

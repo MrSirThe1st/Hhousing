@@ -321,7 +321,9 @@ export default function DocumentManagementPanel({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {ATTACHMENT_TYPE_LABELS[doc.attachmentType]} ({doc.attachmentId.substring(0, 12)}...)
+                    {doc.attachmentType && doc.attachmentId
+                      ? `${ATTACHMENT_TYPE_LABELS[doc.attachmentType]} (${doc.attachmentId.substring(0, 12)}...)`
+                      : "Bibliothèque générale"}
                   </td>
                   <td className="px-4 py-3 text-gray-500">{formatFileSize(doc.fileSize)}</td>
                   <td className="px-4 py-3 text-gray-500">

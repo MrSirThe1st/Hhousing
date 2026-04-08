@@ -29,6 +29,29 @@ export type TeamMemberInvitationEmailSender = (
   input: SendTeamMemberInvitationEmailInput
 ) => Promise<void>;
 
+export interface ManagedEmailAttachmentInput {
+  fileName: string;
+  mimeType: string;
+  fileUrl: string;
+}
+
+function buildManagedEmailHtml(body: string): string {
+  const lines = body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line, index, array) => line.length > 0 || (index > 0 && array[index - 1].length > 0));
+
+  const htmlBody = lines
+    .map((line) => (line.length === 0 ? "<div style=\"height:12px\"></div>" : `<p style=\"margin:0 0 12px;color:#334155;font-size:14px;\">${line}</p>`))
+    .join("");
+
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+      ${htmlBody}
+    </div>
+  `;
+}
+
 function buildHtml(input: SendTenantInvitationEmailInput): string {
   const organizationLine = input.organizationName
     ? `<p style="margin:0 0 12px;color:#475569;font-size:14px;">Organisation: ${input.organizationName}</p>`
@@ -111,6 +134,7 @@ async function sendEmail(params: {
   to: string;
   subject: string;
   html: string;
+  attachments?: Array<{ filename: string; content: string; type: string }>;
 }): Promise<void> {
   const { apiKey, fromEmail } = createResendClient();
 
@@ -124,7 +148,8 @@ async function sendEmail(params: {
       from: fromEmail,
       to: [params.to],
       subject: params.subject,
-      html: params.html
+      html: params.html,
+      attachments: params.attachments
     })
   });
 
@@ -132,6 +157,21 @@ async function sendEmail(params: {
     const text = await response.text();
     throw new Error(`RESEND_SEND_FAILED:${response.status}:${text}`);
   }
+}
+
+async function fetchAttachment(input: ManagedEmailAttachmentInput): Promise<{ filename: string; content: string; type: string }> {
+  const response = await fetch(input.fileUrl);
+  if (!response.ok) {
+    throw new Error(`EMAIL_ATTACHMENT_FETCH_FAILED:${response.status}`);
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  return {
+    filename: input.fileName,
+    content: buffer.toString("base64"),
+    type: input.mimeType
+  };
 }
 
 export function createTenantInvitationEmailSenderFromEnv(): TenantInvitationEmailSender {
@@ -162,4 +202,22 @@ export function createTeamMemberInvitationEmailSenderFromEnv(): TeamMemberInvita
       html: buildTeamMemberInvitationHtml(input)
     });
   };
+}
+
+export async function sendManagedEmailFromEnv(input: {
+  to: string;
+  subject: string;
+  body: string;
+  attachments?: ManagedEmailAttachmentInput[];
+}): Promise<void> {
+  const attachments = input.attachments
+    ? await Promise.all(input.attachments.map(fetchAttachment))
+    : undefined;
+
+  await sendEmail({
+    to: input.to,
+    subject: input.subject,
+    html: buildManagedEmailHtml(input.body),
+    attachments
+  });
 }

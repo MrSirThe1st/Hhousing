@@ -15,8 +15,8 @@ interface DocumentRow extends QueryResultRow {
   file_size: number | string;
   mime_type: string;
   document_type: "lease_agreement" | "receipt" | "notice" | "id" | "contract" | "other";
-  attachment_type: "property" | "unit" | "tenant" | "lease";
-  attachment_id: string;
+  attachment_type: "property" | "unit" | "tenant" | "lease" | null;
+  attachment_id: string | null;
   uploaded_by: string;
   created_at: Date | string;
 }
@@ -81,8 +81,8 @@ export function createPostgresDocumentRepository(
           input.fileSize,
           input.mimeType,
           input.documentType,
-          input.attachmentType,
-          input.attachmentId,
+          input.attachmentType ?? null,
+          input.attachmentId ?? null,
           input.uploadedBy
         ]
       );

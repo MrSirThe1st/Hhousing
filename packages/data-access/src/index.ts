@@ -70,6 +70,16 @@ export type {
 } from "./documents/document-record.types";
 export type { DocumentQueryable } from "./documents/postgres-document.repository";
 export {
+  createPostgresEmailTemplateRepository,
+  createEmailTemplateRepositoryFromEnv
+} from "./email-templates/postgres-email-template.repository";
+export type {
+  CreateEmailTemplateRecordInput,
+  UpdateEmailTemplateRecordInput,
+  EmailTemplateRepository
+} from "./email-templates/email-template-record.types";
+export type { EmailTemplateQueryable } from "./email-templates/postgres-email-template.repository";
+export {
   createPostgresMessageRepository,
   createMessageRepositoryFromEnv
 } from "./messages/postgres-message.repository";

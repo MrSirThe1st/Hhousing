@@ -5,8 +5,10 @@ const {
   getScopedPortfolioDataMock,
   getLeaseByIdMock,
   getTenantByIdMock,
+  getDocumentByIdMock,
   listPaymentsMock,
   createTenantInvitationMock,
+  sendManagedEmailFromEnvMock,
   createTenantInvitationEmailSenderFromEnvMock,
   updateLeaseMock,
   listMemberFunctionsMock
@@ -15,8 +17,10 @@ const {
   getScopedPortfolioDataMock: vi.fn(),
   getLeaseByIdMock: vi.fn(),
   getTenantByIdMock: vi.fn(),
+  getDocumentByIdMock: vi.fn(),
   listPaymentsMock: vi.fn(),
   createTenantInvitationMock: vi.fn(),
+  sendManagedEmailFromEnvMock: vi.fn(),
   createTenantInvitationEmailSenderFromEnvMock: vi.fn(),
   updateLeaseMock: vi.fn(),
   listMemberFunctionsMock: vi.fn()
@@ -35,7 +39,8 @@ vi.mock("../../../../api", async () => {
 });
 
 vi.mock("../../../../lib/email/resend", () => ({
-  createTenantInvitationEmailSenderFromEnv: createTenantInvitationEmailSenderFromEnvMock
+  createTenantInvitationEmailSenderFromEnv: createTenantInvitationEmailSenderFromEnvMock,
+  sendManagedEmailFromEnv: sendManagedEmailFromEnvMock
 }));
 
 vi.mock("../../shared", async () => {
@@ -57,6 +62,11 @@ vi.mock("../../shared", async () => {
     } => ({
       listPayments: listPaymentsMock
     }),
+    createDocumentRepo: (): {
+      getDocumentById: typeof getDocumentByIdMock;
+    } => ({
+      getDocumentById: getDocumentByIdMock
+    }),
     createTeamFunctionsRepo: (): {
       listMemberFunctions: typeof listMemberFunctionsMock;
     } => ({
@@ -75,10 +85,48 @@ describe("/api/leases/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createTenantInvitationEmailSenderFromEnvMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
+    sendManagedEmailFromEnvMock.mockResolvedValue(undefined);
+    getDocumentByIdMock.mockResolvedValue(null);
     getScopedPortfolioDataMock.mockResolvedValue({
       currentScope: "managed",
-      properties: [],
-      propertyIds: new Set(),
+      properties: [
+        {
+          property: {
+            id: "property-1",
+            organizationId: "org-1",
+            name: "Immeuble A",
+            address: "1 Avenue Test",
+            city: "Kinshasa",
+            countryCode: "CD",
+            managementContext: "managed",
+            propertyType: "multi_unit",
+            yearBuilt: null,
+            photoUrls: [],
+            clientId: null,
+            clientName: null,
+            status: "active",
+            createdAtIso: "2026-01-01T00:00:00.000Z"
+          },
+          units: [
+            {
+              id: "unit-1",
+              propertyId: "property-1",
+              unitNumber: "A1",
+              monthlyRentAmount: 500,
+              depositAmount: 100,
+              currencyCode: "CDF",
+              status: "vacant",
+              bedroomCount: null,
+              bathroomCount: null,
+              sizeSqm: null,
+              amenities: [],
+              features: [],
+              createdAtIso: "2026-01-01T00:00:00.000Z"
+            }
+          ]
+        }
+      ],
+      propertyIds: new Set(["property-1"]),
       unitIds: new Set(["unit-1"]),
       leases: [],
       leaseIds: new Set(["lease-1"]),
@@ -334,6 +382,220 @@ describe("/api/leases/[id]", () => {
       signingMethod: "physical"
     });
     expect(createTenantInvitationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends a draft email from a pending lease", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "property_manager",
+      organizationId: "org-1",
+      memberships: [
+        {
+          id: "membership-1",
+          userId: "user-1",
+          organizationId: "org-1",
+          organizationName: "Org A",
+          role: "property_manager",
+          status: "active",
+          capabilities: { canOwnProperties: false },
+          createdAtIso: "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+
+    getLeaseByIdMock.mockResolvedValue({
+      id: "lease-1",
+      tenantId: "tenant-1",
+      tenantFullName: "Tenant One",
+      tenantEmail: "tenant@example.com",
+      unitId: "unit-1",
+      startDate: "2026-04-01",
+      endDate: null,
+      monthlyRentAmount: 500,
+      currencyCode: "CDF",
+      status: "pending"
+    });
+    getDocumentByIdMock.mockResolvedValue({
+      id: "doc-1",
+      organizationId: "org-1",
+      fileName: "Bail.pdf",
+      fileUrl: "https://example.com/bail.pdf",
+      fileSize: 1234,
+      mimeType: "application/pdf",
+      documentType: "lease_agreement",
+      attachmentType: null,
+      attachmentId: null,
+      uploadedBy: "user-1",
+      createdAtIso: "2026-01-01T00:00:00.000Z"
+    });
+
+    const response = await PATCH(
+      new Request("http://localhost/api/leases/lease-1", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "send_draft_email", documentIds: ["doc-1"] }),
+        headers: { "content-type": "application/json" }
+      }),
+      { params: Promise.resolve({ id: "lease-1" }) }
+    );
+
+    expect(response.status).toBe(200);
+    expect(sendManagedEmailFromEnvMock).toHaveBeenCalledWith(expect.objectContaining({
+      to: "tenant@example.com",
+      attachments: [
+        {
+          fileName: "Bail.pdf",
+          mimeType: "application/pdf",
+          fileUrl: "https://example.com/bail.pdf"
+        }
+      ]
+    }));
+  });
+
+  it("rejects draft email send when tenant email is missing", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "property_manager",
+      organizationId: "org-1",
+      memberships: [
+        {
+          id: "membership-1",
+          userId: "user-1",
+          organizationId: "org-1",
+          organizationName: "Org A",
+          role: "property_manager",
+          status: "active",
+          capabilities: { canOwnProperties: false },
+          createdAtIso: "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+
+    getLeaseByIdMock.mockResolvedValue({
+      id: "lease-1",
+      tenantId: "tenant-1",
+      tenantFullName: "Tenant One",
+      tenantEmail: null,
+      unitId: "unit-1",
+      endDate: null,
+      status: "pending"
+    });
+
+    const response = await PATCH(
+      new Request("http://localhost/api/leases/lease-1", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "send_draft_email", documentIds: ["doc-1"] }),
+        headers: { "content-type": "application/json" }
+      }),
+      { params: Promise.resolve({ id: "lease-1" }) }
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Tenant email is required before sending the draft"
+    });
+    expect(sendManagedEmailFromEnvMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects draft email send when no documents are selected", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "property_manager",
+      organizationId: "org-1",
+      memberships: [
+        {
+          id: "membership-1",
+          userId: "user-1",
+          organizationId: "org-1",
+          organizationName: "Org A",
+          role: "property_manager",
+          status: "active",
+          capabilities: { canOwnProperties: false },
+          createdAtIso: "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+
+    getLeaseByIdMock.mockResolvedValue({
+      id: "lease-1",
+      tenantId: "tenant-1",
+      tenantFullName: "Tenant One",
+      tenantEmail: "tenant@example.com",
+      unitId: "unit-1",
+      startDate: "2026-04-01",
+      endDate: null,
+      monthlyRentAmount: 500,
+      currencyCode: "CDF",
+      status: "pending"
+    });
+    const response = await PATCH(
+      new Request("http://localhost/api/leases/lease-1", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "send_draft_email" }),
+        headers: { "content-type": "application/json" }
+      }),
+      { params: Promise.resolve({ id: "lease-1" }) }
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Sélectionnez au moins un document avant d'envoyer le brouillon"
+    });
+    expect(sendManagedEmailFromEnvMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects draft email send when a selected document does not exist", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "property_manager",
+      organizationId: "org-1",
+      memberships: [
+        {
+          id: "membership-1",
+          userId: "user-1",
+          organizationId: "org-1",
+          organizationName: "Org A",
+          role: "property_manager",
+          status: "active",
+          capabilities: { canOwnProperties: false },
+          createdAtIso: "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+
+    getLeaseByIdMock.mockResolvedValue({
+      id: "lease-1",
+      tenantId: "tenant-1",
+      tenantFullName: "Tenant One",
+      tenantEmail: "tenant@example.com",
+      unitId: "unit-1",
+      startDate: "2026-04-01",
+      endDate: null,
+      monthlyRentAmount: 500,
+      currencyCode: "CDF",
+      status: "pending"
+    });
+    getDocumentByIdMock.mockResolvedValue(null);
+
+    const response = await PATCH(
+      new Request("http://localhost/api/leases/lease-1", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "send_draft_email", documentIds: ["doc-missing"] }),
+        headers: { "content-type": "application/json" }
+      }),
+      { params: Promise.resolve({ id: "lease-1" }) }
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      success: false,
+      code: "NOT_FOUND",
+      error: "Document not found"
+    });
+    expect(sendManagedEmailFromEnvMock).not.toHaveBeenCalled();
   });
 
   it("blocks finalization while an initial charge remains unpaid", async () => {

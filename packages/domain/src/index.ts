@@ -13,6 +13,7 @@ export type { Unit, UnitStatus } from "./entities/unit.types";
 export type { Tenant } from "./entities/tenant.types";
 export type { Lease, LeaseStatus, LeaseTermType, LeasePaymentFrequency, LeaseSigningMethod } from "./entities/lease.types";
 export type { LeaseChargeTemplate, LeaseChargeType, LeaseChargeFrequency } from "./entities/lease-charge.types";
+export type { EmailTemplate, EmailTemplateScenario } from "./entities/email-template.types";
 export type { Payment, PaymentStatus, PaymentKind, PaymentBillingFrequency } from "./entities/payment.types";
 export type { Conversation, Message, MessageSenderSide } from "./entities/conversation.types";
 export type {

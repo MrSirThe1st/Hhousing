@@ -10,8 +10,8 @@ export interface Document {
   fileSize: number; // bytes
   mimeType: string;
   documentType: DocumentType;
-  attachmentType: DocumentAttachmentType;
-  attachmentId: string; // property/unit/tenant/lease id
+  attachmentType: DocumentAttachmentType | null;
+  attachmentId: string | null; // property/unit/tenant/lease id
   uploadedBy: string; // user id
   createdAtIso: string;
 }

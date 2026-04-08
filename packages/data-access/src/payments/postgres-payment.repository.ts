@@ -194,6 +194,17 @@ export function createPostgresPaymentRepository(
       return result.rows[0] ? mapPayment(result.rows[0]) : null;
     },
 
+    async listOrganizationsWithActiveRecurringCharges(): Promise<string[]> {
+      const result = await client.query<{ organization_id: string }>(
+        `select distinct organization_id
+         from leases
+         where status = 'active'
+         order by organization_id asc`
+      );
+
+      return result.rows.map((row) => row.organization_id);
+    },
+
     async updateOverduePayments(organizationId: string): Promise<number> {
       const result = await client.query(
         `update payments
