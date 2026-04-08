@@ -4,10 +4,12 @@ import { readDatabaseEnv } from "../database/database-env";
 import type {
   AuthRepository,
   CreateOrganizationMembershipRecordInput,
+  CreateTeamMemberInvitationRecordInput,
   CreateOperatorAccountRecordInput,
-  CreateOperatorAccountRecordOutput
+  CreateOperatorAccountRecordOutput,
+  TeamMemberInvitationPreviewRecord
 } from "./auth-record.types";
-import type { MembershipStatus, Organization, OrganizationMembership, UserRole } from "@hhousing/domain";
+import type { MembershipStatus, Organization, OrganizationMembership, TeamMemberInvitation, TeamMemberInvitationRole, UserRole } from "@hhousing/domain";
 
 interface OrganizationRow extends QueryResultRow {
   id: string;
@@ -25,6 +27,29 @@ interface OrganizationMembershipRow extends QueryResultRow {
   status: MembershipStatus;
   can_own_properties: boolean;
   created_at: Date | string;
+}
+
+interface TeamMemberInvitationRow extends QueryResultRow {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  email: string;
+  role: TeamMemberInvitationRole;
+  can_own_properties: boolean;
+  expires_at: Date | string;
+  used_at: Date | string | null;
+  revoked_at: Date | string | null;
+  created_at: Date | string;
+}
+
+interface TeamMemberInvitationPreviewRow extends QueryResultRow {
+  invitation_id: string;
+  organization_id: string;
+  organization_name: string;
+  email: string;
+  role: TeamMemberInvitationRole;
+  can_own_properties: boolean;
+  expires_at: Date | string;
 }
 
 const poolCache = new Map<string, Pool>();
@@ -54,6 +79,33 @@ function mapMembership(row: OrganizationMembershipRow): OrganizationMembership {
       canOwnProperties: row.can_own_properties
     },
     createdAtIso: toIso(row.created_at)
+  };
+}
+
+function mapTeamMemberInvitation(row: TeamMemberInvitationRow): TeamMemberInvitation {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    organizationName: row.organization_name,
+    email: row.email,
+    role: row.role,
+    canOwnProperties: row.can_own_properties,
+    expiresAtIso: toIso(row.expires_at),
+    usedAtIso: row.used_at ? toIso(row.used_at) : null,
+    revokedAtIso: row.revoked_at ? toIso(row.revoked_at) : null,
+    createdAtIso: toIso(row.created_at)
+  };
+}
+
+function mapTeamMemberInvitationPreview(row: TeamMemberInvitationPreviewRow): TeamMemberInvitationPreviewRecord {
+  return {
+    invitationId: row.invitation_id,
+    organizationId: row.organization_id,
+    organizationName: row.organization_name,
+    email: row.email,
+    role: row.role,
+    canOwnProperties: row.can_own_properties,
+    expiresAtIso: toIso(row.expires_at)
   };
 }
 
@@ -229,6 +281,119 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
         ...result.rows[0],
         organization_name: nameResult.rows[0]?.name ?? ""
       });
+    },
+
+    async listTeamMemberInvitationsByOrganization(organizationId: string): Promise<TeamMemberInvitation[]> {
+      const result = await pool.query<TeamMemberInvitationRow>(
+        `select
+           invitation.id,
+           invitation.organization_id,
+           organization.name as organization_name,
+           invitation.email,
+           invitation.role,
+           invitation.can_own_properties,
+           invitation.expires_at,
+           invitation.used_at,
+           invitation.revoked_at,
+           invitation.created_at
+         from team_member_invitations invitation
+         join organizations organization on organization.id = invitation.organization_id
+         where invitation.organization_id = $1
+         order by invitation.created_at desc`,
+        [organizationId]
+      );
+
+      return result.rows.map(mapTeamMemberInvitation);
+    },
+
+    async revokeActiveTeamMemberInvitations(email: string, organizationId: string): Promise<void> {
+      await pool.query(
+        `update team_member_invitations
+         set revoked_at = now()
+         where organization_id = $1
+           and lower(email) = lower($2)
+           and used_at is null
+           and revoked_at is null
+           and expires_at > now()`,
+        [organizationId, email]
+      );
+    },
+
+    async createTeamMemberInvitation(input: CreateTeamMemberInvitationRecordInput): Promise<TeamMemberInvitation> {
+      const result = await pool.query<TeamMemberInvitationRow>(
+        `insert into team_member_invitations (
+           id,
+           organization_id,
+           email,
+           role,
+           can_own_properties,
+           token_hash,
+           expires_at,
+           created_by_user_id
+         ) values ($1, $2, $3, $4, $5, $6, $7, $8)
+         returning
+           id,
+           organization_id,
+           '' as organization_name,
+           email,
+           role,
+           can_own_properties,
+           expires_at,
+           used_at,
+           revoked_at,
+           created_at`,
+        [
+          input.id,
+          input.organizationId,
+          input.email,
+          input.role,
+          input.canOwnProperties,
+          input.tokenHash,
+          input.expiresAtIso,
+          input.createdByUserId
+        ]
+      );
+
+      const nameResult = await pool.query<{ name: string }>(
+        `select name from organizations where id = $1`,
+        [input.organizationId]
+      );
+
+      return mapTeamMemberInvitation({
+        ...result.rows[0],
+        organization_name: nameResult.rows[0]?.name ?? ""
+      });
+    },
+
+    async getTeamMemberInvitationPreviewByTokenHash(tokenHash: string): Promise<TeamMemberInvitationPreviewRecord | null> {
+      const result = await pool.query<TeamMemberInvitationPreviewRow>(
+        `select
+           invitation.id as invitation_id,
+           invitation.organization_id,
+           organization.name as organization_name,
+           invitation.email,
+           invitation.role,
+           invitation.can_own_properties,
+           invitation.expires_at
+         from team_member_invitations invitation
+         join organizations organization on organization.id = invitation.organization_id
+         where invitation.token_hash = $1
+           and invitation.used_at is null
+           and invitation.revoked_at is null
+           and invitation.expires_at > now()`,
+        [tokenHash]
+      );
+
+      return result.rows[0] ? mapTeamMemberInvitationPreview(result.rows[0]) : null;
+    },
+
+    async markTeamMemberInvitationUsed(invitationId: string): Promise<void> {
+      await pool.query(
+        `update team_member_invitations
+         set used_at = now()
+         where id = $1`,
+        [invitationId]
+      );
     },
 
     async createOperatorAccount(

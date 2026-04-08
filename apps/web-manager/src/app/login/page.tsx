@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import PlatformLogoLink from "../../components/platform-logo-link";
 
 export default function LoginPage(): React.ReactElement {
   const router = useRouter();
@@ -35,12 +36,12 @@ export default function LoginPage(): React.ReactElement {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">
-        {/* Logo / Brand */}
-        <div className="mb-10 text-center">
-          <span className="text-3xl font-semibold tracking-tight text-[#010a19]">
-            hhousing
-          </span>
-          <p className="mt-2 text-sm text-gray-600">Espace gestionnaire</p>
+        <div className="mb-8 text-center">
+          <PlatformLogoLink
+            centered
+            subtitle="Retour a l'accueil public de la plateforme"
+          />
+          <p className="mt-4 text-sm text-gray-600">Espace gestionnaire</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">

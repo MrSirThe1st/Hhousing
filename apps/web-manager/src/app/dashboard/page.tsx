@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getServerAuthSession } from "../../lib/session";
 import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
 import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
+import DashboardCalendar from "../../components/dashboard-calendar";
 
 type DashboardTab = "overview" | "tasks" | "calendar";
 
@@ -235,6 +236,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             ))}
           </div>
         </>
+      ) : activeTab === "calendar" ? (
+        <DashboardCalendar metrics={metrics} scopeLabel={scopeLabel} />
       ) : (
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
           <h2 className="text-lg font-semibold text-[#010a19]">

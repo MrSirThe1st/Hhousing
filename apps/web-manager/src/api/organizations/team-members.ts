@@ -1,17 +1,123 @@
 import {
   TeamFunctionCode,
+  parseAcceptTeamMemberInvitationInput,
   parseInvitePropertyManagerInput
 } from "@hhousing/api-contracts";
 import type {
+  AcceptTeamMemberInvitationOutput,
   ApiResult,
   AuthSession,
   InvitePropertyManagerOutput,
   ListOrganizationMembersOutput,
+  ListTeamMemberInvitationsOutput,
+  TeamMemberInvitationPreview,
+  ValidateTeamMemberInvitationOutput,
   TeamFunction
 } from "@hhousing/api-contracts";
 import type { AuthRepository } from "@hhousing/data-access";
 import { TeamFunctionsRepository } from "@hhousing/data-access";
+import { createHash, randomBytes } from "crypto";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+
+type SupabaseAdminUser = {
+  id: string;
+  email: string;
+};
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function buildExpiryIso(daysFromNow: number): string {
+  return new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function buildActivationLink(baseUrl: string, token: string): string {
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}token=${encodeURIComponent(token)}`;
+}
+
+function mapPreview(
+  preview: Awaited<ReturnType<AuthRepository["getTeamMemberInvitationPreviewByTokenHash"]>>
+): TeamMemberInvitationPreview | null {
+  if (preview === null) {
+    return null;
+  }
+
+  return {
+    invitationId: preview.invitationId,
+    organizationId: preview.organizationId,
+    organizationName: preview.organizationName,
+    email: preview.email,
+    role: preview.role,
+    canOwnProperties: preview.canOwnProperties,
+    expiresAtIso: preview.expiresAtIso
+  };
+}
+
+async function findSupabaseUserByEmail(
+  supabaseAdminUrl: string,
+  supabaseServiceRoleKey: string,
+  email: string
+): Promise<SupabaseAdminUser | null> {
+  const response = await fetch(`${supabaseAdminUrl}/auth/v1/admin/users`, {
+    method: "GET",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`SUPABASE_LOOKUP_FAILED:${response.status}`);
+  }
+
+  const payload = (await response.json()) as { users?: SupabaseAdminUser[] };
+  const normalizedEmail = email.toLowerCase();
+  return payload.users?.find((item) => item.email.toLowerCase() === normalizedEmail) ?? null;
+}
+
+async function upsertSupabaseUser(params: {
+  supabaseAdminUrl: string;
+  supabaseServiceRoleKey: string;
+  email: string;
+  password: string;
+  fullName: string;
+}): Promise<string> {
+  const existingUser = await findSupabaseUserByEmail(
+    params.supabaseAdminUrl,
+    params.supabaseServiceRoleKey,
+    params.email
+  );
+
+  const endpoint = existingUser
+    ? `${params.supabaseAdminUrl}/auth/v1/admin/users/${existingUser.id}`
+    : `${params.supabaseAdminUrl}/auth/v1/admin/users`;
+  const method = existingUser ? "PUT" : "POST";
+
+  const response = await fetch(endpoint, {
+    method,
+    headers: {
+      "content-type": "application/json",
+      apikey: params.supabaseServiceRoleKey,
+      Authorization: `Bearer ${params.supabaseServiceRoleKey}`
+    },
+    body: JSON.stringify({
+      email: params.email,
+      password: params.password,
+      email_confirm: true,
+      user_metadata: { full_name: params.fullName }
+    })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`SUPABASE_USER_UPSERT_FAILED:${response.status}:${text}`);
+  }
+
+  const payload = (await response.json()) as { id: string };
+  return payload.id;
+}
 
 function isMissingTeamFunctionsSchema(error: unknown): boolean {
   if (!(error instanceof Error)) {
@@ -87,8 +193,45 @@ export async function listOrganizationMembers(
     };
   }
 
-  const memberships = await deps.repository.listMembershipsByOrganization(organizationId);
+  const memberships = await deps.repository
+    .listMembershipsByOrganization(organizationId)
+    .then((items) => items.filter((membership) => membership.role !== "tenant"));
   return { status: 200, body: { success: true, data: { memberships } } };
+}
+
+export interface ListTeamMemberInvitationsRequest {
+  session: AuthSession | null;
+  organizationId: string | null;
+}
+
+export interface ListTeamMemberInvitationsResponse {
+  status: number;
+  body: ApiResult<ListTeamMemberInvitationsOutput>;
+}
+
+export interface ListTeamMemberInvitationsDeps {
+  repository: AuthRepository;
+}
+
+export async function listTeamMemberInvitations(
+  request: ListTeamMemberInvitationsRequest,
+  deps: ListTeamMemberInvitationsDeps
+): Promise<ListTeamMemberInvitationsResponse> {
+  const sessionResult = requireOperatorSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const organizationId = request.organizationId ?? sessionResult.data.organizationId;
+  if (organizationId !== sessionResult.data.organizationId) {
+    return {
+      status: 403,
+      body: { success: false, code: "FORBIDDEN", error: "Organization mismatch" }
+    };
+  }
+
+  const invitations = await deps.repository.listTeamMemberInvitationsByOrganization(organizationId);
+  return { status: 200, body: { success: true, data: { invitations } } };
 }
 
 export interface InvitePropertyManagerRequest {
@@ -103,8 +246,14 @@ export interface InvitePropertyManagerResponse {
 
 export interface InvitePropertyManagerDeps {
   repository: AuthRepository;
-  teamFunctionsRepository: TeamFunctionsRepository;
   createId: () => string;
+  createToken?: () => string;
+  inviteLinkBaseUrl: string;
+  sendInvitationEmail?: (input: {
+    to: string;
+    organizationName: string;
+    activationLink: string;
+  }) => Promise<void>;
 }
 
 export async function invitePropertyManager(
@@ -129,134 +278,173 @@ export async function invitePropertyManager(
     return { status: mapErrorCodeToHttpStatus(parsed.code), body: parsed };
   }
 
-  const existing = await deps.repository.getMembershipByUserAndOrg(
-    parsed.data.userId,
+  const token = deps.createToken ? deps.createToken() : randomBytes(24).toString("hex");
+  const tokenHash = hashToken(token);
+  const expiresAtIso = buildExpiryIso(7);
+
+  await deps.repository.revokeActiveTeamMemberInvitations(
+    parsed.data.email,
     parsed.data.organizationId
   );
-  if (existing) {
+  const invitation = await deps.repository.createTeamMemberInvitation({
+    id: deps.createId(),
+    organizationId: parsed.data.organizationId,
+    email: parsed.data.email,
+    role: parsed.data.role,
+    canOwnProperties: parsed.data.canOwnProperties,
+    tokenHash,
+    expiresAtIso,
+    createdByUserId: sessionResult.data.userId
+  });
+
+  const activationLink = buildActivationLink(deps.inviteLinkBaseUrl, token);
+
+  if (deps.sendInvitationEmail) {
+    await deps.sendInvitationEmail({
+      to: invitation.email,
+      organizationName: invitation.organizationName,
+      activationLink
+    });
+  }
+
+  return {
+    status: 201,
+    body: {
+      success: true,
+      data: {
+        invitationId: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        canOwnProperties: invitation.canOwnProperties,
+        expiresAtIso: invitation.expiresAtIso,
+        activationLink
+      }
+    }
+  };
+}
+
+export interface ValidateTeamMemberInvitationRequest {
+  token: string | null;
+}
+
+export interface ValidateTeamMemberInvitationResponse {
+  status: number;
+  body: ApiResult<ValidateTeamMemberInvitationOutput>;
+}
+
+export interface ValidateTeamMemberInvitationDeps {
+  repository: AuthRepository;
+}
+
+export async function validateTeamMemberInvitation(
+  request: ValidateTeamMemberInvitationRequest,
+  deps: ValidateTeamMemberInvitationDeps
+): Promise<ValidateTeamMemberInvitationResponse> {
+  const token = request.token?.trim();
+  if (!token) {
+    return {
+      status: 400,
+      body: { success: false, code: "VALIDATION_ERROR", error: "token is required" }
+    };
+  }
+
+  const preview = await deps.repository.getTeamMemberInvitationPreviewByTokenHash(hashToken(token));
+  if (preview === null) {
+    return {
+      status: 404,
+      body: { success: false, code: "NOT_FOUND", error: "Invitation not found or expired" }
+    };
+  }
+
+  return {
+    status: 200,
+    body: { success: true, data: { invitation: mapPreview(preview) as TeamMemberInvitationPreview } }
+  };
+}
+
+export interface AcceptTeamMemberInvitationRequest {
+  body: unknown;
+}
+
+export interface AcceptTeamMemberInvitationResponse {
+  status: number;
+  body: ApiResult<AcceptTeamMemberInvitationOutput>;
+}
+
+export interface AcceptTeamMemberInvitationDeps {
+  repository: AuthRepository;
+  createMembershipId: () => string;
+  supabaseAdminUrl: string;
+  supabaseServiceRoleKey: string;
+}
+
+export async function acceptTeamMemberInvitation(
+  request: AcceptTeamMemberInvitationRequest,
+  deps: AcceptTeamMemberInvitationDeps
+): Promise<AcceptTeamMemberInvitationResponse> {
+  const parsed = parseAcceptTeamMemberInvitationInput(request.body);
+  if (!parsed.success) {
+    return { status: mapErrorCodeToHttpStatus(parsed.code), body: parsed };
+  }
+
+  const preview = await deps.repository.getTeamMemberInvitationPreviewByTokenHash(
+    hashToken(parsed.data.token)
+  );
+  if (preview === null) {
+    return {
+      status: 404,
+      body: { success: false, code: "NOT_FOUND", error: "Invitation not found or expired" }
+    };
+  }
+
+  const userId = await upsertSupabaseUser({
+    supabaseAdminUrl: deps.supabaseAdminUrl,
+    supabaseServiceRoleKey: deps.supabaseServiceRoleKey,
+    email: preview.email,
+    password: parsed.data.password,
+    fullName: parsed.data.fullName
+  });
+
+  const existingMembership = await deps.repository.getMembershipByUserAndOrg(
+    userId,
+    preview.organizationId
+  );
+
+  if (existingMembership && existingMembership.role !== preview.role) {
     return {
       status: 409,
       body: {
         success: false,
-        code: "VALIDATION_ERROR",
-        error: "This user is already a member of this organization"
-      }
-    };
-  }
-
-  // Validate role-based escalation (property_manager cannot create landlord members)
-  if (sessionResult.data.role === "property_manager" && parsed.data.role === "landlord") {
-    return {
-      status: 403,
-      body: {
-        success: false,
         code: "FORBIDDEN",
-        error: "Property managers cannot invite landlords"
+        error: "User already belongs to this organization with another role"
       }
     };
   }
 
-  if (parsed.data.role === "property_manager" && (!parsed.data.functions || parsed.data.functions.length === 0)) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        code: "VALIDATION_ERROR",
-        error: "Select at least one function for a property manager"
-      }
-    };
-  }
+  const membership =
+    existingMembership ??
+    (await deps.repository.createOrganizationMembership({
+      id: deps.createMembershipId(),
+      organizationId: preview.organizationId,
+      userId,
+      role: preview.role,
+      status: "active",
+      canOwnProperties: preview.canOwnProperties
+    }));
 
-  if (parsed.data.role === "landlord" && parsed.data.functions && parsed.data.functions.length > 0) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        code: "VALIDATION_ERROR",
-        error: "Landlords already have full org access and should not receive functions"
-      }
-    };
-  }
+  await deps.repository.markTeamMemberInvitationUsed(preview.invitationId);
 
-  let organizationFunctions = [] as Awaited<
-    ReturnType<InvitePropertyManagerDeps["teamFunctionsRepository"]["listFunctionsByOrganization"]>
-  >;
-
-  try {
-    organizationFunctions = await deps.teamFunctionsRepository.listFunctionsByOrganization(
-      parsed.data.organizationId
-    );
-  } catch (error) {
-    if (!isMissingTeamFunctionsSchema(error)) {
-      throw error;
-    }
-
-    return {
-      status: 503,
-      body: {
-        success: false,
-        code: "INTERNAL_ERROR",
-        error: "Team permissions schema is missing. Apply migrations 0009 and 0010."
-      }
-    };
-  }
-  const functionsByCode = new Map(
-    organizationFunctions.map((teamFunction) => [teamFunction.functionCode, teamFunction])
-  );
-
-  // Validate function-based escalation (property_manager cannot assign ADMIN)
-  if (parsed.data.functions) {
-    for (const functionCode of parsed.data.functions) {
-      if (!functionsByCode.has(functionCode)) {
-        return {
-          status: 400,
-          body: {
-            success: false,
-            code: "VALIDATION_ERROR",
-            error: `Unknown function for this organization: ${functionCode}`
-          }
-        };
-      }
-
-      const escalationCheck = validateFunctionEscalation(
-        sessionResult.data.role as "landlord" | "property_manager",
-        functionCode
-      );
-      if (!escalationCheck.success) {
-        return {
-          status: mapErrorCodeToHttpStatus(escalationCheck.code),
-          body: escalationCheck
-        };
+  return {
+    status: 200,
+    body: {
+      success: true,
+      data: {
+        userId,
+        organizationId: preview.organizationId,
+        membershipId: membership.id
       }
     }
-  }
-
-  const membership = await deps.repository.createOrganizationMembership({
-    id: deps.createId(),
-    organizationId: parsed.data.organizationId,
-    userId: parsed.data.userId,
-    role: parsed.data.role,
-    status: "active",
-    canOwnProperties: parsed.data.canOwnProperties
-  });
-
-  if (parsed.data.functions) {
-    for (const functionCode of parsed.data.functions) {
-      const functionDefinition = functionsByCode.get(functionCode);
-      if (!functionDefinition) {
-        continue;
-      }
-
-      await deps.teamFunctionsRepository.assignFunctionToMember(
-        membership.id,
-        functionDefinition.id,
-        parsed.data.organizationId,
-        sessionResult.data.userId
-      );
-    }
-  }
-
-  return { status: 201, body: { success: true, data: membership } };
+  };
 }
 
 export interface UpdateMemberFunctionsRequest {

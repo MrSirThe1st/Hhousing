@@ -34,6 +34,7 @@ export default function Sidebar({ currentScopeLabel, showClients }: SidebarProps
       items: [
         { href: "/dashboard/properties", label: "Portfolio", icon: "🏢" },
         ...(showClients ? [{ href: "/dashboard/clients", label: "Clients", icon: "🏷️" }] : []),
+        { href: "/dashboard/listings", label: "Listings", icon: "📣" },
         { href: "/dashboard/tenants", label: "Locataires", icon: "👤" },
         { href: "/dashboard/leases", label: "Baux", icon: "📄" }
       ]

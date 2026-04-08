@@ -38,16 +38,28 @@ interface LeaseMoveInFormProps {
   organizationId: string;
   items: PropertyWithUnitsView[];
   tenants: Tenant[];
+  initialTenantId?: string;
+  initialPropertyId?: string;
+  initialUnitId?: string;
+  initialApplicationId?: string;
 }
 
-export default function LeaseMoveInForm({ organizationId, items, tenants }: LeaseMoveInFormProps): React.ReactElement {
+export default function LeaseMoveInForm({
+  organizationId,
+  items,
+  tenants,
+  initialTenantId,
+  initialPropertyId,
+  initialUnitId,
+  initialApplicationId
+}: LeaseMoveInFormProps): React.ReactElement {
   const router = useRouter();
   const eligibleProperties = useMemo(
     () => items.filter(({ units }) => units.some((unit) => unit.status === "vacant")),
     [items]
   );
-  const [propertyId, setPropertyId] = useState<string>(eligibleProperties[0]?.property.id ?? "");
-  const [tenantId, setTenantId] = useState<string>(tenants[0]?.id ?? "");
+  const [propertyId, setPropertyId] = useState<string>(initialPropertyId ?? eligibleProperties[0]?.property.id ?? "");
+  const [tenantId, setTenantId] = useState<string>(initialTenantId ?? tenants[0]?.id ?? "");
   const [inviteEmail, setInviteEmail] = useState("");
   const [termType, setTermType] = useState<"fixed" | "month_to_month">("month_to_month");
   const [fixedTermMonths, setFixedTermMonths] = useState("12");
@@ -71,7 +83,7 @@ export default function LeaseMoveInForm({ organizationId, items, tenants }: Leas
     [selectedProperty]
   );
 
-  const [unitId, setUnitId] = useState<string>(vacantUnits[0]?.id ?? "");
+  const [unitId, setUnitId] = useState<string>(initialUnitId ?? vacantUnits[0]?.id ?? "");
   const selectedTenant = useMemo(
     () => tenants.find((tenant) => tenant.id === tenantId) ?? null,
     [tenantId, tenants]
@@ -86,7 +98,7 @@ export default function LeaseMoveInForm({ organizationId, items, tenants }: Leas
       return;
     }
 
-    setUnitId(selectedUnit.id);
+    setUnitId((current) => current || selectedUnit.id);
     setMonthlyRentAmount(String(selectedUnit.monthlyRentAmount));
     setCurrencyCode(selectedUnit.currencyCode);
     setDepositRows((previous) => previous.map((row) => ({ ...row, currencyCode: selectedUnit.currencyCode })));
@@ -196,6 +208,9 @@ export default function LeaseMoveInForm({ organizationId, items, tenants }: Leas
           ← Retour aux baux
         </Link>
         <h1 className="text-2xl font-semibold text-[#010a19]">Move in</h1>
+        {initialApplicationId ? (
+          <p className="mt-2 text-sm text-gray-500">Prefilled from approved application {initialApplicationId}.</p>
+        ) : null}
       </div>
 
       <form onSubmit={handleMoveIn} className="space-y-5 lg:max-w-5xl">

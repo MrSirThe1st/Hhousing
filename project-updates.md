@@ -2,6 +2,60 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-08
+- Change type: Web + Frontend
+- Description: Replaced the dashboard calendar-tab placeholder with a real month-view calendar surface in web-manager. The new view adds month navigation, a six-week grid, a right-rail agenda, and seeded operational events derived from live dashboard metrics so the workspace is visually and structurally ready for later wiring to real lease, maintenance, and payment deadlines.
+- Impact: `/dashboard?tab=calendar` is now a usable planning surface instead of an empty state, while staying dependency-free and aligned with the existing French-first dashboard shell.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-07
+- Change type: Web + Frontend
+- Description: Split the public marketplace out of the landing page into a dedicated public route at `/marketplace`. The landing page now shows only a compact preview of published homes plus a search form that redirects to the marketplace results page. Also replaced the simple landing-page `details` menus with richer hover/click dropdown panels and tightened the public marketing copy into French-first text.
+- Impact: The homepage is now more clearly product-first, marketplace cards take less space, anonymous users can browse full listing search results on a separate public page, and navigation panels expose pricing / roles / features with more depth.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-07
+- Change type: Web + Frontend
+- Description: Redesigned the public homepage into a marketing-first landing page with a sticky header, dropdown navigation for pricing/use cases/features, auth CTAs, feature and pricing sections, FAQs, and a footer. The marketplace still lives on the same page but now sits lower with a more discreet search/filter bar and smaller listing cards.
+- Impact: The root route now behaves like a true product landing page instead of a marketplace-first screen, while still exposing the public listings feed underneath the marketing content.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-07
+- Change type: Web + Frontend
+- Description: Made `/` the actual public landing page by removing the middleware redirect that forced anonymous visitors to `/login`. Added a reusable placeholder platform logo link on both auth pages so login and signup now provide a direct route back to the landing page.
+- Impact: First-time visitors now land on the marketplace homepage instead of the login screen, while `/login` and `/signup` keep clear navigation back to the public entry point.
+- Tests: pending.
+
+## 2026-04-07
+- Change type: Web + Frontend
+- Description: Disabled the marketplace featured-listing promotion concept for now. Removed the `Highlight on marketplace home page` control from the listing editor, removed featured badges/sections from the marketplace UI, and now force listing saves to keep `isFeatured` false until paid promotion is implemented later.
+- Impact: All published listings are treated equally in the current marketplace. The existing database field remains but is no longer active in the product flow.
+- Tests: pending.
+
+## 2026-04-07
+- Change type: Web + Frontend
+- Description: Replaced manual listing image URL entry with file-based uploads in the dedicated listing editor. Listing media now uses one uploaded cover image plus one-or-more uploaded gallery images, uploaded to Supabase Storage before saving the listing.
+- Impact: Managers no longer paste media URLs by hand when publishing units. Listing saves now enforce required media at the client and contract layer.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-07
+- Change type: Web + Frontend
+- Description: Reworked the manager listings publish flow from an inline expander into a dedicated editor route at `/dashboard/listings/[unitId]`. The listings tab now stays compact and routes operators to a full-page listing editor instead of expanding cards in place. The editor removes the raw status dropdown and uses explicit actions for `Save as draft` and `Publish listing`, and renames the marketplace promotion toggle into clearer homepage-highlight wording.
+- Impact: Publishing a unit is less cramped, the draft vs published intent is clearer, and the featured toggle now maps more directly to the marketplace homepage behavior.
+- Tests: pending.
+
+## 2026-04-07
+- Change type: Web + API + DB + Marketplace
+- Description: Added the public listings marketplace and the manager-side listings workspace on top of migration `0022_init_listings_and_applications.sql`. The web-manager home page now renders a public rental marketplace with search and filters for location, price, property type, and availability, highlights featured units, and links each published unit to a public detail page at `/listing/[id]` with share actions for WhatsApp, Facebook, and Instagram-style link copying. Added the manager workspace at `/dashboard/listings` with the requested three tabs: `Listings`, `Applications`, and `Screening`. Managers can publish or unpublish vacant units as listings, choose which fields are public, set marketing copy and media/contact overrides, review public applications, run manual screening, approve or reject, request more information, and convert approved applications into tenants.
+- Impact: Property remains the internal source of truth while listing becomes a publish-state marketing layer over the same unit data. Applications are now stored as independent public intake records tied to listings, and approved applications can hand off directly into the existing lease move-in flow with tenant and unit context prefilled.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-07
+- Change type: Web + API + DB + Auth
+- Description: Reworked operator team onboarding into an invitation-first flow. Added migration `0021_team_member_invitations.sql` plus new shared domain/contracts/data-access support for pending operator invites. `POST /api/organizations/members` now invites by email instead of requiring an existing `userId`, sends a Resend-backed invite email, and no longer assigns team functions during invite. Added public validation/accept endpoints at `/api/auth/team-invitations/validate` and `/api/auth/team-invitations/accept`, plus a new `/team-invite` password-setup page that completes Supabase account creation/update and only then creates the organization membership. The team dashboard now shows active operator members without tenants and lists pending invitations separately.
+- Impact: Team members no longer need to pre-exist in Supabase before being added. Membership creation is deferred until invite acceptance, tenants are removed from the operator team surface, and function assignment is decoupled from onboarding. New env support: `TEAM_MEMBER_INVITE_URL_BASE` for invite links.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓ (36 files / 102 tests), `pnpm -C apps/web-manager build` ✓.
+
 ## 2026-04-06
 - Change type: Web + API + Frontend
 - Description: Moved tenant invitation delivery from lease finalization to draft move-in creation. Lease creation now creates the invitation immediately and can send the activation email through a new Resend-backed mail adapter (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) using the tenant email captured in the move-in flow. Finalization now only activates the lease after signature metadata and paid initial charges are in place. Also redesigned the payments workspace to group records by tenant first, with one table row per tenant and a chronological charge ledger shown for the selected tenant.

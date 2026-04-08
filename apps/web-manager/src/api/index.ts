@@ -6,13 +6,25 @@ export {
 } from "./organizations/create-organization";
 export {
   listOrganizationMembers,
+  listTeamMemberInvitations,
   invitePropertyManager,
+  validateTeamMemberInvitation,
+  acceptTeamMemberInvitation,
   type ListOrganizationMembersDeps,
   type ListOrganizationMembersRequest,
   type ListOrganizationMembersResponse,
+  type ListTeamMemberInvitationsDeps,
+  type ListTeamMemberInvitationsRequest,
+  type ListTeamMemberInvitationsResponse,
   type InvitePropertyManagerDeps,
   type InvitePropertyManagerRequest,
-  type InvitePropertyManagerResponse
+  type InvitePropertyManagerResponse,
+  type ValidateTeamMemberInvitationDeps,
+  type ValidateTeamMemberInvitationRequest,
+  type ValidateTeamMemberInvitationResponse,
+  type AcceptTeamMemberInvitationDeps,
+  type AcceptTeamMemberInvitationRequest,
+  type AcceptTeamMemberInvitationResponse
 } from "./organizations/team-members";
 export {
   createProperty,

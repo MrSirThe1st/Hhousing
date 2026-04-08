@@ -58,17 +58,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-  // Root path
-  if (pathname === "/") {
-    if (user === null) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-    const count = await getMembershipCount(user.id);
-    if (count === 0) {
-      return NextResponse.redirect(new URL("/account-type", request.url));
-    } else {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+  // Root path stays public so the marketplace landing page is the first page visitors see.
+  if (pathname === "/" || pathname === "/marketplace") {
+    return response;
   }
 
   // Onboarding/account-type: only for authenticated users
@@ -91,5 +83,5 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/signup", "/account-type", "/onboarding", "/dashboard/:path*"]
+  matcher: ["/", "/marketplace", "/login", "/signup", "/account-type", "/onboarding", "/dashboard/:path*"]
 };

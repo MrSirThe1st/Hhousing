@@ -1,6 +1,9 @@
 import type { ApiResult } from "../api-result.types";
-import type { InvitePropertyManagerInput, TeamInviteRole } from "./memberships.types";
-import { TeamFunctionCode } from "../permissions.types";
+import type {
+  AcceptTeamMemberInvitationInput,
+  InvitePropertyManagerInput,
+  TeamInviteRole
+} from "./memberships.types";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -17,44 +20,11 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
 }
 
 function asTeamInviteRole(value: unknown): TeamInviteRole | null {
-  if (value === undefined || value === null) {
+  if (value === undefined || value === null || value === "property_manager") {
     return "property_manager";
   }
 
-  if (value === "property_manager" || value === "landlord") {
-    return value;
-  }
-
   return null;
-}
-
-function asTeamFunctionCode(value: unknown): TeamFunctionCode | null {
-  const validCodes = Object.values(TeamFunctionCode);
-  if (typeof value === "string" && validCodes.includes(value as TeamFunctionCode)) {
-    return value as TeamFunctionCode;
-  }
-  return null;
-}
-
-function asTeamFunctionCodes(value: unknown): TeamFunctionCode[] | null {
-  if (value === undefined || value === null) {
-    return [];
-  }
-
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const codes: TeamFunctionCode[] = [];
-  for (const item of value) {
-    const code = asTeamFunctionCode(item);
-    if (code === null) {
-      return null; // Invalid code in array
-    }
-    codes.push(code);
-  }
-
-  return codes;
 }
 
 export function parseInvitePropertyManagerInput(
@@ -65,9 +35,13 @@ export function parseInvitePropertyManagerInput(
     return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
   }
 
-  const userId = asNonEmptyText(input.userId);
-  if (userId === null) {
-    return { success: false, code: "VALIDATION_ERROR", error: "userId is required" };
+  const email = asNonEmptyText(input.email);
+  if (email === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "email is required" };
+  }
+
+  if (!email.includes("@") || email.length < 5) {
+    return { success: false, code: "VALIDATION_ERROR", error: "email is not valid" };
   }
 
   const role = asTeamInviteRole(input.role);
@@ -75,16 +49,7 @@ export function parseInvitePropertyManagerInput(
     return {
       success: false,
       code: "VALIDATION_ERROR",
-      error: "role must be one of: property_manager, landlord"
-    };
-  }
-
-  const functions = asTeamFunctionCodes(input.functions);
-  if (functions === null) {
-    return {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "functions must be an array of valid function codes"
+      error: "role must be property_manager"
     };
   }
 
@@ -92,10 +57,45 @@ export function parseInvitePropertyManagerInput(
     success: true,
     data: {
       organizationId: sessionOrganizationId,
-      userId,
+      email: email.toLowerCase(),
       role,
-      canOwnProperties: asBoolean(input.canOwnProperties, false),
-      functions: functions.length > 0 ? functions : undefined
+      canOwnProperties: asBoolean(input.canOwnProperties, false)
+    }
+  };
+}
+
+export function parseAcceptTeamMemberInvitationInput(
+  input: unknown
+): ApiResult<AcceptTeamMemberInvitationInput> {
+  if (!isObject(input)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  }
+
+  const token = asNonEmptyText(input.token);
+  if (token === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "token is required" };
+  }
+
+  const fullName = asNonEmptyText(input.fullName);
+  if (fullName === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "fullName is required" };
+  }
+
+  const password = asNonEmptyText(input.password);
+  if (password === null || password.length < 8) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "password must contain at least 8 characters"
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      token,
+      fullName,
+      password
     }
   };
 }

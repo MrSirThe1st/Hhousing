@@ -7,6 +7,7 @@ import {
   createMaintenanceRequestRepositoryFromEnv,
   createDocumentRepositoryFromEnv,
   createMessageRepositoryFromEnv,
+  createListingRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv,
   type AuthRepository,
   type OrganizationPropertyUnitRepository,
@@ -15,6 +16,7 @@ import {
   type MaintenanceRequestRepository,
   type DocumentRepository,
   type MessageRepository,
+  type ListingRepository,
   TeamFunctionsRepository
 } from "@hhousing/data-access";
 
@@ -61,6 +63,10 @@ export function createDocumentRepo(): DocumentRepository {
 
 export function createMessageRepo(): MessageRepository {
   return createMessageRepositoryFromEnv(process.env);
+}
+
+export function createListingRepo(): ListingRepository {
+  return createListingRepositoryFromEnv(process.env);
 }
 
 export function createTeamFunctionsRepo(): TeamFunctionsRepository {

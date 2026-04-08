@@ -11,12 +11,22 @@ type SendLeaseDraftEmailInput = {
   organizationName?: string | null;
 };
 
+type SendTeamMemberInvitationEmailInput = {
+  to: string;
+  organizationName: string;
+  activationLink: string;
+};
+
 export type TenantInvitationEmailSender = (
   input: SendTenantInvitationEmailInput
 ) => Promise<void>;
 
 export type LeaseDraftEmailSender = (
   input: SendLeaseDraftEmailInput
+) => Promise<void>;
+
+export type TeamMemberInvitationEmailSender = (
+  input: SendTeamMemberInvitationEmailInput
 ) => Promise<void>;
 
 function buildHtml(input: SendTenantInvitationEmailInput): string {
@@ -60,6 +70,28 @@ function buildLeaseDraftHtml(input: SendLeaseDraftEmailInput): string {
         Pour le moment, cet email confirme simplement que votre dossier locatif a ete initialise par la gestion.
       </p>
       ${organizationLine}
+    </div>
+  `;
+}
+
+function buildTeamMemberInvitationHtml(input: SendTeamMemberInvitationEmailInput): string {
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Invitation equipe Hhousing</h1>
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;">
+        Vous avez ete invite a rejoindre l'organisation ${input.organizationName} sur Hhousing.
+      </p>
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;">
+        Utilisez le lien ci-dessous pour definir votre mot de passe et activer votre acces operateur.
+      </p>
+      <p style="margin:24px 0;">
+        <a href="${input.activationLink}" style="display:inline-block;background:#0063fe;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">
+          Activer mon acces
+        </a>
+      </p>
+      <p style="margin:0;color:#64748b;font-size:13px;word-break:break-all;">
+        Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur : ${input.activationLink}
+      </p>
     </div>
   `;
 }
@@ -118,6 +150,16 @@ export function createLeaseDraftEmailSenderFromEnv(): LeaseDraftEmailSender {
       to: input.to,
       subject: "Votre bail Hhousing",
       html: buildLeaseDraftHtml(input)
+    });
+  };
+}
+
+export function createTeamMemberInvitationEmailSenderFromEnv(): TeamMemberInvitationEmailSender {
+  return async (input: SendTeamMemberInvitationEmailInput): Promise<void> => {
+    await sendEmail({
+      to: input.to,
+      subject: "Votre invitation equipe Hhousing",
+      html: buildTeamMemberInvitationHtml(input)
     });
   };
 }
