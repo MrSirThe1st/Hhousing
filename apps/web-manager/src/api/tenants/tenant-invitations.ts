@@ -7,7 +7,7 @@ import {
   type ApiResult,
   type AuthSession
 } from "@hhousing/api-contracts";
-import type { AuthRepository, TenantLeaseRepository } from "@hhousing/data-access";
+import type { AuthRepository, OrganizationPropertyUnitRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { createHash, randomBytes } from "crypto";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
@@ -133,11 +133,12 @@ export interface CreateTenantInvitationDeps {
   createId: () => string;
   createToken?: () => string;
   inviteLinkBaseUrl: string;
+  organizationRepository?: Pick<OrganizationPropertyUnitRepository, "getOrganizationById">;
   sendInvitationEmail?: (input: {
     to: string;
     tenantFullName: string;
     activationLink: string;
-    organizationName?: string | null;
+    organization?: Awaited<ReturnType<OrganizationPropertyUnitRepository["getOrganizationById"]>>;
   }) => Promise<void>;
 }
 
@@ -192,13 +193,16 @@ export async function createTenantInvitation(
   });
 
   const activationLink = buildActivationLink(deps.inviteLinkBaseUrl, token);
+  const organization = deps.organizationRepository
+    ? await deps.organizationRepository.getOrganizationById(sessionResult.data.organizationId)
+    : null;
 
   if (deps.sendInvitationEmail) {
     await deps.sendInvitationEmail({
       to: invitation.email,
       tenantFullName: tenant.fullName,
       activationLink,
-      organizationName: sessionResult.data.memberships[0]?.organizationName ?? null
+      organization
     });
   }
 

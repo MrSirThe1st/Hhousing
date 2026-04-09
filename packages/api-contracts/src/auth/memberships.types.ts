@@ -34,6 +34,7 @@ export interface TeamMemberInvitationPreview {
   role: TeamInviteRole;
   canOwnProperties: boolean;
   expiresAtIso: string;
+  accountExists: boolean;
 }
 
 export interface ValidateTeamMemberInvitationOutput {
@@ -42,8 +43,8 @@ export interface ValidateTeamMemberInvitationOutput {
 
 export interface AcceptTeamMemberInvitationInput {
   token: string;
-  fullName: string;
-  password: string;
+  fullName?: string;
+  password?: string;
 }
 
 export interface AcceptTeamMemberInvitationOutput {

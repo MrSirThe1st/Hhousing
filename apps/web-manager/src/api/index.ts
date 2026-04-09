@@ -10,6 +10,8 @@ export {
   invitePropertyManager,
   validateTeamMemberInvitation,
   acceptTeamMemberInvitation,
+  resendTeamMemberInvitation,
+  revokeTeamMemberInvitation,
   type ListOrganizationMembersDeps,
   type ListOrganizationMembersRequest,
   type ListOrganizationMembersResponse,
@@ -24,7 +26,13 @@ export {
   type ValidateTeamMemberInvitationResponse,
   type AcceptTeamMemberInvitationDeps,
   type AcceptTeamMemberInvitationRequest,
-  type AcceptTeamMemberInvitationResponse
+  type AcceptTeamMemberInvitationResponse,
+  type ResendTeamMemberInvitationDeps,
+  type ResendTeamMemberInvitationRequest,
+  type ResendTeamMemberInvitationResponse,
+  type RevokeTeamMemberInvitationDeps,
+  type RevokeTeamMemberInvitationRequest,
+  type RevokeTeamMemberInvitationResponse
 } from "./organizations/team-members";
 export {
   createProperty,
@@ -107,6 +115,24 @@ export {
   type GenerateRentChargesRequest,
   type GenerateRentChargesResponse
 } from "./payments/payment";
+export {
+  createExpense,
+  deleteExpense,
+  listExpenses,
+  updateExpense,
+  type CreateExpenseDeps,
+  type CreateExpenseRequest,
+  type CreateExpenseResponse,
+  type DeleteExpenseDeps,
+  type DeleteExpenseRequest,
+  type DeleteExpenseResponse,
+  type ListExpensesDeps,
+  type ListExpensesRequest,
+  type ListExpensesResponse,
+  type UpdateExpenseDeps,
+  type UpdateExpenseRequest,
+  type UpdateExpenseResponse
+} from "./expenses/expense";
 export {
   createMaintenanceRequest,
   updateMaintenanceRequest,

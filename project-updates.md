@@ -2,11 +2,65 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-09
+- Change type: Web + API + DB + Reporting
+- Description: Added optional unit-level applicability for expenses. Operators can now keep an expense at organization level, attach it to an entire property, or target a specific unit inside the selected property, with backend validation enforcing that the chosen unit belongs to the chosen scoped property.
+- Impact: Added migration `0028_expenses_optional_unit.sql`; expanded expense domain/contracts/data-access shape with `unitId`; updated expense create/edit UI, route validation, scoped filtering, ledger display, CSV export, and printable finance report output.
+- Tests: `pnpm lint` ✓, `pnpm test` ✓, `pnpm build` ✓.
+
+## 2026-04-09
+- Change type: Web + API + DB + Reporting
+- Description: Extended the finance workspace with full expense maintenance and report exports. Expenses now support richer categories, vendor/payee metadata, edit/delete flows, and a new item route; reports now export CSV through an API route and expose a print-friendly PDF view without adding a PDF dependency.
+- Impact: Added migration `0027_expand_expenses_metadata.sql`; expanded expense domain/contracts/data-access/app-service surfaces; added `/api/expenses/[id]`, `/api/reports/finance/export`, and `/reports/finance/print`; upgraded the expenses dashboard form and ledger actions.
+- Tests: `pnpm lint` ✓, `pnpm test` ✓, `pnpm build` ✓.
+
+## 2026-04-09
+- Change type: Web + API + DB + Reporting
+- Description: Completed the finance workspace by turning expenses into a real manual ledger instead of a placeholder. Added the `expenses` data model and API flow, wired the dashboard expenses page to list and create scoped expense records, and updated reports to subtract real expenses from paid-payment revenue for live net-income reporting.
+- Impact: Added migration `0026_init_expenses.sql`, new shared expense domain/contracts/data-access surfaces, `/api/expenses`, a manual expense create form, and real expense-backed summaries on `/dashboard/expenses` and `/dashboard/reports`.
+- Tests: `pnpm lint` ✓, `pnpm test` ✓, `pnpm build` ✓.
+
+## 2026-04-09
+- Change type: Web + Frontend + Reporting
+- Description: Added three new finance routes in web-manager for revenues, expenses, and reports. Revenues and reports now compute real-time figures directly from paid lease payments with property/date filters and monthly breakdowns; the expenses page is introduced as the product shell with explicit zero-state because no expense ledger exists in the current data model.
+- Impact: Added `/dashboard/revenues`, `/dashboard/expenses`, and `/dashboard/reports`; expanded finance navigation; introduced shared finance reporting helpers/components for filtered aggregation and monthly charts.
+- Tests: `pnpm -C apps/web-manager typecheck` pending, `pnpm -C apps/web-manager lint` pending.
+
+## 2026-04-09
+- Change type: Web + API + DB + Email
+- Description: Added editable organization details for managed-portfolio operators in web-manager. Organizations can now store optional logo/contact/signature metadata through a new dashboard organization settings page and `/api/organization`, the sidebar footer now links to that settings surface with organization identity instead of the raw email for manager/mixed operators, and tenant-facing invitations plus manager email/template rendering can use the stored organization details.
+- Impact: Added migration `0025_organization_details.sql`; extended shared organization domain/data-access/contracts; added `/dashboard/organization`; updated sidebar footer behavior; expanded template placeholders and branded email wrapper behavior for tenant invitations and managed sends.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/organization/route.test.ts' 'src/app/api/emails/send/route.test.ts' 'src/app/api/tenants/[id]/invite/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-09
+- Change type: Web + API + Permissions
+- Description: Tightened the team-invite product rule so invited team members are always treated as internal staff, not hybrid owner/managers. The team invite parser now forces `canOwnProperties` to false regardless of client input, and the team dashboard no longer exposes the ownership-capability checkbox or related copy in the invite flow.
+- Impact: New team-member invitations cannot grant owner-style scope. Invited personnel now join strictly as workers with application-role access only.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/organizations/members/route.test.ts'` pending, `pnpm -C apps/web-manager typecheck` pending.
+
+## 2026-04-09
+- Change type: Web + API + Permissions
+- Description: Completed the second-phase team access rollout in web-manager. The team page now loads and displays application-level roles from team functions, allows authorized operators to update member access profiles from the dashboard, exposes a lightweight team activity feed from invitation/member history, and extends team-management authority so landlord, founding property manager, and property managers with `manage_team` permission can manage invitations. Landlord-only assignment of the `ADMIN` function is now enforced both in backend logic and in the UI.
+- Impact: Team access is now visibly modeled as application roles instead of raw DB roles, and team invitation authority is no longer limited to the founding owner path once an admin has been delegated. Added route coverage for `/api/organizations/members/[id]/functions` and expanded invite authority tests.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/organizations/members/route.test.ts' 'src/app/api/organizations/members/[id]/functions/route.test.ts' 'src/app/api/organizations/invitations/[id]/route.test.ts' 'src/app/api/auth/team-invitations/validate/route.test.ts' 'src/app/api/auth/team-invitations/accept/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-09
+- Change type: Web + API + Onboarding
+- Description: Reworked the manager team area into a first-phase account-owner and invitation workspace. Team invitation authority is now limited to the landlord or founding property manager, pending invites can be resent or revoked from the team page, and the public `/team-invite` flow now branches between new-account activation and existing-account login using the invited email instead of encouraging shared credentials.
+- Impact: Team onboarding now matches the tenant-style email activation pattern more closely while keeping roles/permissions work deferred to phase 2. Added invitation action route at `/api/organizations/invitations/[id]` and extended invitation validation to expose whether the invited email already has an Hhousing account.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/organizations/members/route.test.ts' 'src/app/api/auth/team-invitations/validate/route.test.ts' 'src/app/api/auth/team-invitations/accept/route.test.ts' 'src/app/api/organizations/invitations/[id]/route.test.ts'` pending.
+
+## 2026-04-09
+- Change type: Web + Infra + Payments
+- Description: Removed the temporary recurring-payment test hooks from `/api/internal/payments/generate-recurring`. The endpoint now runs only in production shape: secret-protected GET, current UTC month only, all eligible orgs only.
+- Impact: Monthly automatic charge generation stays active, but the ad hoc manual override path for arbitrary orgs/periods is gone after validation.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/internal/payments/generate-recurring/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
 ## 2026-04-08
 - Change type: Web + Mobile + Onboarding
-- Description: Added a public tenant invite landing page at `/invite` on web-manager. The page now acts as the HTTPS entry for tenant activation links, attempts to open the tenant app via `hhousing-tenant://accept-invite?token=...`, and falls back to App Store / Google Play download CTAs plus a manual reopen button. Also added associated-domain and Android app-link intent config in the Expo tenant app for `harakaproperty.com` and `www.harakaproperty.com`.
-- Impact: Tenant activation emails can now point to a real HTTPS page instead of a 404. Browser visitors get a download fallback, and the mobile app is prepared to receive future verified app/universal links once domain association files are deployed with real signing metadata.
-- Tests: `pnpm -C apps/web-manager typecheck` pending, `pnpm -C apps/mobile-tenant typecheck` pending.
+- Description: Added a public tenant invite landing page at `/invite` on web-manager. The page now acts as the HTTPS entry for tenant activation links, tries to open the tenant app via `hhousing-tenant://accept-invite?token=...`, prioritizes the matching store CTA by device type, and falls back to App Store / Google Play download CTAs plus a manual reopen button. Also added associated-domain and Android app-link intent config in the Expo tenant app for `harakaproperty.com` and `www.harakaproperty.com`. Lease detail now exposes a `Renvoyer l'email d'activation` operator action that revokes the previous invite and sends a fresh activation email when the tenant still has no login.
+- Impact: Tenant activation emails can now point to a real HTTPS page instead of a 404. Browser visitors get a device-aware download fallback, the mobile app is prepared to receive future verified app/universal links once domain association files are deployed with real signing metadata, operators can recover from missed activation emails without recreating the move-in, and the tenant app now falls back to `https://harakaproperty.com` when a local dev API host is unavailable.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test -- 'src/app/api/leases/[id]/route.test.ts'` ✓, `pnpm -C apps/mobile-tenant typecheck` pending.
 
 ## 2026-04-08
 - Change type: Web + API + Infra + Payments

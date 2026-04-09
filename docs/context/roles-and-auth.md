@@ -57,6 +57,18 @@ organization_memberships (
 - **Cross-org requests:** Show org switcher or redirect to primary org.
 - **All authorization checks:** Enforced server-side (middleware, server actions, API routes). Never trust client.
 
+## Application Roles For Team Members
+
+- Operator database roles stay unchanged: `landlord` and `property_manager` remain the only web-manager operator roles.
+- Team access delegation is handled with application-level functions/permissions, not by inventing new DB membership roles.
+- A `property_manager` can be assigned one or more application roles such as `LEASING_AGENT`, `ACCOUNTANT`, `MAINTENANCE_MANAGER`, or `ADMIN`.
+- The landlord keeps full organization access by base role.
+- The founding property manager keeps bootstrap invite authority.
+- Property managers with the `MANAGE_TEAM` permission can manage invitations and member access in phase 2.
+- Only the landlord can assign the `ADMIN` application role.
+- Invitation onboarding remains separate from application-role assignment: team members activate first, then receive their platform access profile.
+- Team-member invitations are staff-only: invited team members do not receive owner/hybrid ownership capability through this flow.
+
 ## UX Personalization Rules (No Persistence)
 
 - Account type picker is **presentation-only** and **onboarding-only**.

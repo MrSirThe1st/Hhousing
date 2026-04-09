@@ -27,7 +27,7 @@ Next slices:
 
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `EXPO_PUBLIC_API_BASE_URL`
+- `EXPO_PUBLIC_API_BASE_URL` — set this to `https://harakaproperty.com` for the hosted web-manager API
 
 ## Screens scaffolded
 

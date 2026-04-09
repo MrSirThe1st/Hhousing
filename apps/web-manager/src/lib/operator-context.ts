@@ -62,6 +62,11 @@ export function getOperatorScopeLabel(scope: OperatorScope): string {
   return scope === "owned" ? "Mon parc" : "Parc gere";
 }
 
+export function canEditOrganizationDetails(session: AuthSession): boolean {
+  const experience = getOperatorExperience(session);
+  return experience === "manager_for_others" || experience === "mixed_operator";
+}
+
 export function isScopeAllowedForSession(session: AuthSession, scope: OperatorScope): boolean {
   return getAvailableOperatorScopes(session).includes(scope);
 }

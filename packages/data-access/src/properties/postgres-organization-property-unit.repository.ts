@@ -8,6 +8,7 @@ import type {
   CreatePropertyRecordInput,
   CreatePropertyWithUnitsRecordInput,
   CreateUnitRecordInput,
+  UpdateOrganizationRecordInput,
   UpdatePropertyRecordInput,
   UpdateUnitRecordInput,
   OrganizationPropertyUnitRepository,
@@ -17,6 +18,13 @@ import type {
 interface OrganizationRow extends QueryResultRow {
   id: string;
   name: string;
+  logo_url: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  contact_whatsapp: string | null;
+  website_url: string | null;
+  address: string | null;
+  email_signature: string | null;
   status: "active" | "suspended";
   created_at: Date | string;
 }
@@ -118,6 +126,13 @@ function mapOrganization(row: OrganizationRow): Organization {
   return {
     id: row.id,
     name: row.name,
+    logoUrl: row.logo_url,
+    contactEmail: row.contact_email,
+    contactPhone: row.contact_phone,
+    contactWhatsapp: row.contact_whatsapp,
+    websiteUrl: row.website_url,
+    address: row.address,
+    emailSignature: row.email_signature,
     status: row.status,
     createdAtIso: toIso(row.created_at)
   };
@@ -218,11 +233,49 @@ export function createPostgresOrganizationPropertyUnitRepository(
       const result = await client.query<OrganizationRow>(
         `insert into organizations (id, name)
          values ($1, $2)
-         returning id, name, status, created_at`,
+         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at`,
         [input.id, input.name]
       );
 
       return mapOrganization(result.rows[0]);
+    },
+    async getOrganizationById(organizationId: string): Promise<Organization | null> {
+      const result = await client.query<OrganizationRow>(
+        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at
+         from organizations
+         where id = $1`,
+        [organizationId]
+      );
+
+      return result.rows[0] ? mapOrganization(result.rows[0]) : null;
+    },
+    async updateOrganization(input: UpdateOrganizationRecordInput): Promise<Organization | null> {
+      const result = await client.query<OrganizationRow>(
+        `update organizations
+         set name = $2,
+             logo_url = $3,
+             contact_email = $4,
+             contact_phone = $5,
+             contact_whatsapp = $6,
+             website_url = $7,
+             address = $8,
+             email_signature = $9
+         where id = $1
+         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at`,
+        [
+          input.id,
+          input.name,
+          input.logoUrl,
+          input.contactEmail,
+          input.contactPhone,
+          input.contactWhatsapp,
+          input.websiteUrl,
+          input.address,
+          input.emailSignature
+        ]
+      );
+
+      return result.rows[0] ? mapOrganization(result.rows[0]) : null;
     },
     async createOwnerClient(input: CreateOwnerClientRecordInput): Promise<OwnerClient> {
       const result = await client.query<OwnerClientRow>(

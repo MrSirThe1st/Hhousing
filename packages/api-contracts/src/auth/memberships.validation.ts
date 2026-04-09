@@ -59,7 +59,7 @@ export function parseInvitePropertyManagerInput(
       organizationId: sessionOrganizationId,
       email: email.toLowerCase(),
       role,
-      canOwnProperties: asBoolean(input.canOwnProperties, false)
+      canOwnProperties: false
     }
   };
 }
@@ -76,13 +76,37 @@ export function parseAcceptTeamMemberInvitationInput(
     return { success: false, code: "VALIDATION_ERROR", error: "token is required" };
   }
 
-  const fullName = asNonEmptyText(input.fullName);
-  if (fullName === null) {
-    return { success: false, code: "VALIDATION_ERROR", error: "fullName is required" };
+  const fullNameValue = input.fullName === undefined ? undefined : asNonEmptyText(input.fullName);
+  const passwordValue = input.password === undefined ? undefined : asNonEmptyText(input.password);
+
+  if (input.fullName !== undefined && fullNameValue === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "fullName is required when creating a new account"
+    };
   }
 
-  const password = asNonEmptyText(input.password);
-  if (password === null || password.length < 8) {
+  if (input.password !== undefined && passwordValue === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "password is required when creating a new account"
+    };
+  }
+
+  const fullName = fullNameValue ?? undefined;
+  const password = passwordValue ?? undefined;
+
+  if ((fullName === undefined) !== (password === undefined)) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "fullName and password are both required when creating a new account"
+    };
+  }
+
+  if (password !== undefined && password.length < 8) {
     return {
       success: false,
       code: "VALIDATION_ERROR",

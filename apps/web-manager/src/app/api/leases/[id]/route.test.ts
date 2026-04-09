@@ -451,6 +451,106 @@ describe("/api/leases/[id]", () => {
     }));
   });
 
+  it("resends a tenant activation email for a lease without login access", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "property_manager",
+      organizationId: "org-1",
+      memberships: [
+        {
+          id: "membership-1",
+          userId: "user-1",
+          organizationId: "org-1",
+          organizationName: "Org A",
+          role: "property_manager",
+          status: "active",
+          capabilities: { canOwnProperties: false },
+          createdAtIso: "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+
+    getLeaseByIdMock.mockResolvedValue({
+      id: "lease-1",
+      tenantId: "tenant-1",
+      tenantEmail: "tenant@example.com",
+      tenantFullName: "Tenant One",
+      unitId: "unit-1",
+      endDate: null,
+      status: "active"
+    });
+    getTenantByIdMock.mockResolvedValue({
+      id: "tenant-1",
+      organizationId: "org-1",
+      authUserId: null,
+      fullName: "Tenant One",
+      email: "tenant@example.com",
+      phone: null,
+      dateOfBirth: null,
+      photoUrl: null,
+      createdAtIso: "2026-01-01T00:00:00.000Z"
+    });
+
+    const response = await PATCH(
+      new Request("http://localhost/api/leases/lease-1", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "resend_activation_email" }),
+        headers: { "content-type": "application/json" }
+      }),
+      { params: Promise.resolve({ id: "lease-1" }) }
+    );
+
+    expect(response.status).toBe(200);
+    expect(createTenantInvitationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects resend activation when tenant email is missing", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "property_manager",
+      organizationId: "org-1",
+      memberships: [
+        {
+          id: "membership-1",
+          userId: "user-1",
+          organizationId: "org-1",
+          organizationName: "Org A",
+          role: "property_manager",
+          status: "active",
+          capabilities: { canOwnProperties: false },
+          createdAtIso: "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+
+    getLeaseByIdMock.mockResolvedValue({
+      id: "lease-1",
+      tenantId: "tenant-1",
+      tenantEmail: null,
+      tenantFullName: "Tenant One",
+      unitId: "unit-1",
+      endDate: null,
+      status: "active"
+    });
+
+    const response = await PATCH(
+      new Request("http://localhost/api/leases/lease-1", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "resend_activation_email" }),
+        headers: { "content-type": "application/json" }
+      }),
+      { params: Promise.resolve({ id: "lease-1" }) }
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Tenant email is required before resending activation"
+    });
+    expect(createTenantInvitationMock).not.toHaveBeenCalled();
+  });
+
   it("rejects draft email send when tenant email is missing", async () => {
     extractAuthSessionFromCookiesMock.mockResolvedValue({
       userId: "user-1",

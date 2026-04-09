@@ -1,4 +1,5 @@
 import { acceptTeamMemberInvitation } from "../../../../../api";
+import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { createAuthRepo, createId, jsonResponse, parseJsonBody } from "../../../shared";
 
 export async function POST(request: Request): Promise<Response> {
@@ -24,7 +25,10 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const result = await acceptTeamMemberInvitation(
-    { body },
+    {
+      body,
+      session: await extractAuthSessionFromCookies()
+    },
     {
       repository: createAuthRepo(),
       createMembershipId: () => createId("mbr"),

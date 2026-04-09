@@ -1,9 +1,4 @@
-import { createPaymentRepo, jsonResponse, parseJsonBody } from "../../../shared";
-
-interface GenerateRecurringChargesRequest {
-  organizationId?: string;
-  period: string;
-}
+import { createPaymentRepo, jsonResponse } from "../../../shared";
 
 interface GenerateRecurringChargesOrganizationResult {
   organizationId: string;
@@ -41,36 +36,6 @@ function getCurrentUtcPeriod(): string {
   return `${year}-${month}`;
 }
 
-function asOptionalText(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function parseRequestOptions(request: Request, body: unknown): GenerateRecurringChargesRequest | Response {
-  const url = new URL(request.url);
-  const bodyRecord = isRecord(body) ? body : null;
-  const period = asOptionalText(bodyRecord?.period) ?? asOptionalText(url.searchParams.get("period")) ?? getCurrentUtcPeriod();
-
-  if (!/^\d{4}-(?:0[1-9]|1[0-2])$/.test(period)) {
-    return jsonResponse(400, {
-      success: false,
-      error: "period must be YYYY-MM"
-    });
-  }
-
-  const organizationId = asOptionalText(bodyRecord?.organizationId) ?? asOptionalText(url.searchParams.get("organizationId"));
-
-  return { period, organizationId };
-}
-
 function formatFailure(error: unknown): string {
   if (process.env.NODE_ENV === "production") {
     return "Generation failed";
@@ -79,7 +44,7 @@ function formatFailure(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
-async function handle(request: Request): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   const cronSecret = process.env.CRON_SECRET?.trim();
   if (!cronSecret) {
     return jsonResponse(500, {
@@ -96,27 +61,9 @@ async function handle(request: Request): Promise<Response> {
     });
   }
 
-  let body: unknown = {};
-  if (request.method === "POST") {
-    try {
-      body = await parseJsonBody(request);
-    } catch {
-      return jsonResponse(400, {
-        success: false,
-        error: "Body must be valid JSON"
-      });
-    }
-  }
-
-  const parsed = parseRequestOptions(request, body);
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-
   const paymentRepository = createPaymentRepo();
-  const organizationIds = parsed.organizationId
-    ? [parsed.organizationId]
-    : await paymentRepository.listOrganizationsWithActiveRecurringCharges();
+  const period = getCurrentUtcPeriod();
+  const organizationIds = await paymentRepository.listOrganizationsWithActiveRecurringCharges();
 
   const organizations: GenerateRecurringChargesOrganizationResult[] = [];
   const failures: GenerateRecurringChargesFailureResult[] = [];
@@ -124,7 +71,7 @@ async function handle(request: Request): Promise<Response> {
 
   for (const organizationId of organizationIds) {
     try {
-      const generated = await paymentRepository.generateMonthlyCharges(organizationId, parsed.period);
+      const generated = await paymentRepository.generateMonthlyCharges(organizationId, period);
       organizations.push({ organizationId, generated });
       totalGenerated += generated;
     } catch (error) {
@@ -133,7 +80,7 @@ async function handle(request: Request): Promise<Response> {
   }
 
   const response: GenerateRecurringChargesResponse = {
-    period: parsed.period,
+    period,
     processedOrganizations: organizations.length,
     totalGenerated,
     organizations,
@@ -144,12 +91,4 @@ async function handle(request: Request): Promise<Response> {
     success: true,
     data: response
   });
-}
-
-export async function GET(request: Request): Promise<Response> {
-  return handle(request);
-}
-
-export async function POST(request: Request): Promise<Response> {
-  return handle(request);
 }

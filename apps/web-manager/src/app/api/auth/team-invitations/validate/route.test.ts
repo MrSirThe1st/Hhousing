@@ -56,7 +56,8 @@ describe("/api/auth/team-invitations/validate", () => {
             email: "manager@example.com",
             role: "property_manager",
             canOwnProperties: false,
-            expiresAtIso: "2026-04-09T00:00:00.000Z"
+            expiresAtIso: "2026-04-09T00:00:00.000Z",
+            accountExists: true
           }
         }
       }
@@ -77,7 +78,8 @@ describe("/api/auth/team-invitations/validate", () => {
           email: "manager@example.com",
           role: "property_manager",
           canOwnProperties: false,
-          expiresAtIso: "2026-04-09T00:00:00.000Z"
+          expiresAtIso: "2026-04-09T00:00:00.000Z",
+          accountExists: true
         }
       }
     });

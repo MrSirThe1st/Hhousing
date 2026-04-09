@@ -14,6 +14,13 @@ import type { MembershipStatus, Organization, OrganizationMembership, TeamMember
 interface OrganizationRow extends QueryResultRow {
   id: string;
   name: string;
+  logo_url: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  contact_whatsapp: string | null;
+  website_url: string | null;
+  address: string | null;
+  email_signature: string | null;
   status: "active" | "suspended";
   created_at: Date | string;
 }
@@ -62,6 +69,13 @@ function mapOrganization(row: OrganizationRow): Organization {
   return {
     id: row.id,
     name: row.name,
+    logoUrl: row.logo_url,
+    contactEmail: row.contact_email,
+    contactPhone: row.contact_phone,
+    contactWhatsapp: row.contact_whatsapp,
+    websiteUrl: row.website_url,
+    address: row.address,
+    emailSignature: row.email_signature,
     status: row.status,
     createdAtIso: toIso(row.created_at)
   };
@@ -406,7 +420,7 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
         const organizationResult = await client.query<OrganizationRow>(
           `insert into organizations (id, name)
            values ($1, $2)
-           returning id, name, status, created_at`,
+           returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at`,
           [input.organizationId, input.organizationName]
         );
 

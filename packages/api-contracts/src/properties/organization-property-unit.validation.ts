@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ApiResult } from "../api-result.types";
-import type { CreateOrganizationInput, CreatePropertyInput, CreateUnitInput } from "./organization-property-unit.types";
+import type { CreateOrganizationInput, CreatePropertyInput, CreateUnitInput, UpdateOrganizationInput } from "./organization-property-unit.types";
 
 const nonEmptyText = z.string().trim().min(1);
 const positiveNumber = z.number().finite().positive();
@@ -11,6 +11,31 @@ const textList = z.array(nonEmptyText).max(32);
 
 const createOrganizationSchema = z.object({
   name: nonEmptyText
+});
+
+const optionalTrimmedText = z.string().trim().nullable().optional().transform((value) => {
+  if (value === undefined || value === null) {
+    return value ?? null;
+  }
+
+  return value.length === 0 ? null : value;
+});
+
+const optionalUrl = z.union([z.string().trim().url(), z.literal(""), z.null()]).optional()
+  .transform((value) => value === undefined || value === "" ? null : value);
+
+const optionalEmail = z.union([z.string().trim().email(), z.literal(""), z.null()]).optional()
+  .transform((value) => value === undefined || value === "" ? null : value);
+
+const updateOrganizationSchema = z.object({
+  name: nonEmptyText,
+  logoUrl: optionalUrl,
+  contactEmail: optionalEmail,
+  contactPhone: optionalTrimmedText,
+  contactWhatsapp: optionalTrimmedText,
+  websiteUrl: optionalUrl,
+  address: optionalTrimmedText,
+  emailSignature: optionalTrimmedText
 });
 
 const createPropertyUnitTemplateSchema = z.object({
@@ -105,6 +130,15 @@ function mapZodError(error: z.ZodError): ApiResult<never> {
 
 export function parseCreateOrganizationInput(input: unknown): ApiResult<CreateOrganizationInput> {
   const parsed = createOrganizationSchema.safeParse(input);
+  if (!parsed.success) {
+    return mapZodError(parsed.error);
+  }
+
+  return { success: true, data: parsed.data };
+}
+
+export function parseUpdateOrganizationInput(input: unknown): ApiResult<UpdateOrganizationInput> {
+  const parsed = updateOrganizationSchema.safeParse(input);
   if (!parsed.success) {
     return mapZodError(parsed.error);
   }

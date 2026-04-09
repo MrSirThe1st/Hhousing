@@ -25,6 +25,8 @@ const operatorSession: AuthSession = {
 function createRepositoryMock(): OrganizationPropertyUnitRepository {
   return {
     createOrganization: vi.fn(),
+    getOrganizationById: vi.fn(),
+    updateOrganization: vi.fn(),
     createOwnerClient: vi.fn(),
     createProperty: vi.fn(),
     createPropertyWithUnits: vi.fn(),

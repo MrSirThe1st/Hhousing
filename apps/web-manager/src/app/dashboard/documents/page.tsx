@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import type { LeaseWithTenantView, PropertyWithUnitsView } from "@hhousing/api-contracts";
-import type { Document, Tenant } from "@hhousing/domain";
+import type { Document, Organization, Tenant } from "@hhousing/domain";
 import { listDocuments, listTenants } from "../../../api";
 import { filterDocumentsByScope, filterTenantsByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
-import { createDocumentRepo, createTenantLeaseRepo } from "../../api/shared";
+import { createDocumentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../api/shared";
 import { getServerAuthSession } from "../../../lib/session";
 import DocumentsWorkspacePanel from "../../../components/documents-workspace-panel";
 
@@ -50,10 +50,15 @@ export default async function DocumentsPage(): Promise<React.ReactElement> {
   }));
 
   const leases: LeaseWithTenantView[] = scopedPortfolio.leases;
+  const repositoryResult = createRepositoryFromEnv();
+  const organization: Organization | null = repositoryResult.success
+    ? await repositoryResult.data.getOrganizationById(session.organizationId)
+    : null;
 
   return (
     <DocumentsWorkspacePanel
       organizationId={session.organizationId ?? ""}
+      organization={organization}
       documents={documents}
       properties={properties}
       leases={leases}

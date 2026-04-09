@@ -3,7 +3,7 @@ import {
   listOrganizationMembers
 } from "../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
-import { createAuthRepo, createId, jsonResponse, parseJsonBody } from "../../shared";
+import { createAuthRepo, createId, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 import { createTeamMemberInvitationEmailSenderFromEnv } from "../../../../lib/email/resend";
 
 export async function GET(request: Request): Promise<Response> {
@@ -39,6 +39,7 @@ export async function POST(request: Request): Promise<Response> {
     },
     {
       repository: createAuthRepo(),
+      teamFunctionsRepository: createTeamFunctionsRepo(),
       createId: () => createId("tmi"),
       inviteLinkBaseUrl:
         process.env.TEAM_MEMBER_INVITE_URL_BASE?.trim() ||

@@ -2,23 +2,32 @@ import type { ApiResult } from "@hhousing/api-contracts";
 import { env } from "./env";
 import { supabase } from "./supabase";
 
-function getDevFallbackApiBaseUrl(baseUrl: string): string | null {
-  if (!__DEV__) {
-    return null;
-  }
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/$/, "");
+}
 
-  try {
-    const url = new URL(baseUrl);
+function getFallbackApiBaseUrls(baseUrl: string): string[] {
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  const fallbackBaseUrls: string[] = [];
 
-    if (url.port !== "3000") {
-      return null;
+  if (__DEV__) {
+    try {
+      const url = new URL(normalizedBaseUrl);
+
+      if (url.port === "3000") {
+        url.port = "3001";
+        fallbackBaseUrls.push(url.toString().replace(/\/$/, ""));
+      }
+    } catch {
+      // Ignore malformed dev URL and continue with hosted fallback below.
     }
-
-    url.port = "3001";
-    return url.toString().replace(/\/$/, "");
-  } catch {
-    return null;
   }
+
+  if (normalizedBaseUrl !== env.hostedApiBaseUrl) {
+    fallbackBaseUrls.push(env.hostedApiBaseUrl);
+  }
+
+  return fallbackBaseUrls;
 }
 
 function isJsonResponse(response: Response): boolean {
@@ -70,52 +79,36 @@ async function request<T>(
     authorizationHeader = `Bearer ${session.access_token}`;
   }
 
-  const fallbackBaseUrl = getDevFallbackApiBaseUrl(env.apiBaseUrl);
+  const requestHeaders = {
+    "Content-Type": "application/json",
+    ...(authorizationHeader ? { Authorization: authorizationHeader } : {}),
+    ...(init.headers ?? {})
+  };
 
-  try {
-    const requestHeaders = {
-      "Content-Type": "application/json",
-      ...(authorizationHeader ? { Authorization: authorizationHeader } : {}),
-      ...(init.headers ?? {})
-    };
+  const baseUrlsToTry = [normalizeBaseUrl(env.apiBaseUrl), ...getFallbackApiBaseUrls(env.apiBaseUrl)];
 
-    let response = await fetch(`${env.apiBaseUrl}${path}`, {
-      ...init,
-      headers: requestHeaders
-    });
-
-    if (fallbackBaseUrl && !response.ok && !isJsonResponse(response)) {
-      response = await fetch(`${fallbackBaseUrl}${path}`, {
+  for (const baseUrl of baseUrlsToTry) {
+    try {
+      const response = await fetch(`${baseUrl}${path}`, {
         ...init,
         headers: requestHeaders
       });
-    }
 
-    return await parseResponse<T>(response);
-  } catch {
-    if (fallbackBaseUrl) {
-      try {
-        const response = await fetch(`${fallbackBaseUrl}${path}`, {
-          ...init,
-          headers: {
-            "Content-Type": "application/json",
-            ...(authorizationHeader ? { Authorization: authorizationHeader } : {}),
-            ...(init.headers ?? {})
-          }
-        });
-
-        return await parseResponse<T>(response);
-      } catch {
-        // Fall through to the generic network error below.
+      if (!response.ok && !isJsonResponse(response)) {
+        continue;
       }
-    }
 
-    return {
-      success: false,
-      code: "NETWORK_ERROR",
-      error: "Impossible de joindre le serveur. Vérifiez l'URL API et que web-manager tourne."
-    };
+      return await parseResponse<T>(response);
+    } catch {
+      continue;
+    }
   }
+
+  return {
+    success: false,
+    code: "NETWORK_ERROR",
+    error: "Impossible de joindre le serveur. Vérifiez la connexion internet ou réessayez dans quelques instants."
+  };
 }
 
 export async function getWithoutAuth<T>(path: string): Promise<ApiResult<T>> {

@@ -15,6 +15,7 @@ export type { Lease, LeaseStatus, LeaseTermType, LeasePaymentFrequency, LeaseSig
 export type { LeaseChargeTemplate, LeaseChargeType, LeaseChargeFrequency } from "./entities/lease-charge.types";
 export type { EmailTemplate, EmailTemplateScenario } from "./entities/email-template.types";
 export type { Payment, PaymentStatus, PaymentKind, PaymentBillingFrequency } from "./entities/payment.types";
+export type { Expense, ExpenseCategory } from "./entities/expense.types";
 export type { Conversation, Message, MessageSenderSide } from "./entities/conversation.types";
 export type {
   MaintenanceRequest,

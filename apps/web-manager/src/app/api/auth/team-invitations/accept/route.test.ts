@@ -4,6 +4,10 @@ const { acceptTeamMemberInvitationMock } = vi.hoisted(() => ({
   acceptTeamMemberInvitationMock: vi.fn()
 }));
 
+const { extractAuthSessionFromCookiesMock } = vi.hoisted(() => ({
+  extractAuthSessionFromCookiesMock: vi.fn()
+}));
+
 vi.mock("../../../../../api", async () => {
   const actual = await vi.importActual<typeof import("../../../../../api")>("../../../../../api");
   return {
@@ -20,11 +24,16 @@ vi.mock("../../../shared", async () => {
   };
 });
 
+vi.mock("../../../../../auth/session-adapter", () => ({
+  extractAuthSessionFromCookies: extractAuthSessionFromCookiesMock
+}));
+
 import { POST } from "./route";
 
 describe("/api/auth/team-invitations/accept", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    extractAuthSessionFromCookiesMock.mockResolvedValue(null);
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   });

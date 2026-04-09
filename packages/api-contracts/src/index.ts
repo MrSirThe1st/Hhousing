@@ -35,6 +35,8 @@ export { parseCreateOperatorAccountInput } from "./auth/onboarding.validation";
 export type {
   CreateOrganizationInput,
   CreateOrganizationOutput,
+  UpdateOrganizationInput,
+  UpdateOrganizationOutput,
   CreatePropertyInput,
   CreatePropertyOutput,
   CreatePropertyUnitTemplateInput,
@@ -46,6 +48,7 @@ export type {
 } from "./properties/organization-property-unit.types";
 export {
   parseCreateOrganizationInput,
+  parseUpdateOrganizationInput,
   parseCreatePropertyInput,
   parseCreateUnitInput
 } from "./properties/organization-property-unit.validation";
@@ -107,6 +110,21 @@ export {
   parseGenerateRentChargesInput,
   parseMarkPaymentPaidInput
 } from "./payments/payment.validation";
+export type {
+  CreateExpenseInput,
+  CreateExpenseOutput,
+  DeleteExpenseOutput,
+  ExpenseCategory,
+  ListExpensesFilter,
+  ListExpensesOutput,
+  UpdateExpenseInput,
+  UpdateExpenseOutput
+} from "./expenses/expense.types";
+export {
+  parseCreateExpenseInput,
+  parseExpenseCategory,
+  parseUpdateExpenseInput
+} from "./expenses/expense.validation";
 export type {
   CreateMaintenanceRequestInput,
   CreateMaintenanceRequestOutput,

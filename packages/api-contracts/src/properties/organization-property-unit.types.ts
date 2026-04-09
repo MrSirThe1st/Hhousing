@@ -8,6 +8,21 @@ export interface CreateOrganizationOutput {
   organization: Organization;
 }
 
+export interface UpdateOrganizationInput {
+  name: string;
+  logoUrl?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  contactWhatsapp?: string | null;
+  websiteUrl?: string | null;
+  address?: string | null;
+  emailSignature?: string | null;
+}
+
+export interface UpdateOrganizationOutput {
+  organization: Organization;
+}
+
 export interface CreatePropertyInput {
   organizationId: string;
   name: string;

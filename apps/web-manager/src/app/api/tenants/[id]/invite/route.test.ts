@@ -30,7 +30,8 @@ vi.mock("../../../shared", async () => {
   const actual = await vi.importActual<typeof import("../../../shared")>("../../../shared");
   return {
     ...actual,
-    createTenantLeaseRepo: () => ({})
+    createTenantLeaseRepo: () => ({}),
+    createRepositoryFromEnv: () => ({ success: false, error: "missing env" })
   };
 });
 

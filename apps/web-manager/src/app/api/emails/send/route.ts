@@ -4,7 +4,7 @@ import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { sendManagedEmailFromEnv } from "../../../../lib/email/resend";
 import { getScopedPortfolioData, isDocumentAttachmentInScope } from "../../../../lib/operator-scope-portfolio";
-import { createDocumentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createDocumentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 function mapSendEmailError(error: unknown): { status: number; body: { success: false; code: string; error: string } } {
   if (error instanceof Error && error.message === "RESEND_EMAIL_NOT_CONFIGURED") {
@@ -86,6 +86,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const scopedPortfolio = await getScopedPortfolioData(access.data);
     const documentRepository = createDocumentRepo();
+    const organizationRepositoryResult = createRepositoryFromEnv();
     const attachments = parsed.data.documentIds
       ? await Promise.all(
           parsed.data.documentIds.map(async (documentId) => {
@@ -102,11 +103,15 @@ export async function POST(request: Request): Promise<Response> {
           })
         )
       : [];
+    const organization = organizationRepositoryResult.success
+      ? await organizationRepositoryResult.data.getOrganizationById(access.data.organizationId)
+      : null;
 
     await sendManagedEmailFromEnv({
       to: parsed.data.to,
       subject: parsed.data.subject,
       body: parsed.data.body,
+      organization,
       attachments
     });
 

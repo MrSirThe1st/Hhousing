@@ -1,4 +1,5 @@
 import {
+  Permission,
   TeamFunctionCode,
   parseAcceptTeamMemberInvitationInput,
   parseInvitePropertyManagerInput
@@ -38,7 +39,8 @@ function buildActivationLink(baseUrl: string, token: string): string {
 }
 
 function mapPreview(
-  preview: Awaited<ReturnType<AuthRepository["getTeamMemberInvitationPreviewByTokenHash"]>>
+  preview: Awaited<ReturnType<AuthRepository["getTeamMemberInvitationPreviewByTokenHash"]>>,
+  accountExists: boolean
 ): TeamMemberInvitationPreview | null {
   if (preview === null) {
     return null;
@@ -51,7 +53,8 @@ function mapPreview(
     email: preview.email,
     role: preview.role,
     canOwnProperties: preview.canOwnProperties,
-    expiresAtIso: preview.expiresAtIso
+    expiresAtIso: preview.expiresAtIso,
+    accountExists
   };
 }
 
@@ -75,6 +78,36 @@ async function findSupabaseUserByEmail(
   const payload = (await response.json()) as { users?: SupabaseAdminUser[] };
   const normalizedEmail = email.toLowerCase();
   return payload.users?.find((item) => item.email.toLowerCase() === normalizedEmail) ?? null;
+}
+
+async function findSupabaseUserById(
+  supabaseAdminUrl: string,
+  supabaseServiceRoleKey: string,
+  userId: string
+): Promise<SupabaseAdminUser | null> {
+  const response = await fetch(`${supabaseAdminUrl}/auth/v1/admin/users`, {
+    method: "GET",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`SUPABASE_LOOKUP_FAILED:${response.status}`);
+  }
+
+  const payload = (await response.json()) as { users?: SupabaseAdminUser[] };
+  return payload.users?.find((item) => item.id === userId) ?? null;
+}
+
+async function hasSupabaseUserWithEmail(
+  supabaseAdminUrl: string,
+  supabaseServiceRoleKey: string,
+  email: string
+): Promise<boolean> {
+  const user = await findSupabaseUserByEmail(supabaseAdminUrl, supabaseServiceRoleKey, email);
+  return user !== null;
 }
 
 async function upsertSupabaseUser(params: {
@@ -138,6 +171,164 @@ function requireOperator(session: AuthSession): ApiResult<AuthSession> {
   }
 
   return { success: true, data: session };
+}
+
+function memberHasPermission(permissions: string[], permission: Permission): boolean {
+  if (permissions.includes("*")) {
+    return true;
+  }
+
+  return permissions.includes(permission);
+}
+
+async function memberHasStrictTeamPermission(
+  session: AuthSession,
+  repository: AuthRepository,
+  teamFunctionsRepository: TeamFunctionsRepository,
+  permission: Permission
+): Promise<boolean> {
+  const membership = await repository.getMembershipByUserAndOrg(
+    session.userId,
+    session.organizationId
+  );
+
+  if (membership === null) {
+    return false;
+  }
+
+  let functions: TeamFunction[] = [];
+  try {
+    functions = await teamFunctionsRepository.listMemberFunctions(membership.id);
+  } catch (error) {
+    if (isMissingTeamFunctionsSchema(error)) {
+      return false;
+    }
+
+    throw error;
+  }
+
+  return functions.some((teamFunction) => memberHasPermission(teamFunction.permissions, permission));
+}
+
+async function requireTeamInviteAuthority(
+  session: AuthSession,
+  repository: AuthRepository,
+  teamFunctionsRepository?: TeamFunctionsRepository
+): Promise<ApiResult<AuthSession>> {
+  if (session.role === "landlord") {
+    return { success: true, data: session };
+  }
+
+  if (session.role !== "property_manager") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Only the account owner can manage team invitations"
+    };
+  }
+
+  const currentMembership = await repository.getMembershipByUserAndOrg(
+    session.userId,
+    session.organizationId
+  );
+
+  if (currentMembership === null) {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Only the account owner can manage team invitations"
+    };
+  }
+
+  const operatorMemberships = (await repository.listMembershipsByOrganization(session.organizationId))
+    .filter((membership) => membership.role === "landlord" || membership.role === "property_manager")
+    .sort(
+      (left, right) =>
+        new Date(left.createdAtIso).getTime() - new Date(right.createdAtIso).getTime()
+    );
+
+  const accountOwnerMembership = operatorMemberships[0];
+  if (accountOwnerMembership?.id === currentMembership.id) {
+    return { success: true, data: session };
+  }
+
+  if (
+    teamFunctionsRepository &&
+    (await memberHasStrictTeamPermission(
+      session,
+      repository,
+      teamFunctionsRepository,
+      Permission.MANAGE_TEAM
+    ))
+  ) {
+    return { success: true, data: session };
+  }
+
+  if (accountOwnerMembership?.id !== currentMembership.id) {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Only the account owner or an admin can manage team invitations"
+    };
+  }
+
+  return { success: true, data: session };
+}
+
+async function createAndSendTeamMemberInvitation(params: {
+  repository: AuthRepository;
+  createId: () => string;
+  createToken?: () => string;
+  inviteLinkBaseUrl: string;
+  sendInvitationEmail?: (input: {
+    to: string;
+    organizationName: string;
+    activationLink: string;
+  }) => Promise<void>;
+  organizationId: string;
+  email: string;
+  role: "property_manager";
+  canOwnProperties: boolean;
+  createdByUserId: string;
+}): Promise<InvitePropertyManagerOutput> {
+  const token = params.createToken ? params.createToken() : randomBytes(24).toString("hex");
+  const tokenHash = hashToken(token);
+  const expiresAtIso = buildExpiryIso(7);
+
+  await params.repository.revokeActiveTeamMemberInvitations(
+    params.email,
+    params.organizationId
+  );
+
+  const invitation = await params.repository.createTeamMemberInvitation({
+    id: params.createId(),
+    organizationId: params.organizationId,
+    email: params.email,
+    role: params.role,
+    canOwnProperties: params.canOwnProperties,
+    tokenHash,
+    expiresAtIso,
+    createdByUserId: params.createdByUserId
+  });
+
+  const activationLink = buildActivationLink(params.inviteLinkBaseUrl, token);
+
+  if (params.sendInvitationEmail) {
+    await params.sendInvitationEmail({
+      to: invitation.email,
+      organizationName: invitation.organizationName,
+      activationLink
+    });
+  }
+
+  return {
+    invitationId: invitation.id,
+    email: invitation.email,
+    role: invitation.role,
+    canOwnProperties: invitation.canOwnProperties,
+    expiresAtIso: invitation.expiresAtIso,
+    activationLink
+  };
 }
 
 /**
@@ -246,6 +437,7 @@ export interface InvitePropertyManagerResponse {
 
 export interface InvitePropertyManagerDeps {
   repository: AuthRepository;
+  teamFunctionsRepository?: TeamFunctionsRepository;
   createId: () => string;
   createToken?: () => string;
   inviteLinkBaseUrl: string;
@@ -265,7 +457,11 @@ export async function invitePropertyManager(
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
   }
 
-  const operatorResult = requireOperator(sessionResult.data);
+  const operatorResult = await requireTeamInviteAuthority(
+    sessionResult.data,
+    deps.repository,
+    deps.teamFunctionsRepository
+  );
   if (!operatorResult.success) {
     return { status: mapErrorCodeToHttpStatus(operatorResult.code), body: operatorResult };
   }
@@ -278,47 +474,24 @@ export async function invitePropertyManager(
     return { status: mapErrorCodeToHttpStatus(parsed.code), body: parsed };
   }
 
-  const token = deps.createToken ? deps.createToken() : randomBytes(24).toString("hex");
-  const tokenHash = hashToken(token);
-  const expiresAtIso = buildExpiryIso(7);
-
-  await deps.repository.revokeActiveTeamMemberInvitations(
-    parsed.data.email,
-    parsed.data.organizationId
-  );
-  const invitation = await deps.repository.createTeamMemberInvitation({
-    id: deps.createId(),
+  const output = await createAndSendTeamMemberInvitation({
+    repository: deps.repository,
+    createId: deps.createId,
+    createToken: deps.createToken,
+    inviteLinkBaseUrl: deps.inviteLinkBaseUrl,
+    sendInvitationEmail: deps.sendInvitationEmail,
     organizationId: parsed.data.organizationId,
     email: parsed.data.email,
     role: parsed.data.role,
     canOwnProperties: parsed.data.canOwnProperties,
-    tokenHash,
-    expiresAtIso,
     createdByUserId: sessionResult.data.userId
   });
-
-  const activationLink = buildActivationLink(deps.inviteLinkBaseUrl, token);
-
-  if (deps.sendInvitationEmail) {
-    await deps.sendInvitationEmail({
-      to: invitation.email,
-      organizationName: invitation.organizationName,
-      activationLink
-    });
-  }
 
   return {
     status: 201,
     body: {
       success: true,
-      data: {
-        invitationId: invitation.id,
-        email: invitation.email,
-        role: invitation.role,
-        canOwnProperties: invitation.canOwnProperties,
-        expiresAtIso: invitation.expiresAtIso,
-        activationLink
-      }
+      data: output
     }
   };
 }
@@ -334,6 +507,8 @@ export interface ValidateTeamMemberInvitationResponse {
 
 export interface ValidateTeamMemberInvitationDeps {
   repository: AuthRepository;
+  supabaseAdminUrl?: string;
+  supabaseServiceRoleKey?: string;
 }
 
 export async function validateTeamMemberInvitation(
@@ -356,14 +531,29 @@ export async function validateTeamMemberInvitation(
     };
   }
 
+  let accountExists = false;
+  if (deps.supabaseAdminUrl && deps.supabaseServiceRoleKey) {
+    accountExists = await hasSupabaseUserWithEmail(
+      deps.supabaseAdminUrl,
+      deps.supabaseServiceRoleKey,
+      preview.email
+    );
+  }
+
   return {
     status: 200,
-    body: { success: true, data: { invitation: mapPreview(preview) as TeamMemberInvitationPreview } }
+    body: {
+      success: true,
+      data: {
+        invitation: mapPreview(preview, accountExists) as TeamMemberInvitationPreview
+      }
+    }
   };
 }
 
 export interface AcceptTeamMemberInvitationRequest {
   body: unknown;
+  session: AuthSession | null;
 }
 
 export interface AcceptTeamMemberInvitationResponse {
@@ -397,13 +587,64 @@ export async function acceptTeamMemberInvitation(
     };
   }
 
-  const userId = await upsertSupabaseUser({
-    supabaseAdminUrl: deps.supabaseAdminUrl,
-    supabaseServiceRoleKey: deps.supabaseServiceRoleKey,
-    email: preview.email,
-    password: parsed.data.password,
-    fullName: parsed.data.fullName
-  });
+  let userId: string;
+
+  if (request.session !== null) {
+    const signedInUser = await findSupabaseUserById(
+      deps.supabaseAdminUrl,
+      deps.supabaseServiceRoleKey,
+      request.session.userId
+    );
+
+    if (signedInUser === null || signedInUser.email.toLowerCase() !== preview.email.toLowerCase()) {
+      return {
+        status: 403,
+        body: {
+          success: false,
+          code: "FORBIDDEN",
+          error: "Signed-in account does not match the invitation email"
+        }
+      };
+    }
+
+    userId = request.session.userId;
+  } else {
+    if (!parsed.data.fullName || !parsed.data.password) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "fullName and password are required when creating a new account"
+        }
+      };
+    }
+
+    const existingSupabaseUser = await findSupabaseUserByEmail(
+      deps.supabaseAdminUrl,
+      deps.supabaseServiceRoleKey,
+      preview.email
+    );
+
+    if (existingSupabaseUser !== null) {
+      return {
+        status: 409,
+        body: {
+          success: false,
+          code: "FORBIDDEN",
+          error: "An account already exists for this email. Sign in to accept the invitation"
+        }
+      };
+    }
+
+    userId = await upsertSupabaseUser({
+      supabaseAdminUrl: deps.supabaseAdminUrl,
+      supabaseServiceRoleKey: deps.supabaseServiceRoleKey,
+      email: preview.email,
+      password: parsed.data.password,
+      fullName: parsed.data.fullName
+    });
+  }
 
   const existingMembership = await deps.repository.getMembershipByUserAndOrg(
     userId,
@@ -447,6 +688,132 @@ export async function acceptTeamMemberInvitation(
   };
 }
 
+export interface ResendTeamMemberInvitationRequest {
+  invitationId: string;
+  session: AuthSession | null;
+}
+
+export interface ResendTeamMemberInvitationResponse {
+  status: number;
+  body: ApiResult<InvitePropertyManagerOutput>;
+}
+
+export interface ResendTeamMemberInvitationDeps extends InvitePropertyManagerDeps {}
+
+export async function resendTeamMemberInvitation(
+  request: ResendTeamMemberInvitationRequest,
+  deps: ResendTeamMemberInvitationDeps
+): Promise<ResendTeamMemberInvitationResponse> {
+  const sessionResult = requireOperatorSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const authorityResult = await requireTeamInviteAuthority(
+    sessionResult.data,
+    deps.repository,
+    deps.teamFunctionsRepository
+  );
+  if (!authorityResult.success) {
+    return { status: mapErrorCodeToHttpStatus(authorityResult.code), body: authorityResult };
+  }
+
+  const invitation = (await deps.repository.listTeamMemberInvitationsByOrganization(
+    sessionResult.data.organizationId
+  )).find((item) => item.id === request.invitationId);
+
+  if (!invitation) {
+    return {
+      status: 404,
+      body: { success: false, code: "NOT_FOUND", error: "Invitation not found" }
+    };
+  }
+
+  if (invitation.usedAtIso !== null) {
+    return {
+      status: 409,
+      body: { success: false, code: "FORBIDDEN", error: "Accepted invitations cannot be resent" }
+    };
+  }
+
+  const output = await createAndSendTeamMemberInvitation({
+    repository: deps.repository,
+    createId: deps.createId,
+    createToken: deps.createToken,
+    inviteLinkBaseUrl: deps.inviteLinkBaseUrl,
+    sendInvitationEmail: deps.sendInvitationEmail,
+    organizationId: sessionResult.data.organizationId,
+    email: invitation.email,
+    role: invitation.role,
+    canOwnProperties: invitation.canOwnProperties,
+    createdByUserId: sessionResult.data.userId
+  });
+
+  return { status: 200, body: { success: true, data: output } };
+}
+
+export interface RevokeTeamMemberInvitationRequest {
+  invitationId: string;
+  session: AuthSession | null;
+}
+
+export interface RevokeTeamMemberInvitationResponse {
+  status: number;
+  body: ApiResult<{ invitationId: string }>;
+}
+
+export interface RevokeTeamMemberInvitationDeps {
+  repository: AuthRepository;
+  teamFunctionsRepository?: TeamFunctionsRepository;
+}
+
+export async function revokeTeamMemberInvitation(
+  request: RevokeTeamMemberInvitationRequest,
+  deps: RevokeTeamMemberInvitationDeps
+): Promise<RevokeTeamMemberInvitationResponse> {
+  const sessionResult = requireOperatorSession(request.session);
+  if (!sessionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const authorityResult = await requireTeamInviteAuthority(
+    sessionResult.data,
+    deps.repository,
+    deps.teamFunctionsRepository
+  );
+  if (!authorityResult.success) {
+    return { status: mapErrorCodeToHttpStatus(authorityResult.code), body: authorityResult };
+  }
+
+  const invitation = (await deps.repository.listTeamMemberInvitationsByOrganization(
+    sessionResult.data.organizationId
+  )).find((item) => item.id === request.invitationId);
+
+  if (!invitation) {
+    return {
+      status: 404,
+      body: { success: false, code: "NOT_FOUND", error: "Invitation not found" }
+    };
+  }
+
+  if (invitation.usedAtIso !== null) {
+    return {
+      status: 409,
+      body: { success: false, code: "FORBIDDEN", error: "Accepted invitations cannot be revoked" }
+    };
+  }
+
+  await deps.repository.revokeActiveTeamMemberInvitations(
+    invitation.email,
+    sessionResult.data.organizationId
+  );
+
+  return {
+    status: 200,
+    body: { success: true, data: { invitationId: request.invitationId } }
+  };
+}
+
 export interface UpdateMemberFunctionsRequest {
   memberId: string;
   body: unknown;
@@ -475,6 +842,15 @@ export async function updateMemberFunctions(
   const operatorResult = requireOperator(sessionResult.data);
   if (!operatorResult.success) {
     return { status: mapErrorCodeToHttpStatus(operatorResult.code), body: operatorResult };
+  }
+
+  const authorityResult = await requireTeamInviteAuthority(
+    sessionResult.data,
+    deps.repository,
+    deps.teamFunctionsRepository
+  );
+  if (!authorityResult.success) {
+    return { status: mapErrorCodeToHttpStatus(authorityResult.code), body: authorityResult };
   }
 
   // Parse the incoming function codes

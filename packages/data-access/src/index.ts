@@ -16,6 +16,7 @@ export {
 export type {
   CreateOwnerClientRecordInput,
   CreateOrganizationRecordInput,
+  UpdateOrganizationRecordInput,
   CreatePropertyRecordInput,
   CreatePropertyWithUnitsRecordInput,
   CreateUnitRecordInput,
@@ -50,6 +51,16 @@ export type {
   PaymentRepository
 } from "./payments/payment-record.types";
 export type { PaymentQueryable } from "./payments/postgres-payment.repository";
+export {
+  createPostgresExpenseRepository,
+  createExpenseRepositoryFromEnv
+} from "./expenses/postgres-expense.repository";
+export type {
+  CreateExpenseRecordInput,
+  ExpenseRepository,
+  UpdateExpenseRecordInput
+} from "./expenses/expense-record.types";
+export type { ExpenseQueryable } from "./expenses/postgres-expense.repository";
 export {
   createPostgresMaintenanceRequestRepository,
   createMaintenanceRequestRepositoryFromEnv

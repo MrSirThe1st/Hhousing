@@ -9,7 +9,9 @@ export async function GET(request: Request): Promise<Response> {
       token: searchParams.get("token")
     },
     {
-      repository: createAuthRepo()
+      repository: createAuthRepo(),
+      supabaseAdminUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY
     }
   );
 

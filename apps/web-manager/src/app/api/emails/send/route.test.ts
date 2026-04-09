@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   extractAuthSessionFromCookiesMock,
+  getOrganizationByIdMock,
   getScopedPortfolioDataMock,
   getDocumentByIdMock,
   listMemberFunctionsMock,
   sendManagedEmailFromEnvMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
+  getOrganizationByIdMock: vi.fn(),
   getScopedPortfolioDataMock: vi.fn(),
   getDocumentByIdMock: vi.fn(),
   listMemberFunctionsMock: vi.fn(),
@@ -35,6 +37,15 @@ vi.mock("../../shared", async () => {
       getDocumentById: typeof getDocumentByIdMock;
     } => ({
       getDocumentById: getDocumentByIdMock
+    }),
+    createRepositoryFromEnv: (): {
+      success: true;
+      data: { getOrganizationById: typeof getOrganizationByIdMock };
+    } => ({
+      success: true,
+      data: {
+        getOrganizationById: getOrganizationByIdMock
+      }
     }),
     createTeamFunctionsRepo: (): {
       listMemberFunctions: typeof listMemberFunctionsMock;
@@ -99,6 +110,19 @@ describe("/api/emails/send", () => {
       uploadedBy: "user-1",
       createdAtIso: "2026-01-01T00:00:00.000Z"
     });
+    getOrganizationByIdMock.mockResolvedValue({
+      id: "org-1",
+      name: "Gestion Horizon",
+      logoUrl: "https://example.com/logo.png",
+      contactEmail: "contact@horizon.test",
+      contactPhone: "+243000000000",
+      contactWhatsapp: null,
+      websiteUrl: "https://horizon.test",
+      address: null,
+      emailSignature: "Gestion Horizon",
+      status: "active",
+      createdAtIso: "2026-01-01T00:00:00.000Z"
+    });
     sendManagedEmailFromEnvMock.mockResolvedValue(undefined);
   });
 
@@ -120,6 +144,19 @@ describe("/api/emails/send", () => {
       to: "tenant@example.com",
       subject: "Sujet",
       body: "Bonjour",
+      organization: {
+        id: "org-1",
+        name: "Gestion Horizon",
+        logoUrl: "https://example.com/logo.png",
+        contactEmail: "contact@horizon.test",
+        contactPhone: "+243000000000",
+        contactWhatsapp: null,
+        websiteUrl: "https://horizon.test",
+        address: null,
+        emailSignature: "Gestion Horizon",
+        status: "active",
+        createdAtIso: "2026-01-01T00:00:00.000Z"
+      },
       attachments: [
         {
           fileName: "Bail.pdf",

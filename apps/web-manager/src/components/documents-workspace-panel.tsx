@@ -6,6 +6,7 @@ import type {
   Document,
   DocumentAttachmentType,
   DocumentType,
+  Organization,
   Tenant,
   Unit
 } from "@hhousing/domain";
@@ -69,6 +70,7 @@ type TemplateFormState = {
 
 interface DocumentsWorkspacePanelProps {
   organizationId: string;
+  organization: Organization | null;
   documents: Document[];
   properties: PropertyWithUnitsView[];
   leases: LeaseWithTenantView[];
@@ -90,6 +92,7 @@ function formatFileSize(bytes: number): string {
 
 export default function DocumentsWorkspacePanel({
   organizationId,
+  organization,
   documents,
   properties,
   leases,
@@ -180,12 +183,13 @@ export default function DocumentsWorkspacePanel({
   }, [selectedLease, selectedPropertyRecord]);
 
   const sendContext = useMemo<EmailTemplateRenderContext>(() => ({
+    organization,
     property: selectedPropertyRecord?.property ?? null,
     unit: selectedUnit,
     lease: selectedLease,
     tenant: selectedTenant,
     today: new Date().toISOString().substring(0, 10)
-  }), [selectedLease, selectedPropertyRecord, selectedTenant, selectedUnit]);
+  }), [organization, selectedLease, selectedPropertyRecord, selectedTenant, selectedUnit]);
 
   useEffect(() => {
     if (!selectedLease) {
@@ -632,7 +636,7 @@ export default function DocumentsWorkspacePanel({
               <textarea value={templateForm.body} onChange={(event) => setTemplateForm((previous) => ({ ...previous, body: event.target.value }))} className="min-h-56 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required />
             </label>
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
-              {"Placeholders disponibles: {{today}}, {{tenant_name}}, {{tenant_email}}, {{property_name}}, {{property_address}}, {{property_city}}, {{unit_number}}, {{lease_start_date}}, {{lease_end_date}}, {{monthly_rent}}, {{currency}}"}
+              {"Placeholders disponibles: {{today}}, {{tenant_name}}, {{tenant_email}}, {{property_name}}, {{property_address}}, {{property_city}}, {{unit_number}}, {{lease_start_date}}, {{lease_end_date}}, {{monthly_rent}}, {{currency}}, {{organization_name}}, {{organization_contact_email}}, {{organization_contact_phone}}, {{organization_whatsapp}}, {{organization_website}}, {{organization_address}}, {{organization_email_signature}}, {{organization_logo_url}}"}
             </div>
             <div className="flex gap-3">
               <button type="submit" disabled={templateBusy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">

@@ -5,6 +5,18 @@ export interface CreateOrganizationRecordInput {
   name: string;
 }
 
+export interface UpdateOrganizationRecordInput {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  contactWhatsapp: string | null;
+  websiteUrl: string | null;
+  address: string | null;
+  emailSignature: string | null;
+}
+
 export interface CreatePropertyRecordInput {
   id: string;
   organizationId: string;
@@ -75,6 +87,8 @@ export interface PropertyWithUnitsRecord {
 
 export interface OrganizationPropertyUnitRepository {
   createOrganization(input: CreateOrganizationRecordInput): Promise<Organization>;
+  getOrganizationById(organizationId: string): Promise<Organization | null>;
+  updateOrganization(input: UpdateOrganizationRecordInput): Promise<Organization | null>;
   createOwnerClient(input: CreateOwnerClientRecordInput): Promise<OwnerClient>;
   createProperty(input: CreatePropertyRecordInput): Promise<Property>;
   createPropertyWithUnits(input: CreatePropertyWithUnitsRecordInput): Promise<{ property: Property; units: Unit[] }>;

@@ -1,9 +1,10 @@
 import type { EmailTemplateScenario } from "@hhousing/domain";
 import type { EmailTemplateView } from "@hhousing/api-contracts";
 import type { LeaseWithTenantView, PropertyWithUnitsView } from "@hhousing/api-contracts";
-import type { Tenant, Unit } from "@hhousing/domain";
+import type { Organization, Tenant, Unit } from "@hhousing/domain";
 
 export interface EmailTemplateRenderContext {
+  organization: Organization | null;
   property: PropertyWithUnitsView["property"] | null;
   unit: Unit | null;
   lease: LeaseWithTenantView | null;
@@ -60,6 +61,14 @@ function getPlaceholderMap(context: EmailTemplateRenderContext): Record<string, 
     today: context.today,
     tenant_name: context.tenant?.fullName ?? context.lease?.tenantFullName ?? "",
     tenant_email: context.tenant?.email ?? context.lease?.tenantEmail ?? "",
+    organization_name: context.organization?.name ?? "",
+    organization_contact_email: context.organization?.contactEmail ?? "",
+    organization_contact_phone: context.organization?.contactPhone ?? "",
+    organization_whatsapp: context.organization?.contactWhatsapp ?? "",
+    organization_website: context.organization?.websiteUrl ?? "",
+    organization_address: context.organization?.address ?? "",
+    organization_email_signature: context.organization?.emailSignature ?? "",
+    organization_logo_url: context.organization?.logoUrl ?? "",
     property_name: context.property?.name ?? "",
     property_address: context.property?.address ?? "",
     property_city: context.property?.city ?? "",

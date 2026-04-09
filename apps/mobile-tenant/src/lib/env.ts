@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+const hostedApiBaseUrl = "https://harakaproperty.com";
 
 function extractHost(value: string): string | null {
   const trimmedValue = value.trim();
@@ -39,11 +40,11 @@ function resolveApiBaseUrl(): string {
   const explicitApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
 
   if (explicitApiBaseUrl) {
-    return explicitApiBaseUrl;
+    return explicitApiBaseUrl.replace(/\/$/, "");
   }
 
   if (!__DEV__) {
-    throw new Error("EXPO_PUBLIC_API_BASE_URL is required outside development");
+    return hostedApiBaseUrl;
   }
 
   const host = resolveDevHost();
@@ -72,5 +73,6 @@ if (!supabasePublishableKey) {
 export const env = {
   supabaseUrl,
   supabasePublishableKey,
-  apiBaseUrl
+  apiBaseUrl,
+  hostedApiBaseUrl
 };

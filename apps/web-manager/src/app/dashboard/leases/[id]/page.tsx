@@ -44,7 +44,9 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
   const [signedAt, setSignedAt] = useState(new Date().toISOString().substring(0, 10));
   const [finalizing, setFinalizing] = useState(false);
   const [sendingDraftEmail, setSendingDraftEmail] = useState(false);
+  const [resendingActivationEmail, setResendingActivationEmail] = useState(false);
   const [draftEmailMessage, setDraftEmailMessage] = useState<string | null>(null);
+  const [activationEmailMessage, setActivationEmailMessage] = useState<string | null>(null);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -131,6 +133,7 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
     setFinalizing(true);
     setError(null);
     setDraftEmailMessage(null);
+    setActivationEmailMessage(null);
 
     const result = await patchWithAuth<Lease>(`/api/leases/${id}`, {
       action: "finalize",
@@ -153,6 +156,7 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
     setSendingDraftEmail(true);
     setError(null);
     setDraftEmailMessage(null);
+    setActivationEmailMessage(null);
 
     const result = await patchWithAuth<LeaseWithTenantView>(`/api/leases/${id}`, {
       action: "send_draft_email",
@@ -167,6 +171,26 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
 
     setDraftEmailMessage("Email de brouillon envoyé au locataire.");
     setSendingDraftEmail(false);
+  }
+
+  async function handleResendActivationEmail(): Promise<void> {
+    setResendingActivationEmail(true);
+    setError(null);
+    setDraftEmailMessage(null);
+    setActivationEmailMessage(null);
+
+    const result = await patchWithAuth<LeaseWithTenantView>(`/api/leases/${id}`, {
+      action: "resend_activation_email"
+    });
+
+    if (!result.success) {
+      setError(result.error);
+      setResendingActivationEmail(false);
+      return;
+    }
+
+    setActivationEmailMessage("Email d'activation renvoyé au locataire.");
+    setResendingActivationEmail(false);
   }
 
   if (loading) {
@@ -201,6 +225,7 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
   const unpaidInitialPayments = initialPayments.filter((payment) => payment.status !== "paid");
   const canFinalize = lease.status === "pending" && unpaidInitialPayments.length === 0 && initialPayments.length > 0;
   const sendableDocuments = availableDocuments.filter((document) => document.mimeType !== "message/rfc822");
+  const canResendActivationEmail = (lease.status === "active" || lease.status === "pending") && Boolean(lease.tenantEmail);
 
   return (
     <div className="p-8">
@@ -250,6 +275,27 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
             <p className="text-sm text-gray-500">Méthode de signature</p>
             <p className="text-base font-medium text-[#010a19]">{lease.signingMethod ?? "Non renseignée"}</p>
           </div>
+        </div>
+
+        <div className="mb-6 rounded-lg border border-[#0063fe]/15 bg-[#0063fe]/5 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-[#010a19]">Accès locataire</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Utilisez cette action si le locataire n&apos;a pas reçu l&apos;email d&apos;activation après le move in. Le lien précédent sera invalidé et un nouvel email sera envoyé à {lease.tenantEmail ?? "l&apos;adresse e-mail du locataire"}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleResendActivationEmail}
+              disabled={resendingActivationEmail || !canResendActivationEmail}
+              className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60"
+            >
+              {resendingActivationEmail ? "Renvoi..." : "Renvoyer l'email d'activation"}
+            </button>
+          </div>
+          {!lease.tenantEmail ? <p className="mt-3 text-sm text-red-600">Ajoutez d&apos;abord un e-mail locataire pour pouvoir renvoyer l&apos;activation.</p> : null}
+          {activationEmailMessage ? <p className="mt-3 text-sm text-green-700">{activationEmailMessage}</p> : null}
         </div>
 
         {lease.status === "pending" ? (

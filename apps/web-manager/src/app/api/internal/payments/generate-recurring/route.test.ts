@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   generateMonthlyChargesMock,
@@ -20,11 +20,13 @@ vi.mock("../../../shared", async () => {
   };
 });
 
-import { GET, POST } from "./route";
+import { GET } from "./route";
 
 describe("/api/internal/payments/generate-recurring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-09T10:00:00.000Z"));
     process.env.CRON_SECRET = "test-cron-secret";
     listOrganizationsWithActiveRecurringChargesMock.mockResolvedValue(["org-1", "org-2"]);
     generateMonthlyChargesMock.mockImplementation(async (organizationId: string) => {
@@ -34,6 +36,10 @@ describe("/api/internal/payments/generate-recurring", () => {
 
       return 1;
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("rejects requests without the cron secret", async () => {
@@ -46,20 +52,8 @@ describe("/api/internal/payments/generate-recurring", () => {
     });
   });
 
-  it("rejects invalid period overrides", async () => {
-    const response = await GET(new Request("http://localhost/api/internal/payments/generate-recurring?period=2026-13", {
-      headers: { authorization: "Bearer test-cron-secret" }
-    }));
-
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
-      success: false,
-      error: "period must be YYYY-MM"
-    });
-  });
-
   it("runs generation for all organizations on scheduled GET", async () => {
-    const response = await GET(new Request("http://localhost/api/internal/payments/generate-recurring?period=2026-04", {
+    const response = await GET(new Request("http://localhost/api/internal/payments/generate-recurring", {
       headers: { authorization: "Bearer test-cron-secret" }
     }));
 
@@ -80,35 +74,5 @@ describe("/api/internal/payments/generate-recurring", () => {
     expect(listOrganizationsWithActiveRecurringChargesMock).toHaveBeenCalledTimes(1);
     expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(1, "org-1", "2026-04");
     expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(2, "org-2", "2026-04");
-  });
-
-  it("supports single-organization manual test runs via POST", async () => {
-    const response = await POST(new Request("http://localhost/api/internal/payments/generate-recurring", {
-      method: "POST",
-      headers: {
-        authorization: "Bearer test-cron-secret",
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        period: "2026-05",
-        organizationId: "org-test"
-      })
-    }));
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      success: true,
-      data: {
-        period: "2026-05",
-        processedOrganizations: 1,
-        totalGenerated: 1,
-        organizations: [
-          { organizationId: "org-test", generated: 1 }
-        ],
-        failures: []
-      }
-    });
-    expect(listOrganizationsWithActiveRecurringChargesMock).not.toHaveBeenCalled();
-    expect(generateMonthlyChargesMock).toHaveBeenCalledWith("org-test", "2026-05");
   });
 });

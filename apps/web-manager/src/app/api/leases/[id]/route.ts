@@ -3,10 +3,11 @@ import { createTenantInvitation } from "../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createTenantInvitationEmailSenderFromEnv, sendManagedEmailFromEnv } from "../../../../lib/email/resend";
 import { getBuiltinTemplateByScenario, renderTemplateText } from "../../../../lib/email/template-catalog";
+import { canEditOrganizationDetails } from "../../../../lib/operator-context";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
-import { createDocumentRepo, createId, createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createDocumentRepo, createId, createPaymentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 type PatchLeaseBody = {
   endDate: string | null;
@@ -18,6 +19,10 @@ type PatchLeaseBody = {
 type SendDraftEmailBody = {
   action: "send_draft_email";
   documentIds?: string[];
+};
+
+type ResendActivationEmailBody = {
+  action: "resend_activation_email";
 };
 
 function validatePatchLeaseBody(input: unknown): ApiResult<PatchLeaseBody> {
@@ -119,6 +124,32 @@ function parseSendDraftEmailBody(input: unknown): ApiResult<SendDraftEmailBody> 
   };
 }
 
+function parseResendActivationEmailBody(input: unknown): ApiResult<ResendActivationEmailBody> {
+  if (typeof input !== "object" || input === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Body must be an object"
+    };
+  }
+
+  const payload = input as Record<string, unknown>;
+  if (payload.action !== "resend_activation_email") {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "action must be resend_activation_email"
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      action: "resend_activation_email"
+    }
+  };
+}
+
 function mapDraftEmailErrorToResponse(error: unknown): { status: number; body: ApiResult<never> } {
   if (error instanceof Error && error.message === "RESEND_EMAIL_NOT_CONFIGURED") {
     return {
@@ -137,6 +168,28 @@ function mapDraftEmailErrorToResponse(error: unknown): { status: number; body: A
       success: false,
       code: "INTERNAL_ERROR",
       error: "Failed to send draft email"
+    }
+  };
+}
+
+function mapTenantInviteErrorToResponse(error: unknown, fallbackMessage: string): { status: number; body: ApiResult<never> } {
+  if (error instanceof Error && error.message === "RESEND_EMAIL_NOT_CONFIGURED") {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        code: "VALIDATION_ERROR",
+        error: "L'envoi d'email n'est pas configuré pour cet environnement"
+      }
+    };
+  }
+
+  return {
+    status: 500,
+    body: {
+      success: false,
+      code: "INTERNAL_ERROR",
+      error: fallbackMessage
     }
   };
 }
@@ -230,6 +283,71 @@ export async function PATCH(
 
   const repository = createTenantLeaseRepo();
 
+  if (typeof body === "object" && body !== null && (body as Record<string, unknown>).action === "resend_activation_email") {
+    const parsedResendActivationEmail = parseResendActivationEmailBody(body);
+    if (!parsedResendActivationEmail.success) {
+      return jsonResponse(mapErrorCodeToHttpStatus(parsedResendActivationEmail.code), parsedResendActivationEmail);
+    }
+
+    try {
+      const scopedPortfolio = await getScopedPortfolioData(access.data);
+      if (!scopedPortfolio.leaseIds.has(id)) {
+        return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Lease not found" });
+      }
+
+      const lease = await repository.getLeaseById(id, access.data.organizationId);
+      if (!lease) {
+        return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Lease not found" });
+      }
+
+      if (!lease.tenantEmail) {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Tenant email is required before resending activation"
+        });
+      }
+
+      const tenant = await repository.getTenantById(lease.tenantId, access.data.organizationId);
+      if (!tenant || tenant.authUserId) {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: tenant?.authUserId ? "Tenant already has login access" : "Tenant not found"
+        });
+      }
+
+      const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
+      const organizationRepositoryResult = createRepositoryFromEnv();
+      const invitationResult = await createTenantInvitation(
+        {
+          tenantId: lease.tenantId,
+          session: access.data
+        },
+        {
+          repository,
+          organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
+          createId: () => createId("tin"),
+          inviteLinkBaseUrl,
+          sendInvitationEmail: createTenantInvitationEmailSenderFromEnv()
+        }
+      );
+
+      if (!invitationResult.body.success) {
+        return jsonResponse(invitationResult.status, invitationResult.body);
+      }
+
+      return jsonResponse(200, {
+        success: true,
+        data: lease
+      });
+    } catch (error) {
+      console.error("Failed to resend tenant activation email", error);
+      const mappedError = mapTenantInviteErrorToResponse(error, "Failed to resend tenant activation email");
+      return jsonResponse(mappedError.status, mappedError.body);
+    }
+  }
+
   if (typeof body === "object" && body !== null && (body as Record<string, unknown>).action === "send_draft_email") {
     const parsedSendDraftEmail = parseSendDraftEmailBody(body);
     if (!parsedSendDraftEmail.success) {
@@ -286,6 +404,10 @@ export async function PATCH(
       }
 
       const resolvedDocuments = selectedDocuments.filter((document): document is NonNullable<typeof document> => document !== null);
+      const organizationRepositoryResult = createRepositoryFromEnv();
+      const organization = organizationRepositoryResult.success
+        ? await organizationRepositoryResult.data.getOrganizationById(access.data.organizationId)
+        : null;
 
       const propertyRecord = scopedPortfolio.properties.find((propertyItem) =>
         propertyItem.units.some((unit) => unit.id === lease.unitId)
@@ -305,6 +427,7 @@ export async function PATCH(
       await sendManagedEmailFromEnv({
         to: lease.tenantEmail,
         subject: renderTemplateText(draftTemplate.subject, {
+          organization,
           property: propertyRecord?.property ?? null,
           unit: unitRecord,
           lease,
@@ -312,12 +435,14 @@ export async function PATCH(
           today: new Date().toISOString().substring(0, 10)
         }),
         body: renderTemplateText(draftTemplate.body, {
+          organization,
           property: propertyRecord?.property ?? null,
           unit: unitRecord,
           lease,
           tenant: tenantRecord,
           today: new Date().toISOString().substring(0, 10)
         }),
+        organization,
         attachments: resolvedDocuments.map((document) => ({
           fileName: document.fileName,
           mimeType: document.mimeType,
@@ -410,6 +535,7 @@ export async function PATCH(
       }
 
       const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
+      const organizationRepositoryResult = createRepositoryFromEnv();
       const invitationResult = await createTenantInvitation(
         {
           tenantId: lease.tenantId,
@@ -417,6 +543,7 @@ export async function PATCH(
         },
         {
           repository,
+          organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
           createId: () => createId("tin"),
           inviteLinkBaseUrl,
           sendInvitationEmail: createTenantInvitationEmailSenderFromEnv()
@@ -443,11 +570,8 @@ export async function PATCH(
       return jsonResponse(200, { success: true, data: updatedLease });
     } catch (error) {
       console.error("Failed to finalize lease", error);
-      return jsonResponse(500, {
-        success: false,
-        code: "INTERNAL_ERROR",
-        error: "Failed to finalize lease"
-      });
+      const mappedError = mapTenantInviteErrorToResponse(error, "Failed to finalize lease");
+      return jsonResponse(mappedError.status, mappedError.body);
     }
   }
 

@@ -4,7 +4,7 @@ import {
   createTenantLeaseRepositoryFromEnv,
   type PropertyWithUnitsRecord
 } from "@hhousing/data-access";
-import type { Document, MaintenanceRequest, Payment, Tenant } from "@hhousing/domain";
+import type { Document, Expense, MaintenanceRequest, Payment, Tenant } from "@hhousing/domain";
 import { getServerOperatorContext } from "./operator-context";
 import type { OperatorScope } from "./operator-context.types";
 
@@ -60,6 +60,20 @@ export function filterLeasesByScope(leases: LeaseWithTenantView[], scoped: Scope
 
 export function filterPaymentsByScope(payments: Payment[], scoped: ScopedPortfolioData): Payment[] {
   return payments.filter((payment) => scoped.leaseIds.has(payment.leaseId));
+}
+
+export function filterExpensesByScope(expenses: Expense[], scoped: ScopedPortfolioData): Expense[] {
+  return expenses.filter((expense) => {
+    if (expense.propertyId !== null && !scoped.propertyIds.has(expense.propertyId)) {
+      return false;
+    }
+
+    if (expense.unitId !== null && !scoped.unitIds.has(expense.unitId)) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 export function filterMaintenanceRequestsByScope(

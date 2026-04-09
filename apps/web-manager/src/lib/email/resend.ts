@@ -1,14 +1,16 @@
+import type { Organization } from "@hhousing/domain";
+
 type SendTenantInvitationEmailInput = {
   to: string;
   tenantFullName: string;
   activationLink: string;
-  organizationName?: string | null;
+  organization?: Organization | null;
 };
 
 type SendLeaseDraftEmailInput = {
   to: string;
   tenantFullName: string;
-  organizationName?: string | null;
+  organization?: Organization | null;
 };
 
 type SendTeamMemberInvitationEmailInput = {
@@ -35,7 +37,40 @@ export interface ManagedEmailAttachmentInput {
   fileUrl: string;
 }
 
-function buildManagedEmailHtml(body: string): string {
+function buildOrganizationHeader(organization?: Organization | null): string {
+  if (!organization) {
+    return "";
+  }
+
+  const logo = organization.logoUrl
+    ? `<div style="margin:0 0 16px;"><img src="${organization.logoUrl}" alt="${organization.name}" style="max-height:52px;max-width:180px;object-fit:contain;display:block;" /></div>`
+    : "";
+
+  const contactParts = [organization.contactEmail, organization.contactPhone, organization.contactWhatsapp]
+    .filter((value): value is string => Boolean(value));
+  const contactLine = contactParts.length > 0
+    ? `<p style="margin:0 0 12px;color:#475569;font-size:13px;">${contactParts.join(" · ")}</p>`
+    : "";
+
+  return `${logo}<p style="margin:0 0 6px;color:#0f172a;font-size:16px;font-weight:600;">${organization.name}</p>${contactLine}`;
+}
+
+function buildOrganizationFooter(organization?: Organization | null): string {
+  if (!organization) {
+    return "";
+  }
+
+  const lines = [organization.emailSignature, organization.websiteUrl, organization.address]
+    .filter((value): value is string => Boolean(value))
+    .map((line) => `<p style="margin:0 0 8px;color:#64748b;font-size:13px;">${line}</p>`)
+    .join("");
+
+  return lines.length > 0
+    ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">${lines}</div>`
+    : "";
+}
+
+function buildManagedEmailHtml(body: string, organization?: Organization | null): string {
   const lines = body
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -47,18 +82,21 @@ function buildManagedEmailHtml(body: string): string {
 
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+      ${buildOrganizationHeader(organization)}
       ${htmlBody}
+      ${buildOrganizationFooter(organization)}
     </div>
   `;
 }
 
 function buildHtml(input: SendTenantInvitationEmailInput): string {
-  const organizationLine = input.organizationName
-    ? `<p style="margin:0 0 12px;color:#475569;font-size:14px;">Organisation: ${input.organizationName}</p>`
+  const organizationLine = input.organization
+    ? `<p style="margin:0 0 12px;color:#475569;font-size:14px;">Organisation: ${input.organization.name}</p>`
     : "";
 
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+      ${buildOrganizationHeader(input.organization)}
       <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Bienvenue sur Hhousing</h1>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">Bonjour ${input.tenantFullName},</p>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
@@ -73,17 +111,19 @@ function buildHtml(input: SendTenantInvitationEmailInput): string {
       <p style="margin:0;color:#64748b;font-size:13px;word-break:break-all;">
         Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur : ${input.activationLink}
       </p>
+      ${buildOrganizationFooter(input.organization)}
     </div>
   `;
 }
 
 function buildLeaseDraftHtml(input: SendLeaseDraftEmailInput): string {
-  const organizationLine = input.organizationName
-    ? `<p style="margin:0 0 12px;color:#475569;font-size:14px;">Organisation: ${input.organizationName}</p>`
+  const organizationLine = input.organization
+    ? `<p style="margin:0 0 12px;color:#475569;font-size:14px;">Organisation: ${input.organization.name}</p>`
     : "";
 
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+      ${buildOrganizationHeader(input.organization)}
       <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Votre bail est pret</h1>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">Bonjour ${input.tenantFullName},</p>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
@@ -93,6 +133,7 @@ function buildLeaseDraftHtml(input: SendLeaseDraftEmailInput): string {
         Pour le moment, cet email confirme simplement que votre dossier locatif a ete initialise par la gestion.
       </p>
       ${organizationLine}
+      ${buildOrganizationFooter(input.organization)}
     </div>
   `;
 }
@@ -105,7 +146,10 @@ function buildTeamMemberInvitationHtml(input: SendTeamMemberInvitationEmailInput
         Vous avez ete invite a rejoindre l'organisation ${input.organizationName} sur Hhousing.
       </p>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
-        Utilisez le lien ci-dessous pour definir votre mot de passe et activer votre acces operateur.
+        Utilisez le lien ci-dessous pour activer votre acces avec votre propre compte. Si vous n'avez pas encore de compte, vous pourrez en creer un. Si vous en avez deja un, vous pourrez vous connecter puis rejoindre l'organisation.
+      </p>
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;">
+        Votre acces reste personnel. Ne partagez pas vos identifiants avec le gestionnaire qui vous a invite.
       </p>
       <p style="margin:24px 0;">
         <a href="${input.activationLink}" style="display:inline-block;background:#0063fe;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">
@@ -208,6 +252,7 @@ export async function sendManagedEmailFromEnv(input: {
   to: string;
   subject: string;
   body: string;
+  organization?: Organization | null;
   attachments?: ManagedEmailAttachmentInput[];
 }): Promise<void> {
   const attachments = input.attachments
@@ -217,7 +262,7 @@ export async function sendManagedEmailFromEnv(input: {
   await sendEmail({
     to: input.to,
     subject: input.subject,
-    html: buildManagedEmailHtml(input.body),
+    html: buildManagedEmailHtml(input.body, input.organization),
     attachments
   });
 }

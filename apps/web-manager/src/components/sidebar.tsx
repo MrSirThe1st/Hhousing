@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "../contexts/auth-context";
+import { usePathname } from "next/navigation";
+import type { Organization } from "@hhousing/domain";
 
 interface NavItem {
   href: string;
@@ -22,8 +23,7 @@ interface SidebarProps {
 
 export default function Sidebar({ currentScopeLabel, showClients }: SidebarProps): React.ReactElement {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, signOut } = useAuth();
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const navSections: NavSection[] = [
     {
       title: "Tableau de bord",
@@ -41,7 +41,12 @@ export default function Sidebar({ currentScopeLabel, showClients }: SidebarProps
     },
     {
       title: "Finances",
-      items: [{ href: "/dashboard/payments", label: "Paiements", icon: "💰" }]
+      items: [
+        { href: "/dashboard/revenues", label: "Revenus", icon: "📈" },
+        { href: "/dashboard/expenses", label: "Dépenses", icon: "📉" },
+        { href: "/dashboard/reports", label: "Rapports", icon: "🧾" },
+        { href: "/dashboard/payments", label: "Paiements", icon: "💰" }
+      ]
     },
     {
       title: "Services",
@@ -57,10 +62,33 @@ export default function Sidebar({ currentScopeLabel, showClients }: SidebarProps
     }
   ];
 
-  async function handleSignOut(): Promise<void> {
-    await signOut();
-    router.push("/login");
-  }
+  useEffect(() => {
+    if (!showClients) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchOrganization(): Promise<void> {
+      const response = await fetch("/api/organization", { credentials: "include" });
+      if (!response.ok) {
+        return;
+      }
+
+      const result = await response.json() as { success: boolean; data?: { organization: Organization } };
+      if (!cancelled && result.success && result.data) {
+        setOrganization(result.data.organization);
+      }
+    }
+
+    void fetchOrganization();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showClients]);
+
+  const organizationSubtitle = organization?.contactEmail ?? organization?.contactPhone ?? currentScopeLabel;
 
   return (
     <aside className="flex h-full w-60 flex-col bg-[#010a19] text-white">
@@ -110,13 +138,23 @@ export default function Sidebar({ currentScopeLabel, showClients }: SidebarProps
 
       {/* User / sign out */}
       <div className="border-t border-white/10 px-4 py-4">
-        <p className="text-xs text-white/40 truncate mb-2">{user?.email ?? ""}</p>
-        <button
-          onClick={handleSignOut}
-          className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
-        >
-          Se déconnecter
-        </button>
+        {showClients ? (
+          <Link href="/dashboard/organization" className="mb-3 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 transition hover:bg-white/10">
+            {organization?.logoUrl ? (
+              <img src={organization.logoUrl} alt={organization.name} className="h-10 w-10 rounded-lg object-contain bg-white p-1" />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-sm font-semibold uppercase text-white">
+                {(organization?.name ?? "org").slice(0, 2)}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white">{organization?.name ?? "Organisation"}</p>
+              <p className="truncate text-xs text-white/45">{organizationSubtitle}</p>
+            </div>
+          </Link>
+        ) : (
+          <p className="truncate text-xs text-white/40">{currentScopeLabel}</p>
+        )}
       </div>
     </aside>
   );
