@@ -27,6 +27,7 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
     createOrganization: vi.fn(),
     getOrganizationById: vi.fn(),
     updateOrganization: vi.fn(),
+    createOwner: vi.fn(),
     createOwnerClient: vi.fn(),
     createProperty: vi.fn(),
     createPropertyWithUnits: vi.fn(),
@@ -50,6 +51,7 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
     updateUnit: vi.fn(),
     deleteProperty: vi.fn(),
     deleteUnit: vi.fn(),
+    getOwnerById: vi.fn(),
     getOwnerClientById: vi.fn(),
     getPropertyById: vi.fn().mockResolvedValue({
       id: "prp-1",
@@ -58,6 +60,9 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
       address: "Avenue Test",
       city: "Kinshasa",
       countryCode: "CD",
+      ownerId: "own-1",
+      ownerName: "Client 1",
+      ownerType: "client",
       managementContext: "managed",
       propertyType: "multi_unit",
       yearBuilt: null,
@@ -68,6 +73,7 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
       createdAtIso: "2026-03-31T00:00:00.000Z"
     }),
     getUnitById: vi.fn(),
+    listOwners: vi.fn(),
     listOwnerClients: vi.fn(),
     listPropertiesWithUnits: vi.fn().mockResolvedValue([])
   };
@@ -83,6 +89,9 @@ describe("createUnit", () => {
       address: "Avenue Test",
       city: "Kinshasa",
       countryCode: "CD",
+      ownerId: "own-1",
+      ownerName: "Client 1",
+      ownerType: "client",
       managementContext: "managed",
       propertyType: "single_unit",
       yearBuilt: null,
@@ -101,6 +110,9 @@ describe("createUnit", () => {
           address: "Avenue Test",
           city: "Kinshasa",
           countryCode: "CD",
+          ownerId: "own-1",
+          ownerName: "Client 1",
+          ownerType: "client",
           managementContext: "managed",
           propertyType: "single_unit",
           yearBuilt: null,

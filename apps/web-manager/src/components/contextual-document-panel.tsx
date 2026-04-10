@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { Document, DocumentType, DocumentAttachmentType } from "@hhousing/domain";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth, deleteWithAuth } from "../lib/api-client";
+import ActionMenu from "./action-menu";
+import UniversalLoadingState from "./universal-loading-state";
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   lease_agreement: "Contrat de bail",
@@ -187,24 +189,26 @@ export default function ContextualDocumentPanel({
     : [];
 
   return (
-    <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="mt-6 rounded-2xl border border-slate-400 ">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
         <div>
           <h2 className="text-base font-semibold text-[#010a19]">{title}</h2>
-          {description ? <p className="mt-1 text-xs text-gray-500">{description}</p> : null}
+          {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
         </div>
         {!loading && sessionInfo && (
           <button
             onClick={() => setShowUploadForm(!showUploadForm)}
-            className="rounded-lg bg-[#0063fe] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#0050d0]"
+            className="rounded-lg bg-[#0063fe] px-3 py-2 text-xs font-semibold text-white hover:bg-[#0050d0]"
           >
             {showUploadForm ? "Annuler" : addButtonLabel}
           </button>
         )}
       </div>
 
+      <div className="space-y-4 px-6 py-5">
+
       {preferredDocumentType ? (
-        <div className={`mb-4 rounded-lg border px-3 py-2 text-xs ${preferredDocuments.length > 0 ? "border-green-200 bg-green-50 text-green-700" : "border-yellow-200 bg-yellow-50 text-yellow-700"}`}>
+        <div className={`rounded-lg border px-3 py-2 text-xs ${preferredDocuments.length > 0 ? "border-green-200 bg-green-50 text-green-700" : "border-yellow-200 bg-yellow-50 text-yellow-700"}`}>
           {preferredDocuments.length > 0
             ? preferredDocumentReadyMessage ?? "Document attendu déjà importé."
             : preferredDocumentEmptyMessage ?? "Document attendu manquant."}
@@ -212,29 +216,29 @@ export default function ContextualDocumentPanel({
       ) : null}
 
       {message && (
-        <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
           {message}
         </div>
       )}
       {error && (
-        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {error}
         </div>
       )}
 
       {showUploadForm && (
-        <form onSubmit={handleUpload} className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <form onSubmit={handleUpload} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <input
               type="file"
               onChange={handleFileChange}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs"
               required
             />
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs"
             >
               <option value="other">Autre</option>
               <option value="lease_agreement">Contrat de bail</option>
@@ -247,7 +251,7 @@ export default function ContextualDocumentPanel({
           <button
             type="submit"
             disabled={busy || !file}
-            className="rounded-lg bg-[#0063fe] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
+            className="rounded-lg bg-[#0063fe] px-3 py-2 text-xs font-semibold text-white hover:bg-[#0050d0] disabled:opacity-60"
           >
             {busy ? "Téléchargement..." : "Télécharger"}
           </button>
@@ -255,46 +259,49 @@ export default function ContextualDocumentPanel({
       )}
 
       {loading ? (
-        <p className="text-xs text-gray-400">Chargement...</p>
+        <UniversalLoadingState minHeightClassName="min-h-28" size="compact" />
       ) : documents.length === 0 ? (
-        <p className="text-xs text-gray-400">Aucun document.</p>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+          Aucun document.
+        </div>
       ) : (
-        <ul className="divide-y divide-gray-100">
-          {documents.map((doc) => (
-            <li key={doc.id} className="flex items-center justify-between py-2.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${DOCUMENT_TYPE_STYLES[doc.documentType] ?? "bg-gray-100 text-gray-500"}`}
-                >
-                  {DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType}
-                </span>
-                <span className="truncate text-sm text-[#010a19]">{doc.fileName}</span>
-                <span className="shrink-0 text-xs text-gray-400">{formatFileSize(doc.fileSize)}</span>
-              </div>
-              <div className="flex items-center gap-3 ml-3 shrink-0">
-                <span className="text-xs text-gray-400">
-                  {new Date(doc.createdAtIso).toLocaleDateString("fr-FR")}
-                </span>
-                <a
-                  href={doc.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-[#0063fe] hover:underline font-medium"
-                >
-                  Ouvrir
-                </a>
-                <button
-                  onClick={() => handleDelete(doc.id)}
-                  disabled={deleting === doc.id}
-                  className="text-xs text-red-600 hover:underline font-medium disabled:opacity-60"
-                >
-                  {deleting === doc.id ? "..." : "Supprimer"}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <tr>
+                <th className="px-4 py-3 text-left">Document</th>
+                <th className="px-4 py-3 text-left">Type</th>
+                <th className="px-4 py-3 text-left">Taille</th>
+                <th className="px-4 py-3 text-left">Ajouté le</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {documents.map((doc) => (
+                <tr key={doc.id} className="hover:bg-slate-50/80">
+                  <td className="px-4 py-3 font-medium text-[#010a19]">{doc.fileName}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${DOCUMENT_TYPE_STYLES[doc.documentType] ?? "bg-gray-100 text-gray-500"}`}>
+                      {DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">{formatFileSize(doc.fileSize)}</td>
+                  <td className="px-4 py-3 text-slate-500">{new Date(doc.createdAtIso).toLocaleDateString("fr-FR")}</td>
+                  <td className="px-4 py-3 text-right">
+                    <ActionMenu
+                      items={[
+                        { label: "Ouvrir", href: doc.fileUrl },
+                        { label: deleting === doc.id ? "Suppression..." : "Supprimer", onSelect: () => { void handleDelete(doc.id); }, tone: "danger", disabled: deleting === doc.id }
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
+      </div>
     </div>
   );
 }

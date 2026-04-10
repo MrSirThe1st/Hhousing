@@ -10,8 +10,11 @@ import {
   createEmailTemplateRepositoryFromEnv,
   createMessageRepositoryFromEnv,
   createListingRepositoryFromEnv,
+  createTaskRepositoryFromEnv,
+  createCalendarEventRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv,
   type AuthRepository,
+  type CalendarEventRepository,
   type OrganizationPropertyUnitRepository,
   type TenantLeaseRepository,
   type PaymentRepository,
@@ -21,6 +24,7 @@ import {
   type EmailTemplateRepository,
   type MessageRepository,
   type ListingRepository,
+  type TaskRepository,
   TeamFunctionsRepository
 } from "@hhousing/data-access";
 
@@ -79,6 +83,14 @@ export function createMessageRepo(): MessageRepository {
 
 export function createListingRepo(): ListingRepository {
   return createListingRepositoryFromEnv(process.env);
+}
+
+export function createTaskRepo(): TaskRepository {
+  return createTaskRepositoryFromEnv(process.env);
+}
+
+export function createCalendarEventRepo(): CalendarEventRepository {
+  return createCalendarEventRepositoryFromEnv(process.env);
 }
 
 export function createTeamFunctionsRepo(): TeamFunctionsRepository {

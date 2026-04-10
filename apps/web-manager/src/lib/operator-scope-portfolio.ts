@@ -4,7 +4,7 @@ import {
   createTenantLeaseRepositoryFromEnv,
   type PropertyWithUnitsRecord
 } from "@hhousing/data-access";
-import type { Document, Expense, MaintenanceRequest, Payment, Tenant } from "@hhousing/domain";
+import type { CalendarEvent, Document, Expense, MaintenanceRequest, Payment, Task, Tenant } from "@hhousing/domain";
 import { getServerOperatorContext } from "./operator-context";
 import type { OperatorScope } from "./operator-context.types";
 
@@ -12,6 +12,7 @@ export interface ScopedPortfolioData {
   currentScope: OperatorScope;
   properties: PropertyWithUnitsRecord[];
   propertyIds: Set<string>;
+  ownerIds: Set<string>;
   unitIds: Set<string>;
   leases: LeaseWithTenantView[];
   leaseIds: Set<string>;
@@ -28,12 +29,14 @@ export async function getScopedPortfolioData(session: AuthSession): Promise<Scop
 
   const leaseRepository = createTenantLeaseRepositoryFromEnv(process.env);
 
-  const [properties, allLeases] = await Promise.all([
+  const [properties, owners, allLeases] = await Promise.all([
     propertyRepository.data.listPropertiesWithUnits(session.organizationId, operatorContext.currentScope),
+    propertyRepository.data.listOwners(session.organizationId),
     leaseRepository.listLeasesByOrganization(session.organizationId)
   ]);
 
   const propertyIds = new Set(properties.map((item) => item.property.id));
+  const ownerIds = new Set(owners.map((owner) => owner.id));
   const unitIds = new Set(properties.flatMap((item) => item.units.map((unit) => unit.id)));
   const leases = allLeases.filter((lease) => unitIds.has(lease.unitId));
   const leaseIds = new Set(leases.map((lease) => lease.id));
@@ -43,6 +46,7 @@ export async function getScopedPortfolioData(session: AuthSession): Promise<Scop
     currentScope: operatorContext.currentScope,
     properties,
     propertyIds,
+    ownerIds,
     unitIds,
     leases,
     leaseIds,
@@ -112,6 +116,10 @@ export function filterDocumentsByScope(documents: Document[], scoped: ScopedPort
       return scoped.tenantIds.has(document.attachmentId);
     }
 
+    if (document.attachmentType === "owner") {
+      return scoped.ownerIds.has(document.attachmentId);
+    }
+
     return false;
   });
 }
@@ -137,5 +145,40 @@ export function isDocumentAttachmentInScope(
     return scoped.leaseIds.has(attachmentId);
   }
 
+  if (attachmentType === "owner") {
+    return scoped.ownerIds.has(attachmentId);
+  }
+
   return scoped.tenantIds.has(attachmentId);
+}
+
+function isWorkflowRecordInScope(
+  record: { propertyId: string | null; unitId: string | null; leaseId: string | null; tenantId: string | null },
+  scoped: ScopedPortfolioData
+): boolean {
+  if (record.propertyId !== null) {
+    return scoped.propertyIds.has(record.propertyId);
+  }
+
+  if (record.unitId !== null) {
+    return scoped.unitIds.has(record.unitId);
+  }
+
+  if (record.leaseId !== null) {
+    return scoped.leaseIds.has(record.leaseId);
+  }
+
+  if (record.tenantId !== null) {
+    return scoped.tenantIds.has(record.tenantId);
+  }
+
+  return true;
+}
+
+export function filterTasksByScope(tasks: Task[], scoped: ScopedPortfolioData): Task[] {
+  return tasks.filter((task) => isWorkflowRecordInScope(task, scoped));
+}
+
+export function filterCalendarEventsByScope(events: CalendarEvent[], scoped: ScopedPortfolioData): CalendarEvent[] {
+  return events.filter((event) => isWorkflowRecordInScope(event, scoped));
 }

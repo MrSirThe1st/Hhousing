@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Tenant } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
+import UniversalLoadingState from "../../../../components/universal-loading-state";
 
 const ContextualDocumentPanel = dynamic(
   () => import("../../../../components/contextual-document-panel"),
@@ -123,7 +124,7 @@ export default function TenantDetailPage({ params }: PageProps): React.ReactElem
   if (loading) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Chargement...</p>
+        <UniversalLoadingState />
       </div>
     );
   }

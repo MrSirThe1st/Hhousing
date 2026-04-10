@@ -1,12 +1,13 @@
-import type { OwnerClient } from "@hhousing/domain";
+import type { Owner } from "@hhousing/domain";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
-import type { OperatorScope } from "../lib/operator-context.types";
 
 export interface PropertyManagementPanelProps {
   organizationId: string;
   items: PropertyWithUnitsView[];
-  currentScope: OperatorScope;
-  currentScopeLabel: string;
+}
+
+export interface PropertyOwnerOption extends Owner {
+  isDefault?: boolean;
 }
 
 export interface PropertyFormState {

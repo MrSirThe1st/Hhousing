@@ -5,8 +5,8 @@ export type {
   OrganizationMembership,
   UserRole
 } from "./entities/organization-membership.types";
-export type { OwnerClient } from "./entities/owner-client.types";
-export type { Property, PropertyStatus, PropertyManagementContext, PropertyType } from "./entities/property.types";
+export type { Owner, OwnerClient, OwnerType } from "./entities/owner.types";
+export type { Property, PropertyManagementContext, PropertyOwnerType, PropertyStatus, PropertyType } from "./entities/property.types";
 export type { Listing, ListingStatus, ListingVisibility } from "./entities/listing.types";
 export type { ListingApplication, ListingApplicationStatus } from "./entities/listing-application.types";
 export type { Unit, UnitStatus } from "./entities/unit.types";
@@ -16,6 +16,19 @@ export type { LeaseChargeTemplate, LeaseChargeType, LeaseChargeFrequency } from 
 export type { EmailTemplate, EmailTemplateScenario } from "./entities/email-template.types";
 export type { Payment, PaymentStatus, PaymentKind, PaymentBillingFrequency } from "./entities/payment.types";
 export type { Expense, ExpenseCategory } from "./entities/expense.types";
+export type {
+  Task,
+  TaskPriority,
+  TaskStatus,
+  TaskSource,
+  TaskSystemCode,
+  WorkflowEntityType
+} from "./entities/task.types";
+export type {
+  CalendarEvent,
+  CalendarEventType,
+  CalendarEventStatus
+} from "./entities/calendar-event.types";
 export type { Conversation, Message, MessageSenderSide } from "./entities/conversation.types";
 export type {
   MaintenanceRequest,

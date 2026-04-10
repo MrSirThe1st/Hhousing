@@ -176,6 +176,7 @@ export async function PATCH(
 
     let clientId: string | null = null;
     let clientName: string | null = null;
+    let ownerType: "organization" | "client" = "organization";
 
     if (parsed.data.clientId) {
       const ownerClient = await repositoryResult.data.getOwnerClientById(
@@ -193,6 +194,21 @@ export async function PATCH(
 
       clientId = ownerClient.id;
       clientName = ownerClient.name;
+      ownerType = "client";
+    } else {
+      const owners = await repositoryResult.data.listOwners(access.data.organizationId);
+      const organizationOwner = owners.find((owner) => owner.ownerType === "organization");
+
+      if (!organizationOwner) {
+        return jsonResponse(500, {
+          success: false,
+          code: "INTERNAL_ERROR",
+          error: "Organization owner not found"
+        });
+      }
+
+      clientId = organizationOwner.id;
+      clientName = organizationOwner.name;
     }
 
     const property = await repositoryResult.data.updateProperty({
@@ -202,9 +218,9 @@ export async function PATCH(
       address: parsed.data.address,
       city: parsed.data.city,
       countryCode: parsed.data.countryCode,
-      managementContext: parsed.data.managementContext,
-      clientId,
-      clientName
+      ownerId: clientId,
+      ownerName: clientName ?? parsed.data.name,
+      ownerType
     });
 
     if (!property) {

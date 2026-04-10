@@ -9,6 +9,7 @@ import type {
   MaintenanceEventType
 } from "@hhousing/domain";
 import { patchWithAuth } from "../../../../lib/api-client";
+import UniversalLoadingState from "../../../../components/universal-loading-state";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -154,7 +155,7 @@ export default function MaintenanceDetailPage({ params }: PageProps): React.Reac
   if (loading) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Chargement...</p>
+        <UniversalLoadingState />
       </div>
     );
   }

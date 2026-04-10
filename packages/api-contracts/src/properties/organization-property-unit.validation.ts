@@ -58,11 +58,10 @@ const createPropertySchema = z.object({
   address: nonEmptyText,
   city: nonEmptyText,
   countryCode: nonEmptyText,
-  managementContext: z.enum(["owned", "managed"]),
+  ownerId: nonEmptyText,
   propertyType: z.enum(["single_unit", "multi_unit"]),
   yearBuilt: z.number().int().min(1800).max(2200).nullable().optional(),
   photoUrls: z.array(nonEmptyText).max(20).optional(),
-  clientId: nonEmptyText.nullable().optional(),
   unitTemplate: createPropertyUnitTemplateSchema.optional()
 }).superRefine((value, context) => {
   if (value.propertyType === "single_unit") {

@@ -10,6 +10,7 @@ import type {
   Tenant,
   Unit
 } from "@hhousing/domain";
+import UniversalLoadingState from "./universal-loading-state";
 import type {
   CreateEmailTemplateOutput,
   EmailTemplateView,
@@ -43,7 +44,8 @@ const ATTACHMENT_TYPE_LABELS: Record<DocumentAttachmentType, string> = {
   property: "Propriété",
   unit: "Unité",
   tenant: "Locataire",
-  lease: "Bail"
+  lease: "Bail",
+  owner: "Owner"
 };
 
 const SCENARIO_LABELS: Record<EmailTemplateScenario, string> = {
@@ -568,10 +570,11 @@ export default function DocumentsWorkspacePanel({
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+import UniversalLoadingState from "./universal-loading-state";
               <h2 className="text-base font-semibold text-[#010a19]">Templates personnalisés</h2>
               <p className="mt-1 text-sm text-gray-500">Créez vos propres modèles d'envoi, puis réutilisez-les dans l'onglet Envoi.</p>
               {templatesLoading ? (
-                <p className="mt-4 text-sm text-gray-400">Chargement...</p>
+                <UniversalLoadingState minHeightClassName="min-h-28" size="compact" className="mt-4" />
               ) : customTemplates.length === 0 ? (
                 <p className="mt-4 text-sm text-gray-400">Aucun template personnalisé enregistré.</p>
               ) : (
@@ -774,6 +777,10 @@ function getAttachmentLabel(
 
   if (document.attachmentType === "tenant") {
     return tenants.find((tenant) => tenant.id === document.attachmentId)?.fullName ?? document.attachmentId;
+  }
+
+  if (document.attachmentType === "owner") {
+    return document.attachmentId;
   }
 
   const lease = leases.find((item) => item.id === document.attachmentId);

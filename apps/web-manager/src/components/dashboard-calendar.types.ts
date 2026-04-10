@@ -1,24 +1,11 @@
-export type DashboardCalendarMetrics = {
-  propertyCount: number;
-  unitCount: number;
-  tenantCount: number;
-  leaseCount: number;
-  maintenanceCount: number;
-  occupiedUnitCount: number;
-};
+import type { DashboardCalendarEntry, DashboardWorkflowRelatedOption } from "../lib/dashboard-workflow.types";
 
-export type DashboardCalendarEventTone = "blue" | "amber" | "emerald" | "slate";
-
-export type DashboardCalendarEvent = {
-  id: string;
-  title: string;
-  detail: string;
-  date: Date;
-  timeLabel: string;
-  tone: DashboardCalendarEventTone;
-};
+export type DashboardCalendarEventTone = "blue" | "amber" | "emerald" | "slate" | "rose";
 
 export type DashboardCalendarProps = {
-  metrics: DashboardCalendarMetrics;
+  organizationId: string;
+  currentUserId: string;
+  entries: DashboardCalendarEntry[];
+  relatedOptions: DashboardWorkflowRelatedOption[];
   scopeLabel: string;
 };

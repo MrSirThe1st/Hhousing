@@ -94,8 +94,9 @@ export async function PATCH(
       });
     }
 
-    let clientId: string | null = null;
-    let clientName: string | null = null;
+    let ownerId: string;
+    let ownerName: string;
+    let ownerType: "organization" | "client";
 
     if (parsed.data.clientId) {
       const ownerClient = await repository.getOwnerClientById(parsed.data.clientId, access.data.organizationId);
@@ -108,8 +109,24 @@ export async function PATCH(
         });
       }
 
-      clientId = ownerClient.id;
-      clientName = ownerClient.name;
+      ownerId = ownerClient.id;
+      ownerName = ownerClient.name;
+      ownerType = "client";
+    } else {
+      const owners = await repository.listOwners(access.data.organizationId);
+      const organizationOwner = owners.find((owner) => owner.ownerType === "organization");
+
+      if (!organizationOwner) {
+        return jsonResponse(500, {
+          success: false,
+          code: "INTERNAL_ERROR",
+          error: "Organization owner not found"
+        });
+      }
+
+      ownerId = organizationOwner.id;
+      ownerName = organizationOwner.name;
+      ownerType = "organization";
     }
 
     const updatedProperty = await repository.updateProperty({
@@ -119,9 +136,9 @@ export async function PATCH(
       address: property.address,
       city: property.city,
       countryCode: property.countryCode,
-      managementContext: property.managementContext,
-      clientId,
-      clientName
+      ownerId,
+      ownerName,
+      ownerType
     });
 
     if (!updatedProperty) {

@@ -24,6 +24,15 @@ vi.mock("../../lib/operator-context", () => ({
   getOperatorScopeLabel: () => "Mon parc"
 }));
 
+vi.mock("../../lib/sidebar-badge-counts", () => ({
+  getSidebarBadgeCounts: vi.fn().mockResolvedValue({
+    listings: 0,
+    payments: 0,
+    maintenance: 0,
+    messages: 0
+  })
+}));
+
 vi.mock("../../components/sidebar", () => ({
   default: () => "sidebar"
 }));

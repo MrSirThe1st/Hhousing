@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { LeaseStatus } from "@hhousing/domain";
 import type { LeaseManagementPanelProps } from "./tenant-management.types";
+import ActionMenu from "./action-menu";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Actif",
@@ -133,12 +134,11 @@ export default function LeaseManagementPanel({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/dashboard/leases/${lease.id}`}
-                      className="text-[#0063fe] hover:underline text-sm font-medium"
-                    >
-                      Voir détails
-                    </Link>
+                    <ActionMenu
+                      items={[
+                        { label: "Voir la fiche", href: `/dashboard/leases/${lease.id}` }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

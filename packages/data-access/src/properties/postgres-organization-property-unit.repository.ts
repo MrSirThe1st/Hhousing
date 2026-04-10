@@ -1,13 +1,15 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import type { ApiResult } from "@hhousing/api-contracts";
-import type { Organization, OwnerClient, Property, PropertyManagementContext, Unit } from "@hhousing/domain";
+import type { Organization, Owner, OwnerType, Property, Unit } from "@hhousing/domain";
+import type { PropertyManagementContext } from "@hhousing/domain";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
-  CreateOwnerClientRecordInput,
+  CreateOwnerRecordInput,
   CreateOrganizationRecordInput,
   CreatePropertyRecordInput,
   CreatePropertyWithUnitsRecordInput,
   CreateUnitRecordInput,
+  ListPropertiesWithUnitsFilter,
   UpdateOrganizationRecordInput,
   UpdatePropertyRecordInput,
   UpdateUnitRecordInput,
@@ -46,10 +48,21 @@ interface PropertyRow extends QueryResultRow {
   created_at: Date | string;
 }
 
-interface OwnerClientRow extends QueryResultRow {
+interface OwnerRow extends QueryResultRow {
   id: string;
   organization_id: string;
   name: string;
+  full_name: string;
+  owner_type?: OwnerType;
+  user_id?: string | null;
+  address: string | null;
+  is_company: boolean;
+  company_name: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  phone_number: string | null;
+  profile_picture_url: string | null;
   created_at: Date | string;
 }
 
@@ -113,6 +126,142 @@ interface TransactionCapableClient extends DatabaseQueryable {
 }
 
 const poolCache = new Map<string, Pool>();
+let propertyStorageSchemaPromise: Promise<PropertyStorageSchema> | null = null;
+
+interface PropertyStorageSchema {
+  relationIdColumn: "client_id" | "owner_id";
+  relationNameColumn: "client_name" | "owner_name";
+  ownersTable: "owner_clients" | "owners";
+  ownerProfileColumns: {
+    fullName: boolean;
+    address: boolean;
+    isCompany: boolean;
+    companyName: boolean;
+    country: boolean;
+    city: boolean;
+    state: boolean;
+    phoneNumber: boolean;
+    profilePictureUrl: boolean;
+  };
+}
+
+async function getPropertyStorageSchema(client: DatabaseQueryable): Promise<PropertyStorageSchema> {
+  if (!propertyStorageSchemaPromise) {
+    propertyStorageSchemaPromise = (async () => {
+      const [columnResult, tableResult, ownerColumnResult] = await Promise.all([
+        client.query<{ column_name: string }>(
+          `select column_name
+           from information_schema.columns
+           where table_schema = current_schema()
+             and table_name = 'properties'
+             and column_name in ('client_id', 'client_name', 'owner_id', 'owner_name')`
+        ),
+        client.query<{ table_name: string; column_name?: string }>(
+          `select table_name
+           from information_schema.tables
+           where table_schema = current_schema()
+             and table_name in ('owner_clients', 'owners')`
+        ),
+        client.query<{ column_name: string }>(
+          `select column_name
+           from information_schema.columns
+           where table_schema = current_schema()
+             and table_name = 'owners'
+             and column_name in ('full_name', 'address', 'is_company', 'company_name', 'country', 'city', 'state', 'phone_number', 'profile_picture_url')`
+        )
+      ]);
+
+      const columnNames = new Set(columnResult.rows.map((row) => row.column_name));
+      const tableNames = new Set(tableResult.rows.map((row) => row.table_name));
+      const ownerColumnNames = new Set(ownerColumnResult.rows.map((row) => row.column_name));
+
+      return {
+        relationIdColumn: columnNames.has("owner_id") ? "owner_id" : "client_id",
+        relationNameColumn: columnNames.has("owner_name") ? "owner_name" : "client_name",
+        ownersTable: tableNames.has("owners") ? "owners" : "owner_clients",
+        ownerProfileColumns: {
+          fullName: ownerColumnNames.has("full_name"),
+          address: ownerColumnNames.has("address"),
+          isCompany: ownerColumnNames.has("is_company"),
+          companyName: ownerColumnNames.has("company_name"),
+          country: ownerColumnNames.has("country"),
+          city: ownerColumnNames.has("city"),
+          state: ownerColumnNames.has("state"),
+          phoneNumber: ownerColumnNames.has("phone_number"),
+          profilePictureUrl: ownerColumnNames.has("profile_picture_url")
+        }
+      };
+    })();
+  }
+
+  return propertyStorageSchemaPromise;
+}
+
+function relationIdAlias(schema: PropertyStorageSchema, tableAlias = "p"): string {
+  return `${tableAlias}.${schema.relationIdColumn} as client_id`;
+}
+
+function relationNameAlias(schema: PropertyStorageSchema, tableAlias = "p"): string {
+  return `${tableAlias}.${schema.relationNameColumn} as client_name`;
+}
+
+function ownerRelationIdAlias(schema: PropertyStorageSchema, tableAlias = "p"): string {
+  return `${tableAlias}.${schema.relationIdColumn} as property_client_id`;
+}
+
+function ownerRelationNameAlias(schema: PropertyStorageSchema, tableAlias = "p"): string {
+  return `${tableAlias}.${schema.relationNameColumn} as property_client_name`;
+}
+
+function ownerSelectList(schema: PropertyStorageSchema, tableAlias?: string): string {
+  const prefix = tableAlias ? `${tableAlias}.` : "";
+
+  return [
+    `${prefix}id`,
+    `${prefix}organization_id`,
+    `${prefix}name`,
+    schema.ownersTable === "owners" ? `${prefix}owner_type` : `'client'::text as owner_type`,
+    schema.ownersTable === "owners" ? `${prefix}user_id` : `null::text as user_id`,
+    schema.ownerProfileColumns.fullName ? `${prefix}full_name` : `${prefix}name as full_name`,
+    schema.ownerProfileColumns.address ? `${prefix}address` : `null::text as address`,
+    schema.ownerProfileColumns.isCompany ? `${prefix}is_company` : `false as is_company`,
+    schema.ownerProfileColumns.companyName ? `${prefix}company_name` : `null::text as company_name`,
+    schema.ownerProfileColumns.country ? `${prefix}country` : `null::text as country`,
+    schema.ownerProfileColumns.city ? `${prefix}city` : `null::text as city`,
+    schema.ownerProfileColumns.state ? `${prefix}state` : `null::text as state`,
+    schema.ownerProfileColumns.phoneNumber ? `${prefix}phone_number` : `null::text as phone_number`,
+    schema.ownerProfileColumns.profilePictureUrl ? `${prefix}profile_picture_url` : `null::text as profile_picture_url`,
+    `${prefix}created_at`
+  ].join(", ");
+}
+
+function createOrganizationOwner(organization: Organization): Owner {
+  return {
+    id: getOrganizationOwnerId(organization.id),
+    organizationId: organization.id,
+    name: organization.name,
+    fullName: organization.name,
+    ownerType: "organization",
+    userId: null,
+    address: organization.address,
+    isCompany: true,
+    companyName: organization.name,
+    country: null,
+    city: null,
+    state: null,
+    phoneNumber: organization.contactPhone ?? organization.contactWhatsapp,
+    profilePictureUrl: organization.logoUrl,
+    createdAtIso: organization.createdAtIso
+  };
+}
+
+function getOrganizationOwnerId(organizationId: string): string {
+  return `own_org_${organizationId}`;
+}
+
+function mapManagementContextToOwnerType(value: PropertyManagementContext): OwnerType {
+  return value === "owned" ? "organization" : "client";
+}
 
 function toIso(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
@@ -139,6 +288,12 @@ function mapOrganization(row: OrganizationRow): Organization {
 }
 
 function mapProperty(row: PropertyRow): Property {
+  const ownerType = mapManagementContextToOwnerType(row.management_context);
+  const ownerId = ownerType === "organization" ? getOrganizationOwnerId(row.organization_id) : (row.client_id ?? getOrganizationOwnerId(row.organization_id));
+  const ownerName = ownerType === "organization" ? "Organisation" : (row.client_name ?? "Owner client");
+  const clientId = ownerType === "client" ? row.client_id : null;
+  const clientName = ownerType === "client" ? row.client_name : null;
+
   return {
     id: row.id,
     organizationId: row.organization_id,
@@ -150,18 +305,32 @@ function mapProperty(row: PropertyRow): Property {
     propertyType: row.property_type,
     yearBuilt: row.year_built,
     photoUrls: row.photo_urls,
-    clientId: row.client_id,
-    clientName: row.client_name,
+    ownerId,
+    ownerName,
+    ownerType,
+    clientId,
+    clientName,
     status: row.status,
     createdAtIso: toIso(row.created_at)
   };
 }
 
-function mapOwnerClient(row: OwnerClientRow): OwnerClient {
+function mapOwner(row: OwnerRow): Owner {
   return {
     id: row.id,
     organizationId: row.organization_id,
     name: row.name,
+    fullName: row.full_name,
+    ownerType: row.owner_type ?? "client",
+    userId: row.user_id ?? null,
+    address: row.address,
+    isCompany: row.is_company,
+    companyName: row.company_name,
+    country: row.country,
+    city: row.city,
+    state: row.state,
+    phoneNumber: row.phone_number,
+    profilePictureUrl: row.profile_picture_url,
     createdAtIso: toIso(row.created_at)
   };
 }
@@ -277,17 +446,75 @@ export function createPostgresOrganizationPropertyUnitRepository(
 
       return result.rows[0] ? mapOrganization(result.rows[0]) : null;
     },
-    async createOwnerClient(input: CreateOwnerClientRecordInput): Promise<OwnerClient> {
-      const result = await client.query<OwnerClientRow>(
-        `insert into owner_clients (id, organization_id, name)
-         values ($1, $2, $3)
-         returning id, organization_id, name, created_at`,
-        [input.id, input.organizationId, input.name]
+    async createOwner(input: CreateOwnerRecordInput): Promise<Owner> {
+      const schema = await getPropertyStorageSchema(client);
+      const values: Array<string | boolean | null> = [input.id, input.organizationId, input.name];
+      const columns = ["id", "organization_id", "name"];
+
+      if (schema.ownersTable === "owners") {
+        columns.push("owner_type", "user_id");
+        values.push(input.ownerType, input.userId);
+
+        if (schema.ownerProfileColumns.fullName) {
+          columns.push("full_name");
+          values.push(input.fullName);
+        }
+
+        if (schema.ownerProfileColumns.address) {
+          columns.push("address");
+          values.push(input.address);
+        }
+
+        if (schema.ownerProfileColumns.isCompany) {
+          columns.push("is_company");
+          values.push(input.isCompany);
+        }
+
+        if (schema.ownerProfileColumns.companyName) {
+          columns.push("company_name");
+          values.push(input.companyName);
+        }
+
+        if (schema.ownerProfileColumns.country) {
+          columns.push("country");
+          values.push(input.country);
+        }
+
+        if (schema.ownerProfileColumns.city) {
+          columns.push("city");
+          values.push(input.city);
+        }
+
+        if (schema.ownerProfileColumns.state) {
+          columns.push("state");
+          values.push(input.state);
+        }
+
+        if (schema.ownerProfileColumns.phoneNumber) {
+          columns.push("phone_number");
+          values.push(input.phoneNumber);
+        }
+
+        if (schema.ownerProfileColumns.profilePictureUrl) {
+          columns.push("profile_picture_url");
+          values.push(input.profilePictureUrl);
+        }
+      }
+
+      const result = await client.query<OwnerRow>(
+        `insert into ${schema.ownersTable} (${columns.join(", ")})
+         values (${columns.map((_, index) => `$${index + 1}`).join(", ")})
+         returning ${ownerSelectList(schema)}`,
+        values
       );
 
-      return mapOwnerClient(result.rows[0]);
+      return mapOwner(result.rows[0]);
+    },
+    async createOwnerClient(input: CreateOwnerRecordInput): Promise<Owner> {
+      return this.createOwner(input);
     },
     async createProperty(input: CreatePropertyRecordInput): Promise<Property> {
+      const schema = await getPropertyStorageSchema(client);
       const result = await client.query<PropertyRow>(
         `insert into properties (
           id,
@@ -300,10 +527,10 @@ export function createPostgresOrganizationPropertyUnitRepository(
           property_type,
           year_built,
           photo_urls,
-          client_id,
-          client_name
+          ${schema.relationIdColumn},
+          ${schema.relationNameColumn}
         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, client_id, client_name, status, created_at`,
+        returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
         [
           input.id,
           input.organizationId,
@@ -311,12 +538,12 @@ export function createPostgresOrganizationPropertyUnitRepository(
           input.address,
           input.city,
           input.countryCode,
-          input.managementContext,
+          input.ownerType === "organization" ? "owned" : "managed",
           input.propertyType,
           input.yearBuilt,
           input.photoUrls,
-          input.clientId,
-          input.clientName
+          input.ownerType === "client" ? input.ownerId : null,
+          input.ownerType === "client" ? input.ownerName : null
         ]
       );
 
@@ -326,6 +553,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
       input: CreatePropertyWithUnitsRecordInput
     ): Promise<{ property: Property; units: Unit[] }> {
       return withTransaction(transactionCapableClient, async (queryable) => {
+        const schema = await getPropertyStorageSchema(queryable);
         const propertyResult = await queryable.query<PropertyRow>(
           `insert into properties (
             id,
@@ -338,10 +566,10 @@ export function createPostgresOrganizationPropertyUnitRepository(
             property_type,
             year_built,
             photo_urls,
-            client_id,
-            client_name
+            ${schema.relationIdColumn},
+            ${schema.relationNameColumn}
           ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, client_id, client_name, status, created_at`,
+          returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
           [
             input.property.id,
             input.property.organizationId,
@@ -349,12 +577,12 @@ export function createPostgresOrganizationPropertyUnitRepository(
             input.property.address,
             input.property.city,
             input.property.countryCode,
-            input.property.managementContext,
+            input.property.ownerType === "organization" ? "owned" : "managed",
             input.property.propertyType,
             input.property.yearBuilt,
             input.property.photoUrls,
-            input.property.clientId,
-            input.property.clientName
+            input.property.ownerType === "client" ? input.property.ownerId : null,
+            input.property.ownerType === "client" ? input.property.ownerName : null
           ]
         );
 
@@ -436,6 +664,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
       return mapUnit(result.rows[0]);
     },
     async updateProperty(input: UpdatePropertyRecordInput): Promise<Property | null> {
+      const schema = await getPropertyStorageSchema(client);
       const result = await client.query<PropertyRow>(
         `update properties
          set name = $1,
@@ -443,18 +672,18 @@ export function createPostgresOrganizationPropertyUnitRepository(
              city = $3,
              country_code = $4,
              management_context = $5,
-             client_id = $6,
-             client_name = $7
+             ${schema.relationIdColumn} = $6,
+             ${schema.relationNameColumn} = $7
            where id = $8 and organization_id = $9
-         returning *`,
+         returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
         [
           input.name,
           input.address,
           input.city,
           input.countryCode,
-          input.managementContext,
-          input.clientId,
-          input.clientName,
+          input.ownerType === "organization" ? "owned" : "managed",
+          input.ownerType === "client" ? input.ownerId : null,
+          input.ownerType === "client" ? input.ownerName : null,
           input.id,
           input.organizationId
         ]
@@ -489,19 +718,56 @@ export function createPostgresOrganizationPropertyUnitRepository(
 
       return (result.rowCount ?? 0) > 0;
     },
-    async getOwnerClientById(clientId: string, organizationId: string): Promise<OwnerClient | null> {
-      const result = await client.query<OwnerClientRow>(
-        `select id, organization_id, name, created_at
-         from owner_clients
-         where id = $1 and organization_id = $2`,
-        [clientId, organizationId]
+    async getOwnerById(ownerId: string, organizationId: string): Promise<Owner | null> {
+      if (ownerId === getOrganizationOwnerId(organizationId)) {
+        const organization = await this.getOrganizationById(organizationId);
+        if (!organization) {
+          return null;
+        }
+
+        return {
+          ...createOrganizationOwner(organization),
+          id: getOrganizationOwnerId(organizationId)
+        };
+      }
+
+      const schema = await getPropertyStorageSchema(client);
+      const result = await client.query<OwnerRow>(
+        schema.ownersTable === "owners"
+           ? `select ${ownerSelectList(schema, "owners")}
+             from owners
+             where id = $1 and organization_id = $2`
+           : `select ${ownerSelectList(schema, "owner_clients")}
+             from owner_clients
+             where id = $1 and organization_id = $2`,
+        [ownerId, organizationId]
       );
 
-      return result.rows[0] ? mapOwnerClient(result.rows[0]) : null;
+      return result.rows[0] ? mapOwner(result.rows[0]) : null;
+    },
+    async getOwnerClientById(ownerId: string, organizationId: string): Promise<Owner | null> {
+      return this.getOwnerById(ownerId, organizationId);
     },
     async getPropertyById(propertyId: string, organizationId: string): Promise<Property | null> {
+      const schema = await getPropertyStorageSchema(client);
       const result = await client.query<PropertyRow>(
-        `select * from properties where id = $1 and organization_id = $2`,
+        `select
+           id,
+           organization_id,
+           name,
+           address,
+           city,
+           country_code,
+           management_context,
+           property_type,
+           year_built,
+           photo_urls,
+           ${relationIdAlias(schema, "properties")},
+           ${relationNameAlias(schema, "properties")},
+           status,
+           created_at
+         from properties
+         where id = $1 and organization_id = $2`,
         [propertyId, organizationId]
       );
 
@@ -515,25 +781,65 @@ export function createPostgresOrganizationPropertyUnitRepository(
 
       return result.rows[0] ? mapUnit(result.rows[0]) : null;
     },
-    async listOwnerClients(organizationId: string): Promise<OwnerClient[]> {
-      const result = await client.query<OwnerClientRow>(
-        `select id, organization_id, name, created_at
-         from owner_clients
-         where organization_id = $1
-         order by name asc, created_at desc`,
-        [organizationId]
-      );
+    async listOwners(organizationId: string): Promise<Owner[]> {
+      const schema = await getPropertyStorageSchema(client);
+      const [organization, result] = await Promise.all([
+        this.getOrganizationById(organizationId),
+        client.query<OwnerRow>(
+          schema.ownersTable === "owners"
+            ? `select ${ownerSelectList(schema, "owners")}
+               from owners
+              where organization_id = $1 and owner_type = 'client'
+               order by name asc, created_at desc`
+            : `select ${ownerSelectList(schema, "owner_clients")}
+               from owner_clients
+               where organization_id = $1
+               order by name asc, created_at desc`,
+          [organizationId]
+        )
+      ]);
 
-      return result.rows.map(mapOwnerClient);
+      const owners = result.rows.map(mapOwner);
+
+      if (!organization) {
+        return owners;
+      }
+
+      return [
+        createOrganizationOwner(organization),
+        ...owners
+      ];
+    },
+    async listOwnerClients(organizationId: string): Promise<Owner[]> {
+      const owners = await this.listOwners(organizationId);
+      return owners.filter((owner) => owner.ownerType === "client");
     },
     async listPropertiesWithUnits(
       organizationId: string,
-      managementContext?: PropertyManagementContext
+      filter?: ListPropertiesWithUnitsFilter | PropertyManagementContext
     ): Promise<PropertyWithUnitsRecord[]> {
-      const filterClause = managementContext ? "and p.management_context = $2" : "";
-      const values: readonly unknown[] = managementContext
-        ? [organizationId, managementContext]
-        : [organizationId];
+      const normalizedFilter = typeof filter === "string"
+        ? { managementContext: filter }
+        : filter;
+      const schema = await getPropertyStorageSchema(client);
+      const values: unknown[] = [organizationId];
+      const clauses = ["p.organization_id = $1"];
+
+      const normalizedOwnerType = normalizedFilter?.ownerType
+        ?? (normalizedFilter?.managementContext === "owned" ? "organization" : normalizedFilter?.managementContext === "managed" ? "client" : undefined);
+
+      if (normalizedFilter?.ownerId) {
+        if (normalizedFilter.ownerId === getOrganizationOwnerId(organizationId)) {
+          clauses.push("p.management_context = 'owned'");
+        } else {
+          values.push(normalizedFilter.ownerId);
+          clauses.push(`p.${schema.relationIdColumn} = $${values.length}`);
+        }
+      }
+
+      if (normalizedOwnerType) {
+        clauses.push(normalizedOwnerType === "organization" ? "p.management_context = 'owned'" : "p.management_context = 'managed'");
+      }
 
       const result = await client.query<PropertyWithUnitRow>(
         `select
@@ -547,8 +853,8 @@ export function createPostgresOrganizationPropertyUnitRepository(
            p.property_type as property_type,
            p.year_built as property_year_built,
            p.photo_urls as property_photo_urls,
-           p.client_id as property_client_id,
-           p.client_name as property_client_name,
+           ${ownerRelationIdAlias(schema)},
+           ${ownerRelationNameAlias(schema)},
            p.status as property_status,
            p.created_at as property_created_at,
            u.id as unit_id,
@@ -567,8 +873,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
            u.created_at as unit_created_at
          from properties p
          left join units u on u.property_id = p.id
-         where p.organization_id = $1
-         ${filterClause}
+         where ${clauses.join(" and ")}
          order by p.created_at desc, u.created_at desc`,
         values
       );
@@ -611,6 +916,11 @@ export function createPostgresOrganizationPropertyUnitRepository(
             propertyType: row.property_type,
             yearBuilt: row.property_year_built,
             photoUrls: row.property_photo_urls,
+            ownerId: row.property_management_context === "owned"
+              ? getOrganizationOwnerId(row.property_organization_id)
+              : (row.property_client_id ?? getOrganizationOwnerId(row.property_organization_id)),
+            ownerName: row.property_management_context === "owned" ? "Organisation" : (row.property_client_name ?? "Owner client"),
+            ownerType: row.property_management_context === "owned" ? "organization" : "client",
             clientId: row.property_client_id,
             clientName: row.property_client_name,
             status: row.property_status,

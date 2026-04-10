@@ -28,7 +28,7 @@ export async function POST(request: Request): Promise<Response> {
 
     if (
       attachmentId !== null &&
-      (attachmentType === "property" || attachmentType === "unit" || attachmentType === "tenant" || attachmentType === "lease")
+      (attachmentType === "property" || attachmentType === "unit" || attachmentType === "tenant" || attachmentType === "lease" || attachmentType === "owner")
     ) {
       const scopedPortfolio = await getScopedPortfolioData(session);
       if (!isDocumentAttachmentInScope(attachmentType, attachmentId, scopedPortfolio)) {

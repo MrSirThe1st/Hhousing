@@ -5,6 +5,7 @@ import type {
   GetManagerConversationDetailOutput,
   ManagerConversationListItem
 } from "@hhousing/api-contracts";
+import UniversalLoadingState from "./universal-loading-state";
 
 interface PropertyOption {
   id: string;
@@ -240,9 +241,10 @@ export default function MessagingManagementPanel({
             <p className="text-xs text-gray-500">Conversations triées par activité récente</p>
           </div>
 
+import UniversalLoadingState from "./universal-loading-state";
           <div className="max-h-[70vh] overflow-y-auto divide-y divide-gray-100">
             {listLoading ? (
-              <p className="p-4 text-sm text-gray-500">Chargement...</p>
+              <UniversalLoadingState minHeightClassName="min-h-56" size="compact" />
             ) : listError ? (
               <p className="p-4 text-sm text-red-600">{listError}</p>
             ) : conversations.length === 0 ? (
@@ -323,7 +325,7 @@ export default function MessagingManagementPanel({
               </button>
             </div>
           ) : detailLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement conversation...</p>
+            <UniversalLoadingState minHeightClassName="min-h-[70vh]" size="compact" />
           ) : detailError ? (
             <p className="p-5 text-sm text-red-600">{detailError}</p>
           ) : detail ? (

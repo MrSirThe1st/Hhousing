@@ -4,8 +4,11 @@ import { use, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { ReactElement, FormEvent } from "react";
 import type { Lease, Tenant, Unit } from "@hhousing/domain";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../../../../lib/api-client";
+import ActionMenu from "../../../../components/action-menu";
+import UniversalLoadingState from "../../../../components/universal-loading-state";
 
 const ContextualDocumentPanel = dynamic(
   () => import("../../../../components/contextual-document-panel"),
@@ -24,7 +27,43 @@ type UnitFormData = {
   status: "vacant" | "occupied" | "inactive";
 };
 
-export default function UnitDetailPage({ params }: PageProps): React.ReactElement {
+function PlusIcon(): ReactElement {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function formatCurrencyAmount(amount: number, currencyCode: string): string {
+  return `${amount.toLocaleString("fr-FR")} ${currencyCode}`;
+}
+
+function getUnitStatusClassName(status: Unit["status"]): string {
+  if (status === "occupied") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+  }
+
+  if (status === "vacant") {
+    return "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100";
+  }
+
+  return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
+}
+
+function getUnitStatusLabel(status: Unit["status"]): string {
+  if (status === "occupied") {
+    return "Occupée";
+  }
+
+  if (status === "vacant") {
+    return "Vacante";
+  }
+
+  return "Inactive";
+}
+
+export default function UnitDetailPage({ params }: PageProps): ReactElement {
   const router = useRouter();
   const { id } = use(params);
 
@@ -52,12 +91,8 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
     async function fetchUnitAndTenants(): Promise<void> {
       try {
         const [unitResponse, tenantsResponse] = await Promise.all([
-          fetch(`/api/units/${id}`, {
-            credentials: "include"
-          }),
-          fetch("/api/tenants", {
-            credentials: "include"
-          })
+          fetch(`/api/units/${id}`, { credentials: "include" }),
+          fetch("/api/tenants", { credentials: "include" })
         ]);
 
         if (!unitResponse.ok) {
@@ -100,10 +135,10 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
       }
     }
 
-    fetchUnitAndTenants();
+    void fetchUnitAndTenants();
   }, [id]);
 
-  async function handleAssignTenant(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleAssignTenant(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
     if (!unit || tenantIdToAssign.trim().length === 0) {
@@ -132,7 +167,10 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
     }
 
     setUnit((previous) => {
-      if (!previous) return previous;
+      if (!previous) {
+        return previous;
+      }
+
       return {
         ...previous,
         status: "occupied"
@@ -146,8 +184,8 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
     setAssigning(false);
   }
 
-  async function handleSave(e: React.FormEvent<HTMLFormElement>): Promise<void> {
-    e.preventDefault();
+  async function handleSave(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
     setSaving(true);
     setError(null);
 
@@ -186,7 +224,7 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
   if (loading) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Chargement...</p>
+        <UniversalLoadingState />
       </div>
     );
   }
@@ -211,63 +249,77 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <Link href={`/dashboard/properties/${unit.propertyId}`} className="text-sm text-[#0063fe] hover:underline mb-4 inline-block">
+    <div className="space-y-6 p-8">
+      <div>
+        <Link href={`/dashboard/properties/${unit.propertyId}`} className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
           ← Retour à la propriété
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         {!editMode ? (
-          <>
-            <div className="flex items-start justify-between mb-4">
+          <div className="border-b border-slate-200 px-6 py-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
-                <h1 className="text-2xl font-semibold text-[#010a19]">Unité {unit.unitNumber}</h1>
-                <p className="text-gray-600">{unit.monthlyRentAmount.toLocaleString()} {unit.currencyCode}/mois</p>
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold mt-2 ${
-                  unit.status === "occupied" ? "bg-green-100 text-green-800" :
-                  unit.status === "vacant" ? "bg-blue-100 text-blue-800" :
-                  "bg-gray-100 text-gray-800"
-                }`}>
-                  {unit.status === "occupied" ? "Occupée" : unit.status === "vacant" ? "Vacante" : "Inactive"}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Unité {unit.unitNumber}</h1>
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getUnitStatusClassName(unit.status)}`}>
+                    {getUnitStatusLabel(unit.status)}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-500">
+                  <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">{formatCurrencyAmount(unit.monthlyRentAmount, unit.currencyCode)}/mois</span>
+                  <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">Propriété #{unit.propertyId.slice(-6)}</span>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditMode(true)}
-                  className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="rounded-lg border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
-                >
-                  {deleting ? "Suppression..." : "Supprimer"}
-                </button>
+              <div className="flex flex-wrap items-center gap-3">
+                {unit.status === "vacant" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const formElement = document.getElementById("assign-tenant-form");
+                      formElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                  >
+                    <PlusIcon />
+                    Assigner un locataire
+                  </button>
+                ) : null}
+                <ActionMenu
+                  items={[
+                    { label: "Modifier l’unité", onSelect: () => setEditMode(true) },
+                    {
+                      label: deleting ? "Suppression..." : "Supprimer l’unité",
+                      onSelect: () => {
+                        void handleDelete();
+                      },
+                      tone: "danger",
+                      disabled: deleting
+                    }
+                  ]}
+                />
               </div>
             </div>
 
             {unit.status === "vacant" ? (
-              <form onSubmit={handleAssignTenant} className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
-                <h2 className="text-sm font-semibold text-[#010a19]">Assigner un locataire</h2>
-                <p className="text-xs text-gray-600">
-                  Crée un bail actif pour cette unité vacante et bascule automatiquement l&apos;unité en occupée.
-                </p>
+              <form id="assign-tenant-form" onSubmit={handleAssignTenant} className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-[#010a19]">Assigner un locataire</h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Crée un bail actif pour cette unité vacante et bascule automatiquement l’unité en occupée.
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <select
                     value={tenantIdToAssign}
                     onChange={(event) => setTenantIdToAssign(event.target.value)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
                     required
                     disabled={assigning || tenants.length === 0}
                   >
-                    {tenants.length === 0 ? (
-                      <option value="">Aucun locataire disponible</option>
-                    ) : null}
+                    {tenants.length === 0 ? <option value="">Aucun locataire disponible</option> : null}
                     {tenants.map((tenant) => (
                       <option key={tenant.id} value={tenant.id}>
                         {tenant.fullName}
@@ -279,7 +331,7 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
                     type="date"
                     value={leaseStartDate}
                     onChange={(event) => setLeaseStartDate(event.target.value)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
                     required
                     disabled={assigning}
                   />
@@ -288,13 +340,13 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
                     type="date"
                     value={leaseEndDate}
                     onChange={(event) => setLeaseEndDate(event.target.value)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
                     disabled={assigning}
                   />
                 </div>
 
                 {assignMessage ? (
-                  <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3.5 py-2.5">
+                  <p className="rounded-lg border border-green-100 bg-green-50 px-3.5 py-2.5 text-sm text-green-700">
                     {assignMessage}
                   </p>
                 ) : null}
@@ -302,42 +354,42 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
                 <button
                   type="submit"
                   disabled={assigning || tenants.length === 0}
-                  className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0052d4] disabled:opacity-60"
+                  className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0052d4] disabled:opacity-60"
                 >
                   {assigning ? "Assignation..." : "Assigner et créer le bail"}
                 </button>
               </form>
             ) : null}
-          </>
+          </div>
         ) : (
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave} className="space-y-4 px-6 py-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Numéro d'unité</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Numéro d'unité</label>
               <input
                 type="text"
                 required
                 value={formData.unitNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, unitNumber: e.target.value }))}
+                onChange={(event) => setFormData((previous) => ({ ...previous, unitNumber: event.target.value }))}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Loyer mensuel</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Loyer mensuel</label>
               <input
                 type="number"
                 required
                 min="0"
                 step="0.01"
                 value={formData.monthlyRentAmount}
-                onChange={(e) => setFormData(prev => ({ ...prev, monthlyRentAmount: Number(e.target.value) }))}
+                onChange={(event) => setFormData((previous) => ({ ...previous, monthlyRentAmount: Number(event.target.value) }))}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Devise</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Devise</label>
               <select
                 value={formData.currencyCode}
-                onChange={(e) => setFormData(prev => ({ ...prev, currencyCode: e.target.value }))}
+                onChange={(event) => setFormData((previous) => ({ ...previous, currencyCode: event.target.value }))}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
               >
                 <option value="CDF">CDF (Franc Congolais)</option>
@@ -345,10 +397,15 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Statut</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Statut</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as "vacant" | "occupied" | "inactive" }))}
+                onChange={(event) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    status: event.target.value as "vacant" | "occupied" | "inactive"
+                  }))
+                }
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
               >
                 <option value="vacant">Vacante</option>
@@ -357,11 +414,11 @@ export default function UnitDetailPage({ params }: PageProps): React.ReactElemen
               </select>
             </div>
 
-            {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
+            {error ? (
+              <p className="rounded-lg border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-600">
                 {error}
               </p>
-            )}
+            ) : null}
 
             <div className="flex gap-2">
               <button

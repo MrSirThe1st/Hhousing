@@ -33,6 +33,18 @@ export type {
 } from "./auth/onboarding.types";
 export { parseCreateOperatorAccountInput } from "./auth/onboarding.validation";
 export type {
+  CreateOwnerInvitationInput,
+  CreateOwnerInvitationOutput,
+  OwnerInvitationPreview,
+  ValidateOwnerInvitationOutput,
+  AcceptOwnerInvitationInput,
+  AcceptOwnerInvitationOutput
+} from "./auth/owner-invitations.types";
+export {
+  parseCreateOwnerInvitationInput,
+  parseAcceptOwnerInvitationInput
+} from "./auth/owner-invitations.validation";
+export type {
   CreateOrganizationInput,
   CreateOrganizationOutput,
   UpdateOrganizationInput,
@@ -53,12 +65,16 @@ export {
   parseCreateUnitInput
 } from "./properties/organization-property-unit.validation";
 export type {
+  CreateOwnerInput,
+  CreateOwnerOutput,
+  ListOwnersOutput,
   CreateOwnerClientInput,
   CreateOwnerClientOutput,
   ListOwnerClientsOutput
 } from "./properties/owner-client.types";
 export {
-  parseCreateOwnerClientInput
+  parseCreateOwnerInput,
+  parseCreateOwnerInput as parseCreateOwnerClientInput
 } from "./properties/owner-client.validation";
 export type {
   UpsertListingInput,
@@ -125,6 +141,38 @@ export {
   parseExpenseCategory,
   parseUpdateExpenseInput
 } from "./expenses/expense.validation";
+export type {
+  CreateTaskInput,
+  CreateTaskOutput,
+  DeleteTaskOutput,
+  ListTasksFilter,
+  ListTasksOutput,
+  TaskPriority,
+  TaskSource,
+  TaskStatus,
+  UpdateTaskInput,
+  UpdateTaskOutput,
+  WorkflowEntityType
+} from "./tasks/task.types";
+export {
+  parseCreateTaskInput,
+  parseUpdateTaskInput
+} from "./tasks/task.validation";
+export type {
+  CalendarEventStatus,
+  CalendarEventType,
+  CreateCalendarEventInput,
+  CreateCalendarEventOutput,
+  DeleteCalendarEventOutput,
+  ListCalendarEventsFilter,
+  ListCalendarEventsOutput,
+  UpdateCalendarEventInput,
+  UpdateCalendarEventOutput
+} from "./calendar/calendar-event.types";
+export {
+  parseCreateCalendarEventInput,
+  parseUpdateCalendarEventInput
+} from "./calendar/calendar-event.validation";
 export type {
   CreateMaintenanceRequestInput,
   CreateMaintenanceRequestOutput,

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { OwnerClient, Property } from "@hhousing/domain";
 import { patchWithAuth } from "../lib/api-client";
+import ActionMenu from "./action-menu";
 
 interface ClientPortfolioProperty {
   property: Property;
@@ -121,12 +122,11 @@ export default function ClientPortfolioTable({
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/dashboard/properties/${item.property.id}`}
-                    className="text-sm font-medium text-[#0063fe] hover:underline"
-                  >
-                    Voir propriété
-                  </Link>
+                  <ActionMenu
+                    items={[
+                      { label: "Voir la propriété", href: `/dashboard/properties/${item.property.id}` }
+                    ]}
+                  />
                 </td>
               </tr>
             ))}

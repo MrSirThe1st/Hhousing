@@ -115,13 +115,9 @@ export default function ListingManagementPanel({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[#010a19]">Listings and Applications</h1>
-          <p className="mt-1 text-sm text-gray-500">Affichage courant: {currentScopeLabel}</p>
           <p className="mt-2 max-w-3xl text-sm text-gray-600">
             One workspace for publishing vacant units, reviewing public applications, and running manual screening before a lease starts.
           </p>
-        </div>
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          Public marketplace is live on the home page and each published unit gets its own shareable page.
         </div>
       </div>
 

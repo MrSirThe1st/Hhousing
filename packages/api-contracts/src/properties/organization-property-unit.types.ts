@@ -1,4 +1,4 @@
-import type { Organization, Property, PropertyManagementContext, PropertyType, Unit } from "@hhousing/domain";
+import type { Organization, OwnerType, Property, PropertyManagementContext, PropertyType, Unit } from "@hhousing/domain";
 
 export interface CreateOrganizationInput {
   name: string;
@@ -29,11 +29,10 @@ export interface CreatePropertyInput {
   address: string;
   city: string;
   countryCode: string;
-  managementContext: PropertyManagementContext;
+  ownerId: string;
   propertyType: PropertyType;
   yearBuilt?: number | null;
   photoUrls?: string[];
-  clientId?: string | null;
   unitTemplate?: CreatePropertyUnitTemplateInput;
 }
 
@@ -82,5 +81,7 @@ export interface ListPropertiesWithUnitsOutput {
 }
 
 export interface ListPropertiesFilter {
+  ownerId?: string;
+  ownerType?: OwnerType;
   managementContext?: PropertyManagementContext;
 }

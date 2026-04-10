@@ -28,7 +28,8 @@ const ATTACHMENT_TYPE_LABELS: Record<DocumentAttachmentType, string> = {
   property: "Propriété",
   unit: "Unité",
   tenant: "Locataire",
-  lease: "Bail"
+  lease: "Bail",
+  owner: "Owner"
 };
 
 type DocumentFormState = {

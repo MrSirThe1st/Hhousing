@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { TeamMemberInvitationPreview } from "@hhousing/api-contracts";
 import { postPublic } from "../../lib/api-client";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import UniversalLoadingState from "../../components/universal-loading-state";
 
 function TeamInvitePageContent(): React.ReactElement {
   const router = useRouter();
@@ -181,7 +182,8 @@ function TeamInvitePageContent(): React.ReactElement {
                 : "Aucun compte Hhousing n'existe encore pour cet email. Creez votre acces puis activez l'invitation."}
             </p>
 
-            {loading ? <p className="mt-6 text-sm text-slate-500">Chargement...</p> : null}
+import UniversalLoadingState from "../../components/universal-loading-state";
+            {loading ? <UniversalLoadingState minHeightClassName="min-h-28" size="compact" className="mt-6" /> : null}
 
             {!loading && invitation ? (
               <div className="mt-6 space-y-5">
@@ -310,7 +312,7 @@ function TeamInviteFallback(): React.ReactElement {
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-950">Activation de votre acces</h1>
-        <p className="mt-6 text-sm text-slate-500">Chargement...</p>
+        <UniversalLoadingState minHeightClassName="min-h-28" size="compact" className="mt-6" />
       </div>
     </main>
   );

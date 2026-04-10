@@ -159,6 +159,53 @@ export interface ListingQueryable {
 }
 
 const poolCache = new Map<string, Pool>();
+let propertyOwnershipSchemaPromise: Promise<PropertyOwnershipSchema> | null = null;
+
+interface PropertyOwnershipSchema {
+  relationIdColumn: "client_id" | "owner_id";
+  relationNameColumn: "client_name" | "owner_name";
+}
+
+async function getPropertyOwnershipSchema(client: ListingQueryable): Promise<PropertyOwnershipSchema> {
+  if (!propertyOwnershipSchemaPromise) {
+    propertyOwnershipSchemaPromise = (async () => {
+      const result = await client.query<{ column_name: string }>(
+        `select column_name
+         from information_schema.columns
+         where table_schema = current_schema()
+           and table_name = 'properties'
+           and column_name in ('client_id', 'client_name', 'owner_id', 'owner_name')`
+      );
+
+      const columnNames = new Set(result.rows.map((row) => row.column_name));
+      if (columnNames.has("owner_id") && columnNames.has("owner_name")) {
+        return {
+          relationIdColumn: "owner_id",
+          relationNameColumn: "owner_name"
+        };
+      }
+
+      return {
+        relationIdColumn: "client_id",
+        relationNameColumn: "client_name"
+      };
+    })();
+  }
+
+  return propertyOwnershipSchemaPromise;
+}
+
+function propertyRelationIdSelect(schema: PropertyOwnershipSchema): string {
+  return `p.${schema.relationIdColumn} as property_client_id`;
+}
+
+function propertyRelationNameSelect(schema: PropertyOwnershipSchema): string {
+  return `p.${schema.relationNameColumn} as property_client_name`;
+}
+
+function propertyRelationGroupBy(schema: PropertyOwnershipSchema): string {
+  return `p.${schema.relationIdColumn}, p.${schema.relationNameColumn}`;
+}
 
 function toIso(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
@@ -169,6 +216,12 @@ function toNumber(value: string | number): number {
 }
 
 function mapProperty(row: PropertyRow): Property {
+  const ownerType = row.property_management_context === "owned" ? "organization" : "client";
+  const ownerId = ownerType === "organization"
+    ? `own_org_${row.property_organization_id}`
+    : (row.property_client_id ?? `own_org_${row.property_organization_id}`);
+  const ownerName = ownerType === "organization" ? "Organisation" : (row.property_client_name ?? row.property_name);
+
   return {
     id: row.property_id,
     organizationId: row.property_organization_id,
@@ -180,8 +233,11 @@ function mapProperty(row: PropertyRow): Property {
     propertyType: row.property_type,
     yearBuilt: row.property_year_built,
     photoUrls: row.property_photo_urls,
-    clientId: row.property_client_id,
-    clientName: row.property_client_name,
+    ownerId,
+    ownerName,
+    ownerType,
+    clientId: ownerType === "client" ? ownerId : null,
+    clientName: ownerType === "client" ? ownerName : null,
     status: row.property_status,
     createdAtIso: toIso(row.property_created_at)
   };
@@ -500,13 +556,11 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
     },
 
     async listManagerListings(organizationId: string, managementContext?: PropertyManagementContext): Promise<ManagerListingView[]> {
+      const schema = await getPropertyOwnershipSchema(client);
       const values: unknown[] = [organizationId];
       const clauses = ["p.organization_id = $1", "p.status = 'active'", "(u.status = 'vacant' or l.status = 'published')"];
 
-      if (managementContext) {
-        values.push(managementContext);
-        clauses.push(`p.management_context = $${values.length}`);
-      }
+      void managementContext;
 
       const result = await client.query<ManagerListingRow>(
         `select
@@ -520,8 +574,8 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            p.property_type as property_type,
            p.year_built as property_year_built,
            p.photo_urls as property_photo_urls,
-           p.client_id as property_client_id,
-           p.client_name as property_client_name,
+           ${propertyRelationIdSelect(schema)},
+           ${propertyRelationNameSelect(schema)},
            p.status as property_status,
            p.created_at as property_created_at,
            u.id as unit_id,
@@ -546,7 +600,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
          where ${clauses.join(" and ")}
          group by
            p.id, p.organization_id, p.name, p.address, p.city, p.country_code, p.management_context,
-           p.property_type, p.year_built, p.photo_urls, p.client_id, p.client_name, p.status, p.created_at,
+           p.property_type, p.year_built, p.photo_urls, ${propertyRelationGroupBy(schema)}, p.status, p.created_at,
            u.id, u.organization_id, u.property_id, u.unit_number, u.monthly_rent_amount, u.deposit_amount,
            u.currency_code, u.bedroom_count, u.bathroom_count, u.size_sqm, u.amenities, u.features, u.status, u.created_at,
            l.id, l.organization_id, l.property_id, l.unit_id, l.status, l.marketing_description, l.cover_image_url,
@@ -571,6 +625,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
     },
 
     async listPublicListings(filter?: PublicListingFilter): Promise<PublicListingView[]> {
+      const schema = await getPropertyOwnershipSchema(client);
       const values: unknown[] = [];
       const clauses = ["p.status = 'active'", "u.status = 'vacant'", "l.status = 'published'"];
 
@@ -620,8 +675,8 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            p.property_type as property_type,
            p.year_built as property_year_built,
            p.photo_urls as property_photo_urls,
-           p.client_id as property_client_id,
-           p.client_name as property_client_name,
+           ${propertyRelationIdSelect(schema)},
+           ${propertyRelationNameSelect(schema)},
            p.status as property_status,
            p.created_at as property_created_at,
            u.id as unit_id,
@@ -651,6 +706,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
     },
 
     async getPublicListingById(listingId: string): Promise<PublicListingView | null> {
+      const schema = await getPropertyOwnershipSchema(client);
       const result = await client.query<PublicListingRow>(
         `select
            p.id as property_id,
@@ -663,8 +719,8 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            p.property_type as property_type,
            p.year_built as property_year_built,
            p.photo_urls as property_photo_urls,
-           p.client_id as property_client_id,
-           p.client_name as property_client_name,
+           ${propertyRelationIdSelect(schema)},
+           ${propertyRelationNameSelect(schema)},
            p.status as property_status,
            p.created_at as property_created_at,
            u.id as unit_id,
@@ -733,6 +789,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
     },
 
     async getApplicationById(applicationId: string, organizationId: string): Promise<ListingApplicationView | null> {
+      const schema = await getPropertyOwnershipSchema(client);
       const result = await client.query<ListingApplicationViewRow>(
         `select
            a.id as application_id,
@@ -762,8 +819,8 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            p.property_type as property_type,
            p.year_built as property_year_built,
            p.photo_urls as property_photo_urls,
-           p.client_id as property_client_id,
-           p.client_name as property_client_name,
+           ${propertyRelationIdSelect(schema)},
+           ${propertyRelationNameSelect(schema)},
            p.status as property_status,
            p.created_at as property_created_at,
            u.id as unit_id,
@@ -816,13 +873,11 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
     },
 
     async listApplications(organizationId: string, managementContext?: PropertyManagementContext): Promise<ListingApplicationView[]> {
+      const schema = await getPropertyOwnershipSchema(client);
       const values: unknown[] = [organizationId];
       const clauses = ["a.organization_id = $1"];
 
-      if (managementContext) {
-        values.push(managementContext);
-        clauses.push(`p.management_context = $${values.length}`);
-      }
+      void managementContext;
 
       const result = await client.query<ListingApplicationViewRow>(
         `select
@@ -853,8 +908,8 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            p.property_type as property_type,
            p.year_built as property_year_built,
            p.photo_urls as property_photo_urls,
-           p.client_id as property_client_id,
-           p.client_name as property_client_name,
+           ${propertyRelationIdSelect(schema)},
+           ${propertyRelationNameSelect(schema)},
            p.status as property_status,
            p.created_at as property_created_at,
            u.id as unit_id,

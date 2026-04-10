@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
-import { getOperatorScopeLabel, getServerOperatorContext } from "../../../../lib/operator-context";
+import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
+import OwnerInvitationPanel from "../../../../components/owner-invitation-panel";
 import { getServerAuthSession } from "../../../../lib/session";
 
 function formatCurrencySummary(summary: Map<string, number>): string {
@@ -64,6 +65,11 @@ function getMaintenanceStatusTone(status: "open" | "in_progress" | "resolved" | 
   }
 }
 
+function formatOwnerLocation(city: string | null, state: string | null, country: string | null): string | null {
+  const parts = [city, state, country].filter((value): value is string => Boolean(value));
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
 export default async function ClientDetailPage(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<React.ReactElement> {
@@ -71,54 +77,28 @@ export default async function ClientDetailPage(
   if (!session) redirect("/login");
 
   const { id } = await params;
-  const operatorContext = await getServerOperatorContext(session);
   const repoResult = createRepositoryFromEnv();
 
   if (!repoResult.success) {
     return <div className="p-8 text-red-600">Erreur de connexion à la base de données.</div>;
   }
 
-  const canUseManagedScope = operatorContext.availableScopes.includes("managed");
-  if (!canUseManagedScope) {
-    return (
-      <div className="p-8">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold text-[#010a19]">Client introuvable</h1>
-          <p className="mt-2 text-sm text-gray-600">Votre profil n&apos;utilise pas la gestion pour compte de clients.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (operatorContext.currentScope !== "managed") {
-    return (
-      <div className="p-8">
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold text-[#010a19]">Client</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Basculez vers {getOperatorScopeLabel("managed").toLowerCase()} dans l&apos;en-tête pour afficher ce portefeuille client.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const tenantLeaseRepo = createTenantLeaseRepo();
-  const [client, ownerClients, managedProperties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
-    repoResult.data.getOwnerClientById(id, session.organizationId),
-    repoResult.data.listOwnerClients(session.organizationId),
-    repoResult.data.listPropertiesWithUnits(session.organizationId, "managed"),
+  const [client, owners, properties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
+    repoResult.data.getOwnerById(id, session.organizationId),
+    repoResult.data.listOwners(session.organizationId),
+    repoResult.data.listPropertiesWithUnits(session.organizationId, { ownerId: id }),
     tenantLeaseRepo.listLeasesByOrganization(session.organizationId),
     tenantLeaseRepo.listTenantsByOrganization(session.organizationId),
     createPaymentRepo().listPayments({ organizationId: session.organizationId }),
     createMaintenanceRepo().listMaintenanceRequests({ organizationId: session.organizationId })
   ]);
 
-  if (!client) {
+  if (!client || client.ownerType !== "client") {
     notFound();
   }
 
-  const properties = managedProperties.filter((item) => item.property.clientId === client.id);
+  const clientOwners = owners.filter((owner) => owner.ownerType === "client");
   const propertyRows = properties.map((item) => ({
     property: item.property,
     unitCount: item.units.length,
@@ -178,18 +158,54 @@ export default async function ClientDetailPage(
     .sort((left, right) => right.startDate.localeCompare(left.startDate))
     .slice(0, 5);
   const recentMaintenanceRequests = clientMaintenanceRequests.slice(0, 5);
+  const location = formatOwnerLocation(client.city, client.state, client.country);
 
   return (
     <div className="p-8 space-y-6">
       <div>
         <Link href="/dashboard/clients" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
-          ← Retour aux clients
+          ← Retour aux owners
         </Link>
-        <h1 className="text-2xl font-semibold text-[#010a19]">{client.name}</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Portefeuille géré depuis le {new Date(client.createdAtIso).toLocaleDateString("fr-FR")}
-        </p>
       </div>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-4">
+            {client.profilePictureUrl ? (
+              <img src={client.profilePictureUrl} alt={client.name} className="h-20 w-20 rounded-2xl object-cover" />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#0063fe]/10 text-2xl font-semibold text-[#0063fe]">
+                {client.name.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold text-[#010a19]">{client.name}</h1>
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                  {client.isCompany ? "Société" : "Particulier"}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                Contact principal: {client.fullName}
+              </p>
+              {client.companyName && client.companyName !== client.name ? (
+                <p className="mt-1 text-sm text-gray-500">Société: {client.companyName}</p>
+              ) : null}
+              <div className="mt-3 flex flex-wrap gap-3 text-sm text-gray-600">
+                {client.phoneNumber ? <span>{client.phoneNumber}</span> : null}
+                {location ? <span>{location}</span> : null}
+                {client.address ? <span>{client.address}</span> : null}
+              </div>
+              <p className="mt-3 text-xs text-gray-500">
+                Profil créé le {new Date(client.createdAtIso).toLocaleDateString("fr-FR")}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 lg:max-w-sm">
+            Les documents liés à cet owner sont centralisés sur cette fiche et restent séparés de la bibliothèque générale.
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -201,7 +217,7 @@ export default async function ClientDetailPage(
           <p className="mt-1 text-3xl font-semibold text-[#010a19]">{unitCount}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Taux d&apos;occupation</p>
+          <p className="text-sm text-gray-500">Taux d'occupation</p>
           <p className="mt-1 text-3xl font-semibold text-[#010a19]">{occupancyRate}%</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -224,22 +240,19 @@ export default async function ClientDetailPage(
           <p className="text-sm text-gray-500">Solde en retard</p>
           <p className="mt-1 text-sm font-semibold text-[#010a19]">{formatCurrencySummary(overdueBalance)}</p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Maintenance ouverte</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{openMaintenanceCount + inProgressMaintenanceCount}</p>
-          <p className="mt-2 text-xs text-gray-500">{urgentMaintenanceCount} urgente(s)</p>
-        </div>
       </div>
 
-      <ClientPortfolioTable currentClientId={client.id} ownerClients={ownerClients} properties={propertyRows} />
+      <ClientPortfolioTable currentClientId={client.id} ownerClients={clientOwners} properties={propertyRows} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <OwnerInvitationPanel ownerId={client.id} ownerName={client.name} />
+
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-[#010a19]">Locataires du portefeuille</h2>
               <p className="mt-1 text-sm text-gray-500">
-                {clientTenants.length} locataire(s) rattache(s) a ce client, dont {activeTenantIds.size} actif(s).
+                {clientTenants.length} locataire(s) rattaché(s) à cet owner, dont {activeTenantIds.size} actif(s).
               </p>
             </div>
             <Link href="/dashboard/tenants" className="text-sm font-medium text-[#0063fe] hover:underline">
@@ -261,7 +274,7 @@ export default async function ClientDetailPage(
                       <div>
                         <p className="font-medium text-[#010a19]">{tenant?.fullName ?? lease.tenantFullName}</p>
                         <p className="mt-1 text-sm text-gray-500">
-                          {unit ? `${unit.propertyName} • Unite ${unit.unitNumber}` : "Unite non disponible"}
+                          {unit ? `${unit.propertyName} • Unité ${unit.unitNumber}` : "Unité non disponible"}
                         </p>
                       </div>
                       <Link href={`/dashboard/tenants/${lease.tenantId}`} className="text-sm font-medium text-[#0063fe] hover:underline">
@@ -321,7 +334,7 @@ export default async function ClientDetailPage(
                       <div>
                         <p className="font-medium text-[#010a19]">{request.title}</p>
                         <p className="mt-1 text-sm text-gray-500">
-                          {unit ? `${unit.propertyName} • Unite ${unit.unitNumber}` : "Unite non disponible"}
+                          {unit ? `${unit.propertyName} • Unité ${unit.unitNumber}` : "Unité non disponible"}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
@@ -335,7 +348,7 @@ export default async function ClientDetailPage(
                     </div>
                     <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
                       <span>Maj le {new Date(request.updatedAtIso).toLocaleDateString("fr-FR")}</span>
-                      <span>{request.assignedToName ?? "Aucun intervenant assigne"}</span>
+                      <span>{request.assignedToName ?? "Aucun intervenant assigné"}</span>
                     </div>
                   </div>
                 );
@@ -344,6 +357,15 @@ export default async function ClientDetailPage(
           )}
         </section>
       </div>
+
+      <ContextualDocumentPanel
+        attachmentType="owner"
+        attachmentId={client.id}
+        title="Documents de l'owner"
+        description="Ajoutez les pièces d'identité, mandats, contrats ou autres documents liés à cet owner."
+        addButtonLabel="+ Ajouter un document"
+        defaultDocumentType="other"
+      />
     </div>
   );
 }

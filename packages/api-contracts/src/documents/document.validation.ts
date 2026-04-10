@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const documentTypeSchema = z.enum(["lease_agreement", "receipt", "notice", "id", "contract", "other"]);
 
-export const documentAttachmentTypeSchema = z.enum(["property", "unit", "tenant", "lease"]);
+export const documentAttachmentTypeSchema = z.enum(["property", "unit", "tenant", "lease", "owner"]);
 
 export const createDocumentInputSchema = z.object({
   organizationId: z.string().min(1),

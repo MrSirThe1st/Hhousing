@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { OwnerClient, Property, Unit } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
+import ActionMenu from "../../../../components/action-menu";
+import UniversalLoadingState from "../../../../components/universal-loading-state";
 
 const ContextualDocumentPanel = dynamic(
   () => import("../../../../components/contextual-document-panel"),
@@ -24,6 +26,18 @@ type PropertyFormData = {
   managementContext: "owned" | "managed";
   clientId: string;
 };
+
+function PlusIcon(): React.ReactElement {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function formatCurrencyAmount(amount: number, currencyCode: string): string {
+  return `${amount.toLocaleString("fr-FR")} ${currencyCode}`;
+}
 
 export default function PropertyDetailPage({ params }: PageProps): React.ReactElement {
   const router = useRouter();
@@ -149,7 +163,7 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
   if (loading) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Chargement...</p>
+        <UniversalLoadingState />
       </div>
     );
   }
@@ -187,58 +201,67 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
     }, {} as Record<string, number>);
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <Link href="/dashboard/properties" className="text-sm text-[#0063fe] hover:underline mb-4 inline-block">
+    <div className="space-y-6 p-8">
+      <div>
+        <Link href="/dashboard/properties" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
           ← Retour au portfolio
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <div>
         {!editMode ? (
           <>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold text-[#010a19]">{property.name}</h1>
-                <p className="text-gray-600">{property.address}, {property.city}</p>
-                <p className="text-sm text-gray-500">{property.countryCode}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                    {property.managementContext === "owned" ? "Mon parc" : "Parc gere"}
-                  </span>
-                  {property.clientName ? (
-                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                      Client:{" "}
-                      {property.clientId ? (
-                        <Link href={`/dashboard/clients/${property.clientId}`} className="hover:underline">
-                          {property.clientName}
-                        </Link>
-                      ) : (
-                        property.clientName
-                      )}
-                    </span>
-                  ) : null}
+            <div className="border-b border-slate-200 px-6 py-5">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{property.name}</h1>               
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">{property.address}, {property.city}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-500">
+                    <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">{totalUnits} unités</span>
+                    <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">{occupancyRate}% d’occupation</span>
+                    {property.clientName ? (
+                      <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">
+                        Client:{" "}
+                        {property.clientId ? (
+                          <Link href={`/dashboard/clients/${property.clientId}`} className="font-medium text-[#0063fe] hover:underline">
+                            {property.clientName}
+                          </Link>
+                        ) : (
+                          <span className="font-medium text-[#10213d]">{property.clientName}</span>
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditMode(true)}
-                  className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="rounded-lg border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
-                >
-                  {deleting ? "Suppression..." : "Supprimer"}
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link
+                    href="/dashboard/units/add"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                  >
+                    <PlusIcon />
+                    Ajouter une unité
+                  </Link>
+                  <ActionMenu
+                    items={[
+                      { label: "Modifier la propriété", onSelect: () => setEditMode(true) },
+                      {
+                        label: deleting ? "Suppression..." : "Supprimer la propriété",
+                        onSelect: () => {
+                          void handleDelete();
+                        },
+                        tone: "danger",
+                        disabled: deleting
+                      }
+                    ]}
+                  />
+                </div>
               </div>
             </div>
           </>
         ) : (
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave} className="space-y-4 px-6 py-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom de la propriété</label>
               <input
@@ -341,36 +364,15 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
         )}
       </div>
 
-      {totalUnits > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-sm text-gray-500 mb-1">Total d'unités</p>
-            <p className="text-2xl font-semibold text-[#010a19]">{totalUnits}</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-sm text-gray-500 mb-1">Unités occupées</p>
-            <p className="text-2xl font-semibold text-green-700">{occupiedUnits}</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-sm text-gray-500 mb-1">Unités vacantes</p>
-            <p className="text-2xl font-semibold text-blue-700">{vacantUnits}</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-sm text-gray-500 mb-1">Taux d'occupation</p>
-            <p className="text-2xl font-semibold text-[#010a19]">{occupancyRate}%</p>
-          </div>
-        </div>
-      )}
-
       {Object.keys(monthlyIncomeByCurrency).length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-[#010a19] mb-4">Revenu mensuel</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <h2 className="text-md font-semibold text-[#010a19] mb-4">Revenu mensuel</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(monthlyIncomeByCurrency).map(([currency, amount]) => (
-              <div key={currency} className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">{currency}</p>
-                <p className="text-xl font-semibold text-[#010a19]">
-                  {amount.toLocaleString("fr-FR")} {currency}
+              <div key={currency}>
+                <p className="text-sm text-slate-500 mb-1">{currency}</p>
+                <p className="text-md font-semibold text-[#010a19]">
+                  {formatCurrencyAmount(amount, currency)}
                 </p>
               </div>
             ))}
@@ -378,36 +380,52 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-[#010a19] mb-4">Unités ({units.length})</h2>
+      <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-[#010a19]">Unités</h2>
+          <span className="rounded-full bg-slate-50 px-3 py-1 text-sm text-slate-500 ring-1 ring-slate-200">{units.length}</span>
+        </div>
 
         {units.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">Aucune unité pour cette propriété</p>
+          <div className="px-6 py-10 text-center text-sm text-slate-500">Aucune unité pour cette propriété.</div>
         ) : (
-          <div className="space-y-3">
-            {units.map((unit) => (
-              <Link
-                key={unit.id}
-                href={`/dashboard/units/${unit.id}`}
-                className="block rounded-lg border border-gray-200 p-4 hover:border-[#0063fe] hover:bg-[#0063fe]/5 transition"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-[#010a19]">Unité {unit.unitNumber}</p>
-                    <p className="text-sm text-gray-600">
-                      {unit.monthlyRentAmount.toLocaleString()} {unit.currencyCode}/mois
-                    </p>
-                  </div>
-                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                    unit.status === "occupied" ? "bg-green-100 text-green-800" :
-                    unit.status === "vacant" ? "bg-blue-100 text-blue-800" :
-                    "bg-gray-100 text-gray-800"
-                  }`}>
-                    {unit.status === "occupied" ? "Occupée" : unit.status === "vacant" ? "Vacante" : "Inactive"}
-                  </span>
-                </div>
-              </Link>
-            ))}
+          <div className="">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                <tr>
+                  <th className="px-6 py-3 text-left">Unité</th>
+                  <th className="px-6 py-3 text-left">Loyer</th>
+                  <th className="px-6 py-3 text-left">Statut</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {units.map((unit) => (
+                  <tr key={unit.id} className="hover:bg-slate-50/80">
+                    <td className="px-6 py-4 font-semibold text-[#10213d]">Unité {unit.unitNumber}</td>
+                    <td className="px-6 py-4 text-slate-600">{formatCurrencyAmount(unit.monthlyRentAmount, unit.currencyCode)}/mois</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                        unit.status === "occupied"
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                          : unit.status === "vacant"
+                            ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
+                            : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+                      }`}>
+                        {unit.status === "occupied" ? "Occupée" : unit.status === "vacant" ? "Vacante" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ActionMenu
+                        items={[
+                          { label: "Voir la fiche", href: `/dashboard/units/${unit.id}` }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

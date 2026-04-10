@@ -1,22 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  createOwnerClientMock,
+  createOwnerMock,
   extractAuthSessionFromCookiesMock,
-  listOwnerClientsMock,
+  listOwnersMock,
   createRepositoryFromEnvMock,
   parseJsonBodyMock
 } = vi.hoisted(() => ({
-  createOwnerClientMock: vi.fn(),
+  createOwnerMock: vi.fn(),
   extractAuthSessionFromCookiesMock: vi.fn(),
-  listOwnerClientsMock: vi.fn(),
+  listOwnersMock: vi.fn(),
   createRepositoryFromEnvMock: vi.fn(),
   parseJsonBodyMock: vi.fn()
 }));
 
 vi.mock("../../../api", () => ({
-  createOwnerClient: createOwnerClientMock,
-  listOwnerClients: listOwnerClientsMock
+  createOwner: createOwnerMock,
+  listOwners: listOwnersMock
 }));
 
 vi.mock("../../../auth/session-adapter", () => ({
@@ -51,7 +51,15 @@ describe("/api/owner-clients", () => {
   it("creates owner client successfully", async () => {
     parseJsonBodyMock.mockResolvedValue({
       organizationId: "org_1",
-      name: "SCI Horizon"
+      fullName: "Nadine Horizon",
+      isCompany: true,
+      companyName: "SCI Horizon",
+      address: "12 avenue des Palmiers",
+      country: "RDC",
+      city: "Kinshasa",
+      state: "Kinshasa",
+      phoneNumber: "+243000000000",
+      profilePictureUrl: "https://cdn.test/owner.jpg"
     });
 
     extractAuthSessionFromCookiesMock.mockResolvedValue({
@@ -62,14 +70,26 @@ describe("/api/owner-clients", () => {
       memberships: []
     });
 
-    createOwnerClientMock.mockResolvedValue({
+    createOwnerMock.mockResolvedValue({
       status: 201,
       body: {
         success: true,
         data: {
-          client: {
-            id: "ocl_1",
-            name: "SCI Horizon"
+          owner: {
+            id: "own_1",
+            name: "SCI Horizon",
+            fullName: "Nadine Horizon",
+            ownerType: "client",
+            userId: null,
+            address: "12 avenue des Palmiers",
+            isCompany: true,
+            companyName: "SCI Horizon",
+            country: "RDC",
+            city: "Kinshasa",
+            state: "Kinshasa",
+            phoneNumber: "+243000000000",
+            profilePictureUrl: "https://cdn.test/owner.jpg",
+            createdAtIso: "2026-04-05T10:00:00.000Z"
           }
         }
       }
@@ -79,7 +99,7 @@ describe("/api/owner-clients", () => {
 
     expect(response.status).toBe(201);
     expect((await response.json()).success).toBe(true);
-    expect(createOwnerClientMock).toHaveBeenCalledTimes(1);
+    expect(createOwnerMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns validation error for invalid json", async () => {
@@ -95,7 +115,7 @@ describe("/api/owner-clients", () => {
 
     expect(response.status).toBe(400);
     expect((await response.json()).code).toBe("VALIDATION_ERROR");
-    expect(createOwnerClientMock).not.toHaveBeenCalled();
+    expect(createOwnerMock).not.toHaveBeenCalled();
   });
 
   it("returns clients on get", async () => {
@@ -107,16 +127,27 @@ describe("/api/owner-clients", () => {
       memberships: []
     });
 
-    listOwnerClientsMock.mockResolvedValue({
+    listOwnersMock.mockResolvedValue({
       status: 200,
       body: {
         success: true,
         data: {
-          clients: [
+          owners: [
             {
-              id: "ocl_1",
+              id: "own_1",
               organizationId: "org_1",
               name: "SCI Horizon",
+              fullName: "Nadine Horizon",
+              ownerType: "client",
+              userId: null,
+              address: "12 avenue des Palmiers",
+              isCompany: true,
+              companyName: "SCI Horizon",
+              country: "RDC",
+              city: "Kinshasa",
+              state: "Kinshasa",
+              phoneNumber: "+243000000000",
+              profilePictureUrl: "https://cdn.test/owner.jpg",
               createdAtIso: "2026-04-05T10:00:00.000Z"
             }
           ]
@@ -127,7 +158,7 @@ describe("/api/owner-clients", () => {
     const response = await GET(new Request("http://localhost/api/owner-clients?organizationId=org_1"));
 
     expect(response.status).toBe(200);
-    expect((await response.json()).data.clients).toHaveLength(1);
-    expect(listOwnerClientsMock).toHaveBeenCalledTimes(1);
+    expect((await response.json()).data.owners).toHaveLength(1);
+    expect(listOwnersMock).toHaveBeenCalledTimes(1);
   });
 });

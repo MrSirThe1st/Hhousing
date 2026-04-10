@@ -222,10 +222,9 @@ export function createPostgresPaymentRepository(
       period: string,
       managementContext?: PropertyManagementContext
     ): Promise<number> {
-      const managementContextClause = managementContext ? "and p.management_context = $3" : "";
-      const values: readonly unknown[] = managementContext
-        ? [organizationId, period, managementContext]
-        : [organizationId, period];
+      void managementContext;
+      const managementContextClause = "";
+      const values: readonly unknown[] = [organizationId, period];
 
       const result = await client.query(
         `with period_bounds as (

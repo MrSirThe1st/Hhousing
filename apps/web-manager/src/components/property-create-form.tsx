@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { CreatePropertyOutput } from "@hhousing/api-contracts";
-import type { OwnerClient } from "@hhousing/domain";
+import type { CreateOwnerOutput, CreatePropertyOutput } from "@hhousing/api-contracts";
+import type { Owner } from "@hhousing/domain";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth } from "../lib/api-client";
-import type { OperatorScope } from "../lib/operator-context.types";
 import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 import type { PropertyFormState } from "./property-management.types";
 
@@ -32,32 +31,26 @@ const INITIAL_PROPERTY_FORM: PropertyFormState = {
 
 interface PropertyCreateFormProps {
   organizationId: string;
-  currentScope: OperatorScope;
-  currentScopeLabel: string;
-  ownerClients: OwnerClient[];
+  owners: Owner[];
 }
 
 export default function PropertyCreateForm({
   organizationId,
-  currentScope,
-  currentScopeLabel,
-  ownerClients: initialOwnerClients,
+  owners: initialOwners,
 }: PropertyCreateFormProps): React.ReactElement {
   const router = useRouter();
-  const [propertyForm, setPropertyForm] = useState<PropertyFormState>(INITIAL_PROPERTY_FORM);
+  const [propertyForm, setPropertyForm] = useState<PropertyFormState>({
+    ...INITIAL_PROPERTY_FORM,
+    clientId: initialOwners[0]?.id ?? ""
+  });
   const [propertyBusy, setPropertyBusy] = useState(false);
   const [clientBusy, setClientBusy] = useState(false);
-  const [ownerClients, setOwnerClients] = useState<OwnerClient[]>(initialOwnerClients);
+  const [owners, setOwners] = useState<Owner[]>(initialOwners);
   const [newClientName, setNewClientName] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const isManagedScope = currentScope === "managed";
   const isMultiUnit = propertyForm.propertyType === "multi_unit";
-
-  function getCreateButtonLabel(scope: OperatorScope): string {
-    return scope === "owned" ? "Creer la propriete" : "Creer le bien gere";
-  }
 
   function toggleListValue(field: "amenities" | "features", value: string): void {
     setPropertyForm((previous) => {
@@ -182,11 +175,10 @@ export default function PropertyCreateForm({
       address: propertyForm.address.trim(),
       city: propertyForm.city.trim(),
       countryCode: propertyForm.countryCode.trim().toUpperCase(),
-      managementContext: currentScope,
+      ownerId: propertyForm.clientId,
       propertyType: propertyForm.propertyType,
       yearBuilt,
       photoUrls,
-      clientId: isManagedScope ? (propertyForm.clientId || null) : null,
       unitTemplate: {
         monthlyRentAmount,
         depositAmount,
@@ -216,7 +208,7 @@ export default function PropertyCreateForm({
     setClientBusy(true);
     setError(null);
 
-    const result = await postWithAuth<OwnerClient>("/api/owner-clients", {
+    const result = await postWithAuth<CreateOwnerOutput>("/api/owner-clients", {
       organizationId,
       name: newClientName.trim()
     });
@@ -227,8 +219,8 @@ export default function PropertyCreateForm({
       return;
     }
 
-    setOwnerClients((previous) => [...previous, result.data].sort((left, right) => left.name.localeCompare(right.name, "fr")));
-    setPropertyForm((previous) => ({ ...previous, clientId: result.data.id }));
+    setOwners((previous) => [...previous, result.data.owner].sort((left, right) => left.name.localeCompare(right.name, "fr")));
+    setPropertyForm((previous) => ({ ...previous, clientId: result.data.owner.id }));
     setNewClientName("");
     setClientBusy(false);
   }
@@ -240,7 +232,7 @@ export default function PropertyCreateForm({
           ← Retour au portfolio
         </Link>
         <h1 className="text-2xl font-semibold text-[#010a19]">Ajouter un bien</h1>
-        <p className="mt-1 text-sm text-gray-500">Ce nouveau bien sera classé dans {currentScopeLabel.toLowerCase()}.</p>
+        <p className="mt-1 text-sm text-gray-500">Chaque bien est maintenant rattaché à un owner explicite.</p>
       </div>
 
       <form onSubmit={handleCreateProperty} className="space-y-5 lg:max-w-5xl">
@@ -327,45 +319,44 @@ export default function PropertyCreateForm({
           ) : null}
         </section>
 
-        {isManagedScope ? (
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-3">
-            <div>
-              <h2 className="text-base font-semibold text-[#010a19]">Client géré</h2>
-              <p className="text-sm text-gray-500">Associez le bien à un client existant ou créez-en un à la volée.</p>
-            </div>
-            <select
-              value={propertyForm.clientId}
-              onChange={(event) => setPropertyForm((prev) => ({ ...prev, clientId: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Aucun client lie</option>
-              {ownerClients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-3">
+          <div>
+            <h2 className="text-base font-semibold text-[#010a19]">Owner</h2>
+            <p className="text-sm text-gray-500">Associez le bien à un owner existant ou créez un owner client à la volée.</p>
+          </div>
+          <select
+            value={propertyForm.clientId}
+            onChange={(event) => setPropertyForm((prev) => ({ ...prev, clientId: event.target.value }))}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            required
+          >
+            <option value="">Sélectionner un owner</option>
+            {owners.map((owner) => (
+              <option key={owner.id} value={owner.id}>
+                {owner.name}{owner.ownerType === "organization" ? " · organisation" : " · client"}
+              </option>
+            ))}
+          </select>
 
-            <div className="flex gap-2">
-              <input
-                value={newClientName}
-                onChange={(event) => setNewClientName(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                placeholder="Créer un nouveau client"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  void handleCreateOwnerClient();
-                }}
-                disabled={clientBusy || newClientName.trim().length === 0}
-                className="rounded-lg border border-[#0063fe] px-3 py-2 text-sm font-medium text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60"
-              >
-                {clientBusy ? "Creation..." : "Ajouter"}
-              </button>
-            </div>
-          </section>
-        ) : null}
+          <div className="flex gap-2">
+            <input
+              value={newClientName}
+              onChange={(event) => setNewClientName(event.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Créer un owner client"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void handleCreateOwnerClient();
+              }}
+              disabled={clientBusy || newClientName.trim().length === 0}
+              className="rounded-lg border border-[#0063fe] px-3 py-2 text-sm font-medium text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60"
+            >
+              {clientBusy ? "Creation..." : "Ajouter"}
+            </button>
+          </div>
+        </section>
 
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
           <div>
@@ -493,7 +484,7 @@ export default function PropertyCreateForm({
           disabled={propertyBusy}
           className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
         >
-          {propertyBusy ? "Creation en cours..." : getCreateButtonLabel(currentScope)}
+          {propertyBusy ? "Creation en cours..." : "Creer le bien"}
         </button>
       </form>
     </div>

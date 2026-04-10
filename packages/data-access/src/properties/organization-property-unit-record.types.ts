@@ -1,4 +1,4 @@
-import type { Organization, OwnerClient, Property, PropertyManagementContext, PropertyType, Unit } from "@hhousing/domain";
+import type { Organization, Owner, OwnerType, Property, PropertyManagementContext, PropertyType, Unit } from "@hhousing/domain";
 
 export interface CreateOrganizationRecordInput {
   id: string;
@@ -24,19 +24,32 @@ export interface CreatePropertyRecordInput {
   address: string;
   city: string;
   countryCode: string;
-  managementContext: PropertyManagementContext;
+  ownerId: string;
   propertyType: PropertyType;
   yearBuilt: number | null;
   photoUrls: string[];
-  clientId: string | null;
-  clientName: string | null;
+  ownerName: string;
+  ownerType: OwnerType;
 }
 
-export interface CreateOwnerClientRecordInput {
+export interface CreateOwnerRecordInput {
   id: string;
   organizationId: string;
   name: string;
+  fullName: string;
+  ownerType: OwnerType;
+  userId: string | null;
+  address: string | null;
+  isCompany: boolean;
+  companyName: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  phoneNumber: string | null;
+  profilePictureUrl: string | null;
 }
+
+export type CreateOwnerClientRecordInput = CreateOwnerRecordInput;
 
 export interface CreateUnitRecordInput {
   id: string;
@@ -65,9 +78,15 @@ export interface UpdatePropertyRecordInput {
   address: string;
   city: string;
   countryCode: string;
-  managementContext: PropertyManagementContext;
-  clientId: string | null;
-  clientName: string | null;
+  ownerId: string;
+  ownerName: string;
+  ownerType: OwnerType;
+}
+
+export interface ListPropertiesWithUnitsFilter {
+  ownerId?: string;
+  ownerType?: OwnerType;
+  managementContext?: "owned" | "managed";
 }
 
 export interface UpdateUnitRecordInput {
@@ -89,7 +108,8 @@ export interface OrganizationPropertyUnitRepository {
   createOrganization(input: CreateOrganizationRecordInput): Promise<Organization>;
   getOrganizationById(organizationId: string): Promise<Organization | null>;
   updateOrganization(input: UpdateOrganizationRecordInput): Promise<Organization | null>;
-  createOwnerClient(input: CreateOwnerClientRecordInput): Promise<OwnerClient>;
+  createOwner(input: CreateOwnerRecordInput): Promise<Owner>;
+  createOwnerClient(input: CreateOwnerClientRecordInput): Promise<Owner>;
   createProperty(input: CreatePropertyRecordInput): Promise<Property>;
   createPropertyWithUnits(input: CreatePropertyWithUnitsRecordInput): Promise<{ property: Property; units: Unit[] }>;
   createUnit(input: CreateUnitRecordInput): Promise<Unit>;
@@ -97,12 +117,14 @@ export interface OrganizationPropertyUnitRepository {
   updateUnit(input: UpdateUnitRecordInput): Promise<Unit | null>;
   deleteProperty(propertyId: string, organizationId: string): Promise<boolean>;
   deleteUnit(unitId: string, organizationId: string): Promise<boolean>;
-  getOwnerClientById(clientId: string, organizationId: string): Promise<OwnerClient | null>;
+  getOwnerById(ownerId: string, organizationId: string): Promise<Owner | null>;
+  getOwnerClientById(ownerId: string, organizationId: string): Promise<Owner | null>;
   getPropertyById(propertyId: string, organizationId: string): Promise<Property | null>;
   getUnitById(unitId: string, organizationId: string): Promise<Unit | null>;
-  listOwnerClients(organizationId: string): Promise<OwnerClient[]>;
+  listOwners(organizationId: string): Promise<Owner[]>;
+  listOwnerClients(organizationId: string): Promise<Owner[]>;
   listPropertiesWithUnits(
     organizationId: string,
-    managementContext?: PropertyManagementContext
+    filter?: ListPropertiesWithUnitsFilter | PropertyManagementContext
   ): Promise<PropertyWithUnitsRecord[]>;
 }

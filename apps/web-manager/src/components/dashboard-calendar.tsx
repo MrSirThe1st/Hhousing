@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import type {
-  DashboardCalendarEvent,
-  DashboardCalendarEventTone,
-  DashboardCalendarMetrics,
-  DashboardCalendarProps,
-} from "./dashboard-calendar.types";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { deleteWithAuth, postWithAuth } from "../lib/api-client";
+import type { DashboardCalendarEntry, DashboardWorkflowRelatedOption } from "../lib/dashboard-workflow.types";
+import type { DashboardCalendarEventTone, DashboardCalendarProps } from "./dashboard-calendar.types";
 
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
@@ -15,6 +13,17 @@ const EVENT_TONE_STYLES: Record<DashboardCalendarEventTone, string> = {
   amber: "border-amber-200 bg-amber-50 text-amber-700",
   emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
   slate: "border-slate-200 bg-slate-100 text-slate-700",
+  rose: "border-rose-200 bg-rose-50 text-rose-700",
+};
+
+type CalendarFormState = {
+  title: string;
+  description: string;
+  startAt: string;
+  endAt: string;
+  eventType: "custom" | "inspection" | "reminder";
+  relatedType: "property" | "unit" | "lease" | "tenant" | "";
+  relatedId: string;
 };
 
 function createDate(year: number, month: number, day: number): Date {
@@ -59,72 +68,13 @@ function clampDay(viewMonth: Date, desiredDay: number): Date {
   return createDate(viewMonth.getFullYear(), viewMonth.getMonth(), Math.min(desiredDay, lastDay));
 }
 
-function buildEventDetail(metrics: DashboardCalendarMetrics, scopeLabel: string): string[] {
-  return [
-    metrics.propertyCount > 0 ? `${metrics.propertyCount} biens a revoir` : "Premier bien a planifier",
-    metrics.leaseCount > 0 ? `${metrics.leaseCount} baux actifs` : "Structurer le cycle de baux",
-    metrics.maintenanceCount > 0 ? `${metrics.maintenanceCount} demandes ouvertes` : "Aucune urgence maintenance",
-    metrics.tenantCount > 0 ? `${metrics.tenantCount} locataires actifs` : "Base locataires a lancer",
-    metrics.unitCount > 0
-      ? `${metrics.occupiedUnitCount}/${metrics.unitCount} unites occupees`
-      : "Aucune unite chargee",
-    `Scope ${scopeLabel.toLowerCase()}`,
-  ];
-}
-
-function buildCalendarEvents(viewMonth: Date, metrics: DashboardCalendarMetrics, scopeLabel: string): DashboardCalendarEvent[] {
-  const details = buildEventDetail(metrics, scopeLabel);
-
-  return [
-    {
-      id: "portfolio-review",
-      title: "Revue portefeuille",
-      detail: details[0],
-      date: clampDay(viewMonth, 2),
-      timeLabel: "08:30",
-      tone: "blue",
-    },
-    {
-      id: "lease-cycle",
-      title: "Cycle des baux",
-      detail: details[1],
-      date: clampDay(viewMonth, 5),
-      timeLabel: "10:00",
-      tone: "slate",
-    },
-    {
-      id: "maintenance-review",
-      title: "Point maintenance",
-      detail: details[2],
-      date: clampDay(viewMonth, 9),
-      timeLabel: "11:30",
-      tone: "amber",
-    },
-    {
-      id: "tenant-follow-up",
-      title: "Suivi locataires",
-      detail: details[3],
-      date: clampDay(viewMonth, 14),
-      timeLabel: "14:00",
-      tone: "emerald",
-    },
-    {
-      id: "occupancy-audit",
-      title: "Audit occupation",
-      detail: details[4],
-      date: clampDay(viewMonth, 18),
-      timeLabel: "16:00",
-      tone: "blue",
-    },
-    {
-      id: "team-rhythm",
-      title: "Cadence equipe",
-      detail: details[5],
-      date: clampDay(viewMonth, 24),
-      timeLabel: "09:00",
-      tone: "slate",
-    },
-  ];
+function getTone(entry: DashboardCalendarEntry): DashboardCalendarEventTone {
+  if (entry.eventType === "maintenance") return "amber";
+  if (entry.eventType === "lease") return "emerald";
+  if (entry.eventType === "rent") return "blue";
+  if (entry.eventType === "inspection") return "rose";
+  if (entry.eventType === "task") return "slate";
+  return entry.source === "manual" ? "rose" : "slate";
 }
 
 function formatMonthLabel(value: Date): string {
@@ -138,18 +88,145 @@ function formatRangeLabel(viewMonth: Date): string {
   return `${formatter.format(first)} - ${formatter.format(last)}`;
 }
 
-export default function DashboardCalendar({ metrics, scopeLabel }: DashboardCalendarProps): React.ReactElement {
+function formatLocalDateTimeValue(date: Date): string {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function formatTimeLabel(entry: DashboardCalendarEntry): string {
+  return new Date(entry.startAtIso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function getRelatedPayload(option: DashboardWorkflowRelatedOption | undefined): {
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
+  propertyId: string | null;
+  unitId: string | null;
+  leaseId: string | null;
+  tenantId: string | null;
+} {
+  if (!option) {
+    return {
+      relatedEntityType: null,
+      relatedEntityId: null,
+      propertyId: null,
+      unitId: null,
+      leaseId: null,
+      tenantId: null
+    };
+  }
+
+  return {
+    relatedEntityType: option.type,
+    relatedEntityId: option.id,
+    propertyId: option.type === "property" ? option.id : option.propertyId ?? null,
+    unitId: option.type === "unit" ? option.id : option.unitId ?? null,
+    leaseId: option.type === "lease" ? option.id : option.leaseId ?? null,
+    tenantId: option.type === "tenant" ? option.id : option.tenantId ?? null
+  };
+}
+
+export default function DashboardCalendar({ organizationId, currentUserId, entries, relatedOptions, scopeLabel }: DashboardCalendarProps): React.ReactElement {
+  const router = useRouter();
   const [viewMonth, setViewMonth] = useState<Date>(() => startOfMonth(new Date()));
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [busyEntryId, setBusyEntryId] = useState<string | null>(null);
+  const [formBusy, setFormBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [formState, setFormState] = useState<CalendarFormState>({
+    title: "",
+    description: "",
+    startAt: formatLocalDateTimeValue(new Date()),
+    endAt: "",
+    eventType: "custom",
+    relatedType: "",
+    relatedId: ""
+  });
   const today = new Date();
   const monthDays = getMonthDays(viewMonth);
-  const events = buildCalendarEvents(viewMonth, metrics, scopeLabel);
-  const eventMap = new Map<string, DashboardCalendarEvent[]>();
+  const monthEntries = useMemo(
+    () => entries.filter((entry) => {
+      const date = new Date(entry.startAtIso);
+      return date.getMonth() === viewMonth.getMonth() && date.getFullYear() === viewMonth.getFullYear();
+    }),
+    [entries, viewMonth]
+  );
+  const eventMap = new Map<string, DashboardCalendarEntry[]>();
 
-  for (const event of events) {
-    const dateKey = getDateKey(event.date);
+  const availableRelatedOptions = useMemo(() => {
+    if (!formState.relatedType) {
+      return [];
+    }
+    return relatedOptions.filter((option) => option.type === formState.relatedType);
+  }, [formState.relatedType, relatedOptions]);
+
+  for (const event of monthEntries) {
+    const dateKey = getDateKey(new Date(event.startAtIso));
     const existingEvents = eventMap.get(dateKey) ?? [];
     existingEvents.push(event);
     eventMap.set(dateKey, existingEvents);
+  }
+
+  async function handleCreateEvent(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    setFormBusy(true);
+    setError(null);
+    setMessage(null);
+
+    const selectedOption = relatedOptions.find(
+      (option) => option.type === formState.relatedType && option.id === formState.relatedId
+    );
+    const relatedPayload = getRelatedPayload(selectedOption);
+
+    const result = await postWithAuth("/api/calendar-events", {
+      organizationId,
+      title: formState.title.trim(),
+      description: formState.description.trim() || null,
+      startAtIso: new Date(formState.startAt).toISOString(),
+      endAtIso: formState.endAt ? new Date(formState.endAt).toISOString() : null,
+      eventType: formState.eventType,
+      status: "scheduled",
+      assignedUserId: currentUserId,
+      ...relatedPayload
+    });
+
+    if (!result.success) {
+      setError(result.error);
+      setFormBusy(false);
+      return;
+    }
+
+    setFormState({
+      title: "",
+      description: "",
+      startAt: formatLocalDateTimeValue(new Date()),
+      endAt: "",
+      eventType: "custom",
+      relatedType: "",
+      relatedId: ""
+    });
+    setFormBusy(false);
+    setShowCreateForm(false);
+    setMessage("Événement créé.");
+    router.refresh();
+  }
+
+  async function handleDeleteEvent(entryId: string): Promise<void> {
+    const eventId = entryId.replace(/^event:/, "");
+    setBusyEntryId(entryId);
+    setError(null);
+    setMessage(null);
+
+    const result = await deleteWithAuth(`/api/calendar-events/${eventId}`);
+    if (!result.success) {
+      setError(result.error);
+      setBusyEntryId(null);
+      return;
+    }
+
+    setBusyEntryId(null);
+    router.refresh();
   }
 
   return (
@@ -160,8 +237,7 @@ export default function DashboardCalendar({ metrics, scopeLabel }: DashboardCale
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#0063fe]">Calendar</p>
             <h2 className="mt-2 text-2xl font-semibold text-[#010a19]">Planning operationnel</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Vue mensuelle inspiree d&apos;un agenda produit moderne, prete a recevoir plus tard les visites,
-              echeances de bail, suivis maintenance et rappels de collecte.
+              Vue mensuelle des échéances réelles: baux, paiements, maintenance, rappels de tâches et événements personnalisés.
             </p>
           </div>
 
@@ -182,6 +258,13 @@ export default function DashboardCalendar({ metrics, scopeLabel }: DashboardCale
             </button>
             <button
               type="button"
+              onClick={() => setShowCreateForm((currentValue) => !currentValue)}
+              className="rounded-full bg-[#0063fe] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+            >
+              {showCreateForm ? "Fermer" : "Nouvel événement"}
+            </button>
+            <button
+              type="button"
               onClick={() => setViewMonth(startOfMonth(addDays(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1), 0)))}
               className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
             >
@@ -198,20 +281,117 @@ export default function DashboardCalendar({ metrics, scopeLabel }: DashboardCale
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:w-auto">
             <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Biens</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{metrics.propertyCount}</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Événements</p>
+              <p className="mt-1 text-lg font-semibold text-[#010a19]">{monthEntries.length}</p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Baux</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{metrics.leaseCount}</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Rappels</p>
+              <p className="mt-1 text-lg font-semibold text-[#010a19]">{monthEntries.filter((entry) => entry.source === "task").length}</p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Maintenance</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{metrics.maintenanceCount}</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Scope</p>
+              <p className="mt-1 text-lg font-semibold text-[#010a19]">{scopeLabel}</p>
             </div>
           </div>
         </div>
       </section>
+
+      {showCreateForm ? (
+        <form onSubmit={handleCreateEvent} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <label className="space-y-2 text-sm text-slate-600">
+              <span className="font-medium text-slate-800">Titre</span>
+              <input
+                value={formState.title}
+                onChange={(event) => setFormState((current) => ({ ...current, title: event.target.value }))}
+                required
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-2 text-sm text-slate-600">
+              <span className="font-medium text-slate-800">Type</span>
+              <select
+                value={formState.eventType}
+                onChange={(event) => setFormState((current) => ({ ...current, eventType: event.target.value as CalendarFormState["eventType"] }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              >
+                <option value="custom">Custom</option>
+                <option value="inspection">Inspection</option>
+                <option value="reminder">Reminder</option>
+              </select>
+            </label>
+            <label className="space-y-2 text-sm text-slate-600 lg:col-span-2">
+              <span className="font-medium text-slate-800">Description</span>
+              <textarea
+                value={formState.description}
+                onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
+                rows={3}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-2 text-sm text-slate-600">
+              <span className="font-medium text-slate-800">Début</span>
+              <input
+                type="datetime-local"
+                value={formState.startAt}
+                onChange={(event) => setFormState((current) => ({ ...current, startAt: event.target.value }))}
+                required
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-2 text-sm text-slate-600">
+              <span className="font-medium text-slate-800">Fin</span>
+              <input
+                type="datetime-local"
+                value={formState.endAt}
+                onChange={(event) => setFormState((current) => ({ ...current, endAt: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-2 text-sm text-slate-600">
+              <span className="font-medium text-slate-800">Objet lié</span>
+              <select
+                value={formState.relatedType}
+                onChange={(event) => setFormState((current) => ({ ...current, relatedType: event.target.value as CalendarFormState["relatedType"], relatedId: "" }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              >
+                <option value="">Aucun</option>
+                <option value="property">Propriété</option>
+                <option value="unit">Unité</option>
+                <option value="lease">Bail</option>
+                <option value="tenant">Locataire</option>
+              </select>
+            </label>
+            <label className="space-y-2 text-sm text-slate-600">
+              <span className="font-medium text-slate-800">Sélection</span>
+              <select
+                value={formState.relatedId}
+                onChange={(event) => setFormState((current) => ({ ...current, relatedId: event.target.value }))}
+                disabled={!formState.relatedType}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 disabled:bg-slate-50"
+              >
+                <option value="">Aucun</option>
+                {availableRelatedOptions.map((option) => (
+                  <option key={`${option.type}:${option.id}`} value={option.id}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {message ? <p className="mt-4 text-sm text-emerald-700">{message}</p> : null}
+          {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
+
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              disabled={formBusy || formState.title.trim().length === 0}
+              className="rounded-full bg-[#0063fe] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {formBusy ? "Création..." : "Créer l'événement"}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
@@ -251,9 +431,9 @@ export default function DashboardCalendar({ metrics, scopeLabel }: DashboardCale
                     {dayEvents.map((event) => (
                       <div
                         key={event.id}
-                        className={`rounded-2xl border px-2.5 py-2 ${EVENT_TONE_STYLES[event.tone]}`}
+                        className={`rounded-2xl border px-2.5 py-2 ${EVENT_TONE_STYLES[getTone(event)]}`}
                       >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">{event.timeLabel}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">{formatTimeLabel(event)}</p>
                         <p className="mt-1 text-sm font-semibold leading-tight">{event.title}</p>
                         <p className="mt-1 line-clamp-2 text-xs leading-relaxed opacity-90">{event.detail}</p>
                       </div>
@@ -269,24 +449,45 @@ export default function DashboardCalendar({ metrics, scopeLabel }: DashboardCale
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Focus du mois</p>
             <div className="mt-4 space-y-3">
-              {events.map((event) => (
+              {monthEntries.map((event) => (
                 <div key={event.id} className="rounded-2xl border border-slate-200 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{event.timeLabel}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{formatTimeLabel(event)}</p>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${EVENT_TONE_STYLES[getTone(event)]}`}>
+                      {event.statusLabel}
+                    </span>
+                  </div>
                   <p className="mt-1 text-sm font-semibold text-[#010a19]">{event.title}</p>
                   <p className="mt-1 text-sm text-slate-500">
-                    {event.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+                    {new Date(event.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
                   </p>
+                  {event.relatedLabel ? <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">{event.relatedLabel}</p> : null}
                   <p className="mt-2 text-sm text-slate-600">{event.detail}</p>
+                  {event.source === "manual" ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteEvent(event.id)}
+                      disabled={busyEntryId === event.id}
+                      className="mt-3 rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                    >
+                      Supprimer
+                    </button>
+                  ) : null}
                 </div>
               ))}
+              {monthEntries.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
+                  Aucun événement sur ce mois.
+                </div>
+              ) : null}
             </div>
           </section>
 
           <section className="rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">Etape suivante</p>
-            <h3 className="mt-3 text-lg font-semibold">Brancher les vraies echeances</h3>
+            <h3 className="mt-3 text-lg font-semibold">Calendrier du scope {scopeLabel.toLowerCase()}</h3>
             <p className="mt-2 text-sm leading-relaxed text-white/75">
-              Cette base peut ensuite consommer les visites, signatures de bail, suivis maintenance et rappels de paiements.
+              Les événements personnalisés cohabitent maintenant avec les échéances de bail, la collecte et les rappels issus des tâches.
             </p>
           </section>
         </aside>

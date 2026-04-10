@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import DashboardTasksPanel from "../../components/dashboard-tasks-panel";
 import { getServerAuthSession } from "../../lib/session";
 import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
 import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
+import { buildDashboardWorkflowData } from "../../lib/dashboard-workflow";
 import DashboardCalendar from "../../components/dashboard-calendar";
 
 type DashboardTab = "overview" | "tasks" | "calendar";
@@ -163,6 +165,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const metrics = await fetchDashboardMetrics(session.organizationId, operatorContext.currentScope);
   const stats = getStats(operatorContext.experience, scopeLabel, metrics);
+  const workflowData = activeTab === "overview" ? null : await buildDashboardWorkflowData(session);
 
   const hasNoData = metrics.propertyCount === 0;
   const tabs: Array<{ id: DashboardTab; label: string; href: string }> = [
@@ -237,16 +240,24 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </div>
         </>
       ) : activeTab === "calendar" ? (
-        <DashboardCalendar metrics={metrics} scopeLabel={scopeLabel} />
+        workflowData ? (
+          <DashboardCalendar
+            organizationId={session.organizationId}
+            currentUserId={session.userId}
+            entries={workflowData.calendarEntries}
+            relatedOptions={workflowData.relatedOptions}
+            scopeLabel={scopeLabel}
+          />
+        ) : null
       ) : (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-[#010a19]">
-            {activeTab === "tasks" ? "Tasks" : "Calendar"}
-          </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Cet onglet est prêt mais reste vide pour l&apos;instant.
-          </p>
-        </div>
+        workflowData ? (
+          <DashboardTasksPanel
+            organizationId={session.organizationId}
+            currentUserId={session.userId}
+            tasks={workflowData.tasks}
+            relatedOptions={workflowData.relatedOptions}
+          />
+        ) : null
       )}
     </div>
   );

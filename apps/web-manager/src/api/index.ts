@@ -41,14 +41,20 @@ export {
   type CreatePropertyResponse
 } from "./properties/create-property";
 export {
-  createOwnerClient,
-  listOwnerClients,
-  type CreateOwnerClientRequest,
-  type CreateOwnerClientResponse,
-  type ListOwnerClientsRequest,
-  type ListOwnerClientsResponse,
-  type OwnerClientsDeps
+  createOwner,
+  listOwners,
+  type CreateOwnerRequest,
+  type CreateOwnerResponse,
+  type ListOwnersRequest,
+  type ListOwnersResponse,
+  type OwnersDeps
 } from "./properties/owner-clients";
+export {
+  inviteOwner,
+  type InviteOwnerRequest,
+  type InviteOwnerResponse,
+  type InviteOwnerDeps
+} from "./owners/owner-invitations";
 export {
   createUnit,
   type CreateUnitDeps,

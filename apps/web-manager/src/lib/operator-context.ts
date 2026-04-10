@@ -21,34 +21,25 @@ export function getOperatorExperience(session: AuthSession): OperatorExperience 
 }
 
 export function getAvailableOperatorScopes(session: AuthSession): OperatorScope[] {
-  if (session.role === "landlord") {
-    return ["owned"];
-  }
-
-  if (session.capabilities.canOwnProperties) {
-    return ["owned", "managed"];
-  }
-
-  return ["managed"];
+  void session;
+  return ["owned"];
 }
 
 export function getDefaultOperatorScope(session: AuthSession): OperatorScope {
-  const availableScopes = getAvailableOperatorScopes(session);
-  return availableScopes[0] ?? "managed";
+  void session;
+  return "owned";
 }
 
 export function resolveOperatorContext(session: AuthSession, requestedScope?: string | null): OperatorContext {
+  void requestedScope;
   const availableScopes = getAvailableOperatorScopes(session);
-  const defaultScope = getDefaultOperatorScope(session);
-  const currentScope = requestedScope && isOperatorScope(requestedScope) && availableScopes.includes(requestedScope)
-    ? requestedScope
-    : defaultScope;
+  const currentScope = getDefaultOperatorScope(session);
 
   return {
     experience: getOperatorExperience(session),
     availableScopes,
     currentScope,
-    canSwitch: availableScopes.length > 1
+    canSwitch: false
   };
 }
 
@@ -59,7 +50,8 @@ export async function getServerOperatorContext(session: AuthSession): Promise<Op
 }
 
 export function getOperatorScopeLabel(scope: OperatorScope): string {
-  return scope === "owned" ? "Mon parc" : "Parc gere";
+  void scope;
+  return "Portefeuille";
 }
 
 export function canEditOrganizationDetails(session: AuthSession): boolean {
@@ -68,5 +60,7 @@ export function canEditOrganizationDetails(session: AuthSession): boolean {
 }
 
 export function isScopeAllowedForSession(session: AuthSession, scope: OperatorScope): boolean {
-  return getAvailableOperatorScopes(session).includes(scope);
+  void session;
+  void scope;
+  return true;
 }

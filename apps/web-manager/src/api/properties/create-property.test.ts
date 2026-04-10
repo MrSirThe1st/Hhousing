@@ -27,6 +27,7 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
     createOrganization: vi.fn(),
     getOrganizationById: vi.fn(),
     updateOrganization: vi.fn(),
+    createOwner: vi.fn(),
     createOwnerClient: vi.fn(),
     createProperty: vi.fn(),
     createPropertyWithUnits: vi.fn().mockImplementation(async (input) => ({
@@ -46,14 +47,25 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
     updateUnit: vi.fn(),
     deleteProperty: vi.fn(),
     deleteUnit: vi.fn(),
+    getOwnerById: vi.fn().mockResolvedValue({
+      id: "own-1",
+      organizationId: "org-1",
+      name: "Client 1",
+      ownerType: "client",
+      userId: null,
+      createdAtIso: "2026-03-31T00:00:00.000Z"
+    }),
     getOwnerClientById: vi.fn().mockResolvedValue({
       id: "ocl-1",
       organizationId: "org-1",
       name: "Client 1",
+      ownerType: "client",
+      userId: null,
       createdAtIso: "2026-03-31T00:00:00.000Z"
     }),
     getPropertyById: vi.fn(),
     getUnitById: vi.fn(),
+    listOwners: vi.fn(),
     listOwnerClients: vi.fn(),
     listPropertiesWithUnits: vi.fn()
   };
@@ -73,11 +85,10 @@ describe("createProperty", () => {
           address: "Avenue Test",
           city: "Kinshasa",
           countryCode: "CD",
-          managementContext: "managed",
+          ownerId: "own-1",
           propertyType: "multi_unit",
           yearBuilt: 2020,
           photoUrls: ["https://cdn.test/property-1.jpg"],
-          clientId: "ocl-1",
           unitTemplate: {
             monthlyRentAmount: 500,
             depositAmount: 200,
@@ -122,30 +133,21 @@ describe("createProperty", () => {
     );
   });
 
-  it("rejects owned properties linked to a client", async () => {
+  it("rejects unknown owners", async () => {
     const repository = createRepositoryMock();
+    vi.mocked(repository.getOwnerById).mockResolvedValue(null);
 
     const response = await createProperty(
       {
-        session: {
-          ...operatorSession,
-          capabilities: { canOwnProperties: true },
-          memberships: [
-            {
-              ...operatorSession.memberships[0]!,
-              capabilities: { canOwnProperties: true }
-            }
-          ]
-        },
+        session: operatorSession,
         body: {
           organizationId: "org-1",
           name: "Villa",
           address: "Boulevard",
           city: "Kinshasa",
           countryCode: "CD",
-          managementContext: "owned",
+          ownerId: "missing-owner",
           propertyType: "single_unit",
-          clientId: "ocl-1",
           unitTemplate: {
             monthlyRentAmount: 300,
             depositAmount: 100,
@@ -159,11 +161,11 @@ describe("createProperty", () => {
       }
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      code: "VALIDATION_ERROR",
-      error: "Owned properties cannot be linked to a client"
+      code: "NOT_FOUND",
+      error: "Owner not found"
     });
     expect(repository.createPropertyWithUnits).not.toHaveBeenCalled();
   });

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Tenant } from "@hhousing/domain";
 import type { TenantListItem, TenantManagementPanelProps } from "./tenant-management.types";
+import ActionMenu from "./action-menu";
 
 export default function TenantManagementPanel({
   organizationId,
@@ -164,10 +165,12 @@ export default function TenantManagementPanel({
                     <td className="px-4 py-3 text-gray-500">
                       {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
                     </td>
-                    <td className="px-4 py-3 space-x-3">
-                      <Link href={`/dashboard/tenants/${tenant.id}`} className="text-[#0063fe] hover:underline text-sm font-medium">
-                        Voir détails
-                      </Link>
+                    <td className="px-4 py-3">
+                      <ActionMenu
+                        items={[
+                          { label: "Voir la fiche", href: `/dashboard/tenants/${tenant.id}` }
+                        ]}
+                      />
                     </td>
                   </tr>
                 );
@@ -209,9 +212,12 @@ export default function TenantManagementPanel({
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <Link href={`/dashboard/tenants/${tenant.id}`} className="text-[#0063fe] hover:underline text-sm font-medium">
-                    Voir détails
-                  </Link>
+                  <ActionMenu
+                    items={[
+                      { label: "Voir la fiche", href: `/dashboard/tenants/${tenant.id}` }
+                    ]}
+                    align="left"
+                  />
                 </div>
               </div>
             );

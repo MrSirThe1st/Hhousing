@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { Document, Lease, Payment } from "@hhousing/domain";
 import { patchWithAuth } from "../../../../lib/api-client";
+import UniversalLoadingState from "../../../../components/universal-loading-state";
 
 const ContextualDocumentPanel = dynamic(
   () => import("../../../../components/contextual-document-panel"),
@@ -196,7 +197,7 @@ export default function LeaseDetailPage({ params }: PageProps): React.ReactEleme
   if (loading) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Chargement...</p>
+        <UniversalLoadingState />
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { createOwnerClient, listOwnerClients } from "../../../api";
+import { createOwner, listOwners } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { createId, createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 
@@ -19,14 +19,14 @@ export async function POST(request: Request): Promise<Response> {
     return jsonResponse(500, repositoryResult);
   }
 
-  const result = await createOwnerClient(
+  const result = await createOwner(
     {
       body,
       session: await extractAuthSessionFromCookies()
     },
     {
       repository: repositoryResult.data,
-      createId: () => createId("ocl")
+      createId: () => createId("own")
     }
   );
 
@@ -40,7 +40,7 @@ export async function GET(request: Request): Promise<Response> {
     return jsonResponse(500, repositoryResult);
   }
 
-  const result = await listOwnerClients(
+  const result = await listOwners(
     {
       organizationId: searchParams.get("organizationId"),
       session: await extractAuthSessionFromCookies()

@@ -5,7 +5,6 @@ import type {
 } from "@hhousing/api-contracts";
 import { parseCreatePropertyInput } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
-import { isScopeAllowedForSession } from "../../lib/operator-context";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreatePropertyRequest {
@@ -62,50 +61,16 @@ export async function createProperty(
     };
   }
 
-  if (!isScopeAllowedForSession(sessionResult.data, parsed.data.managementContext)) {
+  const owner = await deps.repository.getOwnerById(parsed.data.ownerId, sessionResult.data.organizationId);
+  if (!owner) {
     return {
-      status: 403,
+      status: 404,
       body: {
         success: false,
-        code: "FORBIDDEN",
-        error: "Management context not allowed for current operator"
+        code: "NOT_FOUND",
+        error: "Owner not found"
       }
     };
-  }
-
-  if (parsed.data.managementContext === "owned" && parsed.data.clientId) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        code: "VALIDATION_ERROR",
-        error: "Owned properties cannot be linked to a client"
-      }
-    };
-  }
-
-  let clientId: string | null = null;
-  let clientName: string | null = null;
-
-  if (parsed.data.clientId) {
-    const ownerClient = await deps.repository.getOwnerClientById(
-      parsed.data.clientId,
-      sessionResult.data.organizationId
-    );
-
-    if (!ownerClient) {
-      return {
-        status: 404,
-        body: {
-          success: false,
-          code: "NOT_FOUND",
-          error: "Client not found"
-        }
-      };
-    }
-
-    clientId = ownerClient.id;
-    clientName = ownerClient.name;
   }
 
   const propertyId = deps.createId("prp");
@@ -121,12 +86,12 @@ export async function createProperty(
       address: parsed.data.address,
       city: parsed.data.city,
       countryCode: parsed.data.countryCode,
-      managementContext: parsed.data.managementContext,
+      ownerId: owner.id,
       propertyType: parsed.data.propertyType,
       yearBuilt: parsed.data.yearBuilt ?? null,
       photoUrls: parsed.data.photoUrls ?? [],
-      clientId,
-      clientName
+      ownerName: owner.name,
+      ownerType: owner.ownerType
     },
     units: Array.from({ length: unitCount }, (_, index) => ({
       id: deps.createId("unt"),

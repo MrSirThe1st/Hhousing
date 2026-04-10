@@ -2,6 +2,72 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Reworked the web-manager owners workspace into the same cleaner admin hierarchy used on portfolio. The owners index now uses a structured header, KPI summary cards, and a table-based portfolio view, and owner creation moved behind a dedicated add route with a direct CTA.
+- Impact: Updated `apps/web-manager/src/app/dashboard/clients/page.tsx`; added `apps/web-manager/src/app/dashboard/clients/add/page.tsx`; kept `apps/web-manager/src/components/owner-client-create-panel.tsx` as the creation surface behind the new route.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Auth + Owner Portal
+- Description: Completed the first owner-portal read slice as a separate `web-owner` app. The invite acceptance flow was already in place; this pass finished the read-only dashboard surface by adding dedicated owner pages for properties, payments, and reports, and hardened the owner app TS config for workspace package resolution.
+- Impact: Added `apps/web-owner/src/app/dashboard/properties/page.tsx`, `apps/web-owner/src/app/dashboard/payments/page.tsx`, and `apps/web-owner/src/app/dashboard/reports/page.tsx`; updated `apps/web-owner/tsconfig.json`; and cleaned up owner login/invite/dashboard shell styling warnings.
+- Tests: Validation still blocked locally because `apps/web-owner` has no installed `node_modules` (`pnpm -C apps/web-owner typecheck` fails before compilation with `tsc: command not found`).
+
+## 2026-04-10
+- Change type: Web + API + DB + Documents
+- Description: Expanded the owner workflow into a real owner profile flow. Owners can now store profile details (contact name, address, company toggle, company name, country, city, state, phone, profile picture), the owners list/detail screens show that richer profile context, and owner-specific documents are now supported through the shared documents pipeline.
+- Impact: Added migration `0031_expand_owners_and_owner_documents.sql`; extended owner domain/contracts/data-access mapping and creation validation; rebuilt `apps/web-manager/src/components/owner-client-create-panel.tsx`; replaced the stale owner detail route at `apps/web-manager/src/app/dashboard/clients/[id]/page.tsx`; and added `owner` as a valid document attachment type across shared validation and web-manager document scope handling.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + API + Data Model
+- Description: Started the ownership-architecture cutover in web-manager. Introduced owner-first shared types/contracts, removed operator scope switching from the shell, unified portfolio reads across the app, and moved property creation onto explicit owner assignment while keeping repository SQL compatible with the current database schema.
+- Impact: Added `packages/domain/src/entities/owner.types.ts`; updated shared property/domain/api/data-access shapes to expose `ownerId`, `ownerName`, and `ownerType`; removed dashboard scope switching in `apps/web-manager/src/app/dashboard/layout.tsx`; updated sidebar, properties, and owners surfaces; added migration draft `db/migrations/0030_unify_property_owners.sql`; and kept runtime compatibility by mapping the new owner model over existing `owner_clients` / `client_id` storage until the DB cutover is applied.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Fixed managed-client creation in the property create flow and added a direct client creation entry point on the manager clients page.
+- Impact: Updated `apps/web-manager/src/components/property-create-form.tsx` to consume the owner-client API response correctly so select options keep stable ids, added `apps/web-manager/src/components/owner-client-create-panel.tsx`, and wired it into `apps/web-manager/src/app/dashboard/clients/page.tsx`.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Simplified the manager portfolio and property-detail surfaces again to prioritize functional tables and unclipped actions. Replaced the remaining inline property-page popup menus with the shared action menu so overlays close on outside click and no longer get trapped by parent containers.
+- Impact: Updated `apps/web-manager/src/components/property-management-panel.tsx` and `apps/web-manager/src/app/dashboard/properties/[id]/page.tsx` to use `ActionMenu`, switched the affected table wrappers to horizontal-scroll containers instead of clipped card shells, and flattened some summary/header sections to a more operational admin layout.
+- Tests: `pnpm --filter web-manager lint` ✓, `pnpm --filter web-manager typecheck` ✓, `pnpm --filter web-manager test` ✓, `pnpm --filter web-manager build` ✓ after clearing stale `.next` output.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Added a shared centered loading animation for web-manager using the provided material-wave JSON, and replaced text-only `Chargement...` fallbacks on detail and panel surfaces without touching existing skeleton-based route loaders.
+- Impact: Added `apps/web-manager/src/components/material-wave-loading.json` and `apps/web-manager/src/components/universal-loading-state.tsx`; updated property, unit, lease, maintenance, tenant, documents, messaging, and team-invite loading fallbacks to use the shared loader.
+- Tests: `pnpm --filter web-manager lint` ✓, `pnpm --filter web-manager typecheck` ✓, `pnpm --filter web-manager test` ✓, `pnpm --filter web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Continued the enterprise UI cleanup across detail and management surfaces in web-manager. Rebuilt the unit detail page into the quieter admin pattern, redesigned the contextual documents panel into a cleaner table-based surface, and standardized three-dot action menus across unit, tenant, lease, maintenance, and client portfolio actions.
+- Impact: Added shared `apps/web-manager/src/components/action-menu.tsx`; updated `apps/web-manager/src/app/dashboard/units/[id]/page.tsx`, `apps/web-manager/src/components/contextual-document-panel.tsx`, `apps/web-manager/src/components/tenant-management-panel.tsx`, `apps/web-manager/src/components/maintenance-management-panel.tsx`, `apps/web-manager/src/components/lease-management-panel.tsx`, and `apps/web-manager/src/components/client-portfolio-table.tsx` to align destructive and secondary actions with the cleaner admin interaction model.
+- Tests: `pnpm --filter web-manager lint` ✓, `pnpm --filter web-manager typecheck` ✓, `pnpm --filter web-manager test` ✓, `pnpm --filter web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + API + DB + Workflow
+- Description: Built a first real tasks and calendar workflow system for web-manager. Added persisted manual tasks and manual calendar events, automatic system-task generation for open maintenance, overdue payments, and leases nearing expiry, plus a data-backed dashboard Tasks workspace and Calendar workspace that merge custom events with derived lease, rent, maintenance, and task reminders.
+- Impact: Added migration `0029_init_tasks_and_calendar_events.sql`; expanded shared domain, API-contracts, and data-access with tasks/calendar repositories and validation; added `/api/tasks`, `/api/tasks/[id]`, `/api/calendar-events`, and `/api/calendar-events/[id]`; replaced dashboard Tasks placeholder and seeded Calendar with real workflow UI.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓, `pnpm -C apps/web-manager test` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Redesigned the web-manager dashboard sidebar into a more enterprise operator shell. Replaced emoji navigation with a consistent inline icon set, added a French quick-context panel for current scope and role, introduced a user-controlled collapsed state, and scaffolded placeholder counters for operational modules.
+- Impact: Updated the main dashboard shell styling in `apps/web-manager/src/app/dashboard/layout.tsx` and refreshed sidebar behavior/UI in `apps/web-manager/src/components/sidebar.tsx` to support the new navigation frame.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Reworked the Portfolio landing view in web-manager into a more enterprise-style workspace. Added a structured page header with KPI cards, cleaner tab navigation, search and filter controls for properties and units, and more disciplined portfolio/unit tables with clearer operational hierarchy.
+- Impact: Updated `apps/web-manager/src/components/property-management-panel.tsx` to shift the portfolio page from a basic tab/table layout into a simpler administrative shell aligned with the new sidebar direction.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
 ## 2026-04-09
 - Change type: Web + API + DB + Reporting
 - Description: Added optional unit-level applicability for expenses. Operators can now keep an expense at organization level, attach it to an entire property, or target a specific unit inside the selected property, with backend validation enforcing that the chosen unit belongs to the chosen scoped property.

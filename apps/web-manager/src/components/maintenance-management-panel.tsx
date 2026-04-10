@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { MaintenanceRequest, MaintenanceStatus } from "@hhousing/domain";
+import ActionMenu from "./action-menu";
 
 const STATUS_LABELS: Record<MaintenanceStatus, string> = {
   open: "Ouvert",
@@ -130,12 +131,11 @@ export default function MaintenanceManagementPanel({
                     {new Date(req.createdAtIso).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/dashboard/maintenance/${req.id}`}
-                      className="text-[#0063fe] hover:underline text-sm font-medium"
-                    >
-                      Voir détails
-                    </Link>
+                    <ActionMenu
+                      items={[
+                        { label: "Voir la fiche", href: `/dashboard/maintenance/${req.id}` }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
