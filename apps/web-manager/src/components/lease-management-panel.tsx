@@ -44,26 +44,31 @@ export default function LeaseManagementPanel({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Total</p>
-          <p className="mt-2 text-2xl font-semibold text-[#010a19]">{leases.length}</p>
-          <p className="mt-2 text-xs text-slate-500">Tous statuts confondus.</p>
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
+          <p className="text-xl font-semibold text-slate-900">{leases.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Actifs</p>
-          <p className="mt-2 text-2xl font-semibold text-[#010a19]">{activeCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Contrats actuellement exécutés.</p>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Actifs</p>
+          <p className="text-xl font-semibold text-slate-900">{activeCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">En attente</p>
-          <p className="mt-2 text-2xl font-semibold text-[#010a19]">{pendingCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Dossiers en finalisation ou à lancer.</p>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">En attente</p>
+          <p className="text-xl font-semibold text-slate-900">{pendingCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Terminés</p>
-          <p className="mt-2 text-2xl font-semibold text-[#010a19]">{endedCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Historique des contrats clôturés.</p>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Terminés</p>
+          <p className="text-xl font-semibold text-slate-900">{endedCount}</p>
         </div>
       </div>
 

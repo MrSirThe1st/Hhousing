@@ -280,50 +280,45 @@ export default function TeamManagementPanel({
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(0,99,254,0.10),transparent_32%),linear-gradient(180deg,#f6f8fb_0%,#eef3f8_100%)] p-6 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)]">
-          <div className="grid gap-6 px-6 py-7 md:grid-cols-[1.5fr_1fr] md:px-8">
-            <div className="space-y-3">
-              <span className="inline-flex rounded-full bg-[#d9e8ff] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#0b4fd6]">
-                Team Setup · Part 2
-              </span>
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Equipe, invitations et acces</h1>
-              <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                Les invitations restent email-first, mais l'acces quotidien est maintenant pilote par des roles applicatifs.
-                Vous choisissez ce que chaque membre peut faire dans la plateforme sans changer son role de base en base.
-              </p>
-            </div>
+    <div className="space-y-6 p-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Equipe, invitations et acces</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            {members.length} membre(s) actif(s), {invitations.length} invitation(s) en attente.
+          </p>
+        </div>
+      </div>
 
-            <div className="rounded-3xl bg-slate-950 px-5 py-5 text-white">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Organisation</p>
-              <p className="mt-2 break-all text-sm font-medium text-white/90">{organizationId}</p>
-              <div className="mt-5 grid grid-cols-3 gap-3">
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-300">Actifs</p>
-                  <p className="mt-2 text-2xl font-semibold">{members.length}</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-300">En attente</p>
-                  <p className="mt-2 text-2xl font-semibold">{invitations.length}</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-300">Roles</p>
-                  <p className="mt-2 text-2xl font-semibold">{availableFunctions.length}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Actifs</p>
+          <p className="text-xl font-semibold text-slate-900">{members.length}</p>
+        </div>
 
-        {message ? (
-          <p className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>
-        ) : null}
-        {error ? (
-          <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-        ) : null}
+        <div className="h-6 w-px bg-slate-200" />
 
-        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">En attente</p>
+          <p className="text-xl font-semibold text-slate-900">{invitations.length}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Roles</p>
+          <p className="text-xl font-semibold text-slate-900">{availableFunctions.length}</p>
+        </div>
+      </div>
+
+      {message ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>
+      ) : null}
+      {error ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+      ) : null}
+
+      <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-6 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -699,7 +694,6 @@ export default function TeamManagementPanel({
             </div>
           )}
         </section>
-      </div>
     </div>
   );
 }

@@ -220,8 +220,7 @@ export default function Sidebar({ currentRoleLabel }: SidebarProps): React.React
       title: "Services",
       items: [
         { href: "/dashboard/maintenance", label: "Maintenance", icon: "maintenance", badgeCount: badgeCounts.maintenance },
-        { href: "/dashboard/documents", label: "Documents", icon: "documents" },
-        { href: "/dashboard/messages", label: "Messages", icon: "messages", badgeCount: badgeCounts.messages }
+        { href: "/dashboard/documents", label: "Documents", icon: "documents" }
       ]
     },
     {

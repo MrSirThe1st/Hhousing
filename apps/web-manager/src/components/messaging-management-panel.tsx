@@ -212,20 +212,23 @@ export default function MessagingManagementPanel({
   );
 
   return (
-    <div className="p-8 space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-[#010a19]">Messagerie locataires</h1>
-        <div className="flex gap-2">
+    <div className="space-y-6 p-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Messagerie locataires</h1>
+          <p className="mt-2 text-sm text-slate-500">{conversations.length} conversation(s).</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Rechercher locataire, unité, propriété..."
-            className="w-72 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-72 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
           />
           <select
             value={selectedPropertyId}
             onChange={(event) => setSelectedPropertyId(event.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
           >
             <option value="">Toutes les propriétés</option>
             {properties.map((property) => (

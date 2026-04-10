@@ -360,341 +360,303 @@ export default function ListingEditorForm({
     });
   }
 
-  return (
-    <div className="space-y-6 p-8" aria-busy={isSubmitting}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+return (
+  <div className="min-h-screen bg-slate-50">
+    <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
+
+      {/* HEADER */}
+      <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
-          <Link href="/dashboard/listings?tab=listings" className="text-sm font-semibold text-[#0063fe] hover:underline">
+          <Link
+            href="/dashboard/listings?tab=listings"
+            className="text-sm font-medium text-blue-600 hover:underline"
+          >
             ← Back to listings
           </Link>
-          <h1 className="mt-3 text-2xl font-semibold text-[#010a19]">
+
+          <h1 className="mt-3 text-2xl font-semibold text-slate-900">
             {item.listing ? "Edit listing" : "Create listing"}
           </h1>
-          <p className="mt-1 text-sm text-gray-500">Affichage courant: {currentScopeLabel}</p>
-          <p className="mt-2 max-w-3xl text-sm text-gray-600">
-            Build the public version of this unit on a separate page, then either save it as a draft or publish it.
+
+          <p className="mt-1 text-sm text-slate-500">
+            {currentScopeLabel}
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm">
           <p className="font-semibold text-slate-900">{item.property.name}</p>
-          <p className="mt-1">Unit {item.unit.unitNumber} · {item.property.city}</p>
-          <p className="mt-1">{formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month</p>
+          <p className="text-slate-500">
+            Unit {item.unit.unitNumber} · {item.property.city}
+          </p>
+          <p className="mt-1 font-medium text-slate-700">
+            {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month
+          </p>
         </div>
       </div>
 
-      {progressMessage ? (
+      {/* PROGRESS */}
+      {progressMessage && (
         <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-700" aria-hidden="true" />
-          <span>{progressMessage}</span>
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
+          {progressMessage}
         </div>
-      ) : null}
+      )}
 
-      <fieldset disabled={isSubmitting} className={`grid gap-6 xl:grid-cols-[1.1fr_0.9fr] ${isSubmitting ? "opacity-70" : ""}`}>
-        <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">Public content</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Reuse property photos for the listing when available, or upload listing-specific images if you need different visuals.
-            </p>
-          </div>
+      <fieldset disabled={isSubmitting} className="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
 
-          <label className="block text-sm font-medium text-slate-700">
-            <span className="mb-1.5 block">Marketing description</span>
-            <textarea
-              value={form.marketingDescription}
-              onChange={(event) => setForm((current) => ({ ...current, marketingDescription: event.target.value }))}
-              className="min-h-32 w-full rounded-2xl border border-slate-300 px-4 py-3"
-            />
-          </label>
+        {/* LEFT */}
+        <section className="space-y-6">
 
-          {propertyPhotos.length > 0 ? (
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Property photos</h3>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Reuse the existing property media for this listing. Choose one for the cover and one or more for the gallery.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={useAllPropertyPhotos}
-                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
-                >
-                  Use all property photos
-                </button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {propertyPhotos.map((imageUrl) => {
-                  const isCover = form.coverImageUrl === imageUrl && coverUpload === null;
-                  const inGallery = form.galleryImageUrls.includes(imageUrl);
-
-                  return (
-                    <div key={imageUrl} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                      <div
-                        className="aspect-4/3 bg-slate-200"
-                        style={{
-                          backgroundImage: `url(${imageUrl})`,
-                          backgroundPosition: "center",
-                          backgroundSize: "cover"
-                        }}
-                      />
-                      <div className="space-y-3 px-4 py-3 text-xs text-slate-500">
-                        <div className="flex flex-wrap gap-2">
-                          {isCover ? <span className="rounded-full bg-blue-100 px-2.5 py-1 font-semibold text-blue-700">Cover</span> : null}
-                          {inGallery ? <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700">Gallery</span> : null}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setCoverFromProperty(imageUrl)}
-                            className="rounded-full border border-slate-300 px-3 py-1.5 font-semibold text-slate-700"
-                          >
-                            {isCover ? "Selected as cover" : "Use as cover"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => togglePropertyGalleryImage(imageUrl)}
-                            className="rounded-full border border-slate-300 px-3 py-1.5 font-semibold text-slate-700"
-                          >
-                            {inGallery ? "Remove from gallery" : "Add to gallery"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* PUBLIC CONTENT */}
+          <div className="rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-4">
+              <h2 className="text-sm font-semibold text-slate-900">Public content</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                This is what tenants will see on the listing page
+              </p>
             </div>
-          ) : null}
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="p-5 space-y-6">
+
+              {/* DESCRIPTION */}
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">Cover image</h3>
-                <p className="mt-1 text-xs text-slate-500">
-                  {propertyPhotos.length > 0
-                    ? "You can reuse a property photo above, or upload a different cover image here."
-                    : "Upload exactly one image used as the main public visual."}
-                </p>
+                <label className="text-xs font-medium text-slate-600">
+                  Marketing description
+                </label>
+
+                <textarea
+                  value={form.marketingDescription}
+                  onChange={(e) =>
+                    setForm((c) => ({ ...c, marketingDescription: e.target.value }))
+                  }
+                  rows={6}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-300 focus:ring-2 focus:ring-slate-100"
+                />
               </div>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleCoverSelection}
-                className="block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600"
-              />
+              {/* PROPERTY PHOTOS */}
+              {propertyPhotos.length > 0 && (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Property photos
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Reuse existing property media
+                      </p>
+                    </div>
 
-              {coverUpload || form.coverImageUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                  <div
-                    className="aspect-4/3 bg-slate-200"
-                    style={{
-                      backgroundImage: `url(${coverUpload?.previewUrl ?? form.coverImageUrl})`,
-                      backgroundPosition: "center",
-                      backgroundSize: "cover"
-                    }}
-                  />
-                  <div className="flex items-center justify-between gap-3 px-4 py-3 text-xs text-slate-500">
-                    <span>{coverUpload ? `New file: ${coverUpload.file.name}` : "Current cover image"}</span>
                     <button
                       type="button"
-                      onClick={removeCurrentCover}
-                      className="font-semibold text-rose-600"
+                      onClick={useAllPropertyPhotos}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                     >
-                      Remove
+                      Use all
                     </button>
                   </div>
-                </div>
-              ) : (
-                <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
-                  No cover image uploaded yet.
-                </p>
-              )}
-            </div>
 
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">Gallery images</h3>
-                <p className="mt-1 text-xs text-slate-500">
-                  {propertyPhotos.length > 0
-                    ? "Reuse property photos above, and upload more only when the listing needs extra visuals."
-                    : "Upload one or more images shown in the listing gallery."}
-                </p>
+                  <div className="mt-4 grid grid-cols-2 xl:grid-cols-3 gap-3">
+                    {propertyPhotos.map((imageUrl) => {
+                      const isCover = form.coverImageUrl === imageUrl && !coverUpload;
+                      const inGallery = form.galleryImageUrls.includes(imageUrl);
+
+                      return (
+                        <div
+                          key={imageUrl}
+                          className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white"
+                        >
+                          <div
+                            className="aspect-4/3 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${imageUrl})` }}
+                          />
+
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
+
+                          <div className="absolute top-2 left-2 flex gap-2">
+                            {isCover && (
+                              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-medium">
+                                Cover
+                              </span>
+                            )}
+                            {inGallery && (
+                              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-medium">
+                                Gallery
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="absolute bottom-2 left-2 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                            <button
+                              onClick={() => setCoverFromProperty(imageUrl)}
+                              className="rounded-md bg-white px-2 py-1 text-[11px] shadow"
+                            >
+                              Cover
+                            </button>
+
+                            <button
+                              onClick={() => togglePropertyGalleryImage(imageUrl)}
+                              className="rounded-md bg-white px-2 py-1 text-[11px] shadow"
+                            >
+                              Gallery
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* UPLOADS */}
+              <div className="grid md:grid-cols-2 gap-4">
+
+                {/* COVER */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-600">Cover image</p>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverSelection}
+                    className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+
+                  {(coverUpload || form.coverImageUrl) && (
+                    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                      <div
+                        className="aspect-4/3 bg-cover bg-center"
+                        style={{
+                          backgroundImage: `url(${coverUpload?.previewUrl ?? form.coverImageUrl})`
+                        }}
+                      />
+
+                      <div className="flex items-center justify-between px-3 py-2 text-xs">
+                        <span className="truncate text-slate-500">
+                          {coverUpload?.file.name ?? "Current cover"}
+                        </span>
+
+                        <button
+                          onClick={removeCurrentCover}
+                          className="text-red-600 font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* GALLERY */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-600">Gallery images</p>
+
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleGallerySelection}
+                    className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+
+                  {(form.galleryImageUrls.length || galleryUploads.length) ? (
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      {form.galleryImageUrls.map((url) => (
+                        <div key={url} className="group relative overflow-hidden rounded-xl border">
+                          <div
+                            className="aspect-4/3 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${url})` }}
+                          />
+                          <button
+                            onClick={() => removeExistingGalleryImage(url)}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-xs bg-white px-2 py-1 rounded shadow"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+
+                      {galleryUploads.map((upload) => (
+                        <div key={upload.id} className="group relative overflow-hidden rounded-xl border">
+                          <div
+                            className="aspect-4/3 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${upload.previewUrl})` }}
+                          />
+                          <button
+                            onClick={() => removePendingGalleryImage(upload.id)}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-xs bg-white px-2 py-1 rounded shadow"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
               </div>
 
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleGallerySelection}
-                className="block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600"
-              />
-
-              {form.galleryImageUrls.length + galleryUploads.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {form.galleryImageUrls.map((imageUrl) => (
-                    <div key={imageUrl} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                      <div
-                        className="aspect-4/3 bg-slate-200"
-                        style={{
-                          backgroundImage: `url(${imageUrl})`,
-                          backgroundPosition: "center",
-                          backgroundSize: "cover"
-                        }}
-                      />
-                      <div className="flex items-center justify-end px-4 py-3 text-xs text-slate-500">
-                        <button
-                          type="button"
-                          onClick={() => removeExistingGalleryImage(imageUrl)}
-                          className="font-semibold text-rose-600"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {galleryUploads.map((upload) => (
-                    <div key={upload.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                      <div
-                        className="aspect-4/3 bg-slate-200"
-                        style={{
-                          backgroundImage: `url(${upload.previewUrl})`,
-                          backgroundPosition: "center",
-                          backgroundSize: "cover"
-                        }}
-                      />
-                      <div className="flex items-center justify-between gap-3 px-4 py-3 text-xs text-slate-500">
-                        <span className="truncate">{upload.file.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removePendingGalleryImage(upload.id)}
-                          className="font-semibold text-rose-600"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+              {/* FEEDBACK */}
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
                 </div>
-              ) : (
-                <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
-                  No gallery images uploaded yet.
-                </p>
               )}
+
+              {message && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {message}
+                </div>
+              )}
+
             </div>
           </div>
 
-          {propertyPhotos.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              This property has no saved property photos yet, so add listing-specific images below.
+        </section>
+
+        {/* RIGHT */}
+        <section className="space-y-6">
+
+          <div className="rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-4">
+              <h2 className="text-sm font-semibold">Visibility</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Control tenant-facing data
+              </p>
             </div>
-          ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 block">Contact email</span>
-              <input
-                value={form.contactEmail}
-                onChange={(event) => setForm((current) => ({ ...current, contactEmail: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 block">Contact phone</span>
-              <input
-                value={form.contactPhone}
-                onChange={(event) => setForm((current) => ({ ...current, contactPhone: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 block">YouTube URL</span>
-              <input
-                value={form.youtubeUrl}
-                onChange={(event) => setForm((current) => ({ ...current, youtubeUrl: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 block">Instagram URL</span>
-              <input
-                value={form.instagramUrl}
-                onChange={(event) => setForm((current) => ({ ...current, instagramUrl: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              />
-            </label>
+            <div className="p-5 space-y-3">
+              {[
+                ["showAddress", "Address"],
+                ["showRent", "Rent"],
+                ["showDeposit", "Deposit"],
+                ["showAmenities", "Amenities"],
+                ["showFeatures", "Features"],
+                ["showBedrooms", "Bedrooms"],
+                ["showBathrooms", "Bathrooms"],
+                ["showSizeSqm", "Size"]
+              ].map(([key, label]) => (
+                <label
+                  key={key}
+                  className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm"
+                >
+                  {label}
+                  <input
+                    type="checkbox"
+                    checked={form[key as keyof ListingFormState] as boolean}
+                    onChange={(e) =>
+                      setForm((c) => ({ ...c, [key]: e.target.checked }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
           </div>
+
         </section>
 
-        <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">Visibility</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Choose what renters can see on the public listing page.
-            </p>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            {[
-              ["showAddress", "Show address"],
-              ["showRent", "Show rent"],
-              ["showDeposit", "Show deposit"],
-              ["showAmenities", "Show amenities"],
-              ["showFeatures", "Show features"],
-              ["showBedrooms", "Show bedrooms"],
-              ["showBathrooms", "Show bathrooms"],
-              ["showSizeSqm", "Show size"]
-            ].map(([key, label]) => (
-              <label key={key} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={Boolean(form[key as keyof ListingFormState])}
-                  onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.checked }))}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-            <p className="font-semibold text-slate-900">Current unit state</p>
-            <p className="mt-2">Unit status: {item.unit.status}</p>
-            <p className="mt-1">Listing status: {item.listing?.status ?? "not published yet"}</p>
-            <p className="mt-2 text-xs text-slate-500">
-              Publishing is only allowed for vacant units. Saving draft keeps your setup private until you publish.
-            </p>
-          </div>
-
-          {error ? <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
-          {message ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p> : null}
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => saveListing("draft")}
-              disabled={isSubmitting}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
-            >
-              {busyAction === "draft" || (isRoutePending && message === "Draft saved.") ? "Saving..." : "Save as draft"}
-            </button>
-            <button
-              type="button"
-              onClick={() => saveListing("published")}
-              disabled={isSubmitting}
-              className="rounded-full bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {busyAction === "published" || (isRoutePending && message === "Listing published.")
-                ? "Publishing..."
-                : item.listing?.status === "published"
-                  ? "Update published listing"
-                  : "Publish listing"}
-            </button>
-          </div>
-        </section>
       </fieldset>
     </div>
-  );
+  </div>
+);
 }

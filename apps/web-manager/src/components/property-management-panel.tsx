@@ -225,7 +225,7 @@ export default function PropertyManagementPanel({
         <div className="space-y-6 p-6">
           {activeTab === "properties" ? (
             <>
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px_auto] xl:items-end">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-end">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-[#010a19]">Rechercher un bien</label>
                   <input
@@ -274,18 +274,6 @@ export default function PropertyManagementPanel({
                     ))}
                   </select>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPropertySearchTerm("");
-                    setPropertyStatusFilter("all");
-                    setPropertyTypeFilter("all");
-                    setPropertyOwnerFilter("all");
-                  }}
-                  className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                >
-                  Réinitialiser
-                </button>
               </div>
 
               {items.length === 0 ? (

@@ -43,41 +43,37 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
 
   return (
     <div className="space-y-6 p-8">
-      <section className="rounded-[28px] border border-gray-200 bg-[radial-gradient(circle_at_top_left,rgba(0,99,254,0.10),transparent_32%),linear-gradient(180deg,#ffffff_0%,#f4f8ff_100%)] p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0063fe]">Finance · Revenus</p>
-        <h1 className="mt-2 text-3xl font-semibold text-[#010a19]">Revenus</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
-          Cette vue transforme les paiements déjà marqués comme payés en revenus comptabilisés. Elle reflète le loyer,
-          les frais et autres encaissements rattachés aux baux dans votre portefeuille courant.
-        </p>
-      </section>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Revenus</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Paiements marqués comme payés, transformés en revenus comptabilisés.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Revenu encaissé</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.revenueTotals)}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Encaissements</p>
+          <p className="text-xl font-semibold text-slate-900">{dataset.recordedPaymentCount.toLocaleString("fr-FR")}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Propriétés actives</p>
+          <p className="text-xl font-semibold text-slate-900">{dataset.propertyRevenue.length.toLocaleString("fr-FR")}</p>
+        </div>
+      </div>
 
       <FinanceFilterForm actionPath="/dashboard/revenues" filters={dataset.filters} propertyOptions={dataset.propertyOptions} />
-
-      <FinanceSummaryCards
-        items={[
-          {
-            label: "Revenu encaissé",
-            value: formatCurrencySummary(dataset.revenueTotals),
-            hint: `Du ${dataset.filters.from} au ${dataset.filters.to}`
-          },
-          {
-            label: "Encaissements",
-            value: dataset.recordedPaymentCount.toLocaleString("fr-FR"),
-            hint: "Paiements effectivement comptabilisés comme payés"
-          },
-          {
-            label: "Propriétés actives",
-            value: dataset.propertyRevenue.length.toLocaleString("fr-FR"),
-            hint: "Au moins un revenu enregistré sur la période"
-          },
-          {
-            label: "Filtre portefeuille",
-            value: dataset.filters.propertyId ? "1 propriété" : "Tout le portefeuille",
-            hint: "Basé sur la portée opérateur courante"
-          }
-        ]}
-      />
 
       <FinanceMonthlyChart
         buckets={dataset.monthlyRevenue}

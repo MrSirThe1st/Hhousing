@@ -2,6 +2,30 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-11
+- Change type: Web + Frontend + Auth
+- Description: Added a visible logout action to the manager organization settings page so operators can sign out directly from that workspace.
+- Impact: Updated `apps/web-manager/src/app/dashboard/organization/page.tsx` and added `apps/web-manager/src/components/logout-button.tsx`.
+- Tests: pending.
+
+## 2026-04-11
+- Change type: Web + Frontend
+- Description: Hid the manager messaging workspace from the dashboard sidebar so the route remains unavailable from navigation while messaging is still withheld from users.
+- Impact: Updated `apps/web-manager/src/components/sidebar.tsx` to remove the `Messages` nav entry from the Services section.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-11
+- Change type: Web + Frontend + API
+- Description: Removed the obsolete manual recurring-charge generation flow from web-manager payments now that recurring invoice creation is handled by the automated internal billing job.
+- Impact: Updated `apps/web-manager/src/components/payment-management-panel.tsx`, removed `/api/payments/generate`, deleted its route test, and pruned the unused payment-generation service/contracts in `apps/web-manager/src/api` and `packages/api-contracts`.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `rm -rf apps/web-manager/.next && pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Made tenant table rows navigate directly to the tenant detail like the existing cards, moved tenant detail actions into the shared overflow menu, opened tenant document upload from a portfolio-style modal, and removed the `Réinitialiser` action from the portfolio property filters.
+- Impact: Updated `apps/web-manager/src/components/tenant-management-panel.tsx`, `apps/web-manager/src/app/dashboard/tenants/[id]/tenant-detail-client.tsx`, and `apps/web-manager/src/components/property-management-panel.tsx`.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `rm -rf apps/web-manager/.next && pnpm -C apps/web-manager build` blocked by unrelated missing routes `/api/applications/[id]` and `/api/auth/create-account` during Next page-data collection.
+
 ## 2026-04-10
 - Change type: Web + Frontend
 - Description: Added visible route and mutation loading feedback to the manager listings workspace without replacing the existing listings index skeleton. The listing editor detail route now has a loader, save/publish shows in-page progress during upload and navigation, and screening actions show row-level busy state.

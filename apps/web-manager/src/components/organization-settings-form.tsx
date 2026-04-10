@@ -106,67 +106,67 @@ export default function OrganizationSettingsForm({ organization }: OrganizationS
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 h-fit">
+      <section className="h-fit space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <div>
           <h2 className="text-base font-semibold text-[#010a19]">Logo</h2>
-          <p className="mt-1 text-sm text-gray-500">Affiche dans votre espace gestion et dans les emails cibles de cette fonctionnalite.</p>
+          <p className="mt-1 text-sm text-slate-500">Affiche dans votre espace gestion et dans les emails.</p>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
           {logoPreview ? (
-            <img src={logoPreview} alt="Logo organisation" className="h-40 w-full object-contain bg-white" />
+            <img src={logoPreview} alt="Logo organisation" className="h-40 w-full bg-white object-contain" />
           ) : (
-            <div className="flex h-40 items-center justify-center text-sm text-gray-400">Aucun logo ajoute</div>
+            <div className="flex h-40 items-center justify-center text-sm text-slate-400">Aucun logo ajoute</div>
           )}
         </div>
         <input
           type="file"
           accept="image/*"
           onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
         />
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+      <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <div>
           <h2 className="text-base font-semibold text-[#010a19]">Details de l'organisation</h2>
-          <p className="mt-1 text-sm text-gray-500">Ces informations restent optionnelles et pourront etre reinjectees dans les templates et invitations locataires.</p>
+          <p className="mt-1 text-sm text-slate-500">Informations optionnelles reutilisables dans les templates.</p>
         </div>
 
-        {message ? <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{message}</div> : null}
+        {message ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div> : null}
         {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Nom</span>
-            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required />
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium text-slate-700">Nom</span>
+            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" required />
           </label>
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Email de contact</span>
-            <input type="email" value={form.contactEmail} onChange={(event) => setForm((current) => ({ ...current, contactEmail: event.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium text-slate-700">Email de contact</span>
+            <input type="email" value={form.contactEmail} onChange={(event) => setForm((current) => ({ ...current, contactEmail: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
           </label>
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Telephone</span>
-            <input value={form.contactPhone} onChange={(event) => setForm((current) => ({ ...current, contactPhone: event.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium text-slate-700">Telephone</span>
+            <input value={form.contactPhone} onChange={(event) => setForm((current) => ({ ...current, contactPhone: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
           </label>
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">WhatsApp</span>
-            <input value={form.contactWhatsapp} onChange={(event) => setForm((current) => ({ ...current, contactWhatsapp: event.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium text-slate-700">WhatsApp</span>
+            <input value={form.contactWhatsapp} onChange={(event) => setForm((current) => ({ ...current, contactWhatsapp: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
           </label>
-          <label className="block text-sm font-medium text-gray-700 md:col-span-2">
-            <span className="mb-1.5 block">Site web</span>
-            <input value={form.websiteUrl} onChange={(event) => setForm((current) => ({ ...current, websiteUrl: event.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="https://..." />
+          <label className="block text-sm md:col-span-2">
+            <span className="mb-1.5 block font-medium text-slate-700">Site web</span>
+            <input value={form.websiteUrl} onChange={(event) => setForm((current) => ({ ...current, websiteUrl: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" placeholder="https://..." />
           </label>
-          <label className="block text-sm font-medium text-gray-700 md:col-span-2">
-            <span className="mb-1.5 block">Adresse</span>
-            <textarea value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} className="min-h-24 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+          <label className="block text-sm md:col-span-2">
+            <span className="mb-1.5 block font-medium text-slate-700">Adresse</span>
+            <textarea value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
           </label>
-          <label className="block text-sm font-medium text-gray-700 md:col-span-2">
-            <span className="mb-1.5 block">Signature email</span>
-            <textarea value={form.emailSignature} onChange={(event) => setForm((current) => ({ ...current, emailSignature: event.target.value }))} className="min-h-32 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Ex: L'equipe Gestion Horizon\ncontact@...\n+243 ..." />
+          <label className="block text-sm md:col-span-2">
+            <span className="mb-1.5 block font-medium text-slate-700">Signature email</span>
+            <textarea value={form.emailSignature} onChange={(event) => setForm((current) => ({ ...current, emailSignature: event.target.value }))} className="min-h-32 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" placeholder="Ex: L'equipe Gestion Horizon\ncontact@...\n+243 ..." />
           </label>
         </div>
 
-        <button type="submit" disabled={busy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">
+        <button type="submit" disabled={busy} className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60">
           {busy ? "Enregistrement..." : "Enregistrer"}
         </button>
       </section>

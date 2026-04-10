@@ -114,8 +114,6 @@ export {
 export type {
   CreatePaymentInput,
   CreatePaymentOutput,
-  GenerateRentChargesInput,
-  GenerateRentChargesOutput,
   MarkPaymentPaidInput,
   MarkPaymentPaidOutput,
   ListPaymentsFilter,
@@ -123,7 +121,6 @@ export type {
 } from "./payments/payment.types";
 export {
   parseCreatePaymentInput,
-  parseGenerateRentChargesInput,
   parseMarkPaymentPaidInput
 } from "./payments/payment.validation";
 export type {

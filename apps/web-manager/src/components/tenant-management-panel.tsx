@@ -2,12 +2,22 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { TenantListItem, TenantManagementPanelProps } from "./tenant-management.types";
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return target.closest("a, button, input, select, textarea, [role='menu']") !== null;
+}
 
 export default function TenantManagementPanel({
   organizationId,
   tenants
 }: TenantManagementPanelProps): React.ReactElement {
+  const router = useRouter();
   const [displayMode, setDisplayMode] = useState<"table" | "cards">("table");
   const [leaseFilter, setLeaseFilter] = useState<"all" | "with-lease" | "without-lease">("all");
   const [message] = useState<string | null>(null);
@@ -43,12 +53,82 @@ export default function TenantManagementPanel({
             {tenants.length} locataire(s), {withLeaseCount} avec bail actif ou en attente, {withoutLeaseCount} sans bail.
           </p>
         </div>
-        <Link
-          href="/dashboard/tenants/add"
-          className="inline-flex items-center rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
-        >
-          Ajouter un locataire
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/dashboard/tenants/add"
+            className="inline-flex items-center rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+          >
+            Ajouter un locataire
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Locataires</p>
+          <p className="text-xl font-semibold text-slate-900">{tenants.length}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Avec bail</p>
+          <p className="text-xl font-semibold text-slate-900">{withLeaseCount}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Sans bail</p>
+          <p className="text-xl font-semibold text-slate-900">{withoutLeaseCount}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Contactables</p>
+          <p className="text-xl font-semibold text-slate-900">{contactableCount}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="inline-flex w-fit rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <button
+            type="button"
+            onClick={() => setDisplayMode("table")}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              displayMode === "table"
+                ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
+                : "text-slate-600 hover:text-[#010a19]"
+            }`}
+          >
+            Tableau
+          </button>
+          <button
+            type="button"
+            onClick={() => setDisplayMode("cards")}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              displayMode === "cards"
+                ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
+                : "text-slate-600 hover:text-[#010a19]"
+            }`}
+          >
+            Cartes
+          </button>
+        </div>
+
+        <label className="text-sm">
+          <span className="mb-1.5 block font-medium text-slate-700">Statut du bail</span>
+          <select
+            value={leaseFilter}
+            onChange={(event) => setLeaseFilter(event.target.value as "all" | "with-lease" | "without-lease")}
+            className="min-w-56 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          >
+            <option value="all">Tous</option>
+            <option value="with-lease">Avec bail</option>
+            <option value="without-lease">Sans bail</option>
+          </select>
+        </label>
       </div>
 
       {message ? (
@@ -62,87 +142,21 @@ export default function TenantManagementPanel({
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Locataires</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{tenants.length}</p>
-          <p className="mt-2 text-xs text-slate-500">Base complète du portefeuille locatif.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Avec bail</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{withLeaseCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Profils actuellement engagés sur une unité.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Sans bail</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{withoutLeaseCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Profils disponibles pour une affectation.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Contactables</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{contactableCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Locataires avec email ou téléphone renseigné.</p>
-        </div>
-      </div>
-
-      {tenants.length > 0 ? (
-        <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-[#010a19]">Affichage et filtres</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {withLeaseCount} avec bail, {withoutLeaseCount} sans bail.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
-              <button
-                type="button"
-                onClick={() => setDisplayMode("table")}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                  displayMode === "table"
-                    ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
-                    : "text-slate-600 hover:text-[#010a19]"
-                }`}
-              >
-                Tableau
-              </button>
-              <button
-                type="button"
-                onClick={() => setDisplayMode("cards")}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                  displayMode === "cards"
-                    ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
-                    : "text-slate-600 hover:text-[#010a19]"
-                }`}
-              >
-                Cartes
-              </button>
-            </div>
-
-            <label className="text-sm font-medium text-[#010a19]">
-              <span className="mb-1.5 block">Statut du bail</span>
-              <select
-                value={leaseFilter}
-                onChange={(event) => setLeaseFilter(event.target.value as "all" | "with-lease" | "without-lease")}
-                className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
-              >
-                <option value="all">Tous</option>
-                <option value="with-lease">Avec bail</option>
-                <option value="without-lease">Sans bail</option>
-              </select>
-            </label>
-          </div>
-        </div>
-      ) : null}
-
       {tenants.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+        <div className="border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
           <h2 className="text-lg font-semibold text-[#010a19]">Aucun locataire pour l&apos;instant</h2>
-          <p className="mt-2 text-sm text-slate-500">Ajoutez un premier locataire pour préparer les affectations et les baux.</p>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">Ajoutez un premier locataire pour préparer les affectations, centraliser les coordonnées et démarrer les futurs baux dans un cadre propre.</p>
+          <Link
+            href="/dashboard/tenants/add"
+            className="mt-5 inline-flex items-center rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+          >
+            Ajouter un locataire
+          </Link>
         </div>
       ) : filteredTenants.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
-          Aucun locataire ne correspond au filtre sélectionné.
+        <div className="border border-slate-200 bg-slate-50 px-6 py-10 text-center">
+          <h2 className="text-base font-semibold text-[#010a19]">Aucun résultat</h2>
+          <p className="mt-2 text-sm text-slate-500">Aucun locataire ne correspond au filtre sélectionné. Ajustez le statut de bail pour réélargir la vue.</p>
         </div>
       ) : displayMode === "table" ? (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -161,7 +175,28 @@ export default function TenantManagementPanel({
                 const { tenant } = item;
 
                 return (
-                  <tr key={tenant.id} className="hover:bg-slate-50/80">
+                  <tr
+                    key={tenant.id}
+                    className="cursor-pointer hover:bg-slate-50/80"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      if (isInteractiveTarget(event.target)) {
+                        return;
+                      }
+
+                      router.push(`/dashboard/tenants/${tenant.id}`);
+                    }}
+                    onKeyDown={(event) => {
+                      if (isInteractiveTarget(event.target)) {
+                        return;
+                      }
+
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(`/dashboard/tenants/${tenant.id}`);
+                      }
+                    }}
+                  >
                     <td className="px-4 py-3 font-medium text-[#010a19]">
                       <div className="flex items-center gap-3">
                         {tenant.photoUrl ? (
@@ -219,7 +254,7 @@ export default function TenantManagementPanel({
                         Ajouté le {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
-                  </div>
+                  </div> 
                   <LeaseStatusBadge hasLease={item.hasLease} />
                 </div>
 

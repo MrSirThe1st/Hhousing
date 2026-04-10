@@ -32,65 +32,66 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
 
   return (
     <div className="space-y-6 p-8">
-      <section className="rounded-[28px] border border-gray-200 bg-[radial-gradient(circle_at_top_left,rgba(1,10,25,0.08),transparent_30%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0063fe]">Finance · Dépenses</p>
-        <h1 className="mt-2 text-3xl font-semibold text-[#010a19]">Dépenses</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
-          Les dépenses sont saisies manuellement, rattachées à une propriété quand c’est pertinent, ou laissées au niveau
-          organisation pour les charges générales. Elles représentent tout l’argent qui sort du portefeuille.
-        </p>
-      </section>
-
-      <form action="/dashboard/expenses" className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-          <label className="block flex-1 text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Propriété</span>
-            <select name="propertyId" defaultValue={dataset.filters.propertyId ?? ""} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-              <option value="">Toutes les propriétés</option>
-              {dataset.propertyOptions.map((property) => (
-                <option key={property.id} value={property.id}>{property.name}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Du</span>
-            <input type="date" name="from" defaultValue={dataset.filters.from} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-          </label>
-
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Au</span>
-            <input type="date" name="to" defaultValue={dataset.filters.to} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-          </label>
-
-          <button type="submit" className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0]">Appliquer</button>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Dépenses</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Dépenses saisies manuellement, rattachées à une propriété ou au niveau organisation.
+          </p>
         </div>
-      </form>
+      </div>
 
-      <FinanceSummaryCards
-        items={[
-          {
-            label: "Dépenses enregistrées",
-            value: formatCurrencySummary(dataset.expenseTotals),
-            hint: `Du ${dataset.filters.from} au ${dataset.filters.to}`
-          },
-          {
-            label: "Lignes de dépense",
-            value: dataset.recordedExpenseCount.toLocaleString("fr-FR"),
-            hint: "Toutes les sorties enregistrées sur la période"
-          },
-          {
-            label: "Propriétés impactées",
-            value: dataset.propertyExpenses.filter((item) => item.propertyId !== null).length.toLocaleString("fr-FR"),
-            hint: "Hors charges générales organisation"
-          },
-          {
-            label: "Charges générales",
-            value: dataset.propertyExpenses.some((item) => item.propertyId === null) ? "Oui" : "Non",
-            hint: "Dépenses non rattachées à une propriété"
-          }
-        ]}
-      />
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Dépenses</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.expenseTotals)}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Lignes</p>
+          <p className="text-xl font-semibold text-slate-900">{dataset.recordedExpenseCount.toLocaleString("fr-FR")}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Propriétés</p>
+          <p className="text-xl font-semibold text-slate-900">{dataset.propertyExpenses.filter((item) => item.propertyId !== null).length.toLocaleString("fr-FR")}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Charges générales</p>
+          <p className="text-xl font-semibold text-slate-900">{dataset.propertyExpenses.some((item) => item.propertyId === null) ? "Oui" : "Non"}</p>
+        </div>
+      </div>
+
+      <form action="/dashboard/expenses" className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end">
+        <label className="block flex-1 text-sm">
+          <span className="mb-1.5 block font-medium text-slate-700">Propriété</span>
+          <select name="propertyId" defaultValue={dataset.filters.propertyId ?? ""} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15">
+            <option value="">Toutes les propriétés</option>
+            {dataset.propertyOptions.map((property) => (
+              <option key={property.id} value={property.id}>{property.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-sm">
+          <span className="mb-1.5 block font-medium text-slate-700">Du</span>
+          <input type="date" name="from" defaultValue={dataset.filters.from} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
+        </label>
+
+        <label className="block text-sm">
+          <span className="mb-1.5 block font-medium text-slate-700">Au</span>
+          <input type="date" name="to" defaultValue={dataset.filters.to} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
+        </label>
+
+        <button type="submit" className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]">Appliquer</button>
+      </form>
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <ExpenseCreateForm

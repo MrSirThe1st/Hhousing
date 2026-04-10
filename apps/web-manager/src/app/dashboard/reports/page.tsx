@@ -36,59 +36,53 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
 
   return (
     <div className="space-y-6 p-8">
-      <section className="rounded-[28px] border border-gray-200 bg-[radial-gradient(circle_at_top_left,rgba(0,99,254,0.10),transparent_32%),linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0063fe]">Finance · Rapports</p>
-        <h1 className="mt-2 text-3xl font-semibold text-[#010a19]">Rapports</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
-          Cette page n’écrit rien. Elle agrège simplement les revenus enregistrés, applique vos filtres, calcule les totaux
-          et affiche la tendance mensuelle. Le résultat net est recalculé à chaque ouverture à partir des revenus encaissés
-          et des dépenses réellement saisies.
-        </p>
-      </section>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Rapports</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Agrégation des revenus et dépenses, recalculée à chaque ouverture.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href={csvHref}
+            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            Exporter CSV
+          </a>
+          <Link
+            href={pdfHref}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+          >
+            Exporter PDF
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Total revenus</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(revenueDataset.revenueTotals)}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Total dépenses</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(expenseDataset.expenseTotals)}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Net income</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(netTotals)}</p>
+        </div>
+      </div>
 
       <FinanceFilterForm actionPath="/dashboard/reports" filters={revenueDataset.filters} propertyOptions={revenueDataset.propertyOptions} />
-
-      <section className="flex flex-wrap items-center gap-3">
-        <a
-          href={csvHref}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Exporter CSV
-        </a>
-        <Link
-          href={pdfHref}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0]"
-        >
-          Exporter PDF
-        </Link>
-      </section>
-
-      <FinanceSummaryCards
-        items={[
-          {
-            label: "Total revenus",
-            value: formatCurrencySummary(revenueDataset.revenueTotals),
-            hint: `Du ${revenueDataset.filters.from} au ${revenueDataset.filters.to}`
-          },
-          {
-            label: "Total dépenses",
-            value: formatCurrencySummary(expenseDataset.expenseTotals),
-            hint: "Sorties enregistrées sur la période"
-          },
-          {
-            label: "Net income",
-            value: formatCurrencySummary(netTotals),
-            hint: "Revenus - dépenses enregistrées"
-          },
-          {
-            label: "Lignes agrégées",
-            value: `${revenueDataset.recordedPaymentCount.toLocaleString("fr-FR")} rev. / ${expenseDataset.recordedExpenseCount.toLocaleString("fr-FR")} dép.`,
-            hint: "Données réellement utilisées dans le calcul"
-          }
-        ]}
-      />
 
       <section className="grid gap-6 xl:grid-cols-2">
         <FinanceMonthlyChart

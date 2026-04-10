@@ -107,7 +107,6 @@ export {
   createPayment,
   markPaymentPaid,
   listPayments,
-  generateRentCharges,
   type CreatePaymentDeps,
   type CreatePaymentRequest,
   type CreatePaymentResponse,
@@ -116,10 +115,7 @@ export {
   type MarkPaymentPaidResponse,
   type ListPaymentsDeps,
   type ListPaymentsRequest,
-  type ListPaymentsResponse,
-  type GenerateRentChargesDeps,
-  type GenerateRentChargesRequest,
-  type GenerateRentChargesResponse
+  type ListPaymentsResponse
 } from "./payments/payment";
 export {
   createExpense,

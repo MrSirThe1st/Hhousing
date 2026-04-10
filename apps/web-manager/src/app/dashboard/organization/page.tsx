@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createRepositoryFromEnv } from "../../api/shared";
+import LogoutButton from "../../../components/logout-button";
 import OrganizationSettingsForm from "../../../components/organization-settings-form";
 import { canEditOrganizationDetails } from "../../../lib/operator-context";
 import { getServerAuthSession } from "../../../lib/session";
@@ -25,12 +26,15 @@ export default async function OrganizationSettingsPage(): Promise<React.ReactEle
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#010a19]">Organisation</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Completez les details de votre agence, ajoutez votre logo et reutilisez ces informations dans vos emails et invitations.
-        </p>
+    <div className="space-y-6 p-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Organisation</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Details de votre agence, logo et informations reutilisables.
+          </p>
+        </div>
+        <LogoutButton />
       </div>
       <OrganizationSettingsForm organization={organization} />
     </div>

@@ -52,34 +52,38 @@ export default function MaintenanceManagementPanel({
 
   return (
     <div className="space-y-6 p-8">
-      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-        <div>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Demandes de maintenance</h1>
-          <p className="mt-2 text-sm text-slate-500">Les demandes sont créées par les locataires via l&apos;app mobile et pilotées ici.</p>
+          <p className="mt-2 text-sm text-slate-500">{requests.length} demande(s), {urgentCount} urgente(s).</p>
         </div>
-        <p className="text-sm text-slate-500">{urgentCount} demande(s) urgente(s) à traiter en priorité.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Demandes</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{requests.length}</p>
-          <p className="mt-2 text-xs text-slate-500">Ensemble du flux maintenance.</p>
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Demandes</p>
+          <p className="text-xl font-semibold text-slate-900">{requests.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Ouvertes</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{openCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Tickets à qualifier ou démarrer.</p>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Ouvertes</p>
+          <p className="text-xl font-semibold text-slate-900">{openCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">En cours</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{inProgressCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Interventions actuellement suivies.</p>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">En cours</p>
+          <p className="text-xl font-semibold text-slate-900">{inProgressCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Résolues</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{resolvedCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Historique des demandes clôturées.</p>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Résolues</p>
+          <p className="text-xl font-semibold text-slate-900">{resolvedCount}</p>
         </div>
       </div>
 

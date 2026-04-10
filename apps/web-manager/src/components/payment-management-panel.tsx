@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Payment, PaymentKind, PaymentStatus } from "@hhousing/domain";
-import type { GenerateRentChargesOutput, LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { postWithAuth, patchWithAuth } from "../lib/api-client";
 
 const STATUS_LABELS: Record<PaymentStatus, string> = {
@@ -62,10 +62,6 @@ export default function PaymentManagementPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [generatePeriod, setGeneratePeriod] = useState<string>(
-    () => new Date().toISOString().substring(0, 7)
-  );
 
   const leaseMap = useMemo(
     () => new Map(leases.map((lease) => [lease.id, lease])),
@@ -225,61 +221,54 @@ export default function PaymentManagementPanel({
     router.refresh();
   }
 
-  async function handleGenerateCharges(): Promise<void> {
-    setGenerating(true);
-    setError(null);
-    setMessage(null);
-
-    const result = await postWithAuth<GenerateRentChargesOutput>("/api/payments/generate", {
-      period: generatePeriod
-    });
-
-    if (!result.success) {
-      setError(result.error);
-      setGenerating(false);
-      return;
-    }
-
-    const { generated, period } = result.data;
-    setMessage(
-      generated === 0
-        ? `Aucune nouvelle charge récurrente générée pour ${period} (déjà générées ou aucun bail actif).`
-        : `${generated} charge(s) récurrente(s) générée(s) pour ${period}.`
-    );
-    setGenerating(false);
-    router.refresh();
-  }
-
   const canCreatePayment = activeLeases.length > 0;
+  const pendingCount = useMemo(() => payments.filter(p => p.status === "pending").length, [payments]);
+  const overdueCount = useMemo(() => payments.filter(p => p.status === "overdue").length, [payments]);
+  const paidCount = useMemo(() => payments.filter(p => p.status === "paid").length, [payments]);
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[#010a19]">Paiements</h1>
-        <div className="flex items-center gap-2">
-          <input
-            type="month"
-            value={generatePeriod}
-            onChange={(e) => setGeneratePeriod(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          />
-          <button
-            onClick={() => { void handleGenerateCharges(); }}
-            disabled={generating || activeLeases.length === 0}
-            className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-medium text-[#0063fe] hover:bg-blue-50 disabled:opacity-60"
-          >
-            {generating ? "Génération..." : "Générer charges"}
-          </button>
-          {!canCreatePayment && (
-            <p className="text-sm text-gray-500">Créez d&apos;abord un bail actif</p>
-          )}
+    <div className="space-y-6 p-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Paiements</h1>
+          <p className="mt-2 text-sm text-slate-500">{payments.length} paiement(s), {overdueCount} en retard.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setShowRecordForm(!showRecordForm)}
-            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
+            className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60"
             disabled={!canCreatePayment}
           >
             {showRecordForm ? "Annuler" : "+ Enregistrer"}
           </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
+          <p className="text-xl font-semibold text-slate-900">{payments.length}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">En attente</p>
+          <p className="text-xl font-semibold text-slate-900">{pendingCount}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">En retard</p>
+          <p className="text-xl font-semibold text-slate-900">{overdueCount}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Payés</p>
+          <p className="text-xl font-semibold text-slate-900">{paidCount}</p>
         </div>
       </div>
 

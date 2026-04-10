@@ -2,18 +2,15 @@ import type {
   ApiResult,
   AuthSession,
   CreatePaymentOutput,
-  GenerateRentChargesOutput,
   MarkPaymentPaidOutput,
   ListPaymentsOutput
 } from "@hhousing/api-contracts";
 import {
   Permission,
   parseCreatePaymentInput,
-  parseGenerateRentChargesInput,
   parseMarkPaymentPaidInput
 } from "@hhousing/api-contracts";
 import type { PaymentRepository } from "@hhousing/data-access";
-import type { PropertyManagementContext } from "@hhousing/domain";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
@@ -187,58 +184,4 @@ export async function listPayments(
   });
 
   return { status: 200, body: { success: true, data: { payments } } };
-}
-
-export interface GenerateRentChargesRequest {
-  body: unknown;
-  session: AuthSession | null;
-  managementContext?: PropertyManagementContext;
-}
-
-export interface GenerateRentChargesResponse {
-  status: number;
-  body: ApiResult<GenerateRentChargesOutput>;
-}
-
-export interface GenerateRentChargesDeps {
-  repository: PaymentRepository;
-  teamFunctionsRepository: TeamPermissionRepository;
-}
-
-export async function generateRentCharges(
-  request: GenerateRentChargesRequest,
-  deps: GenerateRentChargesDeps
-): Promise<GenerateRentChargesResponse> {
-  const sessionResult = requireOperatorSession(request.session);
-  if (!sessionResult.success) {
-    return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
-  }
-
-  const permissionResult = await requirePermission(
-    sessionResult.data,
-    Permission.RECORD_PAYMENT,
-    deps.teamFunctionsRepository
-  );
-  if (!permissionResult.success) {
-    return { status: 403, body: permissionResult };
-  }
-
-  const parsed = parseGenerateRentChargesInput(
-    request.body,
-    sessionResult.data.organizationId ?? ""
-  );
-  if (!parsed.success) {
-    return { status: mapErrorCodeToHttpStatus(parsed.code), body: parsed };
-  }
-
-  const generated = await deps.repository.generateMonthlyCharges(
-    parsed.data.organizationId,
-    parsed.data.period,
-    request.managementContext
-  );
-
-  return {
-    status: 200,
-    body: { success: true, data: { period: parsed.data.period, generated } }
-  };
 }

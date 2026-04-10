@@ -391,17 +391,17 @@ export default function DocumentsWorkspacePanel({
   }
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#010a19]">Documents et envois</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Centralisez vos documents, préparez vos templates et envoyez les bons fichiers aux bons locataires.
+    <div className="space-y-6 p-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Documents et envois</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            {documents.length} document(s), {templates.length} template(s).
           </p>
         </div>
       </div>
 
-      <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+      <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
         {[
           { id: "documents", label: `Documents (${documents.length})` },
           { id: "templates", label: `Templates (${templates.length})` },
@@ -411,8 +411,10 @@ export default function DocumentsWorkspacePanel({
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id as WorkspaceTab)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              activeTab === tab.id ? "bg-[#0063fe] text-white" : "text-gray-600 hover:bg-gray-50"
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              activeTab === tab.id
+                ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
+                : "text-slate-600 hover:text-[#010a19]"
             }`}
           >
             {tab.label}
