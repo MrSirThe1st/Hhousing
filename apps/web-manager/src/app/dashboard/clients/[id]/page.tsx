@@ -164,7 +164,7 @@ export default async function ClientDetailPage(
     <div className="p-8 space-y-6">
       <div>
         <Link href="/dashboard/clients" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
-          ← Retour aux owners
+          ← Retour aux propriétaires
         </Link>
       </div>
 
@@ -202,7 +202,7 @@ export default async function ClientDetailPage(
             </div>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 lg:max-w-sm">
-            Les documents liés à cet owner sont centralisés sur cette fiche et restent séparés de la bibliothèque générale.
+            Les documents liés à ce propriétaire sont centralisés sur cette fiche et restent séparés de la bibliothèque générale.
           </div>
         </div>
       </section>
@@ -252,7 +252,7 @@ export default async function ClientDetailPage(
             <div>
               <h2 className="text-lg font-semibold text-[#010a19]">Locataires du portefeuille</h2>
               <p className="mt-1 text-sm text-gray-500">
-                {clientTenants.length} locataire(s) rattaché(s) à cet owner, dont {activeTenantIds.size} actif(s).
+                {clientTenants.length} locataire(s) rattaché(s) à ce propriétaire, dont {activeTenantIds.size} actif(s).
               </p>
             </div>
             <Link href="/dashboard/tenants" className="text-sm font-medium text-[#0063fe] hover:underline">
@@ -361,8 +361,8 @@ export default async function ClientDetailPage(
       <ContextualDocumentPanel
         attachmentType="owner"
         attachmentId={client.id}
-        title="Documents de l'owner"
-        description="Ajoutez les pièces d'identité, mandats, contrats ou autres documents liés à cet owner."
+        title="Documents du propriétaire"
+        description="Ajoutez les pièces d'identité, mandats, contrats ou autres documents liés à ce propriétaire."
         addButtonLabel="+ Ajouter un document"
         defaultDocumentType="other"
       />

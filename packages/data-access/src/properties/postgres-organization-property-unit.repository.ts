@@ -34,6 +34,7 @@ interface OrganizationRow extends QueryResultRow {
 interface PropertyRow extends QueryResultRow {
   id: string;
   organization_id: string;
+  organization_name: string | null;
   name: string;
   address: string;
   city: string;
@@ -86,6 +87,7 @@ interface UnitRow extends QueryResultRow {
 interface PropertyWithUnitRow extends QueryResultRow {
   property_id: string;
   property_organization_id: string;
+  property_organization_name: string | null;
   property_name: string;
   property_address: string;
   property_city: string;
@@ -290,7 +292,7 @@ function mapOrganization(row: OrganizationRow): Organization {
 function mapProperty(row: PropertyRow): Property {
   const ownerType = mapManagementContextToOwnerType(row.management_context);
   const ownerId = ownerType === "organization" ? getOrganizationOwnerId(row.organization_id) : (row.client_id ?? getOrganizationOwnerId(row.organization_id));
-  const ownerName = ownerType === "organization" ? "Organisation" : (row.client_name ?? "Owner client");
+  const ownerName = ownerType === "organization" ? (row.organization_name ?? "") : (row.client_name ?? "Owner client");
   const clientId = ownerType === "client" ? row.client_id : null;
   const clientName = ownerType === "client" ? row.client_name : null;
 
@@ -530,7 +532,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
           ${schema.relationIdColumn},
           ${schema.relationNameColumn}
         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
+        returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
         [
           input.id,
           input.organizationId,
@@ -569,7 +571,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
             ${schema.relationIdColumn},
             ${schema.relationNameColumn}
           ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
+          returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
           [
             input.property.id,
             input.property.organizationId,
@@ -675,7 +677,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
              ${schema.relationIdColumn} = $6,
              ${schema.relationNameColumn} = $7
            where id = $8 and organization_id = $9
-         returning id, organization_id, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
+         returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
         [
           input.name,
           input.address,
@@ -754,6 +756,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
         `select
            id,
            organization_id,
+            (select name from organizations where id = properties.organization_id) as organization_name,
            name,
            address,
            city,
@@ -845,6 +848,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
         `select
            p.id as property_id,
            p.organization_id as property_organization_id,
+            o.name as property_organization_name,
            p.name as property_name,
            p.address as property_address,
            p.city as property_city,
@@ -872,6 +876,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
            u.status as unit_status,
            u.created_at as unit_created_at
          from properties p
+         inner join organizations o on o.id = p.organization_id
          left join units u on u.property_id = p.id
          where ${clauses.join(" and ")}
          order by p.created_at desc, u.created_at desc`,
@@ -919,7 +924,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
             ownerId: row.property_management_context === "owned"
               ? getOrganizationOwnerId(row.property_organization_id)
               : (row.property_client_id ?? getOrganizationOwnerId(row.property_organization_id)),
-            ownerName: row.property_management_context === "owned" ? "Organisation" : (row.property_client_name ?? "Owner client"),
+            ownerName: row.property_management_context === "owned" ? (row.property_organization_name ?? "") : (row.property_client_name ?? "Owner client"),
             ownerType: row.property_management_context === "owned" ? "organization" : "client",
             clientId: row.property_client_id,
             clientName: row.property_client_name,

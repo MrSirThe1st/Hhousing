@@ -39,6 +39,14 @@ function formatCurrencyAmount(amount: number, currencyCode: string): string {
   return `${amount.toLocaleString("fr-FR")} ${currencyCode}`;
 }
 
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return target.closest("a, button, input, select, textarea, [role='menu']") !== null;
+}
+
 export default function PropertyDetailPage({ params }: PageProps): React.ReactElement {
   const router = useRouter();
   const { id } = use(params);
@@ -49,6 +57,7 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [formData, setFormData] = useState<PropertyFormData>({
     name: "",
     address: "",
@@ -245,6 +254,7 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
                   </Link>
                   <ActionMenu
                     items={[
+                      { label: "Ajouter un document", onSelect: () => setDocumentModalOpen(true) },
                       { label: "Modifier la propriété", onSelect: () => setEditMode(true) },
                       {
                         label: deleting ? "Suppression..." : "Supprimer la propriété",
@@ -396,13 +406,37 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
                   <th className="px-6 py-3 text-left">Unité</th>
                   <th className="px-6 py-3 text-left">Loyer</th>
                   <th className="px-6 py-3 text-left">Statut</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {units.map((unit) => (
-                  <tr key={unit.id} className="hover:bg-slate-50/80">
-                    <td className="px-6 py-4 font-semibold text-[#10213d]">Unité {unit.unitNumber}</td>
+                  <tr
+                    key={unit.id}
+                    className="cursor-pointer hover:bg-slate-50/80"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      if (isInteractiveTarget(event.target)) {
+                        return;
+                      }
+
+                      router.push(`/dashboard/units/${unit.id}`);
+                    }}
+                    onKeyDown={(event) => {
+                      if (isInteractiveTarget(event.target)) {
+                        return;
+                      }
+
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(`/dashboard/units/${unit.id}`);
+                      }
+                    }}
+                  >
+                    <td className="px-6 py-4 font-semibold text-[#10213d]">
+                      <Link href={`/dashboard/units/${unit.id}`} className="transition hover:text-[#0063fe] hover:underline">
+                        Unité {unit.unitNumber}
+                      </Link>
+                    </td>
                     <td className="px-6 py-4 text-slate-600">{formatCurrencyAmount(unit.monthlyRentAmount, unit.currencyCode)}/mois</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -415,13 +449,6 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
                         {unit.status === "occupied" ? "Occupée" : unit.status === "vacant" ? "Vacante" : "Inactive"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <ActionMenu
-                        items={[
-                          { label: "Voir la fiche", href: `/dashboard/units/${unit.id}` }
-                        ]}
-                      />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -430,7 +457,43 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
         )}
       </div>
 
-      <ContextualDocumentPanel attachmentType="property" attachmentId={id} />
+      <ContextualDocumentPanel
+        attachmentType="property"
+        attachmentId={id}
+        title="Documents de la propriété"
+        description="Centralisez ici les titres, contrats, attestations et pièces utiles à ce bien."
+        addButtonLabel="Ajouter un document"
+        showAddButton={false}
+      />
+
+      {documentModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/55 p-4"
+          onClick={() => setDocumentModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ajouter un document à la propriété"
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div>
+                <h2 className="text-lg font-semibold text-[#010a19]">Ajouter un document</h2>
+                <p className="mt-1 text-sm text-slate-500">Importez un document et rattachez-le directement à cette propriété.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDocumentModalOpen(false)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

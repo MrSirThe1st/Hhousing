@@ -111,10 +111,10 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Owners</h1>
+            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Propriétaires</h1>
           </div>
           <p className="mt-2 text-sm text-slate-500">
-            {clientOwners.length} owner(s) tiers, {managedPropertyCount} biens gérés, {occupancyRate}% d&apos;occupation.
+            {clientOwners.length} propriétaire(s) tiers, {managedPropertyCount} biens gérés, {occupancyRate}% d&apos;occupation.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -123,14 +123,14 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
             className="inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
           >
             <PlusIcon />
-            Ajouter un owner
+            Ajouter un propriétaire
           </Link>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Owners tiers</p>
+          <p className="text-sm text-slate-500">Propriétaires tiers</p>
           <p className="mt-1 text-3xl font-semibold text-[#010a19]">{clientOwners.length}</p>
           <p className="mt-2 text-xs text-slate-500">Profils externes avec portefeuille dédié.</p>
         </div>
@@ -153,23 +153,23 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
 
       {summaries.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
-          <h2 className="text-lg font-semibold text-[#010a19]">Aucun owner tiers enregistré</h2>
+          <h2 className="text-lg font-semibold text-[#010a19]">Aucun propriétaire tiers enregistré</h2>
           <p className="mt-2 text-sm text-slate-500">
-            Créez votre premier owner pour rattacher proprement ses biens et centraliser son suivi.
+            Créez votre premier propriétaire pour rattacher proprement ses biens et centraliser son suivi.
           </p>
           <Link
             href="/dashboard/clients/add"
             className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
           >
             <PlusIcon />
-            Ajouter un owner
+            Ajouter un propriétaire
           </Link>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-6 py-4">
             <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold text-[#010a19]">Portefeuille owners</h2>
+              <h2 className="text-lg font-semibold text-[#010a19]">Portefeuille propriétaires</h2>
               <p className="text-sm text-slate-500">
                 Vue synthétique des propriétaires tiers, de leur parc géré et des points d&apos;attention opérationnels.
               </p>
@@ -179,13 +179,12 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                 <tr>
-                  <th className="px-5 py-3 text-left">Owner</th>
+                  <th className="px-5 py-3 text-left">Propriétaire</th>
                   <th className="px-5 py-3 text-left">Type</th>
                   <th className="px-5 py-3 text-left">Localisation</th>
                   <th className="px-5 py-3 text-left">Portefeuille</th>
                   <th className="px-5 py-3 text-left">Opérations</th>
                   <th className="px-5 py-3 text-left">Création</th>
-                  <th className="px-5 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -210,7 +209,9 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                             </div>
                           )}
                           <div>
-                            <div className="font-semibold text-[#10213d]">{summary.owner.name}</div>
+                            <Link href={`/dashboard/clients/${summary.owner.id}`} className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline">
+                              {summary.owner.name}
+                            </Link>
                             <div className="mt-1 text-sm text-slate-500">{summary.owner.fullName}</div>
                             {summary.owner.phoneNumber ? (
                               <div className="mt-2 text-xs text-slate-500">{summary.owner.phoneNumber}</div>
@@ -249,14 +250,6 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
                         {new Date(summary.owner.createdAtIso).toLocaleDateString("fr-FR")}
-                      </td>
-                      <td className="px-5 py-4 text-right align-top">
-                        <Link
-                          href={`/dashboard/clients/${summary.owner.id}`}
-                          className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                        >
-                          Voir la fiche
-                        </Link>
                       </td>
                     </tr>
                   );

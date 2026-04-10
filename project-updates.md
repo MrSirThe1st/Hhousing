@@ -4,6 +4,42 @@ Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-10
 - Change type: Web + Frontend
+- Description: Flattened the web-manager unit detail layout after the initial redesign so the screen now uses section dividers, structured rows, and denser data presentation instead of stacking many decorative cards.
+- Impact: Updated `apps/web-manager/src/app/dashboard/units/[id]/page.tsx` and captured the user's anti-card enterprise layout preference in memory.
+- Tests: `pnpm -C apps/web-manager lint` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Reworked the web-manager unit detail page into a fuller read surface with property context, location, rent, deposit, bedrooms, bathrooms, surface, amenities, and features, and moved document upload behind an action-menu modal instead of mixing tenant/lease assignment into the unit screen.
+- Impact: Updated `apps/web-manager/src/app/dashboard/units/[id]/page.tsx` and `apps/web-manager/src/components/contextual-document-panel.tsx`.
+- Tests: `pnpm -C apps/web-manager lint` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend + Data
+- Description: Fixed org-owned property owner display so portfolio filters and property views use the real organization name instead of the hardcoded `Organisation` fallback; also removed the generic owner-type suffix from the portfolio owner filter labels.
+- Impact: Updated `packages/data-access/src/properties/postgres-organization-property-unit.repository.ts` and `apps/web-manager/src/components/property-management-panel.tsx`.
+- Tests: `pnpm -C apps/web-manager lint` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Normalized owner-related manager UI copy to French on the portfolio, sidebar, owner workspace, owner detail, and invitation panel so visible labels no longer mix English `owner` strings into the French product surface.
+- Impact: Updated `apps/web-manager/src/components/property-management-panel.tsx`, `sidebar.tsx`, `owner-invitation-panel.tsx`, `apps/web-manager/src/app/dashboard/layout.tsx`, `apps/web-manager/src/app/dashboard/clients/page.tsx`, and `apps/web-manager/src/app/dashboard/clients/[id]/page.tsx`.
+- Tests: `pnpm -C apps/web-manager lint` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Refined the web-manager portfolio workspace by adding owner filtering on the properties tab, removing the dedicated owner/action table headers, and making property rows navigate directly to the property detail while keeping the overflow menu icon-only.
+- Impact: Updated `apps/web-manager/src/components/property-management-panel.tsx` and `apps/web-manager/src/components/action-menu.tsx`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Applied a broader web-manager dashboard UX consistency pass using the cleaner portfolio/property pattern. Main list workspaces now use stronger hierarchy, summary cards, and direct primary navigation from rows/cards instead of hiding `Voir la fiche` in menus; dashboard sections missing route loaders now show the shared material-wave loading state or an existing table skeleton.
+- Impact: Updated `apps/web-manager/src/components/property-management-panel.tsx`, `tenant-management-panel.tsx`, `lease-management-panel.tsx`, `maintenance-management-panel.tsx`, and `client-portfolio-table.tsx`; updated `apps/web-manager/src/app/dashboard/properties/[id]/page.tsx`; and added route `loading.tsx` files under clients, documents, expenses, listings, messages, organization, reports, revenues, and team.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
 - Description: Reworked the web-manager owners workspace into the same cleaner admin hierarchy used on portfolio. The owners index now uses a structured header, KPI summary cards, and a table-based portfolio view, and owner creation moved behind a dedicated add route with a direct CTA.
 - Impact: Updated `apps/web-manager/src/app/dashboard/clients/page.tsx`; added `apps/web-manager/src/app/dashboard/clients/add/page.tsx`; kept `apps/web-manager/src/components/owner-client-create-panel.tsx` as the creation surface behind the new route.
 - Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.

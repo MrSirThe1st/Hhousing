@@ -41,6 +41,9 @@ type ContextualDocumentPanelProps = {
   preferredDocumentType?: DocumentType;
   preferredDocumentEmptyMessage?: string;
   preferredDocumentReadyMessage?: string;
+  showUploadFormOnMount?: boolean;
+  containerClassName?: string;
+  showAddButton?: boolean;
 };
 
 export default function ContextualDocumentPanel({
@@ -52,7 +55,10 @@ export default function ContextualDocumentPanel({
   defaultDocumentType = "other",
   preferredDocumentType,
   preferredDocumentEmptyMessage,
-  preferredDocumentReadyMessage
+  preferredDocumentReadyMessage,
+  showUploadFormOnMount = false,
+  containerClassName = "mt-6 rounded-2xl border border-slate-400",
+  showAddButton = true
 }: ContextualDocumentPanelProps): React.ReactElement {
   const router = useRouter();
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
@@ -102,6 +108,12 @@ export default function ContextualDocumentPanel({
   useEffect(() => {
     setDocumentType(defaultDocumentType);
   }, [defaultDocumentType]);
+
+  useEffect(() => {
+    if (showUploadFormOnMount) {
+      setShowUploadForm(true);
+    }
+  }, [showUploadFormOnMount]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
     setFile(e.target.files?.[0] ?? null);
@@ -189,13 +201,13 @@ export default function ContextualDocumentPanel({
     : [];
 
   return (
-    <div className="mt-6 rounded-2xl border border-slate-400 ">
+    <div className={containerClassName}>
       <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
         <div>
           <h2 className="text-base font-semibold text-[#010a19]">{title}</h2>
           {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
         </div>
-        {!loading && sessionInfo && (
+        {!loading && sessionInfo && showAddButton && (
           <button
             onClick={() => setShowUploadForm(!showUploadForm)}
             className="rounded-lg bg-[#0063fe] px-3 py-2 text-xs font-semibold text-white hover:bg-[#0050d0]"

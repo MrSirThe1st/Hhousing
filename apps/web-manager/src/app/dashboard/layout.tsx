@@ -53,7 +53,7 @@ export default async function DashboardLayout({
             <div>
               <p className="text-sm font-medium text-[#010a19]">Espace opérateur</p>
               <p className="text-sm text-gray-500">
-                Portefeuille unifié par propriétaire. Utilisez les filtres par owner pour segmenter les données.
+                Portefeuille unifié par propriétaire. Utilisez les filtres par propriétaire pour segmenter les données.
               </p>
             </div>
           </div>

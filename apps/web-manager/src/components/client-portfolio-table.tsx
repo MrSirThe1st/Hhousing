@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import type { OwnerClient, Property } from "@hhousing/domain";
 import { patchWithAuth } from "../lib/api-client";
-import ActionMenu from "./action-menu";
 
 interface ClientPortfolioProperty {
   property: Property;
@@ -82,13 +81,16 @@ export default function ClientPortfolioTable({
               <th className="px-4 py-3">Unités</th>
               <th className="px-4 py-3">Occupées</th>
               <th className="px-4 py-3">Réaffectation</th>
-              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {properties.map((item) => (
               <tr key={item.property.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-[#010a19]">{item.property.name}</td>
+                <td className="px-4 py-3 font-medium text-[#010a19]">
+                  <Link href={`/dashboard/properties/${item.property.id}`} className="transition hover:text-[#0063fe] hover:underline">
+                    {item.property.name}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-gray-600">{item.property.city}</td>
                 <td className="px-4 py-3 text-gray-600">{item.unitCount}</td>
                 <td className="px-4 py-3 text-gray-600">{item.occupiedUnitCount}</td>
@@ -120,13 +122,6 @@ export default function ClientPortfolioTable({
                       {busyPropertyId === item.property.id ? "En cours..." : "Appliquer"}
                     </button>
                   </div>
-                </td>
-                <td className="px-4 py-3">
-                  <ActionMenu
-                    items={[
-                      { label: "Voir la propriété", href: `/dashboard/properties/${item.property.id}` }
-                    ]}
-                  />
                 </td>
               </tr>
             ))}

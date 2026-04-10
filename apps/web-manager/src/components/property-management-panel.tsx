@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import type { PropertyManagementPanelProps } from "./property-management.types";
 import ActionMenu from "./action-menu";
@@ -9,6 +10,10 @@ import ActionMenu from "./action-menu";
 type PropertyStatusFilter = "all" | "active" | "archived";
 type PropertyTypeFilter = "all" | "single_unit" | "multi_unit";
 type UnitStatusFilter = "all" | "occupied" | "vacant" | "inactive";
+type PropertyOwnerFilterOption = {
+  id: string;
+  label: string;
+};
 
 function formatPropertyTypeLabel(value: "single_unit" | "multi_unit"): string {
   return value === "single_unit" ? "Simple" : "Multi-unités";
@@ -22,16 +27,6 @@ function formatPropertyStatusClassName(value: string): string {
   return value === "active"
     ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
     : "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
-}
-
-function formatOwnerTypeLabel(value: string): string {
-  return value === "organization" ? "Organisation" : "Client";
-}
-
-function formatOwnerTypeClassName(value: string): string {
-  return value === "organization"
-    ? "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-    : "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100";
 }
 
 function formatUnitStatusLabel(value: string): string {
@@ -73,15 +68,31 @@ function PlusIcon(): React.ReactElement {
 export default function PropertyManagementPanel({
   items,
 }: PropertyManagementPanelProps): React.ReactElement {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"properties" | "units">("properties");
   const [propertySearchTerm, setPropertySearchTerm] = useState("");
   const [propertyStatusFilter, setPropertyStatusFilter] = useState<PropertyStatusFilter>("all");
   const [propertyTypeFilter, setPropertyTypeFilter] = useState<PropertyTypeFilter>("all");
+  const [propertyOwnerFilter, setPropertyOwnerFilter] = useState<string>("all");
   const [unitSearchTerm, setUnitSearchTerm] = useState("");
   const [unitPropertyFilter, setUnitPropertyFilter] = useState<string>("all");
   const [unitStatusFilter, setUnitStatusFilter] = useState<UnitStatusFilter>("all");
 
   const propertyOptions: PropertyWithUnitsView[] = useMemo(() => items, [items]);
+  const propertyOwnerOptions = useMemo<PropertyOwnerFilterOption[]>(() => {
+    const optionsMap = new Map<string, PropertyOwnerFilterOption>();
+
+    items.forEach(({ property }) => {
+      if (!optionsMap.has(property.ownerId)) {
+        optionsMap.set(property.ownerId, {
+          id: property.ownerId,
+          label: property.ownerName
+        });
+      }
+    });
+
+    return Array.from(optionsMap.values()).sort((left, right) => left.label.localeCompare(right.label, "fr"));
+  }, [items]);
   const summary = useMemo(() => {
     const totalProperties = items.length;
     const totalUnits = items.reduce((count, entry) => count + entry.units.length, 0);
@@ -102,13 +113,15 @@ export default function PropertyManagementPanel({
         property.name.toLowerCase().includes(normalizedSearchTerm) ||
         property.address.toLowerCase().includes(normalizedSearchTerm) ||
         property.city.toLowerCase().includes(normalizedSearchTerm) ||
+        property.ownerName.toLowerCase().includes(normalizedSearchTerm) ||
         (property.clientName?.toLowerCase().includes(normalizedSearchTerm) ?? false);
       const matchesStatus = propertyStatusFilter === "all" || property.status === propertyStatusFilter;
       const matchesType = propertyTypeFilter === "all" || property.propertyType === propertyTypeFilter;
+      const matchesOwner = propertyOwnerFilter === "all" || property.ownerId === propertyOwnerFilter;
 
-      return matchesSearch && matchesStatus && matchesType && (property.propertyType === "multi_unit" || units.length >= 0);
+      return matchesSearch && matchesStatus && matchesType && matchesOwner && (property.propertyType === "multi_unit" || units.length >= 0);
     });
-  }, [items, propertySearchTerm, propertyStatusFilter, propertyTypeFilter]);
+  }, [items, propertyOwnerFilter, propertySearchTerm, propertyStatusFilter, propertyTypeFilter]);
   const unitRows = useMemo(
     () => items.flatMap(({ property, units }) => units.map((unit) => ({ property, unit }))),
     [items]
@@ -131,6 +144,22 @@ export default function PropertyManagementPanel({
     },
     [unitPropertyFilter, unitRows, unitSearchTerm, unitStatusFilter]
   );
+
+  function handlePropertyRowNavigation(propertyId: string): void {
+    router.push(`/dashboard/properties/${propertyId}`);
+  }
+
+  function handleUnitRowNavigation(unitId: string): void {
+    router.push(`/dashboard/units/${unitId}`);
+  }
+
+  function isInteractiveTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+
+    return target.closest("a, button, input, select, textarea, [role='menu']") !== null;
+  }
 
   return (
     <div className="space-y-6 p-8">
@@ -196,13 +225,13 @@ export default function PropertyManagementPanel({
         <div className="space-y-6 p-6">
           {activeTab === "properties" ? (
             <>
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_auto] xl:items-end">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px_auto] xl:items-end">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-[#010a19]">Rechercher un bien</label>
                   <input
                     value={propertySearchTerm}
                     onChange={(event) => setPropertySearchTerm(event.target.value)}
-                    placeholder="Nom, adresse, ville ou owner"
+                    placeholder="Nom, adresse, ville ou propriétaire"
                     className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                   />
                 </div>
@@ -230,12 +259,28 @@ export default function PropertyManagementPanel({
                     <option value="multi_unit">Multi-unités</option>
                   </select>
                 </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-[#010a19]">Propriétaire</label>
+                  <select
+                    value={propertyOwnerFilter}
+                    onChange={(event) => setPropertyOwnerFilter(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                  >
+                    <option value="all">Tous les propriétaires</option>
+                    {propertyOwnerOptions.map((owner) => (
+                      <option key={owner.id} value={owner.id}>
+                        {owner.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
                     setPropertySearchTerm("");
                     setPropertyStatusFilter("all");
                     setPropertyTypeFilter("all");
+                    setPropertyOwnerFilter("all");
                   }}
                   className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                 >
@@ -268,10 +313,9 @@ export default function PropertyManagementPanel({
                         <th className="px-5 py-3 text-left">Bien</th>
                         <th className="px-5 py-3 text-left">Ville</th>
                         <th className="px-5 py-3 text-left">Type</th>
-                        <th className="px-5 py-3 text-left">Owner</th>
                         <th className="px-5 py-3 text-left">Occupation</th>
                         <th className="px-5 py-3 text-left">Statut</th>
-                        <th className="px-5 py-3 text-right">Actions</th>
+                        <th className="px-5 py-3 text-right"><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -280,28 +324,36 @@ export default function PropertyManagementPanel({
                         const vacantUnits = units.filter((unit) => unit.status === "vacant").length;
 
                         return (
-                          <tr key={property.id} className="hover:bg-slate-50/80">
+                          <tr
+                            key={property.id}
+                            className="cursor-pointer hover:bg-slate-50/80"
+                            tabIndex={0}
+                            onClick={(event) => {
+                              if (isInteractiveTarget(event.target)) {
+                                return;
+                              }
+
+                              handlePropertyRowNavigation(property.id);
+                            }}
+                            onKeyDown={(event) => {
+                              if (isInteractiveTarget(event.target)) {
+                                return;
+                              }
+
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                handlePropertyRowNavigation(property.id);
+                              }
+                            }}
+                          >
                             <td className="px-5 py-4 align-top">
-                              <div className="font-semibold text-[#10213d]">{property.name}</div>
+                              <Link href={`/dashboard/properties/${property.id}`} className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline">
+                                {property.name}
+                              </Link>
                               <div className="mt-1 text-sm text-slate-500">{property.address}</div>
-                              {property.clientName && property.clientId ? (
-                                <div className="mt-2 text-xs text-slate-500">
-                                  Owner: {" "}
-                                  <Link href={`/dashboard/clients/${property.ownerId}`} className="font-medium text-[#0063fe] hover:underline">
-                                    {property.ownerName}
-                                  </Link>
-                                </div>
-                              ) : property.ownerName ? (
-                                <div className="mt-2 text-xs text-slate-500">Owner: {property.ownerName}</div>
-                              ) : null}
                             </td>
                             <td className="px-5 py-4 text-slate-600">{property.city}</td>
                             <td className="px-5 py-4 text-slate-600">{formatPropertyTypeLabel(property.propertyType)}</td>
-                            <td className="px-5 py-4">
-                              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatOwnerTypeClassName(property.ownerType)}`}>
-                                {property.ownerName} · {formatOwnerTypeLabel(property.ownerType)}
-                              </span>
-                            </td>
                             <td className="px-5 py-4 text-slate-600">
                               {units.length === 0 ? (
                                 <span>Aucune unité</span>
@@ -317,10 +369,9 @@ export default function PropertyManagementPanel({
                                 {formatPropertyStatusLabel(property.status)}
                               </span>
                             </td>
-                            <td className="px-5 py-4 text-right">
+                            <td className="px-5 py-4 text-right" onClick={(event) => event.stopPropagation()}>
                               <ActionMenu
                                 items={[
-                                  { label: "Voir la fiche", href: `/dashboard/properties/${property.id}` },
                                   { label: "Modifier la propriété", href: `/dashboard/properties/${property.id}` },
                                   { label: "Ajouter une unité", href: "/dashboard/units/add" }
                                 ]}
@@ -374,17 +425,7 @@ export default function PropertyManagementPanel({
                     <option value="inactive">Inactives</option>
                   </select>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUnitSearchTerm("");
-                    setUnitPropertyFilter("all");
-                    setUnitStatusFilter("all");
-                  }}
-                  className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                >
-                  Réinitialiser
-                </button>
+ 
               </div>
 
               {unitRows.length === 0 ? (
@@ -414,13 +455,37 @@ export default function PropertyManagementPanel({
                         <th className="px-5 py-3 text-left">Ville</th>
                         <th className="px-5 py-3 text-left">Loyer</th>
                         <th className="px-5 py-3 text-left">Statut</th>
-                        <th className="px-5 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {filteredUnitRows.map(({ property, unit }) => (
-                        <tr key={unit.id} className="hover:bg-slate-50/80">
-                          <td className="px-5 py-4 font-semibold text-[#10213d]">{unit.unitNumber}</td>
+                        <tr
+                          key={unit.id}
+                          className="cursor-pointer hover:bg-slate-50/80"
+                          tabIndex={0}
+                          onClick={(event) => {
+                            if (isInteractiveTarget(event.target)) {
+                              return;
+                            }
+
+                            handleUnitRowNavigation(unit.id);
+                          }}
+                          onKeyDown={(event) => {
+                            if (isInteractiveTarget(event.target)) {
+                              return;
+                            }
+
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleUnitRowNavigation(unit.id);
+                            }
+                          }}
+                        >
+                          <td className="px-5 py-4">
+                            <Link href={`/dashboard/units/${unit.id}`} className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline">
+                              {unit.unitNumber}
+                            </Link>
+                          </td>
                           <td className="px-5 py-4 text-slate-600">
                             <Link href={`/dashboard/properties/${property.id}`} className="font-medium text-[#10213d] hover:text-[#0063fe] hover:underline">
                               {property.name}
@@ -432,14 +497,6 @@ export default function PropertyManagementPanel({
                             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatUnitStatusClassName(unit.status)}`}>
                               {formatUnitStatusLabel(unit.status)}
                             </span>
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <ActionMenu
-                              items={[
-                                { label: "Voir la fiche", href: `/dashboard/units/${unit.id}` },
-                                { label: "Voir le bien", href: `/dashboard/properties/${property.id}` }
-                              ]}
-                            />
                           </td>
                         </tr>
                       ))}

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { MaintenanceRequest, MaintenanceStatus } from "@hhousing/domain";
-import ActionMenu from "./action-menu";
 
 const STATUS_LABELS: Record<MaintenanceStatus, string> = {
   open: "Ouvert",
@@ -41,6 +40,10 @@ export default function MaintenanceManagementPanel({
   requests
 }: MaintenanceManagementPanelProps): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | "all">("all");
+  const openCount = useMemo(() => requests.filter((request) => request.status === "open").length, [requests]);
+  const inProgressCount = useMemo(() => requests.filter((request) => request.status === "in_progress").length, [requests]);
+  const resolvedCount = useMemo(() => requests.filter((request) => request.status === "resolved").length, [requests]);
+  const urgentCount = useMemo(() => requests.filter((request) => request.priority === "urgent").length, [requests]);
 
   const filteredRequests = useMemo(() => {
     if (statusFilter === "all") return requests;
@@ -48,75 +51,105 @@ export default function MaintenanceManagementPanel({
   }, [requests, statusFilter]);
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[#010a19]">Demandes de Maintenance</h1>
-        <p className="text-sm text-gray-500">Les demandes sont créées par les locataires via l'app mobile</p>
+    <div className="space-y-6 p-8">
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Demandes de maintenance</h1>
+          <p className="mt-2 text-sm text-slate-500">Les demandes sont créées par les locataires via l&apos;app mobile et pilotées ici.</p>
+        </div>
+        <p className="text-sm text-slate-500">{urgentCount} demande(s) urgente(s) à traiter en priorité.</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Demandes</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{requests.length}</p>
+          <p className="mt-2 text-xs text-slate-500">Ensemble du flux maintenance.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Ouvertes</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{openCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Tickets à qualifier ou démarrer.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">En cours</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{inProgressCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Interventions actuellement suivies.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Résolues</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{resolvedCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Historique des demandes clôturées.</p>
+        </div>
       </div>
 
       {requests.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-6 text-sm text-gray-400">
-          Aucune demande pour l&apos;instant.
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+          <h2 className="text-lg font-semibold text-[#010a19]">Aucune demande pour l&apos;instant</h2>
+          <p className="mt-2 text-sm text-slate-500">Les prochains signalements locataires apparaîtront ici avec leur niveau de priorité.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex gap-2">
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 flex flex-wrap gap-2">
             <button
               onClick={() => setStatusFilter("all")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 statusFilter === "all"
-                  ? "bg-[#0063fe] text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100"
+                  ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
+                  : "bg-white text-slate-600 hover:bg-slate-100"
               }`}
             >
               Tous ({requests.length})
             </button>
             <button
               onClick={() => setStatusFilter("open")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 statusFilter === "open"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100"
+                  ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-blue-200"
+                  : "bg-white text-slate-600 hover:bg-slate-100"
               }`}
             >
-              Ouverts ({requests.filter(r => r.status === "open").length})
+              Ouverts ({openCount})
             </button>
             <button
               onClick={() => setStatusFilter("in_progress")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 statusFilter === "in_progress"
-                  ? "bg-yellow-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100"
+                  ? "bg-white text-amber-700 shadow-sm ring-1 ring-amber-200"
+                  : "bg-white text-slate-600 hover:bg-slate-100"
               }`}
             >
-              Assignées ({requests.filter(r => r.status === "in_progress").length})
+              Assignées ({inProgressCount})
             </button>
             <button
               onClick={() => setStatusFilter("resolved")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 statusFilter === "resolved"
-                  ? "bg-green-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100"
+                  ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-200"
+                  : "bg-white text-slate-600 hover:bg-slate-100"
               }`}
             >
-              Résolus ({requests.filter(r => r.status === "resolved").length})
+              Résolus ({resolvedCount})
             </button>
           </div>
 
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
               <tr>
                 <th className="px-4 py-3 text-left">Titre</th>
                 <th className="px-4 py-3 text-left">Priorité</th>
                 <th className="px-4 py-3 text-left">Statut</th>
                 <th className="px-4 py-3 text-left">Créé le</th>
-                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-200">
               {filteredRequests.map((req) => (
-                <tr key={req.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-[#010a19]">{req.title}</td>
+                <tr key={req.id} className="hover:bg-slate-50/80">
+                  <td className="px-4 py-3 font-medium text-[#010a19]">
+                    <Link href={`/dashboard/maintenance/${req.id}`} className="transition hover:text-[#0063fe] hover:underline">
+                      {req.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_STYLES[req.priority] ?? "bg-gray-100 text-gray-500"}`}>
                       {PRIORITY_LABELS[req.priority] ?? req.priority}
@@ -127,15 +160,8 @@ export default function MaintenanceManagementPanel({
                       {STATUS_LABELS[req.status] ?? req.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 text-slate-500">
                     {new Date(req.createdAtIso).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <ActionMenu
-                      items={[
-                        { label: "Voir la fiche", href: `/dashboard/maintenance/${req.id}` }
-                      ]}
-                    />
                   </td>
                 </tr>
               ))}
@@ -143,7 +169,7 @@ export default function MaintenanceManagementPanel({
           </table>
 
           {filteredRequests.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">
+            <div className="px-4 py-8 text-center text-sm text-slate-500">
               Aucune demande dans cette catégorie.
             </div>
           )}

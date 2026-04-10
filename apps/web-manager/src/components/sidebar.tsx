@@ -190,7 +190,7 @@ export default function Sidebar({ badgeCounts, currentRoleLabel }: SidebarProps)
       title: "Opérations locatives",
       items: [
         { href: "/dashboard/properties", label: "Portfolio", icon: "portfolio" },
-        { href: "/dashboard/clients", label: "Owners", icon: "clients" },
+        { href: "/dashboard/clients", label: "Propriétaires", icon: "clients" },
         { href: "/dashboard/listings", label: "Listings", icon: "listings", badgeCount: badgeCounts.listings },
         { href: "/dashboard/tenants", label: "Locataires", icon: "tenants" },
         { href: "/dashboard/leases", label: "Baux", icon: "leases" }

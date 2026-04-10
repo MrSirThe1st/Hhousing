@@ -37,20 +37,20 @@ export default function OwnerInvitationPanel({ ownerId, ownerName }: OwnerInvita
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-[#010a19]">Inviter cet owner</h2>
+      <h2 className="text-lg font-semibold text-[#010a19]">Inviter ce propriétaire</h2>
       <p className="mt-1 text-sm text-gray-500">
         Envoyez un lien d'activation au propriétaire {ownerName}. Il pourra créer son mot de passe puis accéder à son portail en lecture seule.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 md:flex-row md:items-end">
         <label className="block flex-1 text-sm font-medium text-gray-700">
-          <span className="mb-1.5 block">Email de l'owner</span>
+          <span className="mb-1.5 block">E-mail du propriétaire</span>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="owner@example.com"
+            placeholder="proprietaire@exemple.com"
             required
           />
         </label>

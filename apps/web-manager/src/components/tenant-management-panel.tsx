@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { Tenant } from "@hhousing/domain";
 import type { TenantListItem, TenantManagementPanelProps } from "./tenant-management.types";
-import ActionMenu from "./action-menu";
 
 export default function TenantManagementPanel({
   organizationId,
@@ -31,11 +29,26 @@ export default function TenantManagementPanel({
 
   const withLeaseCount = useMemo(() => tenants.filter((item) => item.hasLease).length, [tenants]);
   const withoutLeaseCount = tenants.length - withLeaseCount;
+  const contactableCount = useMemo(
+    () => tenants.filter((item) => Boolean(item.tenant.email || item.tenant.phone)).length,
+    [tenants]
+  );
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[#010a19]">Locataires</h1>
+    <div className="space-y-6 p-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Locataires</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            {tenants.length} locataire(s), {withLeaseCount} avec bail actif ou en attente, {withoutLeaseCount} sans bail.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/tenants/add"
+          className="inline-flex items-center rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+        >
+          Ajouter un locataire
+        </Link>
       </div>
 
       {message ? (
@@ -49,38 +62,46 @@ export default function TenantManagementPanel({
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm max-w-2xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-[#010a19]">Ajouter un locataire</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Ouvrez un écran dédié pour ajouter un locataire avec ses informations de profil et sa photo.
-            </p>
-          </div>
-          <Link
-            href="/dashboard/tenants/add"
-            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0]"
-          >
-            Ajouter un locataire
-          </Link>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Locataires</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{tenants.length}</p>
+          <p className="mt-2 text-xs text-slate-500">Base complète du portefeuille locatif.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Avec bail</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{withLeaseCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Profils actuellement engagés sur une unité.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Sans bail</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{withoutLeaseCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Profils disponibles pour une affectation.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Contactables</p>
+          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{contactableCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Locataires avec email ou téléphone renseigné.</p>
         </div>
       </div>
 
       {tenants.length > 0 ? (
-        <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-base font-semibold text-[#010a19]">Affichage et filtres</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-slate-500">
               {withLeaseCount} avec bail, {withoutLeaseCount} sans bail.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
               <button
                 type="button"
                 onClick={() => setDisplayMode("table")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                  displayMode === "table" ? "bg-[#0063fe] text-white" : "text-gray-600 hover:bg-white"
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  displayMode === "table"
+                    ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
+                    : "text-slate-600 hover:text-[#010a19]"
                 }`}
               >
                 Tableau
@@ -88,20 +109,22 @@ export default function TenantManagementPanel({
               <button
                 type="button"
                 onClick={() => setDisplayMode("cards")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                  displayMode === "cards" ? "bg-[#0063fe] text-white" : "text-gray-600 hover:bg-white"
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  displayMode === "cards"
+                    ? "bg-white text-[#0063fe] shadow-sm ring-1 ring-slate-200"
+                    : "text-slate-600 hover:text-[#010a19]"
                 }`}
               >
                 Cartes
               </button>
             </div>
 
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-[#010a19]">
               <span className="mb-1.5 block">Statut du bail</span>
               <select
                 value={leaseFilter}
                 onChange={(event) => setLeaseFilter(event.target.value as "all" | "with-lease" | "without-lease")}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               >
                 <option value="all">Tous</option>
                 <option value="with-lease">Avec bail</option>
@@ -113,32 +136,32 @@ export default function TenantManagementPanel({
       ) : null}
 
       {tenants.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-6 text-sm text-gray-400">
-          Aucun locataire pour l&apos;instant.
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+          <h2 className="text-lg font-semibold text-[#010a19]">Aucun locataire pour l&apos;instant</h2>
+          <p className="mt-2 text-sm text-slate-500">Ajoutez un premier locataire pour préparer les affectations et les baux.</p>
         </div>
       ) : filteredTenants.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-6 text-sm text-gray-400">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
           Aucun locataire ne correspond au filtre sélectionné.
         </div>
       ) : displayMode === "table" ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
               <tr>
                 <th className="px-4 py-3 text-left">Nom</th>
                 <th className="px-4 py-3 text-left">Statut</th>
                 <th className="px-4 py-3 text-left">E-mail</th>
                 <th className="px-4 py-3 text-left">Téléphone</th>
                 <th className="px-4 py-3 text-left">Ajouté le</th>
-                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-200">
               {filteredTenants.map((item) => {
                 const { tenant } = item;
 
                 return (
-                  <tr key={tenant.id} className="hover:bg-gray-50">
+                  <tr key={tenant.id} className="hover:bg-slate-50/80">
                     <td className="px-4 py-3 font-medium text-[#010a19]">
                       <div className="flex items-center gap-3">
                         {tenant.photoUrl ? (
@@ -150,9 +173,11 @@ export default function TenantManagementPanel({
                           </div>
                         )}
                         <div>
-                          <div>{tenant.fullName}</div>
+                          <Link href={`/dashboard/tenants/${tenant.id}`} className="transition hover:text-[#0063fe] hover:underline">
+                            {tenant.fullName}
+                          </Link>
                           {tenant.dateOfBirth ? (
-                            <div className="text-xs font-normal text-gray-500">Né le {tenant.dateOfBirth}</div>
+                            <div className="text-xs font-normal text-slate-500">Né le {tenant.dateOfBirth}</div>
                           ) : null}
                         </div>
                       </div>
@@ -160,17 +185,10 @@ export default function TenantManagementPanel({
                     <td className="px-4 py-3">
                       <LeaseStatusBadge hasLease={item.hasLease} />
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{tenant.email ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{tenant.phone ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-4 py-3 text-slate-600">{tenant.email ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-600">{tenant.phone ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-500">
                       {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <ActionMenu
-                        items={[
-                          { label: "Voir la fiche", href: `/dashboard/tenants/${tenant.id}` }
-                        ]}
-                      />
                     </td>
                   </tr>
                 );
@@ -184,7 +202,7 @@ export default function TenantManagementPanel({
             const { tenant } = item;
 
             return (
-              <div key={tenant.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <Link key={tenant.id} href={`/dashboard/tenants/${tenant.id}`} className="rounded-xl border border-slate-200 bg-white p-5 transition hover:border-[#0063fe] hover:bg-[#0063fe]/3">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     {tenant.photoUrl ? (
@@ -197,7 +215,7 @@ export default function TenantManagementPanel({
                     )}
                     <div>
                       <h3 className="font-semibold text-[#010a19]">{tenant.fullName}</h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-slate-500">
                         Ajouté le {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
@@ -205,21 +223,16 @@ export default function TenantManagementPanel({
                   <LeaseStatusBadge hasLease={item.hasLease} />
                 </div>
 
-                <div className="mt-4 space-y-2 text-sm text-gray-600">
+                <div className="mt-4 space-y-2 text-sm text-slate-600">
                   <p><span className="font-medium text-[#010a19]">E-mail:</span> {tenant.email ?? "—"}</p>
                   <p><span className="font-medium text-[#010a19]">Téléphone:</span> {tenant.phone ?? "—"}</p>
                   <p><span className="font-medium text-[#010a19]">Date de naissance:</span> {tenant.dateOfBirth ?? "—"}</p>
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <ActionMenu
-                    items={[
-                      { label: "Voir la fiche", href: `/dashboard/tenants/${tenant.id}` }
-                    ]}
-                    align="left"
-                  />
+                <div className="mt-5 text-sm font-semibold text-[#0063fe]">
+                  Ouvrir le dossier
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -232,7 +245,7 @@ function LeaseStatusBadge({ hasLease }: { hasLease: boolean }): React.ReactEleme
   return (
     <span
       className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-        hasLease ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+        hasLease ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
       }`}
     >
       {hasLease ? "Avec bail" : "Sans bail"}

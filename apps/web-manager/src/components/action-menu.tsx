@@ -56,6 +56,7 @@ export default function ActionMenu({ items, align = "right" }: ActionMenuProps):
         className="flex items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-slate-600 transition hover:bg-slate-50 hover:text-[#010a19]"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Ouvrir le menu d'actions"
       >
         <MoreIcon />
       </button>
