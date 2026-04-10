@@ -128,28 +128,27 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Propriétaires tiers</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{clientOwners.length}</p>
-          <p className="mt-2 text-xs text-slate-500">Profils externes avec portefeuille dédié.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Biens sous mandat</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{managedPropertyCount}</p>
-          <p className="mt-2 text-xs text-slate-500">{organizationProperties} bien(s) restent détenus par l&apos;organisation.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Occupation</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{occupancyRate}%</p>
-          <p className="mt-2 text-xs text-slate-500">{occupiedUnitCount} unité(s) occupée(s) sur {totalUnitCount}.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Alertes portefeuille</p>
-          <p className="mt-1 text-3xl font-semibold text-[#010a19]">{overdueAlertCount + urgentMaintenanceCount}</p>
-          <p className="mt-2 text-xs text-slate-500">{overdueAlertCount} retard(s) et {urgentMaintenanceCount} urgence(s) maintenance.</p>
-        </div>
-      </div>
+<div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+  <div>
+    <p className="text-xs uppercase tracking-wide text-slate-500">
+      Propriétaires tiers
+    </p>
+    <p className="text-xl font-semibold text-slate-900">
+      {clientOwners.length}
+    </p>
+  </div>
+
+  <div className="h-6 w-px bg-slate-200" />
+
+  <div>
+    <p className="text-xs uppercase tracking-wide text-slate-500">
+      Occupation
+    </p>
+    <p className="text-xl font-semibold text-slate-900">
+      {occupancyRate}%
+    </p>
+  </div>
+</div>
 
       {summaries.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">

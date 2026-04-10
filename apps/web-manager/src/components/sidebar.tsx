@@ -36,13 +36,23 @@ interface NavSection {
 }
 
 interface SidebarProps {
-  badgeCounts: {
-    listings: number;
-    payments: number;
-    maintenance: number;
-    messages: number;
-  };
   currentRoleLabel: string;
+}
+
+interface SidebarBadgeCounts {
+  listings: number;
+  payments: number;
+  maintenance: number;
+  messages: number;
+}
+
+function createEmptyBadgeCounts(): SidebarBadgeCounts {
+  return {
+    listings: 0,
+    payments: 0,
+    maintenance: 0,
+    messages: 0
+  };
 }
 
 function SidebarIcon({ name, active }: { name: IconName; active: boolean }): React.ReactElement {
@@ -177,9 +187,10 @@ function getOrganizationInitials(name?: string): string {
   return letters.toUpperCase();
 }
 
-export default function Sidebar({ badgeCounts, currentRoleLabel }: SidebarProps): React.ReactElement {
+export default function Sidebar({ currentRoleLabel }: SidebarProps): React.ReactElement {
   const pathname = usePathname();
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [badgeCounts, setBadgeCounts] = useState<SidebarBadgeCounts>(createEmptyBadgeCounts);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navSections: NavSection[] = [
     {
@@ -246,6 +257,36 @@ export default function Sidebar({ badgeCounts, currentRoleLabel }: SidebarProps)
     }
 
     void fetchOrganization();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchBadgeCounts(): Promise<void> {
+      const response = await fetch("/api/sidebar/badge-counts", {
+        credentials: "include",
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const result = await response.json() as {
+        success: boolean;
+        data?: SidebarBadgeCounts;
+      };
+
+      if (!cancelled && result.success && result.data) {
+        setBadgeCounts(result.data);
+      }
+    }
+
+    void fetchBadgeCounts();
 
     return () => {
       cancelled = true;

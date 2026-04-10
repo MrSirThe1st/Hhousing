@@ -4,6 +4,24 @@ Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-10
 - Change type: Web + Frontend
+- Description: Added visible route and mutation loading feedback to the manager listings workspace without replacing the existing listings index skeleton. The listing editor detail route now has a loader, save/publish shows in-page progress during upload and navigation, and screening actions show row-level busy state.
+- Impact: Added `apps/web-manager/src/app/dashboard/listings/[unitId]/loading.tsx`; updated `apps/web-manager/src/components/listing-editor-form.tsx` and `listing-management-panel.tsx`.
+- Tests: pending.
+
+## 2026-04-10
+- Change type: Web + Performance + Architecture
+- Description: Reduced dashboard navigation latency by removing cross-module badge-count queries from the shared dashboard layout, caching server-side session resolution per render, and loading sidebar badge counts asynchronously through a dedicated API route after the shell renders.
+- Impact: Updated `apps/web-manager/src/app/dashboard/layout.tsx`, `apps/web-manager/src/components/sidebar.tsx`, and `apps/web-manager/src/lib/session.ts`; added `/api/sidebar/badge-counts` route and route tests.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test -- src/app/api/sidebar/badge-counts/route.test.ts` ✓, `rm -rf apps/web-manager/.next && pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Performance + Architecture
+- Description: Flattened the main dashboard detail-page waterfalls by moving property, unit, tenant, maintenance, and lease detail routes to server-first loading. Each route now resolves its primary data before render and hands hydrated state to a client component for edits and mutations.
+- Impact: Added server/client splits for `apps/web-manager/src/app/dashboard/properties/[id]`, `units/[id]`, `tenants/[id]`, `maintenance/[id]`, and `leases/[id]`; added shared dashboard session helper `apps/web-manager/src/app/dashboard/detail-page-access.ts`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test -- src/app/api/sidebar/badge-counts/route.test.ts src/app/dashboard/layout.test.tsx` ✓, `rm -rf apps/web-manager/.next && pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
 - Description: Flattened the web-manager unit detail layout after the initial redesign so the screen now uses section dividers, structured rows, and denser data presentation instead of stacking many decorative cards.
 - Impact: Updated `apps/web-manager/src/app/dashboard/units/[id]/page.tsx` and captured the user's anti-card enterprise layout preference in memory.
 - Tests: `pnpm -C apps/web-manager lint` ✓.
@@ -199,6 +217,12 @@ Use this file as the first project memory source before searching the codebase.
 - Description: Replaced the dashboard calendar-tab placeholder with a real month-view calendar surface in web-manager. The new view adds month navigation, a six-week grid, a right-rail agenda, and seeded operational events derived from live dashboard metrics so the workspace is visually and structurally ready for later wiring to real lease, maintenance, and payment deadlines.
 - Impact: `/dashboard?tab=calendar` is now a usable planning surface instead of an empty state, while staying dependency-free and aligned with the existing French-first dashboard shell.
 - Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-10
+- Change type: Web + Frontend
+- Description: Removed the unused screening-notes input from the manager listings screening workspace so application review only exposes status changes and tenant conversion.
+- Impact: Updated `apps/web-manager/src/components/listing-management-panel.tsx` to drop the notes UI and stop sending note payloads from the client.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
 
 ## 2026-04-07
 - Change type: Web + Frontend

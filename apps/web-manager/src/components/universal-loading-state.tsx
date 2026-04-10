@@ -91,28 +91,6 @@ export default function UniversalLoadingState({
         ))}
       </div>
       <span className="sr-only">Chargement</span>
-
-      <style jsx>{`
-        .hhousing-universal-loader-dot {
-          animation-name: hhousing-material-wave;
-          animation-iteration-count: infinite;
-          animation-timing-function: ease-in-out;
-          transform: translate3d(0, 0, 0);
-          will-change: transform;
-        }
-
-        @keyframes hhousing-material-wave {
-          0%,
-          50%,
-          100% {
-            transform: translate3d(0, 0, 0);
-          }
-
-          25% {
-            transform: translate3d(0, var(--hhousing-loader-travel), 0);
-          }
-        }
-      `}</style>
     </div>
   );
 }

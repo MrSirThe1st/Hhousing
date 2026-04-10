@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { AuthSession, UserRole } from "@hhousing/api-contracts";
 import { createSupabaseServerClient } from "./supabase/server";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
@@ -12,7 +13,7 @@ import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
  * - User not authenticated
  * - User has no memberships (not yet onboarded)
  */
-export async function getServerAuthSession(): Promise<AuthSession | null> {
+export const getServerAuthSession = cache(async function getServerAuthSession(): Promise<AuthSession | null> {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || user === null) return null;
@@ -45,4 +46,4 @@ export async function getServerAuthSession(): Promise<AuthSession | null> {
     console.error("Failed to get server auth session", error);
     return null;
   }
-}
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Listing } from "@hhousing/domain";
@@ -93,6 +93,9 @@ export default function ListingEditorForm({
   const [busyAction, setBusyAction] = useState<"draft" | "published" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [isRoutePending, startRouteTransition] = useTransition();
+  const isSubmitting = busyAction !== null || isRoutePending;
 
   useEffect(() => {
     return () => {
@@ -105,6 +108,12 @@ export default function ListingEditorForm({
       });
     };
   }, [coverUpload, galleryUploads]);
+
+  useEffect(() => {
+    if (!isRoutePending && busyAction === null) {
+      setProgressMessage(null);
+    }
+  }, [busyAction, isRoutePending]);
 
   async function uploadImage(file: File, slot: string): Promise<string> {
     const supabase = createSupabaseBrowserClient();
@@ -253,15 +262,18 @@ export default function ListingEditorForm({
     setBusyAction(status);
     setError(null);
     setMessage(null);
+    setProgressMessage(status === "published" ? "Preparing listing publication..." : "Preparing draft save...");
 
     if (!form.coverImageUrl.trim() && coverUpload === null) {
       setError("Ajoutez une image de couverture avant d'enregistrer le listing.");
+      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
 
     if (form.galleryImageUrls.length + galleryUploads.length < 1) {
       setError("Ajoutez au moins une image de galerie avant d'enregistrer le listing.");
+      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
@@ -270,6 +282,10 @@ export default function ListingEditorForm({
     let galleryImageUrls = [...form.galleryImageUrls];
 
     try {
+      if (coverUpload || galleryUploads.length > 0) {
+        setProgressMessage("Uploading images...");
+      }
+
       if (coverUpload) {
         coverImageUrl = await uploadImage(coverUpload.file, "cover");
       }
@@ -282,9 +298,12 @@ export default function ListingEditorForm({
       }
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Erreur de telechargement des images.");
+      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
+
+    setProgressMessage(status === "published" ? "Publishing listing..." : "Saving draft...");
 
     const result = await postWithAuth<Listing>("/api/listings", {
       organizationId,
@@ -310,6 +329,7 @@ export default function ListingEditorForm({
 
     if (!result.success) {
       setError(result.error);
+      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
@@ -324,15 +344,24 @@ export default function ListingEditorForm({
 
     setMessage(status === "published" ? "Listing published." : "Draft saved.");
     setBusyAction(null);
-    router.refresh();
 
     if (status === "published") {
-      router.push("/dashboard/listings?tab=listings");
+      setProgressMessage("Opening listings workspace...");
+      startRouteTransition(() => {
+        router.push("/dashboard/listings?tab=listings");
+      });
+
+      return;
     }
+
+    setProgressMessage("Refreshing listing...");
+    startRouteTransition(() => {
+      router.refresh();
+    });
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-8" aria-busy={isSubmitting}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/dashboard/listings?tab=listings" className="text-sm font-semibold text-[#0063fe] hover:underline">
@@ -353,7 +382,14 @@ export default function ListingEditorForm({
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      {progressMessage ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-700" aria-hidden="true" />
+          <span>{progressMessage}</span>
+        </div>
+      ) : null}
+
+      <fieldset disabled={isSubmitting} className={`grid gap-6 xl:grid-cols-[1.1fr_0.9fr] ${isSubmitting ? "opacity-70" : ""}`}>
         <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">Public content</h2>
@@ -639,22 +675,26 @@ export default function ListingEditorForm({
             <button
               type="button"
               onClick={() => saveListing("draft")}
-              disabled={busyAction !== null}
+              disabled={isSubmitting}
               className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
             >
-              {busyAction === "draft" ? "Saving..." : "Save as draft"}
+              {busyAction === "draft" || (isRoutePending && message === "Draft saved.") ? "Saving..." : "Save as draft"}
             </button>
             <button
               type="button"
               onClick={() => saveListing("published")}
-              disabled={busyAction !== null}
+              disabled={isSubmitting}
               className="rounded-full bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {busyAction === "published" ? "Publishing..." : item.listing?.status === "published" ? "Update published listing" : "Publish listing"}
+              {busyAction === "published" || (isRoutePending && message === "Listing published.")
+                ? "Publishing..."
+                : item.listing?.status === "published"
+                  ? "Update published listing"
+                  : "Publish listing"}
             </button>
           </div>
         </section>
-      </div>
+      </fieldset>
     </div>
   );
 }
