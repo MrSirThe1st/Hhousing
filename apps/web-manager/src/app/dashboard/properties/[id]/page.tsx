@@ -456,16 +456,6 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
           </div>
         )}
       </div>
-
-      <ContextualDocumentPanel
-        attachmentType="property"
-        attachmentId={id}
-        title="Documents de la propriété"
-        description="Centralisez ici les titres, contrats, attestations et pièces utiles à ce bien."
-        addButtonLabel="Ajouter un document"
-        showAddButton={false}
-      />
-
       {documentModalOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/55 p-4"
@@ -490,6 +480,18 @@ export default function PropertyDetailPage({ params }: PageProps): React.ReactEl
               >
                 Fermer
               </button>
+            </div>
+
+            <div className="p-6">
+              <ContextualDocumentPanel
+                attachmentType="property"
+                attachmentId={id}
+                title="Documents de la propriété"
+                description="Ajoutez un titre, un contrat, une attestation ou toute pièce utile à cette propriété."
+                addButtonLabel="Ajouter un document"
+                showUploadFormOnMount={true}
+                containerClassName="mt-0 rounded-2xl border border-slate-200"
+              />
             </div>
           </div>
         </div>
