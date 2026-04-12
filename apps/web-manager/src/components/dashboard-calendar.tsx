@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteWithAuth, postWithAuth } from "../lib/api-client";
+import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
 import type { DashboardCalendarEntry, DashboardWorkflowRelatedOption } from "../lib/dashboard-workflow.types";
 import type { DashboardCalendarEventTone, DashboardCalendarProps } from "./dashboard-calendar.types";
 
@@ -134,6 +134,18 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
   const [formBusy, setFormBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editFormBusy, setEditFormBusy] = useState(false);
+  const [editFormState, setEditFormState] = useState<CalendarFormState>({
+    title: "",
+    description: "",
+    startAt: formatLocalDateTimeValue(new Date()),
+    endAt: "",
+    eventType: "custom",
+    relatedType: "",
+    relatedId: ""
+  });
   const [formState, setFormState] = useState<CalendarFormState>({
     title: "",
     description: "",
@@ -209,6 +221,47 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
     setFormBusy(false);
     setShowCreateForm(false);
     setMessage("Événement créé.");
+    router.refresh();
+  }
+
+  const selectedEntry = selectedEntryId ? entries.find((e) => e.id === selectedEntryId) ?? null : null;
+
+  const availableEditRelatedOptions = useMemo(() => {
+    if (!editFormState.relatedType) return [];
+    return relatedOptions.filter((option) => option.type === editFormState.relatedType);
+  }, [editFormState.relatedType, relatedOptions]);
+
+  async function handleEditEvent(e: React.FormEvent<HTMLFormElement>): Promise<void> {
+    e.preventDefault();
+    if (!selectedEntryId) return;
+    const eventId = selectedEntryId.replace(/^event:/, "");
+    setEditFormBusy(true);
+    setError(null);
+    setMessage(null);
+
+    const selectedOption = editFormState.relatedType && editFormState.relatedId
+      ? relatedOptions.find((o) => o.type === editFormState.relatedType && o.id === editFormState.relatedId)
+      : undefined;
+    const relatedPayload = getRelatedPayload(selectedOption);
+
+    const result = await patchWithAuth(`/api/calendar-events/${eventId}`, {
+      title: editFormState.title.trim(),
+      description: editFormState.description.trim() || null,
+      startAtIso: new Date(editFormState.startAt).toISOString(),
+      endAtIso: editFormState.endAt ? new Date(editFormState.endAt).toISOString() : null,
+      eventType: editFormState.eventType,
+      ...relatedPayload
+    });
+
+    if (!result.success) {
+      setError(result.error);
+      setEditFormBusy(false);
+      return;
+    }
+
+    setEditFormBusy(false);
+    setShowEditForm(false);
+    setMessage("Événement mis à jour.");
     router.refresh();
   }
 
@@ -427,16 +480,16 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                     ) : null}
                   </div>
 
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 space-y-1">
                     {dayEvents.map((event) => (
-                      <div
+                      <button
                         key={event.id}
-                        className={`rounded-2xl border px-2.5 py-2 ${EVENT_TONE_STYLES[getTone(event)]}`}
+                        type="button"
+                        onClick={() => { setSelectedEntryId(event.id); setShowEditForm(false); }}
+                        className={`w-full rounded-xl border px-2 py-1 text-left transition hover:opacity-80 ${EVENT_TONE_STYLES[getTone(event)]} ${selectedEntryId === event.id ? "ring-2 ring-[#0063fe] ring-offset-1" : ""}`}
                       >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">{formatTimeLabel(event)}</p>
-                        <p className="mt-1 text-sm font-semibold leading-tight">{event.title}</p>
-                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed opacity-90">{event.detail}</p>
-                      </div>
+                        <p className="truncate text-xs font-semibold leading-tight">{event.title}</p>
+                      </button>
                     ))}
                   </div>
                 </article>
@@ -446,42 +499,207 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
         </section>
 
         <aside className="space-y-4">
-          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Focus du mois</p>
-            <div className="mt-4 space-y-3">
-              {monthEntries.map((event) => (
-                <div key={event.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{formatTimeLabel(event)}</p>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${EVENT_TONE_STYLES[getTone(event)]}`}>
-                      {event.statusLabel}
-                    </span>
+          {selectedEntry ? (
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Détail</p>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedEntryId(null); setShowEditForm(false); }}
+                  className="text-xs text-slate-400 hover:text-slate-700"
+                >
+                  Fermer ×
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{formatTimeLabel(selectedEntry)}</p>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${EVENT_TONE_STYLES[getTone(selectedEntry)]}`}>
+                    {selectedEntry.statusLabel}
+                  </span>
+                </div>
+                <p className="mt-2 text-base font-semibold text-[#010a19]">{selectedEntry.title}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {new Date(selectedEntry.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+                {selectedEntry.relatedLabel ? (
+                  <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">{selectedEntry.relatedLabel}</p>
+                ) : null}
+                <p className="mt-3 text-sm text-slate-600">{selectedEntry.detail}</p>
+              </div>
+
+              {selectedEntry.source === "manual" ? (
+                <>
+                  {!showEditForm ? (
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const eventType = (selectedEntry.eventType === "custom" || selectedEntry.eventType === "inspection" || selectedEntry.eventType === "reminder")
+                            ? selectedEntry.eventType
+                            : "custom" as const;
+                          setEditFormState({
+                            title: selectedEntry.title,
+                            description: selectedEntry.detail,
+                            startAt: formatLocalDateTimeValue(new Date(selectedEntry.startAtIso)),
+                            endAt: selectedEntry.endAtIso ? formatLocalDateTimeValue(new Date(selectedEntry.endAtIso)) : "",
+                            eventType,
+                            relatedType: "",
+                            relatedId: ""
+                          });
+                          setShowEditForm(true);
+                        }}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteEvent(selectedEntry.id)}
+                        disabled={busyEntryId === selectedEntry.id}
+                        className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                      >
+                        {busyEntryId === selectedEntry.id ? "..." : "Supprimer"}
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={(e) => void handleEditEvent(e)} className="mt-4 space-y-3">
+                      <label className="block space-y-1 text-xs text-slate-600">
+                        <span className="font-medium text-slate-800">Titre</span>
+                        <input
+                          value={editFormState.title}
+                          onChange={(e) => setEditFormState((s) => ({ ...s, title: e.target.value }))}
+                          required
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="block space-y-1 text-xs text-slate-600">
+                        <span className="font-medium text-slate-800">Description</span>
+                        <textarea
+                          value={editFormState.description}
+                          onChange={(e) => setEditFormState((s) => ({ ...s, description: e.target.value }))}
+                          rows={2}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="block space-y-1 text-xs text-slate-600">
+                        <span className="font-medium text-slate-800">Type</span>
+                        <select
+                          value={editFormState.eventType}
+                          onChange={(e) => setEditFormState((s) => ({ ...s, eventType: e.target.value as CalendarFormState["eventType"] }))}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        >
+                          <option value="custom">Custom</option>
+                          <option value="inspection">Inspection</option>
+                          <option value="reminder">Reminder</option>
+                        </select>
+                      </label>
+                      <label className="block space-y-1 text-xs text-slate-600">
+                        <span className="font-medium text-slate-800">Début</span>
+                        <input
+                          type="datetime-local"
+                          value={editFormState.startAt}
+                          onChange={(e) => setEditFormState((s) => ({ ...s, startAt: e.target.value }))}
+                          required
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="block space-y-1 text-xs text-slate-600">
+                        <span className="font-medium text-slate-800">Fin</span>
+                        <input
+                          type="datetime-local"
+                          value={editFormState.endAt}
+                          onChange={(e) => setEditFormState((s) => ({ ...s, endAt: e.target.value }))}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="block space-y-1 text-xs text-slate-600">
+                        <span className="font-medium text-slate-800">Objet lié</span>
+                        <select
+                          value={editFormState.relatedType}
+                          onChange={(e) => setEditFormState((s) => ({ ...s, relatedType: e.target.value as CalendarFormState["relatedType"], relatedId: "" }))}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        >
+                          <option value="">Aucun</option>
+                          <option value="property">Propriété</option>
+                          <option value="unit">Unité</option>
+                          <option value="lease">Bail</option>
+                          <option value="tenant">Locataire</option>
+                        </select>
+                      </label>
+                      {editFormState.relatedType ? (
+                        <label className="block space-y-1 text-xs text-slate-600">
+                          <span className="font-medium text-slate-800">Sélection</span>
+                          <select
+                            value={editFormState.relatedId}
+                            onChange={(e) => setEditFormState((s) => ({ ...s, relatedId: e.target.value }))}
+                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          >
+                            <option value="">Aucun</option>
+                            {availableEditRelatedOptions.map((option) => (
+                              <option key={`${option.type}:${option.id}`} value={option.id}>{option.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      {error ? <p className="text-xs text-rose-700">{error}</p> : null}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="submit"
+                          disabled={editFormBusy || editFormState.title.trim().length === 0}
+                          className="rounded-full bg-[#0063fe] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                        >
+                          {editFormBusy ? "Sauvegarde..." : "Sauvegarder"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowEditForm(false)}
+                          className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </>
+              ) : (
+                <p className="mt-4 text-xs text-slate-400">Événement généré automatiquement — lecture seule.</p>
+              )}
+
+              {message ? <p className="mt-3 text-xs text-emerald-700">{message}</p> : null}
+            </section>
+          ) : (
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Focus du mois</p>
+              <div className="mt-4 space-y-2">
+                {monthEntries.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => { setSelectedEntryId(event.id); setShowEditForm(false); }}
+                    className="w-full rounded-2xl border border-slate-200 p-3 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{formatTimeLabel(event)}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${EVENT_TONE_STYLES[getTone(event)]}`}>
+                        {event.statusLabel}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-sm font-semibold text-[#010a19]">{event.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {new Date(event.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+                    </p>
+                  </button>
+                ))}
+                {monthEntries.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
+                    Aucun événement sur ce mois.
                   </div>
-                  <p className="mt-1 text-sm font-semibold text-[#010a19]">{event.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {new Date(event.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
-                  </p>
-                  {event.relatedLabel ? <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">{event.relatedLabel}</p> : null}
-                  <p className="mt-2 text-sm text-slate-600">{event.detail}</p>
-                  {event.source === "manual" ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteEvent(event.id)}
-                      disabled={busyEntryId === event.id}
-                      className="mt-3 rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                    >
-                      Supprimer
-                    </button>
-                  ) : null}
-                </div>
-              ))}
-              {monthEntries.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
-                  Aucun événement sur ce mois.
-                </div>
-              ) : null}
-            </div>
-          </section>
+                ) : null}
+              </div>
+            </section>
+          )}
 
           <section className="rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">Etape suivante</p>
