@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
+import ClientPropertyAssignmentPanel from "../../../../components/client-property-assignment-panel";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
 import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
 import OwnerInvitationPanel from "../../../../components/owner-invitation-panel";
@@ -84,11 +85,11 @@ export default async function ClientDetailPage(
   }
 
   const tenantLeaseRepo = createTenantLeaseRepo();
-  const [client, owners, properties, allManagedProperties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
+  const [client, owners, properties, allProperties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
     repoResult.data.getOwnerById(id, session.organizationId),
     repoResult.data.listOwners(session.organizationId),
     repoResult.data.listPropertiesWithUnits(session.organizationId, { ownerId: id }),
-    repoResult.data.listPropertiesWithUnits(session.organizationId, "managed"),
+    repoResult.data.listPropertiesWithUnits(session.organizationId),
     tenantLeaseRepo.listLeasesByOrganization(session.organizationId),
     tenantLeaseRepo.listTenantsByOrganization(session.organizationId),
     createPaymentRepo().listPayments({ organizationId: session.organizationId }),
@@ -106,7 +107,7 @@ export default async function ClientDetailPage(
     occupiedUnitCount: item.units.filter((unit) => unit.status === "occupied").length
   }));
   const assignedPropertyIds = new Set(propertyRows.map((item) => item.property.id));
-  const assignableProperties = allManagedProperties
+  const assignableProperties = allProperties
     .filter((item) => !assignedPropertyIds.has(item.property.id))
     .map((item) => ({
       id: item.property.id,
@@ -254,11 +255,15 @@ export default async function ClientDetailPage(
         </div>
       </div>
 
+      <ClientPropertyAssignmentPanel
+        clientId={client.id}
+        assignableProperties={assignableProperties}
+      />
+
       <ClientPortfolioTable
         currentClientId={client.id}
         ownerClients={clientOwners}
         properties={propertyRows}
-        assignableProperties={assignableProperties}
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

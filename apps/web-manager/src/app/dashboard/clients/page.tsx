@@ -191,11 +191,12 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                   const ownerOccupancyRate = summary.unitCount > 0
                     ? Math.round((summary.occupiedUnitCount / summary.unitCount) * 100)
                     : 0;
+                  const clientHref = `/dashboard/clients/${summary.owner.id}`;
 
                   return (
-                    <tr key={summary.owner.id} className="hover:bg-slate-50/80">
+                    <tr key={summary.owner.id} className="cursor-pointer hover:bg-slate-50/80">
                       <td className="px-5 py-4 align-top">
-                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                        <Link href={clientHref} className="-mx-5 -my-4 block px-5 py-4">
                           <div className="flex items-start gap-3">
                             {summary.owner.profilePictureUrl ? (
                               <img
@@ -221,7 +222,7 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                         </Link>
                       </td>
                       <td className="px-5 py-4 align-top">
-                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                        <Link href={clientHref} className="-mx-5 -my-4 block px-5 py-4">
                           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                             summary.owner.isCompany
                               ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
@@ -232,12 +233,12 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                         </Link>
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
-                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                        <Link href={clientHref} className="-mx-5 -my-4 block px-5 py-4">
                           {formatOwnerLocation(summary.owner) ?? "Non renseignée"}
                         </Link>
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
-                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                        <Link href={clientHref} className="-mx-5 -my-4 block px-5 py-4">
                           <div className="font-medium text-[#10213d]">{summary.propertyCount} bien(s)</div>
                           <div className="mt-1 text-xs text-slate-500">
                             {summary.unitCount} unité(s), {ownerOccupancyRate}% occupées
@@ -245,7 +246,7 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                         </Link>
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
-                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                        <Link href={clientHref} className="-mx-5 -my-4 block px-5 py-4">
                           <div className="font-medium text-[#10213d]">{summary.activeTenantCount} locataire(s) actif(s)</div>
                           <div className="mt-1 text-xs text-slate-500">
                             {summary.overduePaymentCount} retard(s), {summary.activeMaintenanceCount} maintenance(s) ouverte(s)
@@ -258,7 +259,7 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                         </Link>
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
-                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                        <Link href={clientHref} className="-mx-5 -my-4 block px-5 py-4">
                           {new Date(summary.owner.createdAtIso).toLocaleDateString("fr-FR")}
                         </Link>
                       </td>

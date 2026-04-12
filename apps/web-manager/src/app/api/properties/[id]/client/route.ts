@@ -96,14 +96,6 @@ export async function PATCH(
       });
     }
 
-    if (property.managementContext !== "managed") {
-      return jsonResponse(400, {
-        success: false,
-        code: "VALIDATION_ERROR",
-        error: "Only managed properties can be linked to a client"
-      });
-    }
-
     let ownerId: string;
     let ownerName: string;
     let ownerType: "organization" | "client";
