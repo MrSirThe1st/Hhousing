@@ -195,60 +195,72 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                   return (
                     <tr key={summary.owner.id} className="hover:bg-slate-50/80">
                       <td className="px-5 py-4 align-top">
-                        <div className="flex items-start gap-3">
-                          {summary.owner.profilePictureUrl ? (
-                            <img
-                              src={summary.owner.profilePictureUrl}
-                              alt={summary.owner.name}
-                              className="h-12 w-12 rounded-2xl object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0063fe]/10 text-sm font-semibold text-[#0063fe]">
-                              {summary.owner.name.slice(0, 1).toUpperCase()}
+                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                          <div className="flex items-start gap-3">
+                            {summary.owner.profilePictureUrl ? (
+                              <img
+                                src={summary.owner.profilePictureUrl}
+                                alt={summary.owner.name}
+                                className="h-12 w-12 rounded-2xl object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0063fe]/10 text-sm font-semibold text-[#0063fe]">
+                                {summary.owner.name.slice(0, 1).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline">
+                                {summary.owner.name}
+                              </div>
+                              <div className="mt-1 text-sm text-slate-500">{summary.owner.fullName}</div>
+                              {summary.owner.phoneNumber ? (
+                                <div className="mt-2 text-xs text-slate-500">{summary.owner.phoneNumber}</div>
+                              ) : null}
                             </div>
-                          )}
-                          <div>
-                            <Link href={`/dashboard/clients/${summary.owner.id}`} className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline">
-                              {summary.owner.name}
-                            </Link>
-                            <div className="mt-1 text-sm text-slate-500">{summary.owner.fullName}</div>
-                            {summary.owner.phoneNumber ? (
-                              <div className="mt-2 text-xs text-slate-500">{summary.owner.phoneNumber}</div>
-                            ) : null}
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-5 py-4 align-top">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          summary.owner.isCompany
-                            ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
-                            : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-                        }`}>
-                          {summary.owner.isCompany ? "Société" : "Particulier"}
-                        </span>
+                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            summary.owner.isCompany
+                              ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
+                              : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
+                          }`}>
+                            {summary.owner.isCompany ? "Société" : "Particulier"}
+                          </span>
+                        </Link>
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
-                        {formatOwnerLocation(summary.owner) ?? "Non renseignée"}
+                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                          {formatOwnerLocation(summary.owner) ?? "Non renseignée"}
+                        </Link>
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
-                        <div className="font-medium text-[#10213d]">{summary.propertyCount} bien(s)</div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {summary.unitCount} unité(s), {ownerOccupancyRate}% occupées
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 align-top text-slate-600">
-                        <div className="font-medium text-[#10213d]">{summary.activeTenantCount} locataire(s) actif(s)</div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {summary.overduePaymentCount} retard(s), {summary.activeMaintenanceCount} maintenance(s) ouverte(s)
-                        </div>
-                        {summary.urgentMaintenanceCount > 0 ? (
-                          <div className="mt-2 inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
-                            {summary.urgentMaintenanceCount} urgence(s)
+                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                          <div className="font-medium text-[#10213d]">{summary.propertyCount} bien(s)</div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {summary.unitCount} unité(s), {ownerOccupancyRate}% occupées
                           </div>
-                        ) : null}
+                        </Link>
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
-                        {new Date(summary.owner.createdAtIso).toLocaleDateString("fr-FR")}
+                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                          <div className="font-medium text-[#10213d]">{summary.activeTenantCount} locataire(s) actif(s)</div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {summary.overduePaymentCount} retard(s), {summary.activeMaintenanceCount} maintenance(s) ouverte(s)
+                          </div>
+                          {summary.urgentMaintenanceCount > 0 ? (
+                            <div className="mt-2 inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
+                              {summary.urgentMaintenanceCount} urgence(s)
+                            </div>
+                          ) : null}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-4 align-top text-slate-600">
+                        <Link href={`/dashboard/clients/${summary.owner.id}`} className="block">
+                          {new Date(summary.owner.createdAtIso).toLocaleDateString("fr-FR")}
+                        </Link>
                       </td>
                     </tr>
                   );

@@ -84,10 +84,11 @@ export default async function ClientDetailPage(
   }
 
   const tenantLeaseRepo = createTenantLeaseRepo();
-  const [client, owners, properties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
+  const [client, owners, properties, allManagedProperties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
     repoResult.data.getOwnerById(id, session.organizationId),
     repoResult.data.listOwners(session.organizationId),
     repoResult.data.listPropertiesWithUnits(session.organizationId, { ownerId: id }),
+    repoResult.data.listPropertiesWithUnits(session.organizationId, "managed"),
     tenantLeaseRepo.listLeasesByOrganization(session.organizationId),
     tenantLeaseRepo.listTenantsByOrganization(session.organizationId),
     createPaymentRepo().listPayments({ organizationId: session.organizationId }),
@@ -104,6 +105,17 @@ export default async function ClientDetailPage(
     unitCount: item.units.length,
     occupiedUnitCount: item.units.filter((unit) => unit.status === "occupied").length
   }));
+  const assignedPropertyIds = new Set(propertyRows.map((item) => item.property.id));
+  const assignableProperties = allManagedProperties
+    .filter((item) => !assignedPropertyIds.has(item.property.id))
+    .map((item) => ({
+      id: item.property.id,
+      name: item.property.name,
+      city: item.property.city,
+      unitCount: item.units.length,
+      occupiedUnitCount: item.units.filter((unit) => unit.status === "occupied").length
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, "fr"));
   const unitCount = properties.reduce((sum, item) => sum + item.units.length, 0);
   const occupiedUnitCount = properties.reduce(
     (sum, item) => sum + item.units.filter((unit) => unit.status === "occupied").length,
@@ -242,7 +254,12 @@ export default async function ClientDetailPage(
         </div>
       </div>
 
-      <ClientPortfolioTable currentClientId={client.id} ownerClients={clientOwners} properties={propertyRows} />
+      <ClientPortfolioTable
+        currentClientId={client.id}
+        ownerClients={clientOwners}
+        properties={propertyRows}
+        assignableProperties={assignableProperties}
+      />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <OwnerInvitationPanel ownerId={client.id} ownerName={client.name} />
