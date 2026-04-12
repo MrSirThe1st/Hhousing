@@ -23,7 +23,7 @@ cross join (
       'LEASING_AGENT',
       'Leasing Agent',
       'Manages tenant leasing and tenant communications',
-      '["create_lease", "edit_lease", "view_lease", "manage_tenants", "view_tenants", "message_tenants", "view_documents"]'::text
+      '["view_properties", "create_lease", "edit_lease", "view_lease", "manage_tenants", "view_tenants", "message_tenants", "view_documents", "upload_documents"]'::text
     ),
     (
       'ACCOUNTANT',

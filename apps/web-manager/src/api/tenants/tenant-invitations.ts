@@ -1,4 +1,5 @@
 import {
+  Permission,
   parseAcceptTenantInvitationInput,
   type AcceptTenantInvitationOutput,
   type CreateTenantInvitationOutput,
@@ -9,6 +10,7 @@ import {
 } from "@hhousing/api-contracts";
 import type { AuthRepository, OrganizationPropertyUnitRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { createHash, randomBytes } from "crypto";
+import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 type SupabaseAdminUser = {
@@ -130,6 +132,7 @@ export interface CreateTenantInvitationResponse {
 
 export interface CreateTenantInvitationDeps {
   repository: TenantLeaseRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
   createId: () => string;
   createToken?: () => string;
   inviteLinkBaseUrl: string;
@@ -149,6 +152,15 @@ export async function createTenantInvitation(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.MANAGE_TENANTS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };
   }
 
   const tenant = await deps.repository.getTenantById(

@@ -1,8 +1,9 @@
-import type { ApiResult } from "@hhousing/api-contracts";
+import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
+import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
-import { createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 type PatchTenantBody = {
   fullName: string;
@@ -71,6 +72,15 @@ export async function GET(
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.VIEW_TENANTS,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
+  }
+
   const repository = createTenantLeaseRepo();
 
   try {
@@ -118,6 +128,15 @@ export async function PATCH(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.MANAGE_TENANTS,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
   }
 
   let body: unknown;
@@ -201,6 +220,15 @@ export async function DELETE(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.MANAGE_TENANTS,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
   }
 
   const repository = createTenantLeaseRepo();

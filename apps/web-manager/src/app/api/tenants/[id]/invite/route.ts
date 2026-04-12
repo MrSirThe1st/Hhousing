@@ -1,7 +1,7 @@
 import { createTenantInvitation } from "../../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { createTenantInvitationEmailSenderFromEnv } from "../../../../../lib/email/resend";
-import { createId, createRepositoryFromEnv, createTenantLeaseRepo, jsonResponse } from "../../../shared";
+import { createId, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse } from "../../../shared";
 
 export async function POST(
   _request: Request,
@@ -18,6 +18,7 @@ export async function POST(
     },
     {
       repository: createTenantLeaseRepo(),
+      teamFunctionsRepository: createTeamFunctionsRepo(),
       organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
       createId: () => createId("tin"),
       inviteLinkBaseUrl,

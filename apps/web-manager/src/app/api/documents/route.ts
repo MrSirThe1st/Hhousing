@@ -5,7 +5,7 @@ import {
   getScopedPortfolioData,
   isDocumentAttachmentInScope
 } from "../../../lib/operator-scope-portfolio";
-import { createId, createDocumentRepo, jsonResponse, parseJsonBody } from "../shared";
+import { createId, createDocumentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
   const session = await extractAuthSessionFromCookies();
@@ -48,6 +48,7 @@ export async function POST(request: Request): Promise<Response> {
     },
     {
       repository: createDocumentRepo(),
+      teamFunctionsRepository: createTeamFunctionsRepo(),
       createId: () => createId("doc")
     }
   );
@@ -67,7 +68,10 @@ export async function GET(request: Request): Promise<Response> {
       documentType: searchParams.get("documentType"),
       session
     },
-    { repository: createDocumentRepo() }
+    {
+      repository: createDocumentRepo(),
+      teamFunctionsRepository: createTeamFunctionsRepo()
+    }
   );
 
   if (result.body.success && session !== null) {

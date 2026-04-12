@@ -6,14 +6,16 @@ const {
   getTenantByIdMock,
   listLeasesByOrganizationMock,
   updateTenantMock,
-  deleteTenantMock
+  deleteTenantMock,
+  requirePermissionMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
   getScopedPortfolioDataMock: vi.fn(),
   getTenantByIdMock: vi.fn(),
   listLeasesByOrganizationMock: vi.fn(),
   updateTenantMock: vi.fn(),
-  deleteTenantMock: vi.fn()
+  deleteTenantMock: vi.fn(),
+  requirePermissionMock: vi.fn()
 }));
 
 vi.mock("../../../../auth/session-adapter", () => ({
@@ -25,6 +27,7 @@ vi.mock("../../shared", async () => {
 
   return {
     ...actual,
+    createTeamFunctionsRepo: () => ({ listMemberFunctions: vi.fn() }),
     createTenantLeaseRepo: (): {
       getTenantById: typeof getTenantByIdMock;
       listLeasesByOrganization: typeof listLeasesByOrganizationMock;
@@ -43,11 +46,21 @@ vi.mock("../../../../lib/operator-scope-portfolio", () => ({
   getScopedPortfolioData: getScopedPortfolioDataMock
 }));
 
+vi.mock("../../../../api/organizations/permissions", () => ({
+  requirePermission: requirePermissionMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/tenants/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    requirePermissionMock.mockResolvedValue({
+      success: true,
+      data: {
+        organizationId: "org-1"
+      }
+    });
     listLeasesByOrganizationMock.mockResolvedValue([]);
     getScopedPortfolioDataMock.mockResolvedValue({
       currentScope: "managed",

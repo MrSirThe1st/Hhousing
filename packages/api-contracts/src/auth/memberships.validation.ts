@@ -59,7 +59,7 @@ export function parseInvitePropertyManagerInput(
       organizationId: sessionOrganizationId,
       email: email.toLowerCase(),
       role,
-      canOwnProperties: false
+      canOwnProperties: asBoolean(input.canOwnProperties, false)
     }
   };
 }

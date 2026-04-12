@@ -3,7 +3,7 @@ import type { LeaseWithTenantView, PropertyWithUnitsView } from "@hhousing/api-c
 import type { Document, Organization, Tenant } from "@hhousing/domain";
 import { listDocuments, listTenants } from "../../../api";
 import { filterDocumentsByScope, filterTenantsByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
-import { createDocumentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../api/shared";
+import { createDocumentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import { getServerAuthSession } from "../../../lib/session";
 import DocumentsWorkspacePanel from "../../../components/documents-workspace-panel";
 
@@ -21,7 +21,10 @@ export default async function DocumentsPage(): Promise<React.ReactElement> {
       attachmentId: null,
       documentType: null
     },
-    { repository: documentRepo }
+    {
+      repository: documentRepo,
+      teamFunctionsRepository: createTeamFunctionsRepo()
+    }
   );
 
   const scopedPortfolio = await getScopedPortfolioData(session);
@@ -36,7 +39,8 @@ export default async function DocumentsPage(): Promise<React.ReactElement> {
       organizationId: session.organizationId ?? ""
     },
     {
-      repository: createTenantLeaseRepo()
+      repository: createTenantLeaseRepo(),
+      teamFunctionsRepository: createTeamFunctionsRepo()
     }
   );
 

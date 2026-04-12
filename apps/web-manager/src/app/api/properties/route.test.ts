@@ -23,6 +23,7 @@ vi.mock("../../../auth/session-adapter", () => ({
 vi.mock("../shared", () => ({
   createId: (prefix: string) => `${prefix}_123`,
   createRepositoryFromEnv: createRepositoryFromEnvMock,
+  createTeamFunctionsRepo: () => ({ listMemberFunctions: vi.fn() }),
   parseJsonBody: parseJsonBodyMock,
   jsonResponse: (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {

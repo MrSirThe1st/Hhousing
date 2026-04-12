@@ -1,7 +1,7 @@
 import { deleteDocument } from "../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData, isDocumentAttachmentInScope } from "../../../../lib/operator-scope-portfolio";
-import { createDocumentRepo, jsonResponse } from "../../shared";
+import { createDocumentRepo, createTeamFunctionsRepo, jsonResponse } from "../../shared";
 
 export async function DELETE(
   _request: Request,
@@ -36,7 +36,10 @@ export async function DELETE(
       documentId: params.id,
       session
     },
-    { repository }
+    {
+      repository,
+      teamFunctionsRepository: createTeamFunctionsRepo()
+    }
   );
 
   return jsonResponse(result.status, result.body);

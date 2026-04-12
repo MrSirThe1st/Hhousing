@@ -3,8 +3,9 @@ import type {
   AuthSession,
   CreatePropertyOutput
 } from "@hhousing/api-contracts";
-import { parseCreatePropertyInput } from "@hhousing/api-contracts";
+import { Permission, parseCreatePropertyInput } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
+import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreatePropertyRequest {
@@ -19,6 +20,7 @@ export interface CreatePropertyResponse {
 
 export interface CreatePropertyDeps {
   repository: OrganizationPropertyUnitRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
   createId: (prefix: string) => string;
 }
 
@@ -39,6 +41,18 @@ export async function createProperty(
     return {
       status: mapErrorCodeToHttpStatus(sessionResult.code),
       body: sessionResult
+    };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.MANAGE_PROPERTIES,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return {
+      status: mapErrorCodeToHttpStatus(permissionResult.code),
+      body: permissionResult
     };
   }
 

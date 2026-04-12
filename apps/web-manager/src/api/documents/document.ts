@@ -5,8 +5,14 @@ import type {
   ListDocumentsOutput,
   DeleteDocumentOutput
 } from "@hhousing/api-contracts";
-import { createDocumentInputSchema, listDocumentsFilterSchema, deleteDocumentInputSchema } from "@hhousing/api-contracts";
+import {
+  Permission,
+  createDocumentInputSchema,
+  listDocumentsFilterSchema,
+  deleteDocumentInputSchema
+} from "@hhousing/api-contracts";
 import type { DocumentRepository } from "@hhousing/data-access";
+import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateDocumentRequest {
@@ -21,6 +27,7 @@ export interface CreateDocumentResponse {
 
 export interface CreateDocumentDeps {
   repository: DocumentRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
   createId: () => string;
 }
 
@@ -31,6 +38,15 @@ export async function createDocument(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.UPLOAD_DOCUMENTS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };
   }
 
   const parsed = createDocumentInputSchema.safeParse(request.body);
@@ -79,6 +95,7 @@ export interface ListDocumentsResponse {
 
 export interface ListDocumentsDeps {
   repository: DocumentRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function listDocuments(
@@ -97,6 +114,15 @@ export async function listDocuments(
       status: 403,
       body: { success: false, code: "FORBIDDEN", error: "Organization mismatch" }
     };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.VIEW_DOCUMENTS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };
   }
 
   const parsed = listDocumentsFilterSchema.safeParse({
@@ -130,6 +156,7 @@ export interface DeleteDocumentResponse {
 
 export interface DeleteDocumentDeps {
   repository: DocumentRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function deleteDocument(
@@ -139,6 +166,15 @@ export async function deleteDocument(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.UPLOAD_DOCUMENTS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };
   }
 
   const organizationId = sessionResult.data.organizationId ?? "";

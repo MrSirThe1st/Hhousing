@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import { listProperties } from "../../../api";
-import { createRepositoryFromEnv } from "../../api/shared";
+import { createRepositoryFromEnv, createTeamFunctionsRepo } from "../../api/shared";
 import { getServerAuthSession } from "../../../lib/session";
 import PropertyManagementPanel from "../../../components/property-management-panel";
 
@@ -21,7 +21,10 @@ export default async function PropertiesPage(): Promise<React.ReactElement> {
       session,
       organizationId: session.organizationId ?? ""
     },
-    { repository: repoResult.data }
+    {
+      repository: repoResult.data,
+      teamFunctionsRepository: createTeamFunctionsRepo()
+    }
   );
 
   const items: PropertyWithUnitsView[] = result.body.success ? result.body.data.items : [];

@@ -31,6 +31,7 @@ vi.mock("../../../shared", async () => {
   return {
     ...actual,
     createTenantLeaseRepo: () => ({}),
+    createTeamFunctionsRepo: () => ({ listMemberFunctions: vi.fn() }),
     createRepositoryFromEnv: () => ({ success: false, error: "missing env" })
   };
 });

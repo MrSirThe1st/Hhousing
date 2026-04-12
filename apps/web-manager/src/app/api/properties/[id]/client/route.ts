@@ -1,8 +1,9 @@
-import type { ApiResult } from "@hhousing/api-contracts";
+import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../../lib/operator-scope-portfolio";
+import { requirePermission } from "../../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../api/shared";
-import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../../../shared";
+import { createRepositoryFromEnv, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../../shared";
 
 type PatchPropertyClientBody = {
   clientId: string | null;
@@ -42,6 +43,15 @@ export async function PATCH(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.MANAGE_PROPERTIES,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
   }
 
   let body: unknown;

@@ -7,15 +7,20 @@ import { getServerAuthSession } from "../../../lib/session";
 import TeamManagementPanel from "../../../components/team-management-panel";
 
 type TeamDashboardMember = OrganizationMembership & {
+  displayName: string;
+  email: string | null;
   functions: TeamFunction[];
 };
 
-type TeamActivityItem = {
+type SupabaseAdminUser = {
   id: string;
-  occurredAtIso: string;
-  title: string;
-  detail: string;
-  tone: "blue" | "emerald" | "amber" | "slate";
+  email?: string | null;
+  user_metadata?: unknown;
+};
+
+type MemberIdentity = {
+  displayName: string;
+  email: string | null;
 };
 
 function memberHasPermission(functions: TeamFunction[], permission: Permission): boolean {
@@ -25,63 +30,75 @@ function memberHasPermission(functions: TeamFunction[], permission: Permission):
   );
 }
 
-function buildTeamActivity(
-  memberships: OrganizationMembership[],
-  invitations: TeamMemberInvitation[]
-): TeamActivityItem[] {
-  const memberEvents = memberships
-    .filter((membership) => membership.role !== "tenant")
-    .map((membership) => ({
-      id: `member-${membership.id}`,
-      occurredAtIso: membership.createdAtIso,
-      title: "Membre actif",
-      detail:
-        membership.role === "landlord"
-          ? "Le compte principal est actif dans l'organisation."
-          : `Le membre ${membership.userId.slice(0, 8)} a rejoint l'equipe.`,
-      tone: membership.role === "landlord" ? "blue" : "emerald"
-    } satisfies TeamActivityItem));
+function readUserMetadataName(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") {
+    return null;
+  }
 
-  const invitationEvents = invitations.flatMap((invitation) => {
-    const events: TeamActivityItem[] = [
-      {
-        id: `invite-sent-${invitation.id}`,
-        occurredAtIso: invitation.createdAtIso,
-        title: "Invitation envoyee",
-        detail: `${invitation.email} a recu une invitation equipe.`,
-        tone: "slate"
-      }
-    ];
+  const maybeFullName = "full_name" in metadata ? metadata.full_name : undefined;
+  if (typeof maybeFullName === "string" && maybeFullName.trim().length > 0) {
+    return maybeFullName.trim();
+  }
 
-    if (invitation.usedAtIso) {
-      events.push({
-        id: `invite-used-${invitation.id}`,
-        occurredAtIso: invitation.usedAtIso,
-        title: "Invitation acceptee",
-        detail: `${invitation.email} a active son acces personnel.`,
-        tone: "emerald"
-      });
+  const maybeName = "name" in metadata ? metadata.name : undefined;
+  if (typeof maybeName === "string" && maybeName.trim().length > 0) {
+    return maybeName.trim();
+  }
+
+  return null;
+}
+
+function buildFallbackName(email: string | null, role: OrganizationMembership["role"]): string {
+  if (email) {
+    const [localPart] = email.split("@");
+    if (localPart && localPart.trim().length > 0) {
+      return localPart;
     }
+  }
 
-    if (invitation.revokedAtIso) {
-      events.push({
-        id: `invite-revoked-${invitation.id}`,
-        occurredAtIso: invitation.revokedAtIso,
-        title: "Invitation annulee",
-        detail: `${invitation.email} n'a plus d'invitation active.`,
-        tone: "amber"
-      });
-    }
+  return role === "landlord" ? "Compte principal" : "Membre d'equipe";
+}
 
-    return events;
+async function listMemberIdentities(userIds: string[]): Promise<Map<string, MemberIdentity>> {
+  const supabaseAdminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!supabaseAdminUrl || !supabaseServiceRoleKey || userIds.length === 0) {
+    return new Map();
+  }
+
+  const response = await fetch(`${supabaseAdminUrl}/auth/v1/admin/users`, {
+    method: "GET",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`
+    },
+    cache: "no-store"
   });
 
-  return [...memberEvents, ...invitationEvents]
-    .sort(
-      (left, right) =>
-        new Date(right.occurredAtIso).getTime() - new Date(left.occurredAtIso).getTime()
-    )
-    .slice(0, 12);
+  if (!response.ok) {
+    return new Map();
+  }
+
+  const payload = (await response.json()) as { users?: SupabaseAdminUser[] };
+  const ids = new Set(userIds);
+
+  return new Map(
+    (payload.users ?? [])
+      .filter((user) => ids.has(user.id))
+      .map((user) => {
+        const email = typeof user.email === "string" && user.email.trim().length > 0
+          ? user.email.trim()
+          : null;
+
+        return [
+          user.id,
+          {
+            displayName: readUserMetadataName(user.user_metadata) ?? buildFallbackName(email, "property_manager"),
+            email
+          }
+        ] satisfies [string, MemberIdentity];
+      })
+  );
 }
 
 export default async function TeamPage(): Promise<React.ReactElement> {
@@ -115,14 +132,12 @@ export default async function TeamPage(): Promise<React.ReactElement> {
   const memberships: OrganizationMembership[] = membersResult.body.success
     ? membersResult.body.data.memberships
     : [];
-  const allInvitations: TeamMemberInvitation[] = invitationsResult.body.success
-    ? invitationsResult.body.data.invitations
-    : [];
   const invitations: TeamMemberInvitation[] = invitationsResult.body.success
     ? invitationsResult.body.data.invitations.filter(
         (invitation) => invitation.usedAtIso === null && invitation.revokedAtIso === null
       )
     : [];
+  const memberIdentities = await listMemberIdentities(memberships.map((membership) => membership.userId));
 
   let memberFunctionsById = new Map<string, TeamFunction[]>();
   let availableFunctions: TeamFunction[] = [];
@@ -147,9 +162,13 @@ export default async function TeamPage(): Promise<React.ReactElement> {
 
   const members: TeamDashboardMember[] = memberships.map((membership) => ({
     ...membership,
+    displayName:
+      memberIdentities.get(membership.userId)?.displayName ??
+      buildFallbackName(memberIdentities.get(membership.userId)?.email ?? null, membership.role),
+    email: memberIdentities.get(membership.userId)?.email ?? null,
     functions: memberFunctionsById.get(membership.id) ?? []
   }));
-  const accountOwner = memberships
+  const accountOwner = members
     .filter((membership) => membership.role === "landlord" || membership.role === "property_manager")
     .sort(
       (left, right) =>
@@ -161,20 +180,19 @@ export default async function TeamPage(): Promise<React.ReactElement> {
     (session.role === "property_manager" &&
       (accountOwner?.userId === session.userId ||
         (currentMember !== null && memberHasPermission(currentMember.functions, Permission.MANAGE_TEAM))));
-  const teamActivity = buildTeamActivity(memberships, allInvitations);
 
   return (
-    <TeamManagementPanel
-      organizationId={session.organizationId}
-      members={members}
-      invitations={invitations}
-      availableFunctions={availableFunctions}
-      teamActivity={teamActivity}
-      accountOwner={accountOwner}
-      currentUserId={session.userId}
-      canAssignAdmin={session.role === "landlord"}
-      inviteAuthority={canManageTeam}
-      canManageTeam={canManageTeam}
-    />
+    <div className="p-8">
+      <TeamManagementPanel
+        members={members}
+        invitations={invitations}
+        availableFunctions={availableFunctions}
+        accountOwner={accountOwner}
+        currentUserId={session.userId}
+        canAssignAdmin={session.role === "landlord"}
+        inviteAuthority={canManageTeam}
+        canManageTeam={canManageTeam}
+      />
+    </div>
   );
 }

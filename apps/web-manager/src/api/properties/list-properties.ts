@@ -4,7 +4,9 @@ import type {
   ListPropertiesFilter,
   ListPropertiesWithUnitsOutput
 } from "@hhousing/api-contracts";
+import { Permission } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
+import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface ListPropertiesRequest {
@@ -20,6 +22,7 @@ export interface ListPropertiesResponse {
 
 export interface ListPropertiesDeps {
   repository: OrganizationPropertyUnitRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function listProperties(
@@ -42,6 +45,18 @@ export async function listProperties(
         code: "FORBIDDEN",
         error: "Organization mismatch"
       }
+    };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.VIEW_PROPERTIES,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return {
+      status: mapErrorCodeToHttpStatus(permissionResult.code),
+      body: permissionResult
     };
   }
 

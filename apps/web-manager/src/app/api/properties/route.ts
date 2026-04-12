@@ -1,6 +1,6 @@
 import { createProperty } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
-import { createId, createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
+import { createId, createRepositoryFromEnv, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -27,6 +27,7 @@ export async function POST(request: Request): Promise<Response> {
       },
       {
         repository: repositoryResult.data,
+        teamFunctionsRepository: createTeamFunctionsRepo(),
         createId
       }
     );

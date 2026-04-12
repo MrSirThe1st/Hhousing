@@ -1,7 +1,7 @@
 import { listProperties } from "../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { isOperatorScope } from "../../../../lib/operator-context";
-import { createRepositoryFromEnv, jsonResponse } from "../../shared";
+import { createRepositoryFromEnv, createTeamFunctionsRepo, jsonResponse } from "../../shared";
 
 export async function GET(request: Request): Promise<Response> {
   const repositoryResult = createRepositoryFromEnv();
@@ -29,7 +29,8 @@ export async function GET(request: Request): Promise<Response> {
       }
     },
     {
-      repository: repositoryResult.data
+      repository: repositoryResult.data,
+      teamFunctionsRepository: createTeamFunctionsRepo()
     }
   );
 

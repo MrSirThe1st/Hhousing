@@ -3,7 +3,9 @@ import type {
   AuthSession,
   ListTenantsOutput
 } from "@hhousing/api-contracts";
+import { Permission } from "@hhousing/api-contracts";
 import type { TenantLeaseRepository } from "@hhousing/data-access";
+import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface ListTenantsRequest {
@@ -18,6 +20,7 @@ export interface ListTenantsResponse {
 
 export interface ListTenantsDeps {
   repository: TenantLeaseRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
 }
 
 export async function listTenants(
@@ -36,6 +39,15 @@ export async function listTenants(
       status: 403,
       body: { success: false, code: "FORBIDDEN", error: "Organization mismatch" }
     };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.VIEW_TENANTS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };
   }
 
   const tenants = await deps.repository.listTenantsByOrganization(organizationId);

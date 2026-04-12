@@ -1,9 +1,10 @@
-import type { ApiResult } from "@hhousing/api-contracts";
+import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { isScopeAllowedForSession } from "../../../../lib/operator-context";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
+import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
-import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../../shared";
+import { createRepositoryFromEnv, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 type PatchPropertyBody = {
   name: string;
@@ -77,6 +78,15 @@ export async function GET(
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.VIEW_PROPERTIES,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
+  }
+
   const repositoryResult = createRepositoryFromEnv();
   if (!repositoryResult.success) {
     return jsonResponse(500, repositoryResult);
@@ -125,6 +135,15 @@ export async function PATCH(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.MANAGE_PROPERTIES,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
   }
 
   let body: unknown;
@@ -254,6 +273,15 @@ export async function DELETE(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const permissionResult = await requirePermission(
+    access.data,
+    Permission.MANAGE_PROPERTIES,
+    createTeamFunctionsRepo()
+  );
+  if (!permissionResult.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(permissionResult.code), permissionResult);
   }
 
   const repositoryResult = createRepositoryFromEnv();

@@ -28,7 +28,8 @@ vi.mock("../shared", async () => {
 
   return {
     ...actual,
-    createTenantLeaseRepo: createTenantLeaseRepoMock
+    createTenantLeaseRepo: createTenantLeaseRepoMock,
+    createTeamFunctionsRepo: () => ({ listMemberFunctions: vi.fn() })
   };
 });
 

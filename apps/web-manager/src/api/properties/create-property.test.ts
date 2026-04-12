@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AuthSession } from "@hhousing/api-contracts";
+import {
+  Permission,
+  TeamFunctionCode,
+  type AuthSession,
+  type TeamFunction
+} from "@hhousing/api-contracts";
 import type { CreateUnitRecordInput, OrganizationPropertyUnitRepository } from "@hhousing/data-access";
 import { createProperty } from "./create-property";
+import type { TeamPermissionRepository } from "../organizations/permissions";
 
 const operatorSession: AuthSession = {
   userId: "user-1",
@@ -71,6 +77,22 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
   };
 }
 
+function createTeamFunctionsRepositoryMock(permissions: string[]): TeamPermissionRepository {
+  const functions: TeamFunction[] = permissions.map((permission, index) => ({
+    id: `func-${index + 1}`,
+    organizationId: "org-1",
+    functionCode: TeamFunctionCode.LEASING_AGENT,
+    displayName: `Function ${index + 1}`,
+    description: null,
+    permissions: [permission],
+    createdAt: new Date("2026-03-31T00:00:00.000Z")
+  }));
+
+  return {
+    listMemberFunctions: vi.fn().mockResolvedValue(functions)
+  };
+}
+
 describe("createProperty", () => {
   it("creates a multi-unit property and shared unit records in one call", async () => {
     const repository = createRepositoryMock();
@@ -104,6 +126,7 @@ describe("createProperty", () => {
       },
       {
         repository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock([Permission.MANAGE_PROPERTIES]),
         createId: (prefix: string) => `${prefix}-${++counter}`
       }
     );
@@ -157,6 +180,7 @@ describe("createProperty", () => {
       },
       {
         repository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock([Permission.MANAGE_PROPERTIES]),
         createId: (prefix: string) => `${prefix}-1`
       }
     );
@@ -166,6 +190,43 @@ describe("createProperty", () => {
       success: false,
       code: "NOT_FOUND",
       error: "Owner not found"
+    });
+    expect(repository.createPropertyWithUnits).not.toHaveBeenCalled();
+  });
+
+  it("rejects members without property management permission", async () => {
+    const repository = createRepositoryMock();
+
+    const response = await createProperty(
+      {
+        session: operatorSession,
+        body: {
+          organizationId: "org-1",
+          name: "Residence 24",
+          address: "Avenue Test",
+          city: "Kinshasa",
+          countryCode: "CD",
+          ownerId: "own-1",
+          propertyType: "single_unit",
+          unitTemplate: {
+            monthlyRentAmount: 300,
+            depositAmount: 100,
+            currencyCode: "CDF"
+          }
+        }
+      },
+      {
+        repository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock([Permission.VIEW_PROPERTIES]),
+        createId: (prefix: string) => `${prefix}-1`
+      }
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      code: "FORBIDDEN",
+      error: `Missing permission: ${Permission.MANAGE_PROPERTIES}`
     });
     expect(repository.createPropertyWithUnits).not.toHaveBeenCalled();
   });

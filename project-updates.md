@@ -3,10 +3,16 @@
 Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-11
+- Change type: Web + API + Permissions
+- Description: Started the team-permission hardening rollout by extending the permission contract with property access, updating default team-function seeds, adding a backfill migration for existing org functions, and enforcing team-function checks on property, tenant, document, and tenant-invitation operator flows.
+- Impact: Updated `packages/api-contracts/src/permissions.types.ts`, migrations `0010_seed_default_team_functions.sql` and `0033_expand_team_function_permissions.sql`, property/tenant/document service modules and API routes in `apps/web-manager/src/api` and `apps/web-manager/src/app/api`, plus affected dashboard server call sites and route/unit tests.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test -- 'src/api/properties/create-property.test.ts' 'src/api/tenants/create-tenant.test.ts' 'src/app/api/properties/route.test.ts' 'src/app/api/properties/[id]/route.test.ts' 'src/app/api/properties/[id]/client/route.test.ts' 'src/app/api/tenants/route.test.ts' 'src/app/api/tenants/[id]/route.test.ts' 'src/app/api/tenants/[id]/invite/route.test.ts'` ✓, `pnpm -C apps/web-manager lint` ✓, `rm -rf apps/web-manager/.next && pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-11
 - Change type: Web + Frontend + Auth
 - Description: Added a visible logout action to the manager organization settings page so operators can sign out directly from that workspace.
 - Impact: Updated `apps/web-manager/src/app/dashboard/organization/page.tsx` and added `apps/web-manager/src/components/logout-button.tsx`.
-- Tests: pending.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager test` ✓, `rm -rf apps/web-manager/.next && pnpm -C apps/web-manager build` ✓.
 
 ## 2026-04-11
 - Change type: Web + Frontend

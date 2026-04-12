@@ -326,6 +326,7 @@ export async function PATCH(
         },
         {
           repository,
+          teamFunctionsRepository: createTeamFunctionsRepo(),
           organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
           createId: () => createId("tin"),
           inviteLinkBaseUrl,
@@ -543,6 +544,7 @@ export async function PATCH(
         },
         {
           repository,
+          teamFunctionsRepository: createTeamFunctionsRepo(),
           organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
           createId: () => createId("tin"),
           inviteLinkBaseUrl,

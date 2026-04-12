@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { listTenants } from "../../../api";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
-import { createTenantLeaseRepo } from "../../api/shared";
+import { createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import { getServerAuthSession } from "../../../lib/session";
 import TenantManagementPanel from "../../../components/tenant-management-panel";
 import type { TenantListItem } from "../../../components/tenant-management.types";
@@ -15,7 +15,10 @@ export default async function TenantsPage(): Promise<React.ReactElement> {
   const [result, leases] = await Promise.all([
     listTenants(
       { session, organizationId: session.organizationId ?? "" },
-      { repository: tenantLeaseRepo }
+      {
+        repository: tenantLeaseRepo,
+        teamFunctionsRepository: createTeamFunctionsRepo()
+      }
     ),
     tenantLeaseRepo.listLeasesByOrganization(session.organizationId ?? "")
   ]);

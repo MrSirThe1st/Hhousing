@@ -7,7 +7,8 @@ const {
   getPropertyByIdMock,
   getScopedPortfolioDataMock,
   requireOperatorSessionMock,
-  mapErrorCodeToHttpStatusMock
+  mapErrorCodeToHttpStatusMock,
+  requirePermissionMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
   createRepositoryFromEnvMock: vi.fn(),
@@ -15,7 +16,8 @@ const {
   getPropertyByIdMock: vi.fn(),
   getScopedPortfolioDataMock: vi.fn(),
   requireOperatorSessionMock: vi.fn(),
-  mapErrorCodeToHttpStatusMock: vi.fn()
+  mapErrorCodeToHttpStatusMock: vi.fn(),
+  requirePermissionMock: vi.fn()
 }));
 
 vi.mock("../../../../auth/session-adapter", () => ({
@@ -24,6 +26,7 @@ vi.mock("../../../../auth/session-adapter", () => ({
 
 vi.mock("../../shared", () => ({
   createRepositoryFromEnv: createRepositoryFromEnvMock,
+  createTeamFunctionsRepo: () => ({ listMemberFunctions: vi.fn() }),
   parseJsonBody: parseJsonBodyMock,
   jsonResponse: (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {
@@ -43,11 +46,22 @@ vi.mock("../../../../lib/operator-scope-portfolio", () => ({
   getScopedPortfolioData: getScopedPortfolioDataMock
 }));
 
+vi.mock("../../../../api/organizations/permissions", () => ({
+  requirePermission: requirePermissionMock
+}));
+
 import { GET, PATCH } from "./route";
 
 describe("/api/properties/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    requirePermissionMock.mockResolvedValue({
+      success: true,
+      data: {
+        organizationId: "org_1",
+        role: "property_manager"
+      }
+    });
     getScopedPortfolioDataMock.mockResolvedValue({
       currentScope: "managed",
       properties: [],
@@ -88,7 +102,8 @@ describe("/api/properties/[id]", () => {
     requireOperatorSessionMock.mockReturnValue({
       success: true,
       data: {
-        organizationId: "org_1"
+        organizationId: "org_1",
+        role: "property_manager"
       }
     });
 
@@ -128,7 +143,8 @@ describe("/api/properties/[id]", () => {
     requireOperatorSessionMock.mockReturnValue({
       success: true,
       data: {
-        organizationId: "org_1"
+        organizationId: "org_1",
+        role: "property_manager"
       }
     });
 

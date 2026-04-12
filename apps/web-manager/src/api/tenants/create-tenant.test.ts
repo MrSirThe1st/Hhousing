@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AuthSession } from "@hhousing/api-contracts";
+import {
+  Permission,
+  TeamFunctionCode,
+  type AuthSession,
+  type TeamFunction
+} from "@hhousing/api-contracts";
 import type { TenantLeaseRepository } from "@hhousing/data-access";
 import { createTenant } from "./create-tenant";
+import type { TeamPermissionRepository } from "../organizations/permissions";
 
 const operatorSession: AuthSession = {
   userId: "user-1",
@@ -21,6 +27,22 @@ const operatorSession: AuthSession = {
     }
   ]
 };
+
+function createTeamFunctionsRepositoryMock(permissions: string[]): TeamPermissionRepository {
+  const functions: TeamFunction[] = permissions.map((permission, index) => ({
+    id: `func-${index + 1}`,
+    organizationId: "org-1",
+    functionCode: TeamFunctionCode.LEASING_AGENT,
+    displayName: `Function ${index + 1}`,
+    description: null,
+    permissions: [permission],
+    createdAt: new Date("2026-03-31T00:00:00.000Z")
+  }));
+
+  return {
+    listMemberFunctions: vi.fn().mockResolvedValue(functions)
+  };
+}
 
 describe("createTenant", () => {
   it("creates tenant with profile fields", async () => {
@@ -66,6 +88,7 @@ describe("createTenant", () => {
       },
       {
         repository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock([Permission.MANAGE_TENANTS]),
         createId: () => "ten-1"
       }
     );
@@ -82,5 +105,48 @@ describe("createTenant", () => {
       dateOfBirth: "1995-04-20",
       photoUrl: "https://cdn.test/tenant.jpg"
     });
+  });
+
+  it("rejects members without tenant management permission", async () => {
+    const repository: TenantLeaseRepository = {
+      createTenant: vi.fn(),
+      createLease: vi.fn(),
+      revokeActiveTenantInvitations: vi.fn(),
+      createTenantInvitation: vi.fn(),
+      getTenantInvitationPreviewByTokenHash: vi.fn(),
+      markTenantInvitationUsed: vi.fn(),
+      linkTenantAuthUser: vi.fn(),
+      listLeasesByOrganization: vi.fn(),
+      getCurrentLeaseByTenantAuthUserId: vi.fn(),
+      listTenantsByOrganization: vi.fn(),
+      getTenantById: vi.fn(),
+      getLeaseById: vi.fn(),
+      updateTenant: vi.fn(),
+      updateLease: vi.fn(),
+      deleteTenant: vi.fn()
+    };
+
+    const response = await createTenant(
+      {
+        session: operatorSession,
+        body: {
+          organizationId: "org-1",
+          fullName: "Jean Test"
+        }
+      },
+      {
+        repository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock([Permission.VIEW_TENANTS]),
+        createId: () => "ten-1"
+      }
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      code: "FORBIDDEN",
+      error: `Missing permission: ${Permission.MANAGE_TENANTS}`
+    });
+    expect(repository.createTenant).not.toHaveBeenCalled();
   });
 });

@@ -3,8 +3,9 @@ import type {
   AuthSession,
   CreateTenantOutput
 } from "@hhousing/api-contracts";
-import { parseCreateTenantInput } from "@hhousing/api-contracts";
+import { Permission, parseCreateTenantInput } from "@hhousing/api-contracts";
 import type { TenantLeaseRepository } from "@hhousing/data-access";
+import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateTenantRequest {
@@ -19,6 +20,7 @@ export interface CreateTenantResponse {
 
 export interface CreateTenantDeps {
   repository: TenantLeaseRepository;
+  teamFunctionsRepository: TeamPermissionRepository;
   createId: () => string;
 }
 
@@ -29,6 +31,15 @@ export async function createTenant(
   const sessionResult = requireOperatorSession(request.session);
   if (!sessionResult.success) {
     return { status: mapErrorCodeToHttpStatus(sessionResult.code), body: sessionResult };
+  }
+
+  const permissionResult = await requirePermission(
+    sessionResult.data,
+    Permission.MANAGE_TENANTS,
+    deps.teamFunctionsRepository
+  );
+  if (!permissionResult.success) {
+    return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };
   }
 
   const parsed = parseCreateTenantInput(request.body);

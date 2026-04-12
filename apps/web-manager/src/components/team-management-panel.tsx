@@ -7,24 +7,18 @@ import type { OrganizationMembership, TeamMemberInvitation } from "@hhousing/dom
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
 
 type TeamDashboardMember = OrganizationMembership & {
+  displayName: string;
+  email: string | null;
   functions: TeamFunction[];
 };
 
-type TeamActivityItem = {
-  id: string;
-  occurredAtIso: string;
-  title: string;
-  detail: string;
-  tone: "blue" | "emerald" | "amber" | "slate";
-};
+type TeamTab = "roles" | "properties";
 
 type TeamManagementPanelProps = {
-  organizationId: string;
   members: TeamDashboardMember[];
   invitations: TeamMemberInvitation[];
   availableFunctions: TeamFunction[];
-  teamActivity: TeamActivityItem[];
-  accountOwner: OrganizationMembership | null;
+  accountOwner: TeamDashboardMember | null;
   currentUserId: string;
   canAssignAdmin: boolean;
   inviteAuthority: boolean;
@@ -39,35 +33,6 @@ function formatDate(value: string): string {
   });
 }
 
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
-
-function formatRole(value: OrganizationMembership["role"]): string {
-  if (value === "landlord") {
-    return "Compte principal";
-  }
-
-  if (value === "property_manager") {
-    return "Membre d'equipe";
-  }
-
-  return value;
-}
-
-function formatOwnerTitle(membership: OrganizationMembership | null): string {
-  if (!membership) {
-    return "Compte principal";
-  }
-
-  return membership.role === "landlord" ? "Account Owner" : "Gestionnaire fondateur";
-}
-
 function formatStatus(value: OrganizationMembership["status"]): string {
   if (value === "active") {
     return "Actif";
@@ -78,14 +43,6 @@ function formatStatus(value: OrganizationMembership["status"]): string {
   }
 
   return "Invite";
-}
-
-function shortId(value: string): string {
-  if (value.length <= 12) {
-    return value;
-  }
-
-  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
 function countPermissions(teamFunction: TeamFunction): number {
@@ -100,20 +57,99 @@ function isAdminFunction(teamFunction: TeamFunction): boolean {
   return teamFunction.functionCode === TeamFunctionCode.ADMIN;
 }
 
-function toneClasses(tone: TeamActivityItem["tone"]): string {
-  if (tone === "emerald") {
-    return "bg-emerald-100 text-emerald-700";
+function statusClasses(value: OrganizationMembership["status"]): string {
+  if (value === "active") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
   }
 
-  if (tone === "amber") {
-    return "bg-amber-100 text-amber-700";
+  if (value === "inactive") {
+    return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
   }
 
-  if (tone === "blue") {
-    return "bg-[#d9e8ff] text-[#0b4fd6]";
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+}
+
+function getMemberSubtitle(member: TeamDashboardMember): string {
+  if (member.email && member.email !== member.displayName) {
+    return member.email;
   }
 
-  return "bg-slate-100 text-slate-600";
+  return `Ajoute le ${formatDate(member.createdAtIso)}`;
+}
+
+function getMemberInitials(name: string): string {
+  const parts = name
+    .split(" ")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .slice(0, 2);
+
+  if (parts.length === 0) {
+    return "MM";
+  }
+
+  return parts.map((item) => item[0]?.toUpperCase() ?? "").join("");
+}
+
+function getRoleSummary(teamFunction: TeamFunction): string {
+  if (teamFunction.functionCode === TeamFunctionCode.LEASING_AGENT) {
+    return "Biens, baux, locataires et documents.";
+  }
+
+  if (teamFunction.functionCode === TeamFunctionCode.ACCOUNTANT) {
+    return "Paiements, encaissements et reporting.";
+  }
+
+  if (teamFunction.functionCode === TeamFunctionCode.MAINTENANCE_MANAGER) {
+    return "Demandes, suivi terrain et prestataires.";
+  }
+
+  if (teamFunction.functionCode === TeamFunctionCode.ADMIN) {
+    return "Acces complet sur l'espace manager.";
+  }
+
+  return teamFunction.description ?? `${countPermissions(teamFunction)} permissions associees.`;
+}
+
+function getPrimaryRoleLabel(member: TeamDashboardMember): string {
+  if (member.role === "landlord") {
+    return "Administrateur";
+  }
+
+  if (member.functions.some((teamFunction) => isAdminFunction(teamFunction))) {
+    return "Administrateur";
+  }
+
+  return member.functions[0]?.displayName ?? "Aucun role";
+}
+
+function getPropertyAccessLabel(canOwnProperties: boolean): string {
+  return canOwnProperties
+    ? "Peut etre rattache a des proprietes"
+    : "Aucun rattachement proprietaire";
+}
+
+function matchesMemberSearch(member: TeamDashboardMember, searchTerm: string): boolean {
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  if (normalizedSearchTerm.length === 0) {
+    return true;
+  }
+
+  return [
+    member.displayName,
+    member.email ?? "",
+    member.role,
+    ...member.functions.map((teamFunction) => teamFunction.displayName)
+  ].some((value) => value.toLowerCase().includes(normalizedSearchTerm));
+}
+
+function matchesInvitationSearch(invitation: TeamMemberInvitation, searchTerm: string): boolean {
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  if (normalizedSearchTerm.length === 0) {
+    return true;
+  }
+
+  return invitation.email.toLowerCase().includes(normalizedSearchTerm);
 }
 
 function createFunctionDrafts(members: TeamDashboardMember[]): Record<string, string[]> {
@@ -124,11 +160,9 @@ function createFunctionDrafts(members: TeamDashboardMember[]): Record<string, st
 }
 
 export default function TeamManagementPanel({
-  organizationId,
   members,
   invitations,
   availableFunctions,
-  teamActivity,
   accountOwner,
   currentUserId,
   canAssignAdmin,
@@ -136,10 +170,15 @@ export default function TeamManagementPanel({
   canManageTeam
 }: TeamManagementPanelProps): React.ReactElement {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [activeTab, setActiveTab] = useState<TeamTab>("roles");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteCanOwnProperties, setInviteCanOwnProperties] = useState(false);
   const [busyInvite, setBusyInvite] = useState(false);
   const [busyInvitationId, setBusyInvitationId] = useState<string | null>(null);
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [functionDrafts, setFunctionDrafts] = useState<Record<string, string[]>>(() =>
@@ -150,9 +189,28 @@ export default function TeamManagementPanel({
     setFunctionDrafts(createFunctionDrafts(members));
   }, [members]);
 
-  const teamMembers = accountOwner
-    ? members.filter((membership) => membership.id !== accountOwner.id)
-    : members;
+  useEffect(() => {
+    if (expandedMemberId !== null) {
+      return;
+    }
+
+    const firstAssignableMember = members.find(
+      (member) => member.id !== accountOwner?.id && member.role !== "landlord"
+    );
+
+    if (firstAssignableMember) {
+      setExpandedMemberId(firstAssignableMember.id);
+    }
+  }, [accountOwner?.id, expandedMemberId, members]);
+
+  const adminFunctionCount = availableFunctions.filter((teamFunction) => isAdminFunction(teamFunction)).length;
+  const filteredMembers = members.filter((member) => matchesMemberSearch(member, searchTerm));
+  const filteredInvitations = invitations.filter((invitation) =>
+    matchesInvitationSearch(invitation, searchTerm)
+  );
+  const assignableMembers = filteredMembers.filter(
+    (member) => member.id !== accountOwner?.id && member.role !== "landlord"
+  );
 
   async function handleInvite(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -167,7 +225,8 @@ export default function TeamManagementPanel({
 
     try {
       const result = await postWithAuth<{ invitationId: string }>("/api/organizations/members", {
-        email: email.trim()
+        email: inviteEmail.trim(),
+        canOwnProperties: inviteCanOwnProperties
       });
 
       if (!result.success) {
@@ -177,7 +236,9 @@ export default function TeamManagementPanel({
       }
 
       setMessage("Invitation envoyee.");
-      setEmail("");
+      setInviteEmail("");
+      setInviteCanOwnProperties(false);
+      setInviteModalOpen(false);
       setBusyInvite(false);
       router.refresh();
     } catch {
@@ -279,421 +340,433 @@ export default function TeamManagementPanel({
     }
   }
 
+  function toggleMemberEditor(memberId: string): void {
+    setExpandedMemberId((current) => (current === memberId ? null : memberId));
+    setMessage(null);
+    setError(null);
+  }
+
   return (
-    <div className="space-y-6 p-8">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Equipe, invitations et acces</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            {members.length} membre(s) actif(s), {invitations.length} invitation(s) en attente.
-          </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Gestion d'equipe</h1>
+          <p className="mt-1 text-sm text-slate-600">Inviter, attribuer les roles et suivre l'acces des membres</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setInviteModalOpen(true)}
+          disabled={!inviteAuthority}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Inviter un membre
+        </button>
       </div>
 
       <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Actifs</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Membres</p>
           <p className="text-xl font-semibold text-slate-900">{members.length}</p>
         </div>
-
         <div className="h-6 w-px bg-slate-200" />
-
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">En attente</p>
           <p className="text-xl font-semibold text-slate-900">{invitations.length}</p>
         </div>
-
         <div className="h-6 w-px bg-slate-200" />
-
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Roles</p>
-          <p className="text-xl font-semibold text-slate-900">{availableFunctions.length}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Roles admin</p>
+          <p className="text-xl font-semibold text-slate-900">{adminFunctionCount}</p>
         </div>
       </div>
 
-      {message ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>
-      ) : null}
-      {error ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-      ) : null}
+      <div className="border-b border-slate-200">
+        <div className="flex gap-6">
+          {[
+            { id: "roles" as const, label: "Roles et permissions" },
+            { id: "properties" as const, label: "Permissions par propriete" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`border-b-2 px-1 py-3 text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? "border-[#0063fe] text-slate-900"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-6 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Account Owner</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">{formatOwnerTitle(accountOwner)}</h2>
-              </div>
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                Team Authority
-              </span>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <label className="relative block w-full max-w-xs">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+              placeholder="Rechercher..."
+            />
+          </label>
+        </div>
+
+        {message ? (
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>
+        ) : null}
+        {error ? (
+          <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+        ) : null}
+
+        {activeTab === "roles" ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <h2 className="text-sm font-semibold text-slate-900">Comment ca fonctionne</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Le compte principal a deja l'acces complet. Les roles ne se donnent qu'aux membres invites, une fois leur compte active. Invite un membre, attends qu'il accepte, puis configure ses roles.
+              </p>
             </div>
 
             {accountOwner ? (
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{shortId(accountOwner.userId)}</p>
-                    <p className="mt-1 text-sm text-slate-500">{formatRole(accountOwner.role)}</p>
-                  </div>
-                  {accountOwner.userId === currentUserId ? (
-                    <span className="rounded-full bg-[#d9e8ff] px-3 py-1 text-xs font-semibold text-[#0b4fd6]">Vous</span>
-                  ) : null}
-                </div>
-
-                <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
-                  <p>Ajoute le {formatDate(accountOwner.createdAtIso)}</p>
-                  <p>Compte principal de l'organisation</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">Aucun proprietaire de compte detecte.</p>
-            )}
-
-            <div className="space-y-3 rounded-3xl bg-slate-950 p-5 text-sm text-slate-200">
-              <p className="font-semibold text-white">Regle de securite</p>
-              <p>
-                Les membres d'equipe n'utilisent jamais le login du gestionnaire qui les invite. Chaque acces est
-                individuel pour garder la trace des activites et proteger le compte principal.
-              </p>
-              <p>
-                {canManageTeam
-                  ? "Votre compte peut piloter les invitations et les roles applicatifs de l'equipe."
-                  : "Votre compte peut consulter l'equipe, mais la gestion des invitations et des roles est reservee au proprietaire du compte ou a un admin."}
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleInvite} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Invite Team Members</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">Envoyer une invitation par email</h2>
-              </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-                Email First
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 md:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">1</p>
-                <p className="mt-2 text-sm font-medium text-slate-900">Invitation</p>
-                <p className="mt-1 text-sm text-slate-500">Le membre recoit un email personnel avec un lien securise.</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">2</p>
-                <p className="mt-2 text-sm font-medium text-slate-900">Activation</p>
-                <p className="mt-1 text-sm text-slate-500">Il cree son compte ou se connecte avec son propre compte existant.</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">3</p>
-                <p className="mt-2 text-sm font-medium text-slate-900">Role applicatif</p>
-                <p className="mt-1 text-sm text-slate-500">Le membre rejoint comme personnel interne et recoit ses acces de travail apres activation.</p>
-              </div>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              <label className="block text-sm text-slate-700">
-                Adresse email du membre
-                <input
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="mt-1.5 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
-                  placeholder="membre@entreprise.com"
-                  type="email"
-                  required
-                  disabled={!inviteAuthority}
-                />
-              </label>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                disabled={!inviteAuthority || busyInvite || email.trim().length === 0}
-                className="rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {busyInvite ? "Invitation..." : "Envoyer l'invitation"}
-              </button>
-              {!inviteAuthority ? (
-                <p className="text-sm text-slate-500">Invitation reservee au proprietaire du compte ou a un admin.</p>
-              ) : null}
-            </div>
-          </form>
-        </section>
-
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Application Roles</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Roles applicatifs disponibles</h2>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{availableFunctions.length}</span>
-          </div>
-
-          {availableFunctions.length === 0 ? (
-            <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm text-slate-400">
-              Aucun role applicatif configure pour cette organisation.
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 xl:grid-cols-2">
-              {availableFunctions.map((teamFunction) => (
-                <article key={teamFunction.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-950">{teamFunction.displayName}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {teamFunction.description ?? "Role interne applique a la plateforme web."}
-                      </p>
+              <div className="rounded-lg border border-slate-200 bg-white">
+                <div className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0063fe] text-sm font-semibold text-white">
+                      {getMemberInitials(accountOwner.displayName)}
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneClasses(isAdminFunction(teamFunction) ? "amber" : "blue")}`}>
-                      {countPermissions(teamFunction)} permissions
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-base font-semibold text-slate-900">{accountOwner.displayName}</p>
+                        {accountOwner.userId === currentUserId ? (
+                          <span className="text-xs font-medium text-slate-600">(vous)</span>
+                        ) : null}
+                      </div>
+                      <p className="truncate text-sm text-slate-500">{getMemberSubtitle(accountOwner)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 lg:items-end">
+                    <span className="text-sm font-semibold text-[#0063fe]">Administrateur</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Compte principal
                     </span>
                   </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+                </div>
+              </div>
+            ) : null}
 
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Pending Invitations</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Invitations en attente</h2>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{invitations.length}</span>
-          </div>
-
-          {invitations.length === 0 ? (
-            <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm text-slate-400">
-              Aucune invitation en attente.
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 xl:grid-cols-2">
-              {invitations.map((invitation) => {
-                const invitationBusy = busyInvitationId === invitation.id;
+            {assignableMembers.length === 0 ? (
+              <div className="flex min-h-[240px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <p className="text-base font-semibold text-slate-900">Aucun membre a configurer</p>
+                <p className="mt-2 max-w-lg text-sm text-slate-600">
+                  Invitez un membre d'equipe pour commencer. Une fois son compte active, vous pourrez lui attribuer des roles.
+                </p>
+              </div>
+            ) : (
+              assignableMembers.map((member) => {
+                const selectedFunctions = functionDrafts[member.id] ?? [];
+                const memberBusy = busyMemberId === member.id;
+                const isExpanded = expandedMemberId === member.id;
 
                 return (
-                  <article key={invitation.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-950">{invitation.email}</p>
-                        <p className="mt-1 text-sm text-slate-500">Acces operateur individuel en attente d'activation</p>
-                      </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-                        En attente
-                      </span>
-                    </div>
-
-                    <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-                      <p>Envoyee le {formatDate(invitation.createdAtIso)}</p>
-                      <p>Expire le {formatDate(invitation.expiresAtIso)}</p>
-                      <p>Personnel interne invite</p>
-                      <p>Role applicatif attribue apres activation</p>
-                    </div>
-
-                    {inviteAuthority ? (
-                      <div className="mt-5 flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => handleResend(invitation.id)}
-                          disabled={invitationBusy}
-                          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 disabled:opacity-50"
-                        >
-                          {invitationBusy ? "Traitement..." : "Renvoyer"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRevoke(invitation.id)}
-                          disabled={invitationBusy}
-                          className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-                        >
-                          Annuler
-                        </button>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Active Team</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Membres actifs</h2>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{members.length}</span>
-          </div>
-
-          {members.length === 0 ? (
-            <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm text-slate-400">
-              Aucun membre.
-            </div>
-          ) : (
-            <div className="mt-5 space-y-5">
-              {accountOwner ? (
-                <article className="rounded-3xl border border-[#bfd6ff] bg-[linear-gradient(135deg,#eff5ff_0%,#ffffff_100%)] p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] text-[#0b4fd6]">Account Owner</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-950">{shortId(accountOwner.userId)}</p>
-                      <p className="mt-1 text-sm text-slate-600">{formatOwnerTitle(accountOwner)}</p>
-                    </div>
-                    {accountOwner.userId === currentUserId ? (
-                      <span className="rounded-full bg-[#0b4fd6] px-3 py-1 text-xs font-semibold text-white">Vous</span>
-                    ) : null}
-                  </div>
-                  <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
-                    <p>Statut: {formatStatus(accountOwner.status)}</p>
-                    <p>Ajoute le {formatDate(accountOwner.createdAtIso)}</p>
-                    <p>Acces total par statut d'owner</p>
-                  </div>
-                </article>
-              ) : null}
-
-              {teamMembers.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-400">
-                  Aucun autre membre actif pour le moment.
-                </div>
-              ) : (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {teamMembers.map((membership) => {
-                    const selectedFunctions = functionDrafts[membership.id] ?? [];
-                    const memberBusy = busyMemberId === membership.id;
-
-                    return (
-                      <article key={membership.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-950">{shortId(membership.userId)}</p>
-                            <p className="mt-1 text-sm text-slate-500">{formatRole(membership.role)}</p>
-                          </div>
-                          {membership.userId === currentUserId ? (
-                            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">Vous</span>
-                          ) : null}
+                  <div key={member.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-600 text-sm font-semibold text-white">
+                          {getMemberInitials(member.displayName)}
                         </div>
-
-                        <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-                          <p>Statut: {formatStatus(membership.status)}</p>
-                          <p>Ajoute le {formatDate(membership.createdAtIso)}</p>
-                          <p>Personnel interne</p>
-                          <p className="font-mono text-xs text-slate-500">{membership.userId}</p>
-                        </div>
-
-                        <div className="mt-5 space-y-3 rounded-3xl border border-slate-200 bg-white p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-semibold text-slate-900">Roles applicatifs</p>
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                              {membership.functions.length}
-                            </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-base font-semibold text-slate-900">{member.displayName}</p>
+                            {member.userId === currentUserId ? (
+                              <span className="text-xs font-medium text-slate-600">(vous)</span>
+                            ) : null}
                           </div>
+                          <p className="truncate text-sm text-slate-500">{getMemberSubtitle(member)}</p>
+                        </div>
+                      </div>
 
-                          {membership.functions.length === 0 ? (
-                            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                              Aucun role applicatif attribue pour l'instant.
-                            </p>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {membership.functions.map((teamFunction) => (
-                                <span
-                                  key={teamFunction.id}
-                                  className="rounded-full bg-[#d9e8ff] px-3 py-1 text-xs font-semibold text-[#0b4fd6]"
-                                >
+                      <div className="flex flex-col gap-2 lg:min-w-[320px] lg:items-end">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses(member.status)}`}>
+                            {formatStatus(member.status)}
+                          </span>
+                          <span className={`text-sm font-semibold ${getPrimaryRoleLabel(member) === "Administrateur" ? "text-[#0063fe]" : "text-slate-700"}`}>
+                            {getPrimaryRoleLabel(member)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 lg:justify-end">
+                          {member.functions.length > 1
+                            ? member.functions.slice(1).map((teamFunction) => (
+                                <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                                   {teamFunction.displayName}
                                 </span>
-                              ))}
-                            </div>
-                          )}
+                              ))
+                            : null}
+                        </div>
+                        {canManageTeam ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleMemberEditor(member.id)}
+                            className="text-sm font-semibold text-[#0063fe] transition hover:text-[#0052d4]"
+                          >
+                            {isExpanded ? "Masquer" : "Configurer"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
 
-                          {canManageTeam ? (
-                            <div className="space-y-3 pt-2">
-                              {availableFunctions.map((teamFunction) => {
-                                const disabled =
-                                  memberBusy || (isAdminFunction(teamFunction) && !canAssignAdmin);
+                    {isExpanded ? (
+                      <div className="border-t border-slate-200 bg-slate-50 px-4 py-4">
+                        <div className="mb-4 grid gap-2 md:grid-cols-2">
+                          {availableFunctions.map((teamFunction) => {
+                            const disabled = memberBusy || (isAdminFunction(teamFunction) && !canAssignAdmin);
 
-                                return (
-                                  <label
-                                    key={teamFunction.id}
-                                    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${disabled ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-700"}`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedFunctions.includes(teamFunction.functionCode)}
-                                      onChange={() => handleToggleFunction(membership.id, teamFunction.functionCode)}
-                                      disabled={disabled}
-                                    />
-                                    <span>
-                                      <span className="block font-medium text-slate-900">{teamFunction.displayName}</span>
-                                      <span className="mt-1 block text-xs text-slate-500">
-                                        {teamFunction.description ?? "Role interne applique a la plateforme web."}
-                                      </span>
-                                      {isAdminFunction(teamFunction) && !canAssignAdmin ? (
-                                        <span className="mt-1 block text-xs text-amber-700">
-                                          Seul le landlord peut attribuer le role Admin.
-                                        </span>
-                                      ) : null}
-                                    </span>
-                                  </label>
-                                );
-                              })}
+                            return (
+                              <label
+                                key={teamFunction.id}
+                                className={`flex gap-3 rounded-lg border px-3 py-2.5 ${disabled ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-200 bg-white text-slate-700 cursor-pointer hover:border-slate-300"}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedFunctions.includes(teamFunction.functionCode)}
+                                  onChange={() => handleToggleFunction(member.id, teamFunction.functionCode)}
+                                  disabled={disabled}
+                                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0063fe] focus:ring-[#0063fe]"
+                                />
+                                <span className="flex-1">
+                                  <span className="block text-sm font-semibold text-slate-900">{teamFunction.displayName}</span>
+                                  <span className="mt-0.5 block text-xs text-slate-500">{getRoleSummary(teamFunction)}</span>
+                                  {isAdminFunction(teamFunction) && !canAssignAdmin ? (
+                                    <span className="mt-1 block text-xs text-amber-600">Landlord uniquement</span>
+                                  ) : null}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveFunctions(member.id)}
+                            disabled={memberBusy}
+                            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {memberBusy ? "Sauvegarde..." : "Enregistrer"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            )}
 
+            {filteredInvitations.length > 0 ? (
+              <div className="rounded-lg border border-slate-200 bg-white">
+                <div className="border-b border-slate-200 px-4 py-3">
+                  <h2 className="text-base font-semibold text-slate-900">Invitations en attente</h2>
+                </div>
+                <div className="divide-y divide-slate-200">
+                  {filteredInvitations.map((invitation) => {
+                    const invitationBusy = busyInvitationId === invitation.id;
+
+                    return (
+                      <div key={invitation.id} className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{invitation.email}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">Expire le {formatDate(invitation.expiresAtIso)}</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-100">
+                            En attente
+                          </span>
+                          {inviteAuthority ? (
+                            <>
                               <button
                                 type="button"
-                                onClick={() => handleSaveFunctions(membership.id)}
-                                disabled={memberBusy || selectedFunctions.length === 0}
-                                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                onClick={() => handleResend(invitation.id)}
+                                disabled={invitationBusy}
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                               >
-                                {memberBusy ? "Enregistrement..." : "Enregistrer les roles"}
+                                {invitationBusy ? "Envoi..." : "Renvoyer"}
                               </button>
-                            </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRevoke(invitation.id)}
+                                disabled={invitationBusy}
+                                className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                              >
+                                Annuler
+                              </button>
+                            </>
                           ) : null}
                         </div>
-                      </article>
+                      </div>
                     );
                   })}
                 </div>
-              )}
-            </div>
-          )}
-        </section>
-
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Activity Tracking</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Activite equipe</h2>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{teamActivity.length}</span>
+              </div>
+            ) : null}
           </div>
-
-          {teamActivity.length === 0 ? (
-            <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm text-slate-400">
-              Aucune activite equipe recente.
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              {teamActivity.map((item) => (
-                <article key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-950">{item.title}</p>
-                      <p className="mt-1 text-sm text-slate-500">{item.detail}</p>
+        ) : (
+          <div className="space-y-4">
+            {filteredMembers.length === 0 ? (
+              <div className="rounded-lg border-2 border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">
+                Aucun membre ne correspond a cette recherche
+              </div>
+            ) : (
+              filteredMembers.map((member) => (
+                <div key={member.id} className="rounded-lg border border-slate-200 bg-white px-4 py-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-600 text-sm font-semibold text-white">
+                        {getMemberInitials(member.displayName)}
+                      </div>
+                      <div>
+                        <p className="text-base font-semibold text-slate-900">{member.displayName}</p>
+                        <p className="mt-0.5 text-sm text-slate-500">{getMemberSubtitle(member)}</p>
+                      </div>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneClasses(item.tone)}`}>
-                      {formatDateTime(item.occurredAtIso)}
-                    </span>
+                    <div className="flex flex-col gap-2 lg:items-end">
+                      <span className="text-sm font-medium text-slate-700">{getPropertyAccessLabel(member.capabilities.canOwnProperties)}</span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                        {member.capabilities.canOwnProperties ? "Acces proprietes active" : "Organisation uniquement"}
+                      </span>
+                    </div>
                   </div>
-                </article>
-              ))}
+                </div>
+              ))
+            )}
+
+            {filteredInvitations.length > 0 ? (
+              <div className="rounded-lg border border-slate-200 bg-white">
+                <div className="border-b border-slate-200 px-4 py-3">
+                  <h2 className="text-base font-semibold text-slate-900">Invitations en attente</h2>
+                </div>
+                <div className="divide-y divide-slate-200">
+                  {filteredInvitations.map((invitation) => (
+                    <div key={invitation.id} className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{invitation.email}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{getPropertyAccessLabel(invitation.canOwnProperties)}</p>
+                      </div>
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-100">
+                        En attente
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {inviteModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          onClick={() => setInviteModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Inviter un nouveau membre"
+        >
+          <div
+            className="w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Inviter un nouveau membre</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Les roles seront attribues apres activation du compte
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInviteModalOpen(false)}
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Fermer"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-          )}
-        </section>
+
+            <form onSubmit={handleInvite} className="space-y-5 px-6 py-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">Email *</span>
+                  <input
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                    type="email"
+                    placeholder="membre@entreprise.com"
+                    required
+                    disabled={busyInvite || !inviteAuthority}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">Acces proprietes</span>
+                  <select
+                    value={inviteCanOwnProperties ? "enabled" : "disabled"}
+                    onChange={(event) => setInviteCanOwnProperties(event.target.value === "enabled")}
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                    disabled={busyInvite || !inviteAuthority}
+                  >
+                    <option value="disabled">Organisation uniquement</option>
+                    <option value="enabled">Peut etre attache aux proprietes</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                <p className="font-medium">Note importante</p>
+                <p className="mt-1 text-blue-600">Les champs nom, telephone et role detaille ne sont pas encore supportes. Cette fenetre reste fonctionnelle sur les donnees disponibles.</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setInviteModalOpen(false)}
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={!inviteAuthority || busyInvite || inviteEmail.trim().length === 0}
+                  className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busyInvite ? "Envoi..." : "Envoyer l'invitation"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

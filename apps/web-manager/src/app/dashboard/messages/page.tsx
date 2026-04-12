@@ -56,7 +56,8 @@ export default async function MessagesPage(): Promise<React.ReactElement> {
       organizationId: session.organizationId ?? ""
     },
     {
-      repository: tenantLeaseRepo
+      repository: tenantLeaseRepo,
+      teamFunctionsRepository: teamFunctionsRepo
     }
   );
 
@@ -68,7 +69,8 @@ export default async function MessagesPage(): Promise<React.ReactElement> {
           filter: { managementContext: scopedPortfolio.currentScope }
         },
         {
-          repository: propertyRepoResult.data
+          repository: propertyRepoResult.data,
+          teamFunctionsRepository: teamFunctionsRepo
         }
       )
     : {

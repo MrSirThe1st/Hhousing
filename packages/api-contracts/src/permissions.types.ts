@@ -5,6 +5,10 @@
  */
 
 export enum Permission {
+  // Property operations
+  VIEW_PROPERTIES = 'view_properties',
+  MANAGE_PROPERTIES = 'manage_properties',
+
   // Lease operations
   CREATE_LEASE = 'create_lease',
   EDIT_LEASE = 'edit_lease',

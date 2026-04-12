@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import type { Tenant } from "@hhousing/domain";
 import { listProperties } from "../../../../api";
-import { createListingRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
+import { createListingRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
 import LeaseMoveInForm from "../../../../components/lease-move-in-form";
 import { getServerOperatorContext } from "../../../../lib/operator-context";
 import { getServerAuthSession } from "../../../../lib/session";
@@ -34,7 +34,10 @@ export default async function LeaseMoveInPage({ searchParams }: LeaseMoveInPageP
       organizationId: session.organizationId ?? "",
       filter: { managementContext: operatorContext.currentScope }
     },
-    { repository: propertyRepoResult.data }
+    {
+      repository: propertyRepoResult.data,
+      teamFunctionsRepository: createTeamFunctionsRepo()
+    }
   );
 
   const items: PropertyWithUnitsView[] = propertiesResult.body.success ? propertiesResult.body.data.items : [];
