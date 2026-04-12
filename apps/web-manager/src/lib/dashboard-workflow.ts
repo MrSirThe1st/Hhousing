@@ -67,21 +67,36 @@ function getPaymentStatusLabel(payment: Payment): string {
   return payment.status === "overdue" ? "En retard" : "À encaisser";
 }
 
-export async function syncSystemTasks(session: AuthSession): Promise<void> {
+type SyncSystemTasksPrefetched = {
+  maintenanceRequests: MaintenanceRequest[];
+  payments: Payment[];
+  leases: LeaseWithTenantView[];
+};
+
+export async function syncSystemTasks(session: AuthSession, prefetched?: SyncSystemTasksPrefetched): Promise<void> {
   const organizationId = session.organizationId;
   const taskRepo = createTaskRepo();
-  const maintenanceRepo = createMaintenanceRepo();
-  const paymentRepo = createPaymentRepo();
-  const leaseRepo = createTenantLeaseRepo();
 
-  const [maintenanceRequests, payments, leases] = await Promise.all([
-    maintenanceRepo.listMaintenanceRequests({ organizationId }),
-    paymentRepo.listPayments({ organizationId }),
-    leaseRepo.listLeasesByOrganization(organizationId)
-  ]);
+  let maintenanceRequests: MaintenanceRequest[];
+  let payments: Payment[];
+  let leases: LeaseWithTenantView[];
+
+  if (prefetched) {
+    ({ maintenanceRequests, payments, leases } = prefetched);
+  } else {
+    const maintenanceRepo = createMaintenanceRepo();
+    const paymentRepo = createPaymentRepo();
+    const leaseRepo = createTenantLeaseRepo();
+    [maintenanceRequests, payments, leases] = await Promise.all([
+      maintenanceRepo.listMaintenanceRequests({ organizationId }),
+      paymentRepo.listPayments({ organizationId }),
+      leaseRepo.listLeasesByOrganization(organizationId)
+    ]);
+  }
 
   const todayIsoDate = getTodayIsoDate();
   const activeSystemKeys: string[] = [];
+  const upsertPromises: Promise<Task>[] = [];
 
   for (const request of maintenanceRequests) {
     if (request.status !== "open" && request.status !== "in_progress") {
@@ -90,7 +105,7 @@ export async function syncSystemTasks(session: AuthSession): Promise<void> {
 
     const systemKey = `maintenance:${request.id}:follow_up`;
     activeSystemKeys.push(systemKey);
-    await taskRepo.upsertSystemTask({
+    upsertPromises.push(taskRepo.upsertSystemTask({
       id: createSystemTaskId(),
       organizationId,
       title: `Suivre maintenance · ${request.title}`,
@@ -108,7 +123,7 @@ export async function syncSystemTasks(session: AuthSession): Promise<void> {
       maintenanceRequestId: request.id,
       systemCode: "maintenance_follow_up",
       systemKey
-    });
+    }));
   }
 
   for (const payment of payments) {
@@ -118,7 +133,7 @@ export async function syncSystemTasks(session: AuthSession): Promise<void> {
 
     const systemKey = `payment:${payment.id}:overdue_follow_up`;
     activeSystemKeys.push(systemKey);
-    await taskRepo.upsertSystemTask({
+    upsertPromises.push(taskRepo.upsertSystemTask({
       id: createSystemTaskId(),
       organizationId,
       title: `Relancer paiement · ${payment.amount.toLocaleString("fr-FR")} ${payment.currencyCode}`,
@@ -136,7 +151,7 @@ export async function syncSystemTasks(session: AuthSession): Promise<void> {
       maintenanceRequestId: null,
       systemCode: "rent_overdue_follow_up",
       systemKey
-    });
+    }));
   }
 
   for (const lease of leases) {
@@ -152,7 +167,7 @@ export async function syncSystemTasks(session: AuthSession): Promise<void> {
 
     const systemKey = `lease:${lease.id}:renewal`;
     activeSystemKeys.push(systemKey);
-    await taskRepo.upsertSystemTask({
+    upsertPromises.push(taskRepo.upsertSystemTask({
       id: createSystemTaskId(),
       organizationId,
       title: `Préparer renouvellement · ${lease.tenantFullName}`,
@@ -170,9 +185,10 @@ export async function syncSystemTasks(session: AuthSession): Promise<void> {
       maintenanceRequestId: null,
       systemCode: "lease_renewal",
       systemKey
-    });
+    }));
   }
 
+  await Promise.all(upsertPromises);
   await taskRepo.closeInactiveSystemTasks(organizationId, activeSystemKeys);
 }
 
@@ -186,17 +202,21 @@ export async function buildDashboardWorkflowData(session: AuthSession): Promise<
   const paymentRepo = createPaymentRepo();
   const maintenanceRepo = createMaintenanceRepo();
   const leaseRepo = createTenantLeaseRepo();
-  const scopedPortfolio = await getScopedPortfolioData(session);
 
-  await syncSystemTasks(session);
-
-  const [tasks, calendarEvents, payments, maintenanceRequests, tenants] = await Promise.all([
-    taskRepo.listTasks({ organizationId: session.organizationId }),
-    calendarEventRepo.listCalendarEvents({ organizationId: session.organizationId }),
-    paymentRepo.listPayments({ organizationId: session.organizationId }),
+  // Fetch all source data in one parallel batch (includes what syncSystemTasks needs)
+  const [scopedPortfolio, maintenanceRequests, payments, calendarEvents, tenants] = await Promise.all([
+    getScopedPortfolioData(session),
     maintenanceRepo.listMaintenanceRequests({ organizationId: session.organizationId }),
+    paymentRepo.listPayments({ organizationId: session.organizationId }),
+    calendarEventRepo.listCalendarEvents({ organizationId: session.organizationId }),
     leaseRepo.listTenantsByOrganization ? leaseRepo.listTenantsByOrganization(session.organizationId) : Promise.resolve([] as Tenant[])
   ] as const);
+
+  // Sync system tasks using already-fetched data — no duplicate DB queries
+  await syncSystemTasks(session, { maintenanceRequests, payments, leases: scopedPortfolio.leases });
+
+  // Fetch tasks after sync so we see the latest upserted/closed state
+  const tasks = await taskRepo.listTasks({ organizationId: session.organizationId });
 
   const scopedTasks = filterTasksByScope(tasks, scopedPortfolio);
   const scopedEvents = filterCalendarEventsByScope(calendarEvents, scopedPortfolio);

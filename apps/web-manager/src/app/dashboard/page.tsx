@@ -163,7 +163,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const scopeLabel = getOperatorScopeLabel(operatorContext.currentScope);
   const header = getVariantHeader(operatorContext.experience);
 
-  const metrics = await fetchDashboardMetrics(session.organizationId, operatorContext.currentScope);
+  const metrics = activeTab === "overview"
+    ? await fetchDashboardMetrics(session.organizationId, operatorContext.currentScope)
+    : { propertyCount: 0, unitCount: 0, tenantCount: 0, leaseCount: 0, maintenanceCount: 0, occupiedUnitCount: 0 };
   const stats = getStats(operatorContext.experience, scopeLabel, metrics);
   const workflowData = activeTab === "overview" ? null : await buildDashboardWorkflowData(session);
 

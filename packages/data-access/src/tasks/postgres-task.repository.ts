@@ -262,7 +262,7 @@ export function createPostgresTaskRepository(client: TaskQueryable): TaskReposit
           $12, $13, $14, $15, $16, $17,
           now(), now(), null
         )
-        on conflict (system_key) do update set
+        on conflict (system_key) where system_key is not null do update set
           title = excluded.title,
           description = excluded.description,
           priority = excluded.priority,
