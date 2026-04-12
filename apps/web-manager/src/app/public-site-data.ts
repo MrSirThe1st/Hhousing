@@ -47,7 +47,7 @@ export const USE_CASES = [
 
 export const FAQS = [
   {
-    question: "Hhousing est-il seulement une marketplace ?",
+    question: "Haraka Property est-il seulement une marketplace ?",
     answer:
       "Non. La marketplace n'est qu'une couche d'acquisition. Le coeur du produit reste l'exploitation : biens, unités, locataires, baux, paiements, maintenance, messagerie et documents."
   },
@@ -57,7 +57,7 @@ export const FAQS = [
       "L'espace web sert d'abord aux bailleurs et gestionnaires immobiliers. Les locataires utilisent l'expérience mobile, et la visibilité propriétaire lecture seule est prévue ensuite."
   },
   {
-    question: "Faut-il publier des annonces pour utiliser Hhousing ?",
+    question: "Faut-il publier des annonces pour utiliser Haraka Property ?",
     answer:
       "Non. Vous pouvez gérer tout votre portefeuille en interne sans rien publier. Les annonces restent optionnelles et s'appuient sur les mêmes fiches biens et unités."
   },

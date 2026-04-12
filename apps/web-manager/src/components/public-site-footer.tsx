@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function PublicSiteFooter(): React.ReactElement {
@@ -6,10 +7,10 @@ export default function PublicSiteFooter(): React.ReactElement {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-10">
         <div>
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0063FE] text-sm font-bold text-white">HH</span>
+            <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
             <span>
-              <span className="block text-lg font-semibold tracking-tight">Hhousing</span>
-              <span className="block text-xs uppercase tracking-[0.18em] text-slate-400">Logo provisoire</span>
+              <span className="block text-lg font-semibold tracking-tight">Haraka Property</span>
+              <span className="block text-xs uppercase tracking-[0.18em] text-slate-400">Opérations locatives</span>
             </span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-7 text-slate-300">

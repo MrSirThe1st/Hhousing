@@ -67,7 +67,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                       <div className="h-3 w-3 rounded-full bg-yellow-400" />
                       <div className="h-3 w-3 rounded-full bg-green-400" />
                     </div>
-                    <div className="text-xs font-medium text-slate-500">Dashboard</div>
+                    <div className="text-xs font-medium text-slate-500">Tableau de bord</div>
                   </div>
                 </div>
                 <div className="space-y-3 p-6">
@@ -274,7 +274,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             </div>
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Questions fréquentes</h2>
             <p className="mx-auto mt-4 text-lg text-slate-600">
-              Tout ce que vous devez savoir sur Hhousing
+              Tout ce que vous devez savoir sur Haraka Property
             </p>
           </div>
           <div className="mt-12 space-y-4">

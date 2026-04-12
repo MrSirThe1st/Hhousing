@@ -42,7 +42,7 @@ export default function PublicListingApplicationForm({
       return;
     }
 
-    setSuccess("Application submitted. The manager will review your file shortly.");
+    setSuccess("Candidature soumise. Le gestionnaire examinera votre dossier sous peu.");
     setFullName("");
     setEmail("");
     setPhone("");
@@ -55,15 +55,15 @@ export default function PublicListingApplicationForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
       <div>
-        <h2 className="text-xl font-semibold text-slate-950">Apply for this home</h2>
+        <h2 className="text-xl font-semibold text-slate-950">Postuler pour ce logement</h2>
         <p className="mt-2 text-sm text-slate-600">
-          No account required. Submit your details and the property manager will continue screening from the dashboard.
+          Aucun compte requis. Soumettez vos informations et le gestionnaire immobilier poursuivra la sélection depuis le tableau de bord.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Full name</span>
+          <span className="mb-1.5 block">Nom complet</span>
           <input
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
@@ -72,7 +72,7 @@ export default function PublicListingApplicationForm({
           />
         </label>
         <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Phone</span>
+          <span className="mb-1.5 block">Téléphone</span>
           <input
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
@@ -91,22 +91,22 @@ export default function PublicListingApplicationForm({
           />
         </label>
         <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-          <span className="mb-1.5 block">Employment or income details</span>
+          <span className="mb-1.5 block">Emploi ou détails du revenu</span>
           <textarea
             value={employmentInfo}
             onChange={(event) => setEmploymentInfo(event.target.value)}
             className="min-h-28 w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Employer, role, income frequency, guarantor, or other context"
+            placeholder="Employeur, poste, fréquence du revenu, garant ou autre contexte"
           />
         </label>
         <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Monthly income</span>
+          <span className="mb-1.5 block">Revenu mensuel</span>
           <input
             inputMode="decimal"
             value={monthlyIncome}
             onChange={(event) => setMonthlyIncome(event.target.value)}
             className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Optional"
+            placeholder="Optionnel"
           />
         </label>
         <label className="block text-sm font-medium text-slate-700">
@@ -115,7 +115,7 @@ export default function PublicListingApplicationForm({
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Optional"
+            placeholder="Optionnel"
           />
         </label>
       </div>
@@ -132,7 +132,7 @@ export default function PublicListingApplicationForm({
         disabled={busy}
         className="rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
       >
-        {busy ? "Submitting..." : "Submit application"}
+        {busy ? "Envoi en cours..." : "Soumettre la candidature"}
       </button>
     </form>
   );

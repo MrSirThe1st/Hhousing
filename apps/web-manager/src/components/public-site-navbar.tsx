@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FEATURE_GROUPS, PRICING_TIERS, USE_CASES } from "../app/public-site-data";
@@ -64,9 +65,9 @@ export default function PublicSiteNavbar(): React.ReactElement {
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4 lg:px-10">
         <Link href="/" className="flex items-center gap-3 text-[#010A19]">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0063FE] text-sm font-bold text-white">HH</span>
+          <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
           <span>
-            <span className="block text-lg font-semibold tracking-tight">Hhousing</span>
+            <span className="block text-lg font-semibold tracking-tight">Haraka Property</span>
             <span className="block text-[11px] uppercase tracking-[0.18em] text-slate-500">Opérations locatives</span>
           </span>
         </Link>
@@ -178,7 +179,7 @@ function FeaturesPanel(): React.ReactElement {
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Fonctionnalités</p>
-          <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">Des panneaux plus riches pour comprendre vite ce que couvre Hhousing</p>
+          <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">Des panneaux plus riches pour comprendre vite ce que couvre Haraka Property</p>
         </div>
         <Link href="/#features" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Explorer</Link>
       </div>
