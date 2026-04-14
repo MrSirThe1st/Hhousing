@@ -4,7 +4,6 @@ Operations-first property management SaaS for DRC.
 ## Workspace Structure
 - `apps/mobile-tenant`
 - `apps/web-manager`
-- `apps/web-owner`
 - `apps/web-admin`
 - `packages/domain`
 - `packages/api-contracts`

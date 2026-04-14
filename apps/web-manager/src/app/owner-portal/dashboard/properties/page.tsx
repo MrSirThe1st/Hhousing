@@ -20,39 +20,38 @@ export default async function OwnerPortalPropertiesPage(): Promise<React.ReactEl
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Biens</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">Portefeuille immobilier</h2>
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Portefeuille immobilier</h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
               Lecture consolidée par bien, avec occupation, baux actifs et encaissements liés à votre portefeuille owner.
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             {view.propertyCount} bien(s) • {view.unitCount} unité(s) • {view.activeLeaseCount} bail/baux actif(s)
           </div>
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
-                <th className="px-5 py-4 font-medium">Bien</th>
-                <th className="px-5 py-4 font-medium">Adresse</th>
-                <th className="px-5 py-4 font-medium">Unités</th>
-                <th className="px-5 py-4 font-medium">Baux actifs</th>
-                <th className="px-5 py-4 font-medium">Encaisse</th>
-                <th className="px-5 py-4 font-medium">À suivre</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Bien</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Adresse</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Unités</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Baux actifs</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Encaisse</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">À suivre</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {view.propertyRows.map((row) => (
-                <tr key={row.property.id}>
+                <tr key={row.property.id} className="transition hover:bg-slate-50">
                   <td className="px-5 py-4 align-top">
-                    <p className="font-medium text-slate-950">{row.property.name}</p>
+                    <p className="font-semibold text-[#010a19]">{row.property.name}</p>
                     <p className="mt-1 text-xs text-slate-500">{row.property.managementContext === "managed" ? "Parc géré" : "Parc propriétaire"}</p>
                   </td>
                   <td className="px-5 py-4 text-slate-600">{row.property.address}, {row.property.city}</td>

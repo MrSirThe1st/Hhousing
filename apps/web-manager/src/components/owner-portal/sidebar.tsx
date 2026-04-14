@@ -21,21 +21,23 @@ export default function OwnerPortalSidebar(): React.ReactElement {
   const pathname = usePathname();
 
   return (
-    <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:p-5">
-      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Owner portal</p>
-      <h2 className="mt-2 text-lg font-semibold text-slate-950">Navigation</h2>
+    <aside className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)]">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Owner Portal</h2>
+        <p className="mt-1 text-lg font-semibold text-[#010a19]">Navigation</p>
+      </div>
 
-      <nav className="mt-5 flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible">
+      <nav className="mt-6 flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2 lg:overflow-visible">
         {NAV_ITEMS.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`inline-flex shrink-0 items-center rounded-xl px-3 py-2 text-sm font-medium transition lg:flex ${
+              className={`inline-flex shrink-0 items-center rounded-lg px-4 py-2.5 text-sm font-semibold transition lg:w-full ${
                 active
-                  ? "bg-[#0063fe] text-white"
-                  : "border border-slate-200 text-slate-700 hover:border-[#0063fe] hover:text-[#0063fe]"
+                  ? "bg-[#0063fe] text-white shadow-sm"
+                  : "text-slate-700 hover:bg-slate-50"
               }`}
             >
               {item.label}

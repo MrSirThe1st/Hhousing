@@ -26,6 +26,12 @@ Use this file as the first project memory source before searching the codebase.
 - Impact: Updated `apps/web-manager/src/middleware.ts` so `/login` and `/signup` redirect order is: manager memberships -> `/dashboard`, owner portal access -> `/owner-portal/dashboard`, otherwise -> `/account-type`.
 - Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
 
+## 2026-04-14
+- Change type: Web + Cleanup
+- Description: Removed deprecated standalone owner app after owner portal migration to web-manager.
+- Impact: Deleted `apps/web-owner`; updated workspace docs in `README.md` and `Learning/architecture-book/10-repo-map-and-boundaries.md`; regenerated `pnpm-lock.yaml` to remove stale workspace importer.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓, `pnpm build` ✓.
+
 ## 2026-04-13
 - Change type: Web + API + Data
 - Description: Fixed client-assignment failure on property update caused by invalid SQL alias usage in repository RETURNING clauses (`p.<column>` without `FROM properties p`).
