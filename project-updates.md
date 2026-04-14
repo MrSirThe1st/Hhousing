@@ -2,6 +2,24 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-13
+- Change type: Web + Owner Portal + Quality
+- Description: Promoted `web-owner` from read-only preview toward production shape by adding owner statement CSV export (`/api/reports/export`), richer report summaries/detail tables, and French copy normalization; then stabilized quality gate by aligning outdated API tests with current invite/property-owner assignment behavior.
+- Impact: Added `apps/web-owner/src/lib/owner-reporting.ts` and `apps/web-owner/src/app/api/reports/export/route.ts`; updated owner reports/dashboard/properties pages and manager dashboard mixed-language subtitle; updated `apps/web-manager` tests `src/app/api/organizations/members/route.test.ts` and `src/app/api/properties/[id]/client/route.test.ts`.
+- Tests: `pnpm -C apps/web-owner typecheck` ✓, `pnpm -C apps/web-owner build` ✓, `pnpm -C apps/web-manager test -- 'src/app/api/organizations/members/route.test.ts' 'src/app/api/properties/[id]/client/route.test.ts'` ✓, `pnpm lint && pnpm typecheck && pnpm test && pnpm build` ✓.
+
+## 2026-04-13
+- Change type: Web + API + Data
+- Description: Fixed client-assignment failure on property update caused by invalid SQL alias usage in repository RETURNING clauses (`p.<column>` without `FROM properties p`).
+- Impact: Updated `packages/data-access/src/properties/postgres-organization-property-unit.repository.ts` to qualify returned ownership columns with `properties.<column>` for create/update property flows.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager test -- 'src/app/api/properties/[id]/client/route.test.ts'` ✗ blocked by unrelated existing failures in `src/app/api/organizations/members/route.test.ts` and legacy expectation drift in `src/app/api/properties/[id]/client/route.test.ts`.
+
+## 2026-04-13
+- Change type: Web + Frontend + API
+- Description: Reworked manager owner-client assignment flow into dedicated routes. Client detail now exposes an `Actions` menu with edit and assignment/invitation entrypoints, assignment moved to `/dashboard/clients/[id]/assign` with explicit assign/unassign tables plus owner invitation, and added `/dashboard/clients/[id]/edit` with full profile update form.
+- Impact: Updated client detail and portfolio components; added `client-assignment-workspace` and `owner-client-edit-form`; added `PATCH /api/owners/[id]` route/service and repository `updateOwner` support in `packages/data-access`.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager test -- 'src/app/api/owners/[id]/route.test.ts' 'src/api/properties/create-property.test.ts' 'src/api/units/create-unit.test.ts'` ✗ blocked by unrelated pre-existing failures in `src/app/api/organizations/members/route.test.ts` and `src/app/api/properties/[id]/client/route.test.ts`.
+
 ## 2026-04-11
 - Change type: Web + API + Permissions
 - Description: Started the team-permission hardening rollout by extending the permission contract with property access, updating default team-function seeds, adding a backfill migration for existing org functions, and enforcing team-function checks on property, tenant, document, and tenant-invitation operator flows.

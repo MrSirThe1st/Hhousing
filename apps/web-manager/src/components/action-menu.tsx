@@ -14,6 +14,7 @@ type ActionMenuItem = {
 interface ActionMenuProps {
   items: ActionMenuItem[];
   align?: "left" | "right";
+  triggerLabel?: string;
 }
 
 function MoreIcon(): React.ReactElement {
@@ -26,7 +27,7 @@ function MoreIcon(): React.ReactElement {
   );
 }
 
-export default function ActionMenu({ items, align = "right" }: ActionMenuProps): React.ReactElement {
+export default function ActionMenu({ items, align = "right", triggerLabel }: ActionMenuProps): React.ReactElement {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,11 +54,12 @@ export default function ActionMenu({ items, align = "right" }: ActionMenuProps):
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-slate-600 transition hover:bg-slate-50 hover:text-[#010a19]"
+        className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-slate-600 transition hover:bg-slate-50 hover:text-[#010a19]"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Ouvrir le menu d'actions"
       >
+        {triggerLabel ? <span className="text-sm font-medium">{triggerLabel}</span> : null}
         <MoreIcon />
       </button>
 

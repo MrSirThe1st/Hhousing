@@ -7,10 +7,11 @@ import { postWithAuth } from "../lib/api-client";
 interface OwnerInvitationPanelProps {
   ownerId: string;
   ownerName: string;
+  initialEmail?: string;
 }
 
-export default function OwnerInvitationPanel({ ownerId, ownerName }: OwnerInvitationPanelProps): React.ReactElement {
-  const [email, setEmail] = useState("");
+export default function OwnerInvitationPanel({ ownerId, ownerName, initialEmail }: OwnerInvitationPanelProps): React.ReactElement {
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -16,6 +16,7 @@ export {
 export type {
   CreateOwnerRecordInput,
   CreateOwnerClientRecordInput,
+  UpdateOwnerRecordInput,
   CreateOrganizationRecordInput,
   UpdateOrganizationRecordInput,
   CreatePropertyRecordInput,

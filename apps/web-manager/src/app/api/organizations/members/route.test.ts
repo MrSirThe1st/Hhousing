@@ -236,7 +236,7 @@ describe("/api/organizations/members", () => {
     expect(createTeamMemberInvitationMock).toHaveBeenCalledWith(
       expect.objectContaining({
         email: "manager@example.com",
-        canOwnProperties: false
+          canOwnProperties: true,
       })
     );
     expect(sendTeamMemberInvitationEmailMock).toHaveBeenCalledWith(

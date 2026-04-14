@@ -51,6 +51,21 @@ export interface CreateOwnerRecordInput {
 
 export type CreateOwnerClientRecordInput = CreateOwnerRecordInput;
 
+export interface UpdateOwnerRecordInput {
+  id: string;
+  organizationId: string;
+  name: string;
+  fullName: string;
+  address: string | null;
+  isCompany: boolean;
+  companyName: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  phoneNumber: string | null;
+  profilePictureUrl: string | null;
+}
+
 export interface CreateUnitRecordInput {
   id: string;
   organizationId: string;
@@ -110,6 +125,7 @@ export interface OrganizationPropertyUnitRepository {
   updateOrganization(input: UpdateOrganizationRecordInput): Promise<Organization | null>;
   createOwner(input: CreateOwnerRecordInput): Promise<Owner>;
   createOwnerClient(input: CreateOwnerClientRecordInput): Promise<Owner>;
+  updateOwner(input: UpdateOwnerRecordInput): Promise<Owner | null>;
   createProperty(input: CreatePropertyRecordInput): Promise<Property>;
   createPropertyWithUnits(input: CreatePropertyWithUnitsRecordInput): Promise<{ property: Property; units: Unit[] }>;
   createUnit(input: CreateUnitRecordInput): Promise<Unit>;

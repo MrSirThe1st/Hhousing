@@ -53,7 +53,7 @@ export default async function OwnerPropertiesPage(): Promise<React.ReactElement>
                 <tr key={row.property.id}>
                   <td className="px-5 py-4 align-top">
                     <p className="font-medium text-slate-950">{row.property.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{row.property.managementContext === "managed" ? "Parc géré" : "Parc owné"}</p>
+                    <p className="mt-1 text-xs text-slate-500">{row.property.managementContext === "managed" ? "Parc géré" : "Parc propriétaire"}</p>
                   </td>
                   <td className="px-5 py-4 text-slate-600">{row.property.address}, {row.property.city}</td>
                   <td className="px-5 py-4 text-slate-600">{row.occupiedUnits}/{row.units.length} occupée(s)</td>

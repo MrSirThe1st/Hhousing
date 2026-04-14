@@ -11,6 +11,7 @@ import type {
   CreateUnitRecordInput,
   ListPropertiesWithUnitsFilter,
   UpdateOrganizationRecordInput,
+  UpdateOwnerRecordInput,
   UpdatePropertyRecordInput,
   UpdateUnitRecordInput,
   OrganizationPropertyUnitRepository,
@@ -515,6 +516,81 @@ export function createPostgresOrganizationPropertyUnitRepository(
     async createOwnerClient(input: CreateOwnerRecordInput): Promise<Owner> {
       return this.createOwner(input);
     },
+    async updateOwner(input: UpdateOwnerRecordInput): Promise<Owner | null> {
+      const schema = await getPropertyStorageSchema(client);
+
+      if (schema.ownersTable === "owners") {
+        const updates: string[] = ["name = $1"];
+        const values: Array<string | boolean | null> = [input.name];
+
+        if (schema.ownerProfileColumns.fullName) {
+          updates.push(`full_name = $${values.length + 1}`);
+          values.push(input.fullName);
+        }
+
+        if (schema.ownerProfileColumns.address) {
+          updates.push(`address = $${values.length + 1}`);
+          values.push(input.address);
+        }
+
+        if (schema.ownerProfileColumns.isCompany) {
+          updates.push(`is_company = $${values.length + 1}`);
+          values.push(input.isCompany);
+        }
+
+        if (schema.ownerProfileColumns.companyName) {
+          updates.push(`company_name = $${values.length + 1}`);
+          values.push(input.companyName);
+        }
+
+        if (schema.ownerProfileColumns.country) {
+          updates.push(`country = $${values.length + 1}`);
+          values.push(input.country);
+        }
+
+        if (schema.ownerProfileColumns.city) {
+          updates.push(`city = $${values.length + 1}`);
+          values.push(input.city);
+        }
+
+        if (schema.ownerProfileColumns.state) {
+          updates.push(`state = $${values.length + 1}`);
+          values.push(input.state);
+        }
+
+        if (schema.ownerProfileColumns.phoneNumber) {
+          updates.push(`phone_number = $${values.length + 1}`);
+          values.push(input.phoneNumber);
+        }
+
+        if (schema.ownerProfileColumns.profilePictureUrl) {
+          updates.push(`profile_picture_url = $${values.length + 1}`);
+          values.push(input.profilePictureUrl);
+        }
+
+        values.push(input.id, input.organizationId);
+
+        const result = await client.query<OwnerRow>(
+          `update owners
+           set ${updates.join(", ")}
+           where id = $${values.length - 1} and organization_id = $${values.length} and owner_type = 'client'
+           returning ${ownerSelectList(schema)}`,
+          values
+        );
+
+        return result.rows[0] ? mapOwner(result.rows[0]) : null;
+      }
+
+      const result = await client.query<OwnerRow>(
+        `update owner_clients
+         set name = $1
+         where id = $2 and organization_id = $3
+         returning ${ownerSelectList(schema)}`,
+        [input.name, input.id, input.organizationId]
+      );
+
+      return result.rows[0] ? mapOwner(result.rows[0]) : null;
+    },
     async createProperty(input: CreatePropertyRecordInput): Promise<Property> {
       const schema = await getPropertyStorageSchema(client);
       const result = await client.query<PropertyRow>(
@@ -532,7 +608,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
           ${schema.relationIdColumn},
           ${schema.relationNameColumn}
         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
+        returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema, "properties")}, ${relationNameAlias(schema, "properties")}, status, created_at`,
         [
           input.id,
           input.organizationId,
@@ -571,7 +647,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
             ${schema.relationIdColumn},
             ${schema.relationNameColumn}
           ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
+          returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema, "properties")}, ${relationNameAlias(schema, "properties")}, status, created_at`,
           [
             input.property.id,
             input.property.organizationId,
@@ -677,7 +753,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
              ${schema.relationIdColumn} = $6,
              ${schema.relationNameColumn} = $7
            where id = $8 and organization_id = $9
-         returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema)}, ${relationNameAlias(schema)}, status, created_at`,
+         returning id, organization_id, (select name from organizations where id = organization_id) as organization_name, name, address, city, country_code, management_context, property_type, year_built, photo_urls, ${relationIdAlias(schema, "properties")}, ${relationNameAlias(schema, "properties")}, status, created_at`,
         [
           input.name,
           input.address,

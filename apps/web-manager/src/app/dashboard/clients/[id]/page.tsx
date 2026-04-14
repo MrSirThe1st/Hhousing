@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
-import ClientPropertyAssignmentPanel from "../../../../components/client-property-assignment-panel";
+import ActionMenu from "../../../../components/action-menu";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
 import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
-import OwnerInvitationPanel from "../../../../components/owner-invitation-panel";
 import { getServerAuthSession } from "../../../../lib/session";
 
 function formatCurrencySummary(summary: Map<string, number>): string {
@@ -85,11 +84,9 @@ export default async function ClientDetailPage(
   }
 
   const tenantLeaseRepo = createTenantLeaseRepo();
-  const [client, owners, properties, allProperties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
+  const [client, properties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
     repoResult.data.getOwnerById(id, session.organizationId),
-    repoResult.data.listOwners(session.organizationId),
     repoResult.data.listPropertiesWithUnits(session.organizationId, { ownerId: id }),
-    repoResult.data.listPropertiesWithUnits(session.organizationId),
     tenantLeaseRepo.listLeasesByOrganization(session.organizationId),
     tenantLeaseRepo.listTenantsByOrganization(session.organizationId),
     createPaymentRepo().listPayments({ organizationId: session.organizationId }),
@@ -100,23 +97,11 @@ export default async function ClientDetailPage(
     notFound();
   }
 
-  const clientOwners = owners.filter((owner) => owner.ownerType === "client");
   const propertyRows = properties.map((item) => ({
     property: item.property,
     unitCount: item.units.length,
     occupiedUnitCount: item.units.filter((unit) => unit.status === "occupied").length
   }));
-  const assignedPropertyIds = new Set(propertyRows.map((item) => item.property.id));
-  const assignableProperties = allProperties
-    .filter((item) => !assignedPropertyIds.has(item.property.id))
-    .map((item) => ({
-      id: item.property.id,
-      name: item.property.name,
-      city: item.property.city,
-      unitCount: item.units.length,
-      occupiedUnitCount: item.units.filter((unit) => unit.status === "occupied").length
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name, "fr"));
   const unitCount = properties.reduce((sum, item) => sum + item.units.length, 0);
   const occupiedUnitCount = properties.reduce(
     (sum, item) => sum + item.units.filter((unit) => unit.status === "occupied").length,
@@ -214,8 +199,17 @@ export default async function ClientDetailPage(
               </p>
             </div>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 lg:max-w-sm">
-            Les documents liés à ce propriétaire sont centralisés sur cette fiche et restent séparés de la bibliothèque générale.
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            <ActionMenu
+              triggerLabel="Actions"
+              items={[
+                { label: "Modifier le client", href: `/dashboard/clients/${client.id}/edit` },
+                { label: "Affecter un bien / Inviter", href: `/dashboard/clients/${client.id}/assign` }
+              ]}
+            />
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 lg:max-w-sm">
+              Les documents liés à ce propriétaire sont centralisés sur cette fiche et restent séparés de la bibliothèque générale.
+            </div>
           </div>
         </div>
       </section>
@@ -255,20 +249,12 @@ export default async function ClientDetailPage(
         </div>
       </div>
 
-      <ClientPropertyAssignmentPanel
-        clientId={client.id}
-        assignableProperties={assignableProperties}
-      />
-
       <ClientPortfolioTable
         currentClientId={client.id}
-        ownerClients={clientOwners}
         properties={propertyRows}
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <OwnerInvitationPanel ownerId={client.id} ownerName={client.name} />
-
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>

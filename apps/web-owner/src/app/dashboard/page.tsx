@@ -44,7 +44,7 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         <div className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
           <p className="text-sm text-slate-500">A suivre</p>
           <p className="mt-3 text-3xl font-semibold text-slate-950">{formatCurrency(view.pendingAmount + view.overdueAmount, view.primaryCurrencyCode)}</p>
-          <p className="mt-2 text-sm text-slate-600">Pending + overdue</p>
+          <p className="mt-2 text-sm text-slate-600">En attente + en retard</p>
         </div>
       </section>
 
@@ -53,7 +53,7 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Performance par bien</h2>
-              <p className="mt-1 text-sm text-slate-500">Lecture seule du portefeuille owner</p>
+              <p className="mt-1 text-sm text-slate-500">Lecture seule du portefeuille propriétaire</p>
             </div>
           </div>
           <div className="mt-5 overflow-x-auto">

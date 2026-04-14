@@ -174,86 +174,86 @@ export default function DashboardTasksPanel({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f7fbff_48%,#eef4ff_100%)] p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#0063fe]">Tasks</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#010a19]">Centre d&apos;exécution</h2>
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Centre d&apos;exécution</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Les tâches manuelles vivent ici et les tâches système suivent automatiquement maintenance, paiements en retard et renouvellements de bail.
+              Tâches manuelles et système suivant automatiquement maintenance, paiements en retard et renouvellements de bail.
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => setShowCreateForm((currentValue) => !currentValue)}
-            className="rounded-full bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
           >
-            {showCreateForm ? "Fermer" : "Nouvelle tâche"}
+            {showCreateForm ? "Fermer" : "+ Nouvelle tâche"}
           </button>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Ouvertes</p>
-            <p className="mt-1 text-2xl font-semibold text-[#010a19]">{summary.openCount}</p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ouvertes</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.openCount}</p>
           </div>
-          <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">En cours</p>
-            <p className="mt-1 text-2xl font-semibold text-[#010a19]">{summary.inProgressCount}</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">En cours</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.inProgressCount}</p>
           </div>
-          <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Terminées</p>
-            <p className="mt-1 text-2xl font-semibold text-[#010a19]">{summary.doneCount}</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Terminées</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.doneCount}</p>
           </div>
-          <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Manuelles</p>
-            <p className="mt-1 text-2xl font-semibold text-[#010a19]">{summary.manualCount}</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Manuelles</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.manualCount}</p>
           </div>
-          <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Système</p>
-            <p className="mt-1 text-2xl font-semibold text-[#010a19]">{summary.systemCount}</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Système</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.systemCount}</p>
           </div>
         </div>
       </section>
 
       {showCreateForm ? (
-        <form onSubmit={handleCreateTask} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleCreateTask} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold text-[#010a19]">Nouvelle tâche</h3>
           <div className="grid gap-4 lg:grid-cols-2">
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Titre</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Titre</span>
               <input
                 value={formState.title}
                 onChange={(event) => setFormState((current) => ({ ...current, title: event.target.value }))}
                 required
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Échéance</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Échéance</span>
               <input
                 type="date"
                 value={formState.dueDate}
                 onChange={(event) => setFormState((current) => ({ ...current, dueDate: event.target.value }))}
                 required
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </label>
-            <label className="space-y-2 text-sm text-slate-600 lg:col-span-2">
-              <span className="font-medium text-slate-800">Description</span>
+            <label className="space-y-2 lg:col-span-2">
+              <span className="text-sm font-medium text-slate-700">Description</span>
               <textarea
                 value={formState.description}
                 onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
                 rows={3}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Priorité</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Priorité</span>
               <select
                 value={formState.priority}
                 onChange={(event) => setFormState((current) => ({ ...current, priority: event.target.value as TaskFormState["priority"] }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               >
                 <option value="low">Faible</option>
                 <option value="medium">Moyenne</option>
@@ -262,12 +262,12 @@ export default function DashboardTasksPanel({
               </select>
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-slate-600">
-                <span className="font-medium text-slate-800">Objet lié</span>
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">Objet lié</span>
                 <select
                   value={formState.relatedType}
                   onChange={(event) => setFormState((current) => ({ ...current, relatedType: event.target.value as TaskFormState["relatedType"], relatedId: "" }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                 >
                   <option value="">Aucun</option>
                   <option value="property">Propriété</option>
@@ -276,13 +276,13 @@ export default function DashboardTasksPanel({
                   <option value="tenant">Locataire</option>
                 </select>
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
-                <span className="font-medium text-slate-800">Sélection</span>
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">Sélection</span>
                 <select
                   value={formState.relatedId}
                   onChange={(event) => setFormState((current) => ({ ...current, relatedId: event.target.value }))}
                   disabled={!formState.relatedType}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 disabled:bg-slate-50"
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20 disabled:bg-slate-50 disabled:text-slate-400"
                 >
                   <option value="">Aucun</option>
                   {availableRelatedOptions.map((option) => (
@@ -296,11 +296,18 @@ export default function DashboardTasksPanel({
           {message ? <p className="mt-4 text-sm text-emerald-700">{message}</p> : null}
           {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(false)}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Annuler
+            </button>
             <button
               type="submit"
               disabled={formBusy || formState.title.trim().length === 0}
-              className="rounded-full bg-[#0063fe] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {formBusy ? "Création..." : "Créer la tâche"}
             </button>
@@ -308,7 +315,7 @@ export default function DashboardTasksPanel({
         </form>
       ) : null}
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-[#010a19]">Backlog opérateur</h3>
@@ -319,7 +326,7 @@ export default function DashboardTasksPanel({
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition hover:border-slate-300"
             >
               <option value="all">Tous statuts</option>
               <option value="open">Ouvertes</option>
@@ -330,7 +337,7 @@ export default function DashboardTasksPanel({
             <select
               value={sourceFilter}
               onChange={(event) => setSourceFilter(event.target.value as typeof sourceFilter)}
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition hover:border-slate-300"
             >
               <option value="all">Tous types</option>
               <option value="manual">Manuelles</option>
@@ -339,33 +346,46 @@ export default function DashboardTasksPanel({
           </div>
         </div>
 
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-3">
           {filteredTasks.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-12 text-center text-sm text-slate-500">
-              Aucune tâche pour les filtres actuels.
+            <div className="rounded-lg border border-dashed border-slate-200 px-6 py-12 text-center">
+              <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p className="mt-3 text-sm text-slate-500">Aucune tâche pour les filtres actuels</p>
             </div>
           ) : (
             filteredTasks.map((task) => (
-              <article key={task.id} className="rounded-3xl border border-slate-200 p-5">
+              <article key={task.id} className="rounded-xl border border-slate-200 bg-white p-5 transition hover:shadow-md">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-lg font-semibold text-slate-950">{task.title}</h4>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(task.status)}`}>
+                      <h4 className="text-base font-semibold text-[#010a19]">{task.title}</h4>
+                      <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${getStatusClass(task.status)}`}>
                         {getStatusLabel(task.status)}
                       </span>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getPriorityClass(task.priority)}`}>
+                      <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${getPriorityClass(task.priority)}`}>
                         {getPriorityLabel(task.priority as TaskFormState["priority"])}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
                         {task.source === "system" ? "Système" : "Manuelle"}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-slate-600">{task.description ?? "Aucune description."}</p>
-                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-500">
-                      <span>Échéance: {new Date(`${task.dueDate}T12:00:00`).toLocaleDateString("fr-FR")}</span>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{task.description ?? "Aucune description."}</p>
+                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {new Date(`${task.dueDate}T12:00:00`).toLocaleDateString("fr-FR")}
+                      </span>
                       {task.relatedEntityType && task.relatedEntityId ? (
-                        <span>Lié à: {relatedOptions.find((option) => option.type === task.relatedEntityType && option.id === task.relatedEntityId)?.label ?? task.relatedEntityId}</span>
+                        <span className="flex items-center gap-1">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                          </svg>
+                          {relatedOptions.find((option) => option.type === task.relatedEntityType && option.id === task.relatedEntityId)?.label ?? task.relatedEntityId}
+                        </span>
                       ) : null}
                     </div>
                   </div>
@@ -376,7 +396,7 @@ export default function DashboardTasksPanel({
                         type="button"
                         onClick={() => void handleStatusChange(task.id, "in_progress")}
                         disabled={busyTaskId === task.id}
-                        className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                        className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                       >
                         Prendre en charge
                       </button>
@@ -386,7 +406,7 @@ export default function DashboardTasksPanel({
                         type="button"
                         onClick={() => void handleStatusChange(task.id, "done")}
                         disabled={busyTaskId === task.id}
-                        className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                       >
                         Terminer
                       </button>
@@ -396,7 +416,7 @@ export default function DashboardTasksPanel({
                         type="button"
                         onClick={() => void handleDeleteTask(task.id)}
                         disabled={busyTaskId === task.id}
-                        className="rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700"
+                        className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
                       >
                         Supprimer
                       </button>

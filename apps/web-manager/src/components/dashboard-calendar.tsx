@@ -284,129 +284,118 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#eef4ff_52%,#f8fafc_100%)] p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#0063fe]">Calendar</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#010a19]">Planning operationnel</h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Vue mensuelle des échéances réelles: baux, paiements, maintenance, rappels de tâches et événements personnalisés.
-            </p>
+            <h2 className="text-2xl font-semibold capitalize tracking-[-0.02em] text-[#010a19]">{formatMonthLabel(viewMonth)}</h2>
+            <p className="mt-1 text-sm text-slate-500">{formatRangeLabel(viewMonth)}</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMonth(startOfMonth(addDays(viewMonth, -1)))}
-              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-            >
-              Prec.
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMonth(startOfMonth(new Date()))}
-              className="rounded-full border border-[#0063fe]/20 bg-[#0063fe]/10 px-3 py-2 text-sm font-semibold text-[#0063fe] transition hover:bg-[#0063fe]/15"
-            >
-              Aujourd&apos;hui
-            </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1">
+              <button
+                type="button"
+                onClick={() => setViewMonth(startOfMonth(addDays(viewMonth, -1)))}
+                className="rounded px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-[#010a19]"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMonth(startOfMonth(new Date()))}
+                className="rounded bg-white px-3 py-1.5 text-sm font-semibold text-[#0063fe] shadow-sm transition hover:bg-[#0063fe] hover:text-white"
+              >
+                Aujourd&apos;hui
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMonth(startOfMonth(addDays(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1), 0)))}
+                className="rounded px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-[#010a19]"
+              >
+                →
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => setShowCreateForm((currentValue) => !currentValue)}
-              className="rounded-full bg-[#0063fe] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+              className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
             >
-              {showCreateForm ? "Fermer" : "Nouvel événement"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMonth(startOfMonth(addDays(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1), 0)))}
-              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-            >
-              Suiv.
+              {showCreateForm ? "Fermer" : "+ Nouvel événement"}
             </button>
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h3 className="text-xl font-semibold capitalize text-[#010a19]">{formatMonthLabel(viewMonth)}</h3>
-            <p className="mt-1 text-sm text-slate-500">Grille sur 6 semaines · {formatRangeLabel(viewMonth)}</p>
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Événements</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{monthEntries.length}</p>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:w-auto">
-            <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Événements</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{monthEntries.length}</p>
-            </div>
-            <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Rappels</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{monthEntries.filter((entry) => entry.source === "task").length}</p>
-            </div>
-            <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Scope</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{scopeLabel}</p>
-            </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Rappels</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{monthEntries.filter((entry) => entry.source === "task").length}</p>
           </div>
         </div>
       </section>
 
       {showCreateForm ? (
-        <form onSubmit={handleCreateEvent} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleCreateEvent} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold text-[#010a19]">Nouvel événement</h3>
           <div className="grid gap-4 lg:grid-cols-2">
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Titre</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Titre</span>
               <input
                 value={formState.title}
                 onChange={(event) => setFormState((current) => ({ ...current, title: event.target.value }))}
                 required
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Type</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Type</span>
               <select
                 value={formState.eventType}
                 onChange={(event) => setFormState((current) => ({ ...current, eventType: event.target.value as CalendarFormState["eventType"] }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               >
                 <option value="custom">Custom</option>
                 <option value="inspection">Inspection</option>
                 <option value="reminder">Reminder</option>
               </select>
             </label>
-            <label className="space-y-2 text-sm text-slate-600 lg:col-span-2">
-              <span className="font-medium text-slate-800">Description</span>
+            <label className="space-y-2 lg:col-span-2">
+              <span className="text-sm font-medium text-slate-700">Description</span>
               <textarea
                 value={formState.description}
                 onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
                 rows={3}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Début</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Début</span>
               <input
                 type="datetime-local"
                 value={formState.startAt}
                 onChange={(event) => setFormState((current) => ({ ...current, startAt: event.target.value }))}
                 required
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Fin</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Fin</span>
               <input
                 type="datetime-local"
                 value={formState.endAt}
                 onChange={(event) => setFormState((current) => ({ ...current, endAt: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Objet lié</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Objet lié</span>
               <select
                 value={formState.relatedType}
                 onChange={(event) => setFormState((current) => ({ ...current, relatedType: event.target.value as CalendarFormState["relatedType"], relatedId: "" }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
               >
                 <option value="">Aucun</option>
                 <option value="property">Propriété</option>
@@ -415,13 +404,13 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                 <option value="tenant">Locataire</option>
               </select>
             </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Sélection</span>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Sélection</span>
               <select
                 value={formState.relatedId}
                 onChange={(event) => setFormState((current) => ({ ...current, relatedId: event.target.value }))}
                 disabled={!formState.relatedType}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 disabled:bg-slate-50"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20 disabled:bg-slate-50 disabled:text-slate-400"
               >
                 <option value="">Aucun</option>
                 {availableRelatedOptions.map((option) => (
@@ -434,11 +423,18 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
           {message ? <p className="mt-4 text-sm text-emerald-700">{message}</p> : null}
           {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(false)}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Annuler
+            </button>
             <button
               type="submit"
               disabled={formBusy || formState.title.trim().length === 0}
-              className="rounded-full bg-[#0063fe] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {formBusy ? "Création..." : "Créer l'événement"}
             </button>
@@ -446,11 +442,11 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
         </form>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/80">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
             {WEEKDAY_LABELS.map((label) => (
-              <div key={label} className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <div key={label} className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {label}
               </div>
             ))}
@@ -465,32 +461,35 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
               return (
                 <article
                   key={getDateKey(day)}
-                  className="min-h-37 border-b border-r border-slate-200 p-3 last:border-r-0"
+                  className={`min-h-32 border-b border-r border-slate-200 p-2.5 transition last:border-r-0 ${!isCurrentMonth ? "bg-slate-50/50" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <span
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
-                        isToday ? "bg-[#0063fe] text-white" : isCurrentMonth ? "text-[#010a19]" : "text-slate-400"
+                      className={`inline-flex h-7 w-7 items-center justify-center text-sm font-semibold ${
+                        isToday ? "rounded-full bg-[#0063fe] text-white" : isCurrentMonth ? "text-[#010a19]" : "text-slate-400"
                       }`}
                     >
                       {day.getDate()}
                     </span>
-                    {dayEvents.length > 0 ? (
-                      <span className="text-[11px] font-medium text-slate-400">{dayEvents.length} items</span>
+                    {dayEvents.length > 0 && !isToday ? (
+                      <span className="text-[10px] font-medium text-slate-400">{dayEvents.length}</span>
                     ) : null}
                   </div>
 
-                  <div className="mt-3 space-y-1">
-                    {dayEvents.map((event) => (
+                  <div className="mt-2 space-y-1">
+                    {dayEvents.slice(0, 3).map((event) => (
                       <button
                         key={event.id}
                         type="button"
                         onClick={() => { setSelectedEntryId(event.id); setShowEditForm(false); }}
-                        className={`w-full rounded-xl border px-2 py-1 text-left transition hover:opacity-80 ${EVENT_TONE_STYLES[getTone(event)]} ${selectedEntryId === event.id ? "ring-2 ring-[#0063fe] ring-offset-1" : ""}`}
+                        className={`w-full rounded-lg border px-2 py-1 text-left text-xs font-medium transition hover:shadow-sm ${EVENT_TONE_STYLES[getTone(event)]} ${selectedEntryId === event.id ? "ring-2 ring-[#0063fe] ring-offset-1" : ""}`}
                       >
-                        <p className="truncate text-xs font-semibold leading-tight">{event.title}</p>
+                        <p className="truncate leading-tight">{event.title}</p>
                       </button>
                     ))}
+                    {dayEvents.length > 3 ? (
+                      <p className="px-2 text-[10px] font-medium text-slate-400">+{dayEvents.length - 3} more</p>
+                    ) : null}
                   </div>
                 </article>
               );
@@ -500,39 +499,47 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
 
         <aside className="space-y-4">
           {selectedEntry ? (
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Détail</p>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Détail</h3>
                 <button
                   type="button"
                   onClick={() => { setSelectedEntryId(null); setShowEditForm(false); }}
-                  className="text-xs text-slate-400 hover:text-slate-700"
+                  className="text-slate-400 transition hover:text-slate-700"
                 >
-                  Fermer ×
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
 
-              <div className="mt-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{formatTimeLabel(selectedEntry)}</p>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${EVENT_TONE_STYLES[getTone(selectedEntry)]}`}>
-                    {selectedEntry.statusLabel}
-                  </span>
+              <div className="mt-5 space-y-4">
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-semibold text-[#010a19]">{selectedEntry.title}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {new Date(selectedEntry.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                      </p>
+                      <p className="mt-0.5 text-xs font-medium text-slate-400">{formatTimeLabel(selectedEntry)}</p>
+                    </div>
+                    <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${EVENT_TONE_STYLES[getTone(selectedEntry)]}`}>
+                      {selectedEntry.statusLabel}
+                    </span>
+                  </div>
+                  {selectedEntry.relatedLabel ? (
+                    <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-500">{selectedEntry.relatedLabel}</p>
+                  ) : null}
+                  {selectedEntry.detail ? (
+                    <p className="mt-3 text-sm leading-relaxed text-slate-600">{selectedEntry.detail}</p>
+                  ) : null}
                 </div>
-                <p className="mt-2 text-base font-semibold text-[#010a19]">{selectedEntry.title}</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {new Date(selectedEntry.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                </p>
-                {selectedEntry.relatedLabel ? (
-                  <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">{selectedEntry.relatedLabel}</p>
-                ) : null}
-                <p className="mt-3 text-sm text-slate-600">{selectedEntry.detail}</p>
               </div>
 
               {selectedEntry.source === "manual" ? (
                 <>
                   {!showEditForm ? (
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4">
                       <button
                         type="button"
                         onClick={() => {
@@ -550,7 +557,7 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                           });
                           setShowEditForm(true);
                         }}
-                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                       >
                         Modifier
                       </button>
@@ -558,68 +565,68 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                         type="button"
                         onClick={() => void handleDeleteEvent(selectedEntry.id)}
                         disabled={busyEntryId === selectedEntry.id}
-                        className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                        className="flex-1 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
                       >
                         {busyEntryId === selectedEntry.id ? "..." : "Supprimer"}
                       </button>
                     </div>
                   ) : (
-                    <form onSubmit={(e) => void handleEditEvent(e)} className="mt-4 space-y-3">
-                      <label className="block space-y-1 text-xs text-slate-600">
-                        <span className="font-medium text-slate-800">Titre</span>
+                    <form onSubmit={(e) => void handleEditEvent(e)} className="mt-5 space-y-3 border-t border-slate-100 pt-4">
+                      <label className="block space-y-1.5">
+                        <span className="text-sm font-medium text-slate-700">Titre</span>
                         <input
                           value={editFormState.title}
                           onChange={(e) => setEditFormState((s) => ({ ...s, title: e.target.value }))}
                           required
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                         />
                       </label>
-                      <label className="block space-y-1 text-xs text-slate-600">
-                        <span className="font-medium text-slate-800">Description</span>
+                      <label className="block space-y-1.5">
+                        <span className="text-sm font-medium text-slate-700">Description</span>
                         <textarea
                           value={editFormState.description}
                           onChange={(e) => setEditFormState((s) => ({ ...s, description: e.target.value }))}
                           rows={2}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                         />
                       </label>
-                      <label className="block space-y-1 text-xs text-slate-600">
-                        <span className="font-medium text-slate-800">Type</span>
+                      <label className="block space-y-1.5">
+                        <span className="text-sm font-medium text-slate-700">Type</span>
                         <select
                           value={editFormState.eventType}
                           onChange={(e) => setEditFormState((s) => ({ ...s, eventType: e.target.value as CalendarFormState["eventType"] }))}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                         >
                           <option value="custom">Custom</option>
                           <option value="inspection">Inspection</option>
                           <option value="reminder">Reminder</option>
                         </select>
                       </label>
-                      <label className="block space-y-1 text-xs text-slate-600">
-                        <span className="font-medium text-slate-800">Début</span>
+                      <label className="block space-y-1.5">
+                        <span className="text-sm font-medium text-slate-700">Début</span>
                         <input
                           type="datetime-local"
                           value={editFormState.startAt}
                           onChange={(e) => setEditFormState((s) => ({ ...s, startAt: e.target.value }))}
                           required
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                         />
                       </label>
-                      <label className="block space-y-1 text-xs text-slate-600">
-                        <span className="font-medium text-slate-800">Fin</span>
+                      <label className="block space-y-1.5">
+                        <span className="text-sm font-medium text-slate-700">Fin</span>
                         <input
                           type="datetime-local"
                           value={editFormState.endAt}
                           onChange={(e) => setEditFormState((s) => ({ ...s, endAt: e.target.value }))}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                         />
                       </label>
-                      <label className="block space-y-1 text-xs text-slate-600">
-                        <span className="font-medium text-slate-800">Objet lié</span>
+                      <label className="block space-y-1.5">
+                        <span className="text-sm font-medium text-slate-700">Objet lié</span>
                         <select
                           value={editFormState.relatedType}
                           onChange={(e) => setEditFormState((s) => ({ ...s, relatedType: e.target.value as CalendarFormState["relatedType"], relatedId: "" }))}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                         >
                           <option value="">Aucun</option>
                           <option value="property">Propriété</option>
@@ -629,12 +636,12 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                         </select>
                       </label>
                       {editFormState.relatedType ? (
-                        <label className="block space-y-1 text-xs text-slate-600">
-                          <span className="font-medium text-slate-800">Sélection</span>
+                        <label className="block space-y-1.5">
+                          <span className="text-sm font-medium text-slate-700">Sélection</span>
                           <select
                             value={editFormState.relatedId}
                             onChange={(e) => setEditFormState((s) => ({ ...s, relatedId: e.target.value }))}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
                           >
                             <option value="">Aucun</option>
                             {availableEditRelatedOptions.map((option) => (
@@ -644,18 +651,18 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                         </label>
                       ) : null}
                       {error ? <p className="text-xs text-rose-700">{error}</p> : null}
-                      <div className="flex gap-2 pt-1">
+                      <div className="flex gap-2 pt-2">
                         <button
                           type="submit"
                           disabled={editFormBusy || editFormState.title.trim().length === 0}
-                          className="rounded-full bg-[#0063fe] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                          className="flex-1 rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60"
                         >
                           {editFormBusy ? "Sauvegarde..." : "Sauvegarder"}
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowEditForm(false)}
-                          className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600"
+                          className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                         >
                           Annuler
                         </button>
@@ -664,50 +671,51 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                   )}
                 </>
               ) : (
-                <p className="mt-4 text-xs text-slate-400">Événement généré automatiquement — lecture seule.</p>
+                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs text-amber-700">Événement généré automatiquement — lecture seule.</p>
+                </div>
               )}
 
-              {message ? <p className="mt-3 text-xs text-emerald-700">{message}</p> : null}
+              {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
             </section>
           ) : (
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Focus du mois</p>
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Focus du mois</h3>
               <div className="mt-4 space-y-2">
-                {monthEntries.map((event) => (
+                {monthEntries.slice(0, 8).map((event) => (
                   <button
                     key={event.id}
                     type="button"
                     onClick={() => { setSelectedEntryId(event.id); setShowEditForm(false); }}
-                    className="w-full rounded-2xl border border-slate-200 p-3 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                    className="w-full rounded-lg border border-slate-200 p-3 text-left transition hover:border-[#0063fe] hover:shadow-sm"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{formatTimeLabel(event)}</p>
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${EVENT_TONE_STYLES[getTone(event)]}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-[#010a19]">{event.title}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {new Date(event.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} • {formatTimeLabel(event)}
+                        </p>
+                      </div>
+                      <span className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold ${EVENT_TONE_STYLES[getTone(event)]}`}>
                         {event.statusLabel}
                       </span>
                     </div>
-                    <p className="mt-1 truncate text-sm font-semibold text-[#010a19]">{event.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {new Date(event.startAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
-                    </p>
                   </button>
                 ))}
+                {monthEntries.length > 8 ? (
+                  <p className="px-3 py-2 text-xs text-slate-400">+{monthEntries.length - 8} autres événements</p>
+                ) : null}
                 {monthEntries.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
-                    Aucun événement sur ce mois.
+                  <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center">
+                    <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="mt-3 text-sm text-slate-500">Aucun événement sur ce mois</p>
                   </div>
                 ) : null}
               </div>
             </section>
-          )}
-
-          <section className="rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">Etape suivante</p>
-            <h3 className="mt-3 text-lg font-semibold">Calendrier du scope {scopeLabel.toLowerCase()}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-white/75">
-              Les événements personnalisés cohabitent maintenant avec les échéances de bail, la collecte et les rappels issus des tâches.
-            </p>
-          </section>
+          )}       
         </aside>
       </div>
     </div>

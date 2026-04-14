@@ -42,9 +42,12 @@ export {
 } from "./properties/create-property";
 export {
   createOwner,
+  updateOwner,
   listOwners,
   type CreateOwnerRequest,
   type CreateOwnerResponse,
+  type UpdateOwnerRequest,
+  type UpdateOwnerResponse,
   type ListOwnersRequest,
   type ListOwnersResponse,
   type OwnersDeps

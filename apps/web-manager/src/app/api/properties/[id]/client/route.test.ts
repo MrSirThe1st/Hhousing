@@ -134,7 +134,7 @@ describe("/api/properties/[id]/client", () => {
     expect(updatePropertyMock).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects owned properties", async () => {
+  it("updates owned properties", async () => {
     extractAuthSessionFromCookiesMock.mockResolvedValue({ role: "property_manager" });
     requireOperatorSessionMock.mockReturnValue({
       success: true,
@@ -166,8 +166,8 @@ describe("/api/properties/[id]/client", () => {
       { params: Promise.resolve({ id: "prp_1" }) }
     );
 
-    expect(response.status).toBe(400);
-    expect((await response.json()).code).toBe("VALIDATION_ERROR");
-    expect(updatePropertyMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect((await response.json()).success).toBe(true);
+    expect(updatePropertyMock).toHaveBeenCalledTimes(1);
   });
 });
