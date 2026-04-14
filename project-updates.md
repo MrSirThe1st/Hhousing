@@ -8,6 +8,12 @@ Use this file as the first project memory source before searching the codebase.
 - Impact: Added `apps/web-owner/src/lib/owner-reporting.ts` and `apps/web-owner/src/app/api/reports/export/route.ts`; updated owner reports/dashboard/properties pages and manager dashboard mixed-language subtitle; updated `apps/web-manager` tests `src/app/api/organizations/members/route.test.ts` and `src/app/api/properties/[id]/client/route.test.ts`.
 - Tests: `pnpm -C apps/web-owner typecheck` ✓, `pnpm -C apps/web-owner build` ✓, `pnpm -C apps/web-manager test -- 'src/app/api/organizations/members/route.test.ts' 'src/app/api/properties/[id]/client/route.test.ts'` ✓, `pnpm lint && pnpm typecheck && pnpm test && pnpm build` ✓.
 
+## 2026-04-14
+- Change type: Web + Owner Portal + Auth
+- Description: Fixed owner-portal redirect loop (`/owner-portal/dashboard` <-> `/owner-portal/login`) by requiring active `owner_portal_accesses` in middleware before auto-redirecting authenticated users to owner dashboard.
+- Impact: Updated `apps/web-manager/src/middleware.ts` owner-portal guards so `/owner-portal/invite` is always public, `/owner-portal/login` redirects only for users with active owner access, and `/owner-portal/dashboard*` now enforces both auth and owner access.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
+
 ## 2026-04-13
 - Change type: Web + API + Data
 - Description: Fixed client-assignment failure on property update caused by invalid SQL alias usage in repository RETURNING clauses (`p.<column>` without `FROM properties p`).

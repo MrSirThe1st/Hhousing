@@ -44,6 +44,19 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  async function getOwnerPortalAccessCount(userId: string): Promise<number> {
+    try {
+      const { count } = await supabase
+        .from('owner_portal_accesses')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('status', 'active');
+      return count ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
   // Public pages
   if (pathname === "/login" || pathname === "/signup") {
     if (user !== null) {
@@ -79,19 +92,32 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-  // Owner portal login and invite: public, redirect to dashboard if already authenticated
-  if (pathname === "/owner-portal/login" || pathname === "/owner-portal/invite") {
+  // Owner invite stays public for token handling; owner login redirects only if user has active owner access.
+  if (pathname === "/owner-portal/invite") {
+    return response;
+  }
+
+  if (pathname === "/owner-portal/login") {
     if (user !== null) {
-      return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
+      const ownerAccessCount = await getOwnerPortalAccessCount(user.id);
+      if (ownerAccessCount > 0) {
+        return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
+      }
     }
     return response;
   }
 
-  // Owner portal dashboard: only for authenticated users
+  // Owner portal dashboard: requires authenticated user with active owner access.
   if (pathname.startsWith("/owner-portal/dashboard")) {
     if (user === null) {
       return NextResponse.redirect(new URL("/owner-portal/login", request.url));
     }
+
+    const ownerAccessCount = await getOwnerPortalAccessCount(user.id);
+    if (ownerAccessCount === 0) {
+      return NextResponse.redirect(new URL("/owner-portal/login", request.url));
+    }
+
     return response;
   }
 
