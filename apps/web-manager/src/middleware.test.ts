@@ -22,12 +22,22 @@ describe("middleware", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    fromMock.mockReturnValue({
-      select: selectMock
-    });
+    fromMock.mockImplementation((table: string) => {
+      if (table === "owner_portal_accesses") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 1 })
+            })
+          })
+        };
+      }
 
-    selectMock.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ count: 1 })
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ count: 1 })
+        })
+      };
     });
   });
 
@@ -47,5 +57,40 @@ describe("middleware", () => {
     const response = await middleware(request);
 
     expect(response.headers.get("location")).toBe("http://localhost/dashboard");
+  });
+
+  it("redirects authenticated owner-only login access to owner portal dashboard", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "usr_owner" } } });
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === "organization_memberships") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ count: 0 })
+          })
+        };
+      }
+
+      if (table === "owner_portal_accesses") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 1 })
+            })
+          })
+        };
+      }
+
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ count: 0 })
+        })
+      };
+    });
+
+    const request = new NextRequest("http://localhost/login");
+    const response = await middleware(request);
+
+    expect(response.headers.get("location")).toBe("http://localhost/owner-portal/dashboard");
   });
 });

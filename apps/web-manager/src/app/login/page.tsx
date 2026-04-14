@@ -30,7 +30,9 @@ export default function LoginPage(): React.ReactElement {
       return;
     }
 
-    router.push("/dashboard");
+    // Route back through /login so middleware can redirect by access type.
+    router.replace("/login");
+    router.refresh();
   }
 
   return (

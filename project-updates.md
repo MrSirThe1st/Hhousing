@@ -32,6 +32,12 @@ Use this file as the first project memory source before searching the codebase.
 - Impact: Deleted `apps/web-owner`; updated workspace docs in `README.md` and `Learning/architecture-book/10-repo-map-and-boundaries.md`; regenerated `pnpm-lock.yaml` to remove stale workspace importer.
 - Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓, `pnpm build` ✓.
 
+## 2026-04-14
+- Change type: Web + Auth + Owner Portal
+- Description: Completed general login handoff for owners by routing post-auth flow back through middleware instead of hardcoding manager dashboard navigation.
+- Impact: Updated `apps/web-manager/src/app/login/page.tsx` to `router.replace('/login')` after successful sign-in so middleware picks the correct destination (`/dashboard` vs `/owner-portal/dashboard`); added owner-only redirect coverage in `apps/web-manager/src/middleware.test.ts`.
+- Tests: `pnpm -C apps/web-manager test -- src/middleware.test.ts` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
 ## 2026-04-13
 - Change type: Web + API + Data
 - Description: Fixed client-assignment failure on property update caused by invalid SQL alias usage in repository RETURNING clauses (`p.<column>` without `FROM properties p`).
