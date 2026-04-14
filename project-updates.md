@@ -14,6 +14,18 @@ Use this file as the first project memory source before searching the codebase.
 - Impact: Updated `apps/web-manager/src/middleware.ts` owner-portal guards so `/owner-portal/invite` is always public, `/owner-portal/login` redirects only for users with active owner access, and `/owner-portal/dashboard*` now enforces both auth and owner access.
 - Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
 
+## 2026-04-14
+- Change type: Web + Owner Portal + Frontend
+- Description: Restructured owner portal dashboard shell with a dedicated sidebar navigation and tightened page separation so overview stays on dashboard while properties/payments/reports remain in dedicated pages.
+- Impact: Added `apps/web-manager/src/components/owner-portal/sidebar.tsx`; updated `apps/web-manager/src/app/owner-portal/dashboard/layout.tsx` to a two-column sidebar + content shell; simplified `apps/web-manager/src/app/owner-portal/dashboard/page.tsx` with route-focused quick access blocks.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-14
+- Change type: Web + Auth + Routing
+- Description: Fixed login redirect mismatch where authenticated owner-only users hitting `/login` were sent to `/account-type`; middleware now prioritizes redirects by access type.
+- Impact: Updated `apps/web-manager/src/middleware.ts` so `/login` and `/signup` redirect order is: manager memberships -> `/dashboard`, owner portal access -> `/owner-portal/dashboard`, otherwise -> `/account-type`.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager build` ✓.
+
 ## 2026-04-13
 - Change type: Web + API + Data
 - Description: Fixed client-assignment failure on property update caused by invalid SQL alias usage in repository RETURNING clauses (`p.<column>` without `FROM properties p`).

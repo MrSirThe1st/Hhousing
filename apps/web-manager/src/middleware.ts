@@ -60,13 +60,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // Public pages
   if (pathname === "/login" || pathname === "/signup") {
     if (user !== null) {
-      // Check memberships
-      const count = await getMembershipCount(user.id);
-      if (count === 0) {
-        return NextResponse.redirect(new URL("/account-type", request.url));
-      } else {
+      const membershipCount = await getMembershipCount(user.id);
+      if (membershipCount > 0) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
+
+      const ownerAccessCount = await getOwnerPortalAccessCount(user.id);
+      if (ownerAccessCount > 0) {
+        return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
+      }
+
+      return NextResponse.redirect(new URL("/account-type", request.url));
     }
     return response;
   }

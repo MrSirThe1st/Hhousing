@@ -1,6 +1,7 @@
 import { getOwnerPortalSession } from "@/lib/owner-portal/server-session";
 import { loadOwnerPortfolio } from "@/lib/owner-portal/owner-portfolio";
 import { buildOwnerPortfolioView } from "@/lib/owner-portal/owner-portfolio-view";
+import Link from "next/link";
 
 function formatCurrency(amount: number, currencyCode: string): string {
   return new Intl.NumberFormat("fr-FR", {
@@ -48,57 +49,56 @@ export default async function OwnerPortalDashboardPage(): Promise<React.ReactEle
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white px-5 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Performance par bien</h2>
-              <p className="mt-1 text-sm text-slate-500">Lecture seule du portefeuille propriétaire</p>
-            </div>
-          </div>
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="text-slate-500">
-                <tr>
-                  <th className="pb-3 font-medium">Bien</th>
-                  <th className="pb-3 font-medium">Occupation</th>
-                  <th className="pb-3 font-medium">Encaisse</th>
-                  <th className="pb-3 font-medium">A suivre</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {view.propertyRows.map((row) => (
-                  <tr key={row.property.id}>
-                    <td className="py-3">
-                      <p className="font-medium text-slate-900">{row.property.name}</p>
-                      <p className="text-xs text-slate-500">{row.property.city} • {row.units.length} unite(s)</p>
-                    </td>
-                    <td className="py-3 text-slate-700">{row.occupiedUnits}/{row.units.length}</td>
-                    <td className="py-3 text-slate-700">{formatCurrency(row.paidAmount, view.primaryCurrencyCode)}</td>
-                    <td className="py-3 text-slate-700">{formatCurrency(row.pendingAmount, view.primaryCurrencyCode)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <section className="rounded-3xl border border-slate-200 bg-white px-5 py-5">
+        <h2 className="text-lg font-semibold text-slate-950">Acces rapide</h2>
+        <p className="mt-1 text-sm text-slate-500">Chaque bloc ouvre une page dediee du portail.</p>
 
-        <div className="rounded-3xl border border-slate-200 bg-white px-5 py-5">
-          <h2 className="text-lg font-semibold text-slate-950">Derniers encaissements</h2>
-          <div className="mt-5 space-y-3">
-            {view.paymentRows.filter((row) => row.payment.status === "paid").slice(0, 5).map((row) => (
-              <div key={row.payment.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-medium text-slate-900">{row.propertyName}</p>
-                    <p className="mt-1 text-sm text-slate-500">{row.lease?.tenantFullName ?? "Locataire non resolu"}{row.unitNumber ? ` • Unite ${row.unitNumber}` : ""}</p>
-                  </div>
-                  <p className="text-sm font-semibold text-slate-900">{formatCurrency(row.payment.amount, row.payment.currencyCode)}</p>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <Link
+            href="/owner-portal/dashboard/properties"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-[#0063fe] hover:bg-white"
+          >
+            <p className="text-sm font-semibold text-slate-900">Biens</p>
+            <p className="mt-1 text-sm text-slate-600">Voir l'occupation et la performance par bien.</p>
+          </Link>
+          <Link
+            href="/owner-portal/dashboard/payments"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-[#0063fe] hover:bg-white"
+          >
+            <p className="text-sm font-semibold text-slate-900">Paiements</p>
+            <p className="mt-1 text-sm text-slate-600">Consulter les paiements payes, en attente et en retard.</p>
+          </Link>
+          <Link
+            href="/owner-portal/dashboard/reports"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-[#0063fe] hover:bg-white"
+          >
+            <p className="text-sm font-semibold text-slate-900">Rapports</p>
+            <p className="mt-1 text-sm text-slate-600">Explorer les releves et exporter vos donnees CSV.</p>
+          </Link>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white px-5 py-5">
+        <h2 className="text-lg font-semibold text-slate-950">Derniers encaissements</h2>
+        <div className="mt-5 space-y-3">
+          {view.paymentRows.filter((row) => row.payment.status === "paid").slice(0, 5).map((row) => (
+            <div key={row.payment.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-medium text-slate-900">{row.propertyName}</p>
+                  <p className="mt-1 text-sm text-slate-500">{row.lease?.tenantFullName ?? "Locataire non resolu"}{row.unitNumber ? ` • Unite ${row.unitNumber}` : ""}</p>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Paye le {row.payment.paidDate ?? row.payment.dueDate}</p>
+                <p className="text-sm font-semibold text-slate-900">{formatCurrency(row.payment.amount, row.payment.currencyCode)}</p>
               </div>
-            ))}
-          </div>
+              <p className="mt-2 text-xs text-slate-500">Paye le {row.payment.paidDate ?? row.payment.dueDate}</p>
+            </div>
+          ))}
+
+          {view.paymentRows.filter((row) => row.payment.status === "paid").length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+              Aucun paiement paye pour le moment.
+            </p>
+          ) : null}
         </div>
       </section>
     </div>
