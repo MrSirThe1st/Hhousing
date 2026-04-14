@@ -79,9 +79,25 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
+  // Owner portal login and invite: public, redirect to dashboard if already authenticated
+  if (pathname === "/owner-portal/login" || pathname === "/owner-portal/invite") {
+    if (user !== null) {
+      return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
+    }
+    return response;
+  }
+
+  // Owner portal dashboard: only for authenticated users
+  if (pathname.startsWith("/owner-portal/dashboard")) {
+    if (user === null) {
+      return NextResponse.redirect(new URL("/owner-portal/login", request.url));
+    }
+    return response;
+  }
+
   return response;
 }
 
 export const config = {
-  matcher: ["/", "/marketplace", "/login", "/signup", "/account-type", "/onboarding", "/dashboard/:path*"]
+  matcher: ["/", "/marketplace", "/login", "/signup", "/account-type", "/onboarding", "/dashboard/:path*", "/owner-portal/:path*"]
 };

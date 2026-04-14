@@ -222,7 +222,6 @@ export async function acceptOwnerInvitation(
       status: 500,
       body: {
         success: false,
-    ++
         code: "INTERNAL_ERROR",
         error: "Supabase admin configuration missing"
       }
