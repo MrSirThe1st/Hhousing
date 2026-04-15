@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import type { ListingApplicationView, ManagerListingView } from "@hhousing/api-contracts";
 import ListingManagementPanel from "../../../components/listing-management-panel";
 import { createListingRepo } from "../../api/shared";
-import { getOperatorScopeLabel, getServerOperatorContext } from "../../../lib/operator-context";
 import { getServerAuthSession } from "../../../lib/session";
 
 type ListingsPageProps = {
@@ -25,18 +24,17 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps):
 
   const params = await searchParams;
   const activeTab = getActiveTab(params?.tab);
-  const operatorContext = await getServerOperatorContext(session);
   const listingRepo = createListingRepo();
 
   const [listings, applications] = await Promise.all([
-    listingRepo.listManagerListings(session.organizationId, operatorContext.currentScope),
-    listingRepo.listApplications(session.organizationId, operatorContext.currentScope)
+    listingRepo.listManagerListings(session.organizationId),
+    listingRepo.listApplications(session.organizationId)
   ]);
 
   return (
     <ListingManagementPanel
       organizationId={session.organizationId}
-      currentScopeLabel={getOperatorScopeLabel(operatorContext.currentScope)}
+      currentScopeLabel="Portefeuille unifié"
       activeTab={activeTab}
       listings={listings as ManagerListingView[]}
       applications={applications as ListingApplicationView[]}

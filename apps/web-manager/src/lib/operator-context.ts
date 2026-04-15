@@ -1,12 +1,5 @@
 import type { AuthSession } from "@hhousing/api-contracts";
-import { cookies } from "next/headers";
-import type { OperatorContext, OperatorExperience, OperatorScope } from "./operator-context.types";
-
-export const OPERATOR_SCOPE_COOKIE = "hh_operator_scope";
-
-export function isOperatorScope(value: unknown): value is OperatorScope {
-  return value === "owned" || value === "managed";
-}
+import type { OperatorContext, OperatorExperience } from "./operator-context.types";
 
 export function getOperatorExperience(session: AuthSession): OperatorExperience {
   if (session.role === "landlord") {
@@ -20,47 +13,21 @@ export function getOperatorExperience(session: AuthSession): OperatorExperience 
   return "manager_for_others";
 }
 
-export function getAvailableOperatorScopes(session: AuthSession): OperatorScope[] {
-  void session;
-  return ["owned"];
-}
-
-export function getDefaultOperatorScope(session: AuthSession): OperatorScope {
-  void session;
-  return "owned";
-}
-
-export function resolveOperatorContext(session: AuthSession, requestedScope?: string | null): OperatorContext {
-  void requestedScope;
-  const availableScopes = getAvailableOperatorScopes(session);
-  const currentScope = getDefaultOperatorScope(session);
-
+export function resolveOperatorContext(session: AuthSession): OperatorContext {
   return {
-    experience: getOperatorExperience(session),
-    availableScopes,
-    currentScope,
-    canSwitch: false
+    experience: getOperatorExperience(session)
   };
 }
 
 export async function getServerOperatorContext(session: AuthSession): Promise<OperatorContext> {
-  const cookieStore = await cookies();
-  const requestedScope = cookieStore.get(OPERATOR_SCOPE_COOKIE)?.value ?? null;
-  return resolveOperatorContext(session, requestedScope);
+  return resolveOperatorContext(session);
 }
 
-export function getOperatorScopeLabel(scope: OperatorScope): string {
-  void scope;
+export function getOperatorScopeLabel(): string {
   return "Portefeuille";
 }
 
 export function canEditOrganizationDetails(session: AuthSession): boolean {
   const experience = getOperatorExperience(session);
   return experience === "manager_for_others" || experience === "mixed_operator";
-}
-
-export function isScopeAllowedForSession(session: AuthSession, scope: OperatorScope): boolean {
-  void session;
-  void scope;
-  return true;
 }

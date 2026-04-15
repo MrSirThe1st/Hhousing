@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
 import type { DashboardTasksPanelProps } from "../lib/dashboard-workflow.types";
+import UniversalLoadingState from "./universal-loading-state";
 
 type TaskFormState = {
   title: string;
@@ -94,6 +95,7 @@ export default function DashboardTasksPanel({
 
     return relatedOptions.filter((option) => option.type === formState.relatedType);
   }, [formState.relatedType, relatedOptions]);
+  const isActionBusy = formBusy || busyTaskId !== null;
 
   async function handleCreateTask(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -309,7 +311,7 @@ export default function DashboardTasksPanel({
               disabled={formBusy || formState.title.trim().length === 0}
               className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {formBusy ? "Création..." : "Créer la tâche"}
+              Créer la tâche
             </button>
           </div>
         </form>
@@ -391,16 +393,6 @@ export default function DashboardTasksPanel({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {task.status === "open" ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleStatusChange(task.id, "in_progress")}
-                        disabled={busyTaskId === task.id}
-                        className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                      >
-                        Prendre en charge
-                      </button>
-                    ) : null}
                     {task.status !== "done" ? (
                       <button
                         type="button"
@@ -428,6 +420,12 @@ export default function DashboardTasksPanel({
           )}
         </div>
       </section>
+
+      {isActionBusy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   );
 }

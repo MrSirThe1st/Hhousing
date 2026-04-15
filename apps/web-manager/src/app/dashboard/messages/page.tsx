@@ -65,8 +65,7 @@ export default async function MessagesPage(): Promise<React.ReactElement> {
     ? await listProperties(
         {
           session,
-          organizationId: session.organizationId ?? "",
-          filter: { managementContext: scopedPortfolio.currentScope }
+          organizationId: session.organizationId ?? ""
         },
         {
           repository: propertyRepoResult.data,

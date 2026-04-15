@@ -1,6 +1,13 @@
 import type { AuthSession, LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { CalendarEvent, MaintenanceRequest, Payment, Task, Tenant } from "@hhousing/domain";
-import { createCalendarEventRepo, createId, createMaintenanceRepo, createPaymentRepo, createTaskRepo, createTenantLeaseRepo } from "../app/api/shared";
+import {
+  createCalendarEventRepo,
+  createId,
+  createMaintenanceRepo,
+  createPaymentRepo,
+  createTaskRepo,
+  createTenantLeaseRepo
+} from "../app/api/shared";
 import { filterCalendarEventsByScope, filterMaintenanceRequestsByScope, filterPaymentsByScope, filterTasksByScope, filterTenantsByScope, getScopedPortfolioData } from "./operator-scope-portfolio";
 import type { DashboardCalendarEntry } from "./dashboard-workflow.types";
 

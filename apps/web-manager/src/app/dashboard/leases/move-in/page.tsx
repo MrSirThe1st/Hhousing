@@ -4,7 +4,6 @@ import type { Tenant } from "@hhousing/domain";
 import { listProperties } from "../../../../api";
 import { createListingRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
 import LeaseMoveInForm from "../../../../components/lease-move-in-form";
-import { getServerOperatorContext } from "../../../../lib/operator-context";
 import { getServerAuthSession } from "../../../../lib/session";
 
 type LeaseMoveInPageProps = {
@@ -21,7 +20,6 @@ export default async function LeaseMoveInPage({ searchParams }: LeaseMoveInPageP
   if (!session) redirect("/login");
   const params = await searchParams;
 
-  const operatorContext = await getServerOperatorContext(session);
   const propertyRepoResult = createRepositoryFromEnv();
 
   if (!propertyRepoResult.success) {
@@ -31,8 +29,7 @@ export default async function LeaseMoveInPage({ searchParams }: LeaseMoveInPageP
   const propertiesResult = await listProperties(
     {
       session,
-      organizationId: session.organizationId ?? "",
-      filter: { managementContext: operatorContext.currentScope }
+      organizationId: session.organizationId ?? ""
     },
     {
       repository: propertyRepoResult.data,

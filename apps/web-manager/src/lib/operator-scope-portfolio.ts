@@ -5,11 +5,8 @@ import {
   type PropertyWithUnitsRecord
 } from "@hhousing/data-access";
 import type { CalendarEvent, Document, Expense, MaintenanceRequest, Payment, Task, Tenant } from "@hhousing/domain";
-import { getServerOperatorContext } from "./operator-context";
-import type { OperatorScope } from "./operator-context.types";
 
 export interface ScopedPortfolioData {
-  currentScope: OperatorScope;
   properties: PropertyWithUnitsRecord[];
   propertyIds: Set<string>;
   ownerIds: Set<string>;
@@ -20,7 +17,6 @@ export interface ScopedPortfolioData {
 }
 
 export async function getScopedPortfolioData(session: AuthSession): Promise<ScopedPortfolioData> {
-  const operatorContext = await getServerOperatorContext(session);
   const propertyRepository = createOrganizationPropertyUnitRepositoryFromEnv(process.env);
 
   if (!propertyRepository.success) {
@@ -30,7 +26,7 @@ export async function getScopedPortfolioData(session: AuthSession): Promise<Scop
   const leaseRepository = createTenantLeaseRepositoryFromEnv(process.env);
 
   const [properties, owners, allLeases] = await Promise.all([
-    propertyRepository.data.listPropertiesWithUnits(session.organizationId, operatorContext.currentScope),
+    propertyRepository.data.listPropertiesWithUnits(session.organizationId),
     propertyRepository.data.listOwners(session.organizationId),
     leaseRepository.listLeasesByOrganization(session.organizationId)
   ]);
@@ -43,7 +39,6 @@ export async function getScopedPortfolioData(session: AuthSession): Promise<Scop
   const tenantIds = new Set(leases.map((lease) => lease.tenantId));
 
   return {
-    currentScope: operatorContext.currentScope,
     properties,
     propertyIds,
     ownerIds,

@@ -2,6 +2,54 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-15
+- Change type: Web + Frontend + UX
+- Description: Switched portfolio page action loading to a centered full-screen material-wave overlay so action-triggered navigation no longer relies on inline progress states.
+- Impact: Updated `apps/web-manager/src/components/property-management-panel.tsx` to set a global action-busy state for portfolio CTAs, row navigation, inline links, and action-menu actions, then render `UniversalLoadingState` in a fixed overlay.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + Reporting
+- Description: Upgraded manager dashboard `Vue d'ensemble` into a true operational overview with financial KPIs (revenus encaissés, dépenses, net, encours en retard), collection signal, pending receivables, urgent maintenance count, and quick report entrypoints.
+- Impact: Updated `apps/web-manager/src/app/dashboard/page.tsx` to aggregate scoped payments/expenses via existing finance helpers, compute overdue/pending/payment-status summaries, and replace the previous generic stat-only grid with denser finance + operations sections.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + Reporting
+- Description: Added a compact 6-month trend strip in dashboard overview showing monthly revenus, dépenses, and net.
+- Impact: Extended `apps/web-manager/src/app/dashboard/page.tsx` metrics aggregation with month buckets over scoped payments/expenses and rendered a horizontally scrollable 6-column strip in `Vue d'ensemble`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + Operations
+- Description: Added overdue payment prioritization and a manager-focused daily digest to the dashboard overview for immediate execution.
+- Impact: Updated `apps/web-manager/src/app/dashboard/page.tsx` with overdue table rows (locataire, unité, montant, jours de retard) plus digest indicators/actions for urgent maintenance, overdue payments, and leases ending within 30 days.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + Workflow
+- Description: Fixed task creation related-entity selectors to include both owned and managed portfolio data, removed `Prendre en charge` action from task cards, and switched task mutations to centered material-wave loading overlay.
+- Impact: Updated `apps/web-manager/src/lib/dashboard-workflow.ts` to build task related options from merged owned+managed properties/units/leases/tenants; updated `apps/web-manager/src/components/dashboard-tasks-panel.tsx` to remove in-progress takeover CTA and show full-screen `UniversalLoadingState` during task create/update/delete.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-15
+- Change type: Web + Backend + Scope Cleanup
+- Description: Started removing legacy `owned/managed` runtime filtering by unifying core scoped-portfolio reads to one accessible portfolio set.
+- Impact: Updated `apps/web-manager/src/lib/operator-scope-portfolio.ts` to stop applying operator-scope filter and load properties with units for the full organization-accessible set; aligned `apps/web-manager/src/lib/dashboard-workflow.ts`, `apps/web-manager/src/app/dashboard/page.tsx`, and `apps/web-manager/src/app/dashboard/messages/page.tsx` to use the unified dataset without legacy scope filtering.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-15
+- Change type: Web + API + Scope Cleanup
+- Description: Continued legacy scope removal by dropping `managementContext/currentScope` filtering from key listing/unit/move-in/property endpoints and simplifying operator-context to read-only experience metadata.
+- Impact: Updated `apps/web-manager/src/app/dashboard/listings/page.tsx`, `apps/web-manager/src/app/dashboard/listings/[unitId]/page.tsx`, `apps/web-manager/src/app/dashboard/units/add/page.tsx`, `apps/web-manager/src/app/dashboard/leases/move-in/page.tsx`, `apps/web-manager/src/app/api/properties/with-units/route.ts`, `apps/web-manager/src/app/api/properties/[id]/route.ts`, `apps/web-manager/src/lib/operator-context.ts`, `apps/web-manager/src/lib/operator-context.types.ts`, `apps/web-manager/src/app/api/operator-context/route.ts`, `apps/web-manager/src/app/api/operator-context/route.test.ts`, and `apps/web-manager/src/components/operator-scope-switcher.tsx`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + UX
+- Description: Switched calendar tab action loading (create, update, delete) to the centered full-screen material-wave overlay.
+- Impact: Updated `apps/web-manager/src/components/dashboard-calendar.tsx` to render a global busy overlay using `UniversalLoadingState` and removed inline mutation-specific busy labels.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
 ## 2026-04-13
 - Change type: Web + Owner Portal + Quality
 - Description: Promoted `web-owner` from read-only preview toward production shape by adding owner statement CSV export (`/api/reports/export`), richer report summaries/detail tables, and French copy normalization; then stabilized quality gate by aligning outdated API tests with current invite/property-owner assignment behavior.

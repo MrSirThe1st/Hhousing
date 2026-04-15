@@ -1,6 +1,5 @@
 import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
-import { isScopeAllowedForSession } from "../../../../lib/operator-context";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
@@ -11,7 +10,6 @@ type PatchPropertyBody = {
   address: string;
   city: string;
   countryCode: string;
-  managementContext: "owned" | "managed";
   clientId: string | null;
 };
 
@@ -29,20 +27,17 @@ function validatePatchPropertyBody(input: unknown): ApiResult<PatchPropertyBody>
   const address = typeof payload.address === "string" ? payload.address.trim() : "";
   const city = typeof payload.city === "string" ? payload.city.trim() : "";
   const countryCode = typeof payload.countryCode === "string" ? payload.countryCode.trim().toUpperCase() : "";
-  const managementContext = payload.managementContext === "owned" || payload.managementContext === "managed"
-    ? payload.managementContext
-    : null;
   const clientId = typeof payload.clientId === "string"
     ? payload.clientId.trim() || null
     : payload.clientId === null || payload.clientId === undefined
     ? null
     : null;
 
-  if (!name || !address || !city || !countryCode || managementContext === null) {
+  if (!name || !address || !city || !countryCode) {
     return {
       success: false,
       code: "VALIDATION_ERROR",
-      error: "name, address, city, countryCode, managementContext are required"
+      error: "name, address, city, countryCode are required"
     };
   }
 
@@ -61,7 +56,6 @@ function validatePatchPropertyBody(input: unknown): ApiResult<PatchPropertyBody>
       address,
       city,
       countryCode,
-      managementContext,
       clientId
     }
   };
@@ -160,22 +154,6 @@ export async function PATCH(
   const parsed = validatePatchPropertyBody(body);
   if (!parsed.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(parsed.code), parsed);
-  }
-
-  if (!isScopeAllowedForSession(access.data, parsed.data.managementContext)) {
-    return jsonResponse(403, {
-      success: false,
-      code: "FORBIDDEN",
-      error: "Management context not allowed for current operator"
-    });
-  }
-
-  if (parsed.data.managementContext === "owned" && parsed.data.clientId) {
-    return jsonResponse(400, {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "Owned properties cannot be linked to a client"
-    });
   }
 
   const repositoryResult = createRepositoryFromEnv();

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
 import type { DashboardCalendarEntry, DashboardWorkflowRelatedOption } from "../lib/dashboard-workflow.types";
 import type { DashboardCalendarEventTone, DashboardCalendarProps } from "./dashboard-calendar.types";
+import UniversalLoadingState from "./universal-loading-state";
 
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
@@ -172,6 +173,7 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
     }
     return relatedOptions.filter((option) => option.type === formState.relatedType);
   }, [formState.relatedType, relatedOptions]);
+  const isActionBusy = formBusy || editFormBusy || busyEntryId !== null;
 
   for (const event of monthEntries) {
     const dateKey = getDateKey(new Date(event.startAtIso));
@@ -400,7 +402,6 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                 <option value="">Aucun</option>
                 <option value="property">Propriété</option>
                 <option value="unit">Unité</option>
-                <option value="lease">Bail</option>
                 <option value="tenant">Locataire</option>
               </select>
             </label>
@@ -436,7 +437,7 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
               disabled={formBusy || formState.title.trim().length === 0}
               className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {formBusy ? "Création..." : "Créer l'événement"}
+              Créer l'événement
             </button>
           </div>
         </form>
@@ -567,7 +568,7 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                         disabled={busyEntryId === selectedEntry.id}
                         className="flex-1 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
                       >
-                        {busyEntryId === selectedEntry.id ? "..." : "Supprimer"}
+                        Supprimer
                       </button>
                     </div>
                   ) : (
@@ -631,7 +632,6 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                           <option value="">Aucun</option>
                           <option value="property">Propriété</option>
                           <option value="unit">Unité</option>
-                          <option value="lease">Bail</option>
                           <option value="tenant">Locataire</option>
                         </select>
                       </label>
@@ -657,7 +657,7 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
                           disabled={editFormBusy || editFormState.title.trim().length === 0}
                           className="flex-1 rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60"
                         >
-                          {editFormBusy ? "Sauvegarde..." : "Sauvegarder"}
+                          Sauvegarder
                         </button>
                         <button
                           type="button"
@@ -718,6 +718,12 @@ export default function DashboardCalendar({ organizationId, currentUserId, entri
           )}       
         </aside>
       </div>
+
+      {isActionBusy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   );
 }

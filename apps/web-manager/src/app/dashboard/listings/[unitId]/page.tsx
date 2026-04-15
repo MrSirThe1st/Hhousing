@@ -2,7 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import type { ManagerListingView } from "@hhousing/api-contracts";
 import ListingEditorForm from "../../../../components/listing-editor-form";
 import { createListingRepo } from "../../../api/shared";
-import { getOperatorScopeLabel, getServerOperatorContext } from "../../../../lib/operator-context";
 import { getServerAuthSession } from "../../../../lib/session";
 
 type ListingEditorPageProps = {
@@ -14,9 +13,8 @@ export default async function ListingEditorPage({ params }: ListingEditorPagePro
   if (!session) redirect("/login");
 
   const { unitId } = await params;
-  const operatorContext = await getServerOperatorContext(session);
   const listingRepo = createListingRepo();
-  const listings = await listingRepo.listManagerListings(session.organizationId, operatorContext.currentScope);
+  const listings = await listingRepo.listManagerListings(session.organizationId);
   const item = (listings as ManagerListingView[]).find((entry) => entry.unit.id === unitId);
 
   if (!item) {
@@ -26,7 +24,7 @@ export default async function ListingEditorPage({ params }: ListingEditorPagePro
   return (
     <ListingEditorForm
       organizationId={session.organizationId}
-      currentScopeLabel={getOperatorScopeLabel(operatorContext.currentScope)}
+      currentScopeLabel="Portefeuille unifié"
       item={item}
     />
   );
