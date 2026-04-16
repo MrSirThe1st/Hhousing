@@ -8,6 +8,12 @@ Use this file as the first project memory source before searching the codebase.
 - Impact: Updated `apps/web-manager/vercel.json` to schedule `/api/internal/invoices/process-email-jobs` every 10 minutes; existing queue processor route and Resend envs remain unchanged.
 - Tests: not run (deployment scheduler config only).
 
+## 2026-04-17
+- Change type: Infra + Invoicing
+- Description: Reduced invoice email job cron frequency to once daily to satisfy Vercel Hobby cron limits and restore deployability.
+- Impact: Updated `apps/web-manager/vercel.json` to run `/api/internal/invoices/process-email-jobs` daily at 02:00 UTC instead of every 10 minutes; monthly recurring payment cron unchanged.
+- Tests: not run (deployment scheduler config only).
+
 ## 2026-04-16
 - Change type: Frontend + Payments/Invoices UX
 - Description: Added effective client-side filters to manager payments and invoices workspaces, including text search, entity/status selectors, and due-date range filtering (`du` / `au`) to display records within a specific period.
