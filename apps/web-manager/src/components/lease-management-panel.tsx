@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { LeaseStatus } from "@hhousing/domain";
 import type { LeaseManagementPanelProps } from "./tenant-management.types";
 
@@ -20,6 +21,7 @@ const STATUS_STYLES: Record<string, string> = {
 export default function LeaseManagementPanel({
   leases
 }: LeaseManagementPanelProps): React.ReactElement {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<LeaseStatus | "all">("all");
   const activeCount = useMemo(() => leases.filter((lease) => lease.status === "active").length, [leases]);
   const pendingCount = useMemo(() => leases.filter((lease) => lease.status === "pending").length, [leases]);
@@ -134,9 +136,30 @@ export default function LeaseManagementPanel({
             </thead>
             <tbody className="divide-y divide-slate-200">
               {filteredLeases.map((lease) => (
-                <tr key={lease.id} className="hover:bg-slate-50/80">
+                <tr
+                  key={lease.id}
+                  className="cursor-pointer hover:bg-slate-50/80"
+                  onClick={() => {
+                    router.push(`/dashboard/leases/${lease.id}`);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/dashboard/leases/${lease.id}`);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Ouvrir le bail de ${lease.tenantFullName}`}
+                >
                   <td className="px-4 py-3 font-medium text-[#010a19]">
-                    <Link href={`/dashboard/leases/${lease.id}`} className="transition hover:text-[#0063fe] hover:underline">
+                    <Link
+                      href={`/dashboard/leases/${lease.id}`}
+                      className="transition hover:text-[#0063fe] hover:underline"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                      }}
+                    >
                       {lease.tenantFullName}
                     </Link>
                   </td>

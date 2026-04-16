@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import type { PropertyManagementPanelProps } from "./property-management.types";
-import ActionMenu from "./action-menu";
-import UniversalLoadingState from "./universal-loading-state";
 
 type PropertyStatusFilter = "all" | "active" | "archived";
 type PropertyTypeFilter = "all" | "single_unit" | "multi_unit";
@@ -70,7 +68,6 @@ export default function PropertyManagementPanel({
   items,
 }: PropertyManagementPanelProps): React.ReactElement {
   const router = useRouter();
-  const [isActionBusy, setIsActionBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<"properties" | "units">("properties");
   const [propertySearchTerm, setPropertySearchTerm] = useState("");
   const [propertyStatusFilter, setPropertyStatusFilter] = useState<PropertyStatusFilter>("all");
@@ -148,18 +145,11 @@ export default function PropertyManagementPanel({
   );
 
   function handlePropertyRowNavigation(propertyId: string): void {
-    setIsActionBusy(true);
     router.push(`/dashboard/properties/${propertyId}`);
   }
 
   function handleUnitRowNavigation(unitId: string): void {
-    setIsActionBusy(true);
     router.push(`/dashboard/units/${unitId}`);
-  }
-
-  function handleNavigate(href: string): void {
-    setIsActionBusy(true);
-    router.push(href);
   }
 
   function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -185,7 +175,6 @@ export default function PropertyManagementPanel({
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/dashboard/properties/add"
-              onClick={() => setIsActionBusy(true)}
               className="inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
             >
               <PlusIcon />
@@ -193,7 +182,6 @@ export default function PropertyManagementPanel({
             </Link>
             <Link
               href="/dashboard/units/add"
-              onClick={() => setIsActionBusy(true)}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               <PlusIcon />
@@ -295,7 +283,6 @@ export default function PropertyManagementPanel({
                   </p>
                   <Link
                     href="/dashboard/properties/add"
-                    onClick={() => setIsActionBusy(true)}
                     className="mt-5 inline-flex rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
                   >
                     Ajouter un bien
@@ -315,7 +302,6 @@ export default function PropertyManagementPanel({
                         <th className="px-5 py-3 text-left">Type</th>
                         <th className="px-5 py-3 text-left">Occupation</th>
                         <th className="px-5 py-3 text-left">Statut</th>
-                        <th className="px-5 py-3 text-right"><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -349,7 +335,6 @@ export default function PropertyManagementPanel({
                             <td className="px-5 py-4 align-top">
                               <Link
                                 href={`/dashboard/properties/${property.id}`}
-                                onClick={() => setIsActionBusy(true)}
                                 className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline"
                               >
                                 {property.name}
@@ -372,24 +357,6 @@ export default function PropertyManagementPanel({
                               <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatPropertyStatusClassName(property.status)}`}>
                                 {formatPropertyStatusLabel(property.status)}
                               </span>
-                            </td>
-                            <td className="px-5 py-4 text-right" onClick={(event) => event.stopPropagation()}>
-                              <ActionMenu
-                                items={[
-                                  {
-                                    label: "Modifier la propriété",
-                                    onSelect: () => {
-                                      handleNavigate(`/dashboard/properties/${property.id}`);
-                                    }
-                                  },
-                                  {
-                                    label: "Ajouter une unité",
-                                    onSelect: () => {
-                                      handleNavigate("/dashboard/units/add");
-                                    }
-                                  }
-                                ]}
-                              />
                             </td>
                           </tr>
                         );
@@ -450,7 +417,6 @@ export default function PropertyManagementPanel({
                   </p>
                   <Link
                     href="/dashboard/units/add"
-                    onClick={() => setIsActionBusy(true)}
                     className="mt-5 inline-flex rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
                   >
                     Ajouter une unité
@@ -499,7 +465,6 @@ export default function PropertyManagementPanel({
                           <td className="px-5 py-4">
                             <Link
                               href={`/dashboard/units/${unit.id}`}
-                              onClick={() => setIsActionBusy(true)}
                               className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline"
                             >
                               {unit.unitNumber}
@@ -508,7 +473,6 @@ export default function PropertyManagementPanel({
                           <td className="px-5 py-4 text-slate-600">
                             <Link
                               href={`/dashboard/properties/${property.id}`}
-                              onClick={() => setIsActionBusy(true)}
                               className="font-medium text-[#10213d] hover:text-[#0063fe] hover:underline"
                             >
                               {property.name}
@@ -530,12 +494,6 @@ export default function PropertyManagementPanel({
             </>
           )}
         </div>
-
-      {isActionBusy ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
-          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
-        </div>
-      ) : null}
 
     </div>
   );

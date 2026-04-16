@@ -1,16 +1,21 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
-import type { Lease, LeaseSigningMethod, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseSigningMethod, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
   CreateLeaseChargeRecordInput,
   CreateTenantRecordInput,
   CreateLeaseRecordInput,
+  MoveOutAggregateRecord,
+  ReplaceMoveOutChargeRecordInput,
+  CloseMoveOutRecordInput,
   CreateTenantInvitationRecordInput,
   TenantInvitationPreviewRecord,
   TenantInvitationRecord,
   UpdateTenantRecordInput,
   UpdateLeaseRecordInput,
+  UpsertMoveOutInspectionRecordInput,
+  UpsertMoveOutRecordInput,
   TenantLeaseRepository
 } from "./tenant-lease-record.types";
 
@@ -23,6 +28,10 @@ interface TenantRow extends QueryResultRow {
   phone: string | null;
   date_of_birth: string | Date | null;
   photo_url: string | null;
+  employment_status: string | null;
+  job_title: string | null;
+  monthly_income: string | number | null;
+  number_of_occupants: number | null;
   created_at: Date | string;
 }
 
@@ -86,6 +95,48 @@ interface TenantInvitationPreviewRow extends QueryResultRow {
   expires_at: Date | string;
 }
 
+interface MoveOutRow extends QueryResultRow {
+  id: string;
+  organization_id: string;
+  lease_id: string;
+  initiated_by_user_id: string | null;
+  move_out_date: string | Date;
+  reason: string | null;
+  status: "draft" | "confirmed" | "closed";
+  closure_ledger_event_id: number | null;
+  finalized_statement_snapshot: unknown | null;
+  finalized_statement_hash: string | null;
+  confirmed_at: Date | string | null;
+  closed_at: Date | string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+interface MoveOutChargeRow extends QueryResultRow {
+  id: string;
+  move_out_id: string;
+  organization_id: string;
+  charge_type: "unpaid_rent" | "prorated_rent" | "fee" | "damage" | "cleaning" | "penalty" | "deposit_deduction" | "credit";
+  amount: string | number;
+  currency_code: string;
+  note: string | null;
+  source_reference_type: string | null;
+  source_reference_id: string | null;
+  created_at: Date | string;
+}
+
+interface MoveOutInspectionRow extends QueryResultRow {
+  id: string;
+  move_out_id: string;
+  organization_id: string;
+  checklist_snapshot: unknown;
+  notes: string | null;
+  photo_document_ids: unknown;
+  inspected_at: Date | string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
 export interface TenantLeaseQueryable {
   query<Row extends QueryResultRow>(
     text: string,
@@ -124,6 +175,10 @@ function mapTenant(row: TenantRow): Tenant {
     phone: row.phone,
     dateOfBirth: row.date_of_birth ? toIsoDate(row.date_of_birth) : null,
     photoUrl: row.photo_url,
+    employmentStatus: row.employment_status ?? null,
+    jobTitle: row.job_title ?? null,
+    monthlyIncome: row.monthly_income === null || row.monthly_income === undefined ? null : Number(row.monthly_income),
+    numberOfOccupants: row.number_of_occupants ?? null,
     createdAtIso: toIso(row.created_at)
   };
 }
@@ -194,6 +249,74 @@ function mapTenantInvitationPreview(row: TenantInvitationPreviewRow): TenantInvi
   };
 }
 
+function mapMoveOut(row: MoveOutRow): MoveOut {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    leaseId: row.lease_id,
+    initiatedByUserId: row.initiated_by_user_id,
+    moveOutDate: toIsoDate(row.move_out_date),
+    reason: row.reason,
+    status: row.status,
+    closureLedgerEventId: row.closure_ledger_event_id,
+    finalizedStatementSnapshot: row.finalized_statement_snapshot,
+    finalizedStatementHash: row.finalized_statement_hash,
+    confirmedAtIso: row.confirmed_at ? toIso(row.confirmed_at) : null,
+    closedAtIso: row.closed_at ? toIso(row.closed_at) : null,
+    createdAtIso: toIso(row.created_at),
+    updatedAtIso: toIso(row.updated_at)
+  };
+}
+
+function mapMoveOutCharge(row: MoveOutChargeRow): MoveOutCharge {
+  return {
+    id: row.id,
+    moveOutId: row.move_out_id,
+    organizationId: row.organization_id,
+    chargeType: row.charge_type,
+    amount: toNumber(row.amount),
+    currencyCode: row.currency_code,
+    note: row.note,
+    sourceReferenceType: row.source_reference_type,
+    sourceReferenceId: row.source_reference_id,
+    createdAtIso: toIso(row.created_at)
+  };
+}
+
+function mapMoveOutInspection(row: MoveOutInspectionRow): MoveOutInspection {
+  const checklistSnapshot = Array.isArray(row.checklist_snapshot)
+    ? row.checklist_snapshot
+      .filter((value): value is { id: string; label: string; isChecked: boolean; note?: string | null } => (
+        typeof value === "object"
+        && value !== null
+        && typeof (value as { id?: unknown }).id === "string"
+        && typeof (value as { label?: unknown }).label === "string"
+        && typeof (value as { isChecked?: unknown }).isChecked === "boolean"
+      ))
+      .map((value) => ({
+        id: value.id,
+        label: value.label,
+        isChecked: value.isChecked,
+        note: typeof value.note === "string" ? value.note : null
+      }))
+    : [];
+  const photoDocumentIds = Array.isArray(row.photo_document_ids)
+    ? row.photo_document_ids.filter((value): value is string => typeof value === "string")
+    : [];
+
+  return {
+    id: row.id,
+    moveOutId: row.move_out_id,
+    organizationId: row.organization_id,
+    checklistSnapshot,
+    notes: row.notes,
+    photoDocumentIds,
+    inspectedAtIso: row.inspected_at ? toIso(row.inspected_at) : null,
+    createdAtIso: toIso(row.created_at),
+    updatedAtIso: toIso(row.updated_at)
+  };
+}
+
 function getOrCreatePool(connectionString: string): Pool {
   const existing = poolCache.get(connectionString);
   if (existing) return existing;
@@ -234,10 +357,10 @@ export function createPostgresTenantLeaseRepository(
   return {
     async createTenant(input: CreateTenantRecordInput): Promise<Tenant> {
       const result = await client.query<TenantRow>(
-        `insert into tenants (id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)
-         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, created_at`,
-        [input.id, input.organizationId, input.authUserId, input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl]
+        `insert into tenants (id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+        [input.id, input.organizationId, input.authUserId, input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants]
       );
       return mapTenant(result.rows[0]);
     },
@@ -348,7 +471,7 @@ export function createPostgresTenantLeaseRepository(
          set auth_user_id = $1,
              phone = coalesce($2, phone)
          where id = $3 and organization_id = $4 and auth_user_id is null
-         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, created_at`,
+         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
         [authUserId, phone, tenantId, organizationId]
       );
 
@@ -491,7 +614,7 @@ export function createPostgresTenantLeaseRepository(
 
     async listTenantsByOrganization(organizationId: string): Promise<Tenant[]> {
       const result = await client.query<TenantRow>(
-        `select id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, created_at
+        `select id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
          from tenants
          where organization_id = $1
          order by full_name asc`,
@@ -502,7 +625,7 @@ export function createPostgresTenantLeaseRepository(
 
     async getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null> {
       const result = await client.query<TenantRow>(
-        `select id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, created_at
+        `select id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
          from tenants
          where id = $1 and organization_id = $2`,
         [tenantId, organizationId]
@@ -528,13 +651,177 @@ export function createPostgresTenantLeaseRepository(
       return result.rows[0] ? mapLeaseWithTenant(result.rows[0]) : null;
     },
 
+    async getMoveOutByLeaseId(leaseId: string, organizationId: string): Promise<MoveOutAggregateRecord | null> {
+      const moveOutResult = await client.query<MoveOutRow>(
+        `select
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason,
+           status, closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+           confirmed_at, closed_at, created_at, updated_at
+         from move_outs
+         where lease_id = $1 and organization_id = $2`,
+        [leaseId, organizationId]
+      );
+
+      const moveOutRow = moveOutResult.rows[0];
+      if (!moveOutRow) {
+        return null;
+      }
+
+      const [chargeResult, inspectionResult] = await Promise.all([
+        client.query<MoveOutChargeRow>(
+          `select
+             id, move_out_id, organization_id, charge_type, amount, currency_code,
+             note, source_reference_type, source_reference_id, created_at
+           from move_out_charges
+           where move_out_id = $1 and organization_id = $2
+           order by created_at asc`,
+          [moveOutRow.id, organizationId]
+        ),
+        client.query<MoveOutInspectionRow>(
+          `select
+             id, move_out_id, organization_id, checklist_snapshot, notes,
+             photo_document_ids, inspected_at, created_at, updated_at
+           from move_out_inspections
+           where move_out_id = $1 and organization_id = $2`,
+          [moveOutRow.id, organizationId]
+        )
+      ]);
+
+      return {
+        moveOut: mapMoveOut(moveOutRow),
+        charges: chargeResult.rows.map(mapMoveOutCharge),
+        inspection: inspectionResult.rows[0] ? mapMoveOutInspection(inspectionResult.rows[0]) : null
+      };
+    },
+
+    async upsertMoveOut(input: UpsertMoveOutRecordInput): Promise<MoveOut> {
+      const result = await client.query<MoveOutRow>(
+        `insert into move_outs (
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason, status, confirmed_at
+         ) values ($1, $2, $3, $4, $5, $6, $7, case when $7 = 'confirmed' then now() else null end)
+         on conflict (lease_id)
+         do update set
+           move_out_date = excluded.move_out_date,
+           reason = excluded.reason,
+           status = excluded.status,
+           initiated_by_user_id = coalesce(move_outs.initiated_by_user_id, excluded.initiated_by_user_id),
+           confirmed_at = case
+             when excluded.status = 'confirmed' and move_outs.confirmed_at is null then now()
+             else move_outs.confirmed_at
+           end,
+           updated_at = now()
+         where move_outs.organization_id = excluded.organization_id
+         returning
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason,
+           status, closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+           confirmed_at, closed_at, created_at, updated_at`,
+        [input.id, input.organizationId, input.leaseId, input.initiatedByUserId, input.moveOutDate, input.reason, input.status]
+      );
+
+      return mapMoveOut(result.rows[0]);
+    },
+
+    async replaceMoveOutCharges(input: ReplaceMoveOutChargeRecordInput): Promise<MoveOutCharge[]> {
+      return withTransaction(transactionCapableClient, async (queryable) => {
+        await queryable.query(
+          `delete from move_out_charges where move_out_id = $1 and organization_id = $2`,
+          [input.moveOutId, input.organizationId]
+        );
+
+        const charges: MoveOutCharge[] = [];
+        for (const charge of input.charges) {
+          const result = await queryable.query<MoveOutChargeRow>(
+            `insert into move_out_charges (
+               id, move_out_id, organization_id, charge_type, amount, currency_code,
+               note, source_reference_type, source_reference_id
+             ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             returning
+               id, move_out_id, organization_id, charge_type, amount, currency_code,
+               note, source_reference_type, source_reference_id, created_at`,
+            [
+              charge.id,
+              input.moveOutId,
+              input.organizationId,
+              charge.chargeType,
+              charge.amount,
+              charge.currencyCode,
+              charge.note,
+              charge.sourceReferenceType,
+              charge.sourceReferenceId
+            ]
+          );
+          charges.push(mapMoveOutCharge(result.rows[0]));
+        }
+
+        return charges;
+      });
+    },
+
+    async upsertMoveOutInspection(input: UpsertMoveOutInspectionRecordInput): Promise<MoveOutInspection> {
+      const result = await client.query<MoveOutInspectionRow>(
+        `insert into move_out_inspections (
+           id, move_out_id, organization_id, checklist_snapshot, notes, photo_document_ids, inspected_at
+         ) values ($1, $2, $3, $4::jsonb, $5, $6::jsonb, $7::timestamptz)
+         on conflict (move_out_id)
+         do update set
+           checklist_snapshot = excluded.checklist_snapshot,
+           notes = excluded.notes,
+           photo_document_ids = excluded.photo_document_ids,
+           inspected_at = excluded.inspected_at,
+           updated_at = now()
+         where move_out_inspections.organization_id = excluded.organization_id
+         returning
+           id, move_out_id, organization_id, checklist_snapshot, notes,
+           photo_document_ids, inspected_at, created_at, updated_at`,
+        [
+          input.id,
+          input.moveOutId,
+          input.organizationId,
+          JSON.stringify(input.checklistSnapshot),
+          input.notes,
+          JSON.stringify(input.photoDocumentIds),
+          input.inspectedAtIso
+        ]
+      );
+
+      return mapMoveOutInspection(result.rows[0]);
+    },
+
+    async closeMoveOut(input: CloseMoveOutRecordInput): Promise<MoveOut | null> {
+      const result = await client.query<MoveOutRow>(
+        `update move_outs
+         set status = 'closed',
+             closure_ledger_event_id = $3,
+             finalized_statement_snapshot = $4::jsonb,
+             finalized_statement_hash = $5,
+             closed_at = now(),
+             updated_at = now()
+         where id = $1
+           and organization_id = $2
+           and status = 'confirmed'
+         returning
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason,
+           status, closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+           confirmed_at, closed_at, created_at, updated_at`,
+        [
+          input.moveOutId,
+          input.organizationId,
+          input.closureLedgerEventId,
+          JSON.stringify(input.finalizedStatementSnapshot),
+          input.finalizedStatementHash
+        ]
+      );
+
+      return result.rows[0] ? mapMoveOut(result.rows[0]) : null;
+    },
+
     async updateTenant(input: UpdateTenantRecordInput): Promise<Tenant | null> {
       const result = await client.query<TenantRow>(
         `update tenants
-         set full_name = $1, email = $2, phone = $3, date_of_birth = $4, photo_url = $5
-         where id = $6 and organization_id = $7
-         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, created_at`,
-        [input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.id, input.organizationId]
+         set full_name = $1, email = $2, phone = $3, date_of_birth = $4, photo_url = $5, employment_status = $6, job_title = $7, monthly_income = $8, number_of_occupants = $9
+         where id = $10 and organization_id = $11
+         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+        [input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants, input.id, input.organizationId]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
     },

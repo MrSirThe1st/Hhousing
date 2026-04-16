@@ -1,5 +1,5 @@
-import UniversalLoadingState from "../../../../components/universal-loading-state";
+import TableSkeleton from "../../../../components/table-skeleton";
 
 export default function Loading(): React.ReactElement {
-  return <UniversalLoadingState minHeightClassName="min-h-[42vh]" />;
+  return <TableSkeleton />;
 }

@@ -47,10 +47,12 @@ export interface RevenueDataset {
   filters: FinanceFilters;
   propertyOptions: FinancePropertyOption[];
   revenueTotals: CurrencyTotal[];
+  depositLiabilityTotals: CurrencyTotal[];
   monthlyRevenue: FinanceMonthlyBucket[];
   propertyRevenue: PropertyRevenueSummary[];
   ledger: RevenueLedgerEntry[];
   recordedPaymentCount: number;
+  recordedDepositCount: number;
 }
 
 export interface ExpenseLedgerEntry {

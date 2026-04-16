@@ -11,6 +11,7 @@ import {
   parseMarkPaymentPaidInput
 } from "@hhousing/api-contracts";
 import type { PaymentRepository } from "@hhousing/data-access";
+import type { InvoiceRepository } from "@hhousing/data-access";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
@@ -93,6 +94,7 @@ export interface MarkPaymentPaidResponse {
 export interface MarkPaymentPaidDeps {
   repository: PaymentRepository;
   teamFunctionsRepository: TeamPermissionRepository;
+  invoiceRepository?: InvoiceRepository;
 }
 
 export async function markPaymentPaid(
@@ -128,6 +130,20 @@ export async function markPaymentPaid(
       status: 404,
       body: { success: false, code: "NOT_FOUND", error: "Payment not found or already cancelled" }
     };
+  }
+
+  if (deps.invoiceRepository && payment.status === "paid") {
+    await deps.invoiceRepository.syncInvoiceForPaidPayment({
+      organizationId: payment.organizationId,
+      paymentId: payment.id,
+      leaseId: payment.leaseId,
+      tenantId: payment.tenantId,
+      amount: payment.amount,
+      currencyCode: payment.currencyCode,
+      dueDate: payment.dueDate,
+      paidDate: payment.paidDate ?? parsed.data.paidDate,
+      period: payment.chargePeriod
+    });
   }
 
   return { status: 200, body: { success: true, data: payment } };

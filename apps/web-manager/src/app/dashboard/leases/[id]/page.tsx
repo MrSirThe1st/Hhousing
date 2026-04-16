@@ -45,9 +45,6 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
   ]);
 
   const availableDocuments = filterDocumentsByScope(documents, scoped);
-  const selectedDocumentIds = availableDocuments
-    .filter((document) => document.attachmentType === "lease" && document.attachmentId === id)
-    .map((document) => document.id);
 
   return (
     <LeaseDetailClient
@@ -55,7 +52,6 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
       initialLease={lease}
       initialPayments={payments}
       initialAvailableDocuments={availableDocuments}
-      initialSelectedDocumentIds={selectedDocumentIds}
     />
   );
 }

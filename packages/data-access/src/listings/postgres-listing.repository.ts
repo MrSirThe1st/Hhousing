@@ -126,8 +126,12 @@ interface ApplicationRow extends QueryResultRow {
   application_full_name: string;
   application_email: string;
   application_phone: string;
+  application_date_of_birth: string | null;
+  application_employment_status: string | null;
+  application_job_title: string | null;
   application_employment_info: string | null;
   application_monthly_income: string | number | null;
+  application_number_of_occupants: number | null;
   application_notes: string | null;
   application_status: ListingApplicationStatus;
   application_screening_notes: string | null;
@@ -148,6 +152,10 @@ interface ListingApplicationViewRow extends ApplicationRow, PublicListingRow {
   tenant_phone: string | null;
   tenant_date_of_birth: string | null;
   tenant_photo_url: string | null;
+  tenant_employment_status: string | null;
+  tenant_job_title: string | null;
+  tenant_monthly_income: string | number | null;
+  tenant_number_of_occupants: number | null;
   tenant_created_at: Date | string | null;
 }
 
@@ -338,8 +346,12 @@ function mapApplication(row: ApplicationRow): ListingApplication {
     fullName: row.application_full_name,
     email: row.application_email,
     phone: row.application_phone,
+    dateOfBirth: row.application_date_of_birth ?? null,
+    employmentStatus: row.application_employment_status ?? null,
+    jobTitle: row.application_job_title ?? null,
     employmentInfo: row.application_employment_info,
     monthlyIncome: row.application_monthly_income === null ? null : toNumber(row.application_monthly_income),
+    numberOfOccupants: row.application_number_of_occupants ?? null,
     notes: row.application_notes,
     status: row.application_status,
     screeningNotes: row.application_screening_notes,
@@ -366,6 +378,10 @@ function mapTenant(row: ListingApplicationViewRow): Tenant | null {
     phone: row.tenant_phone,
     dateOfBirth: row.tenant_date_of_birth,
     photoUrl: row.tenant_photo_url,
+    employmentStatus: row.tenant_employment_status ?? null,
+    jobTitle: row.tenant_job_title ?? null,
+    monthlyIncome: row.tenant_monthly_income === null || row.tenant_monthly_income === undefined ? null : Number(row.tenant_monthly_income),
+    numberOfOccupants: row.tenant_number_of_occupants ?? null,
     createdAtIso: toIso(row.tenant_created_at)
   };
 }
@@ -752,8 +768,8 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
       const result = await client.query<ApplicationRow>(
         `insert into listing_applications (
            id, listing_id, organization_id, full_name, email, phone,
-           employment_info, monthly_income, notes
-         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           date_of_birth, employment_status, job_title, employment_info, monthly_income, number_of_occupants, notes
+         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          returning
            id as application_id,
            listing_id as application_listing_id,
@@ -761,8 +777,12 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            full_name as application_full_name,
            email as application_email,
            phone as application_phone,
+           date_of_birth as application_date_of_birth,
+           employment_status as application_employment_status,
+           job_title as application_job_title,
            employment_info as application_employment_info,
            monthly_income as application_monthly_income,
+           number_of_occupants as application_number_of_occupants,
            notes as application_notes,
            status as application_status,
            screening_notes as application_screening_notes,
@@ -779,8 +799,12 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
           input.fullName,
           input.email,
           input.phone,
+          input.dateOfBirth,
+          input.employmentStatus,
+          input.jobTitle,
           input.employmentInfo,
           input.monthlyIncome,
+          input.numberOfOccupants,
           input.notes
         ]
       );
@@ -798,8 +822,12 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            a.full_name as application_full_name,
            a.email as application_email,
            a.phone as application_phone,
+           a.date_of_birth as application_date_of_birth,
+           a.employment_status as application_employment_status,
+           a.job_title as application_job_title,
            a.employment_info as application_employment_info,
            a.monthly_income as application_monthly_income,
+           a.number_of_occupants as application_number_of_occupants,
            a.notes as application_notes,
            a.status as application_status,
            a.screening_notes as application_screening_notes,
@@ -848,6 +876,10 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            t.phone as tenant_phone,
            t.date_of_birth as tenant_date_of_birth,
            t.photo_url as tenant_photo_url,
+           t.employment_status as tenant_employment_status,
+           t.job_title as tenant_job_title,
+           t.monthly_income as tenant_monthly_income,
+           t.number_of_occupants as tenant_number_of_occupants,
            t.created_at as tenant_created_at
          from listing_applications a
          inner join listings l on l.id = a.listing_id
@@ -887,8 +919,12 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            a.full_name as application_full_name,
            a.email as application_email,
            a.phone as application_phone,
+           a.date_of_birth as application_date_of_birth,
+           a.employment_status as application_employment_status,
+           a.job_title as application_job_title,
            a.employment_info as application_employment_info,
            a.monthly_income as application_monthly_income,
+           a.number_of_occupants as application_number_of_occupants,
            a.notes as application_notes,
            a.status as application_status,
            a.screening_notes as application_screening_notes,
@@ -937,6 +973,10 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            t.phone as tenant_phone,
            t.date_of_birth as tenant_date_of_birth,
            t.photo_url as tenant_photo_url,
+           t.employment_status as tenant_employment_status,
+           t.job_title as tenant_job_title,
+           t.monthly_income as tenant_monthly_income,
+           t.number_of_occupants as tenant_number_of_occupants,
            t.created_at as tenant_created_at
          from listing_applications a
          inner join listings l on l.id = a.listing_id
@@ -974,8 +1014,12 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            full_name as application_full_name,
            email as application_email,
            phone as application_phone,
+           date_of_birth as application_date_of_birth,
+           employment_status as application_employment_status,
+           job_title as application_job_title,
            employment_info as application_employment_info,
            monthly_income as application_monthly_income,
+           number_of_occupants as application_number_of_occupants,
            notes as application_notes,
            status as application_status,
            screening_notes as application_screening_notes,
@@ -1013,8 +1057,12 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            full_name as application_full_name,
            email as application_email,
            phone as application_phone,
+           date_of_birth as application_date_of_birth,
+           employment_status as application_employment_status,
+           job_title as application_job_title,
            employment_info as application_employment_info,
            monthly_income as application_monthly_income,
+           number_of_occupants as application_number_of_occupants,
            notes as application_notes,
            status as application_status,
            screening_notes as application_screening_notes,
@@ -1041,6 +1089,10 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            t.phone as tenant_phone,
            t.date_of_birth as tenant_date_of_birth,
            t.photo_url as tenant_photo_url,
+           t.employment_status as tenant_employment_status,
+           t.job_title as tenant_job_title,
+           t.monthly_income as tenant_monthly_income,
+           t.number_of_occupants as tenant_number_of_occupants,
            t.created_at as tenant_created_at,
            null as application_id,
            null as application_listing_id,
@@ -1048,8 +1100,12 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            null as application_full_name,
            null as application_email,
            null as application_phone,
+           null as application_date_of_birth,
+           null as application_employment_status,
+           null as application_job_title,
            null as application_employment_info,
            null as application_monthly_income,
+           null as application_number_of_occupants,
            null as application_notes,
            null as application_status,
            null as application_screening_notes,

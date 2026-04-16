@@ -42,8 +42,12 @@ export async function POST(
     fullName: parsed.data.fullName,
     email: parsed.data.email,
     phone: parsed.data.phone,
+    dateOfBirth: parsed.data.dateOfBirth ?? null,
+    employmentStatus: parsed.data.employmentStatus ?? null,
+    jobTitle: parsed.data.jobTitle ?? null,
     employmentInfo: parsed.data.employmentInfo ?? null,
     monthlyIncome: parsed.data.monthlyIncome ?? null,
+    numberOfOccupants: parsed.data.numberOfOccupants ?? null,
     notes: parsed.data.notes ?? null
   });
 

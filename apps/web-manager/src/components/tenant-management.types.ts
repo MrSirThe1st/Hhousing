@@ -16,6 +16,10 @@ export interface TenantFormState {
   email: string;
   phone: string;
   dateOfBirth: string;
+  employmentStatus: string;
+  jobTitle: string;
+  monthlyIncome: string;
+  numberOfOccupants: string;
 }
 
 export interface LeaseManagementPanelProps {

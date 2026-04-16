@@ -21,10 +21,17 @@ const optionalTrimmedText = z.string().trim().nullable().optional().transform((v
   return value.length === 0 ? null : value;
 });
 
-const optionalUrl = z.union([z.string().trim().url(), z.literal(""), z.null()]).optional()
-  .transform((value) => value === undefined || value === "" ? null : value);
+const optionalUrl = z.union([z.literal(""), z.null(), z.string().trim().transform((v) => {
+  if (!v || v === "") return null;
+  // Auto-prepend https:// if no protocol
+  if (!/^https?:\/\//.test(v)) {
+    return `https://${v}`;
+  }
+  return v;
+}).pipe(z.string().url("Must be a valid URL"))]).optional()
+  .transform((value) => value === undefined || value === "" || value === null ? null : value);
 
-const optionalEmail = z.union([z.string().trim().email(), z.literal(""), z.null()]).optional()
+const optionalEmail = z.union([z.literal(""), z.null(), z.string().trim().email("Must be a valid email like user@example.com")]).optional()
   .transform((value) => value === undefined || value === "" ? null : value);
 
 const updateOrganizationSchema = z.object({
@@ -120,10 +127,13 @@ const createUnitSchema = z.object({
 });
 
 function mapZodError(error: z.ZodError): ApiResult<never> {
+  const issue = error.issues[0];
+  const fieldPath = issue?.path?.length ? issue.path.join(".") : "input";
+  const message = issue?.message ?? "Invalid input";
   return {
     success: false,
     code: "VALIDATION_ERROR",
-    error: error.issues[0]?.message ?? "Invalid input"
+    error: fieldPath ? `${fieldPath}: ${message}` : message
   };
 }
 

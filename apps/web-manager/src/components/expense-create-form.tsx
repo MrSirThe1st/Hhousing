@@ -14,6 +14,7 @@ interface ExpenseCreateFormProps {
   expenseId?: string;
   initialValues?: ExpenseInitialValues | null;
   cancelHref?: string;
+  displayMode?: "inline" | "modal";
 }
 
 interface ExpenseFormState {
@@ -82,7 +83,8 @@ export default function ExpenseCreateForm({
   propertyUnitOptions,
   expenseId,
   initialValues,
-  cancelHref
+  cancelHref,
+  displayMode = "inline"
 }: ExpenseCreateFormProps): React.ReactElement {
   const router = useRouter();
   const [form, setForm] = useState<ExpenseFormState>(() => buildInitialState(initialValues));
@@ -148,12 +150,43 @@ export default function ExpenseCreateForm({
   }
 
   const isEditing = typeof expenseId === "string" && expenseId.length > 0;
+  const [modalOpen, setModalOpen] = useState<boolean>(isEditing);
 
-  return (
+  useEffect(() => {
+    if (displayMode === "modal") {
+      setModalOpen(isEditing);
+    }
+  }, [displayMode, isEditing]);
+
+  function handleCloseModal(): void {
+    if (isEditing && cancelHref) {
+      router.push(cancelHref);
+      router.refresh();
+      return;
+    }
+
+    setForm(buildInitialState());
+    setError(null);
+    setMessage(null);
+    setModalOpen(false);
+  }
+
+  const formCard = (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div>
-        <h2 className="text-lg font-semibold text-[#010a19]">{isEditing ? "Modifier la dépense" : "Enregistrer une dépense"}</h2>
-        <p className="mt-1 text-sm text-gray-500">Ajoutez manuellement chaque sortie d’argent: réparation, facture, taxe ou dépense générale.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-[#010a19]">{isEditing ? "Modifier la dépense" : "Enregistrer une dépense"}</h2>
+          <p className="mt-1 text-sm text-gray-500">Ajoutez manuellement chaque sortie d’argent: réparation, facture, taxe ou dépense générale.</p>
+        </div>
+        {displayMode === "modal" ? (
+          <button
+            type="button"
+            onClick={handleCloseModal}
+            className="rounded-md border border-gray-300 px-2.5 py-1 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Fermer
+          </button>
+        ) : null}
       </div>
 
       {message ? <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{message}</div> : null}
@@ -286,7 +319,16 @@ export default function ExpenseCreateForm({
             >
               {busy ? (isEditing ? "Mise à jour..." : "Enregistrement...") : (isEditing ? "Mettre à jour" : "Ajouter la dépense")}
             </button>
-            {isEditing && cancelHref ? (
+            {displayMode === "modal" ? (
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+            ) : null}
+            {isEditing && cancelHref && displayMode === "inline" ? (
               <button
                 type="button"
                 onClick={() => {
@@ -303,4 +345,30 @@ export default function ExpenseCreateForm({
       </form>
     </section>
   );
+
+  if (displayMode === "modal") {
+    return (
+      <>
+        {!isEditing ? (
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+          >
+            Ajouter une dépense
+          </button>
+        ) : null}
+
+        {modalOpen ? (
+          <div className="fixed inset-0 z-[70] bg-[#010a19]/45 p-4 md:p-8">
+            <div className="mx-auto max-h-full w-full max-w-4xl overflow-y-auto">
+              {formCard}
+            </div>
+          </div>
+        ) : null}
+      </>
+    );
+  }
+
+  return formCard;
 }

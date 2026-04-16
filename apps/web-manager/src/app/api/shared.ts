@@ -4,6 +4,7 @@ import {
   createOrganizationPropertyUnitRepositoryFromEnv,
   createTenantLeaseRepositoryFromEnv,
   createPaymentRepositoryFromEnv,
+  createInvoiceRepositoryFromEnv,
   createExpenseRepositoryFromEnv,
   createMaintenanceRequestRepositoryFromEnv,
   createDocumentRepositoryFromEnv,
@@ -18,6 +19,7 @@ import {
   type OrganizationPropertyUnitRepository,
   type TenantLeaseRepository,
   type PaymentRepository,
+  type InvoiceRepository,
   type ExpenseRepository,
   type MaintenanceRequestRepository,
   type DocumentRepository,
@@ -59,6 +61,10 @@ export function createTenantLeaseRepo(): TenantLeaseRepository {
 
 export function createPaymentRepo(): PaymentRepository {
   return createPaymentRepositoryFromEnv(process.env);
+}
+
+export function createInvoiceRepo(): InvoiceRepository {
+  return createInvoiceRepositoryFromEnv(process.env);
 }
 
 export function createExpenseRepo(): ExpenseRepository {

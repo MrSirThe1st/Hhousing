@@ -151,7 +151,11 @@ export function parseCreateTenantInput(input: unknown): ApiResult<CreateTenantIn
       email: asOptionalText(input.email),
       phone: asOptionalText(input.phone),
       dateOfBirth: input.dateOfBirth === null || input.dateOfBirth === undefined ? null : asIsoDate(input.dateOfBirth),
-      photoUrl: asOptionalText(input.photoUrl)
+      photoUrl: asOptionalText(input.photoUrl),
+      employmentStatus: asOptionalText(input.employmentStatus),
+      jobTitle: asOptionalText(input.jobTitle),
+      monthlyIncome: typeof input.monthlyIncome === "number" && Number.isFinite(input.monthlyIncome) ? input.monthlyIncome : null,
+      numberOfOccupants: typeof input.numberOfOccupants === "number" && Number.isInteger(input.numberOfOccupants) && input.numberOfOccupants > 0 ? input.numberOfOccupants : null
     }
   };
 }

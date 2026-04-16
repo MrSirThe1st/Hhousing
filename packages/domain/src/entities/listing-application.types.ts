@@ -13,8 +13,12 @@ export interface ListingApplication {
   fullName: string;
   email: string;
   phone: string;
+  dateOfBirth: string | null;
+  employmentStatus: string | null;
+  jobTitle: string | null;
   employmentInfo: string | null;
   monthlyIncome: number | null;
+  numberOfOccupants: number | null;
   notes: string | null;
   status: ListingApplicationStatus;
   screeningNotes: string | null;

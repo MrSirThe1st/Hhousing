@@ -8,18 +8,32 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+function canAccessTenantInCurrentScope(
+  tenantId: string,
+  scopedTenantIds: Set<string>,
+  organizationLeases: Array<{ tenantId: string }>
+): boolean {
+  if (scopedTenantIds.has(tenantId)) {
+    return true;
+  }
+
+  return !organizationLeases.some((lease) => lease.tenantId === tenantId);
+}
+
 export default async function TenantDetailPage({ params }: PageProps): Promise<React.ReactElement> {
   const { id } = await params;
   const session = await getDashboardOperatorSession();
-  const scoped = await getScopedPortfolioData(session);
+  const repository = createTenantLeaseRepo();
+  const tenant = await repository.getTenantById(id, session.organizationId);
 
-  if (!scoped.tenantIds.has(id)) {
+  if (!tenant) {
     return <div className="p-8"><p className="text-gray-600">Locataire introuvable</p><Link href="/dashboard/tenants" className="mt-4 inline-block text-[#0063fe] hover:underline">Retour aux locataires</Link></div>;
   }
 
-  const tenant = await createTenantLeaseRepo().getTenantById(id, session.organizationId);
+  const scoped = await getScopedPortfolioData(session);
+  const organizationLeases = await repository.listLeasesByOrganization(session.organizationId);
 
-  if (!tenant) {
+  if (!canAccessTenantInCurrentScope(id, scoped.tenantIds, organizationLeases)) {
     return <div className="p-8"><p className="text-gray-600">Locataire introuvable</p><Link href="/dashboard/tenants" className="mt-4 inline-block text-[#0063fe] hover:underline">Retour aux locataires</Link></div>;
   }
 

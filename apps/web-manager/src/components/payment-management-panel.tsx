@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Payment, PaymentKind, PaymentStatus } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { postWithAuth, patchWithAuth } from "../lib/api-client";
+import UniversalLoadingState from "./universal-loading-state";
 
 const STATUS_LABELS: Record<PaymentStatus, string> = {
   pending: "En attente",
@@ -50,7 +51,12 @@ export default function PaymentManagementPanel({
 }: PaymentManagementPanelProps): React.ReactElement {
   const router = useRouter();
   const [showRecordForm, setShowRecordForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | "all">("all");
+  const [kindFilter, setKindFilter] = useState<PaymentKind | "all">("all");
+  const [leaseFilter, setLeaseFilter] = useState<string>("all");
+  const [dueDateFrom, setDueDateFrom] = useState("");
+  const [dueDateTo, setDueDateTo] = useState("");
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
     leaseId: "",
     amount: "",
@@ -73,10 +79,55 @@ export default function PaymentManagementPanel({
     [leases]
   );
 
+  const baseFilteredPayments = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("fr");
+
+    return payments.filter((payment) => {
+      if (kindFilter !== "all" && payment.paymentKind !== kindFilter) {
+        return false;
+      }
+
+      if (leaseFilter !== "all" && payment.leaseId !== leaseFilter) {
+        return false;
+      }
+
+      if (dueDateFrom && payment.dueDate < dueDateFrom) {
+        return false;
+      }
+
+      if (dueDateTo && payment.dueDate > dueDateTo) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const lease = leaseMap.get(payment.leaseId);
+      const searchable = [
+        payment.id,
+        payment.tenantId,
+        payment.leaseId,
+        payment.chargePeriod,
+        payment.note,
+        lease?.tenantFullName,
+        lease?.id
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(" ")
+        .toLocaleLowerCase("fr");
+
+      return searchable.includes(normalizedSearch);
+    });
+  }, [dueDateFrom, dueDateTo, kindFilter, leaseFilter, leaseMap, payments, searchTerm]);
+
   const filteredPayments = useMemo(() => {
-    if (statusFilter === "all") return payments;
-    return payments.filter(p => p.status === statusFilter);
-  }, [payments, statusFilter]);
+    if (statusFilter === "all") {
+      return baseFilteredPayments;
+    }
+
+    return baseFilteredPayments.filter((payment) => payment.status === statusFilter);
+  }, [baseFilteredPayments, statusFilter]);
 
   const tenantPaymentGroups = useMemo(() => {
     const groups = new Map<string, {
@@ -222,12 +273,27 @@ export default function PaymentManagementPanel({
   }
 
   const canCreatePayment = activeLeases.length > 0;
-  const pendingCount = useMemo(() => payments.filter(p => p.status === "pending").length, [payments]);
-  const overdueCount = useMemo(() => payments.filter(p => p.status === "overdue").length, [payments]);
-  const paidCount = useMemo(() => payments.filter(p => p.status === "paid").length, [payments]);
+  const pendingCount = useMemo(() => baseFilteredPayments.filter((payment) => payment.status === "pending").length, [baseFilteredPayments]);
+  const overdueCount = useMemo(() => baseFilteredPayments.filter((payment) => payment.status === "overdue").length, [baseFilteredPayments]);
+  const paidCount = useMemo(() => baseFilteredPayments.filter((payment) => payment.status === "paid").length, [baseFilteredPayments]);
+  const sideOperationBusy = busy || markingPaid !== null;
+
+  function resetFilters(): void {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setKindFilter("all");
+    setLeaseFilter("all");
+    setDueDateFrom("");
+    setDueDateTo("");
+  }
 
   return (
     <div className="space-y-6 p-8">
+      {sideOperationBusy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Paiements</h1>
@@ -244,33 +310,77 @@ export default function PaymentManagementPanel({
         </div>
       </div>
 
-      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_220px] xl:items-end 2xl:grid-cols-[minmax(0,1.35fr)_220px_220px_180px_180px_auto]">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
-          <p className="text-xl font-semibold text-slate-900">{payments.length}</p>
+          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Rechercher</label>
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Locataire, note, période ou bail"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          />
         </div>
-
-        <div className="h-6 w-px bg-slate-200" />
-
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">En attente</p>
-          <p className="text-xl font-semibold text-slate-900">{pendingCount}</p>
+          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Bail</label>
+          <select
+            value={leaseFilter}
+            onChange={(event) => setLeaseFilter(event.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          >
+            <option value="all">Tous les baux</option>
+            {leases.map((lease) => (
+              <option key={lease.id} value={lease.id}>
+                {lease.tenantFullName}
+              </option>
+            ))}
+          </select>
         </div>
-
-        <div className="h-6 w-px bg-slate-200" />
-
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">En retard</p>
-          <p className="text-xl font-semibold text-slate-900">{overdueCount}</p>
+          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Type</label>
+          <select
+            value={kindFilter}
+            onChange={(event) => setKindFilter(event.target.value as PaymentKind | "all")}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          >
+            <option value="all">Tous</option>
+            {Object.entries(PAYMENT_KIND_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
         </div>
-
-        <div className="h-6 w-px bg-slate-200" />
-
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Payés</p>
-          <p className="text-xl font-semibold text-slate-900">{paidCount}</p>
+          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Du</label>
+          <input
+            value={dueDateFrom}
+            onChange={(event) => setDueDateFrom(event.target.value)}
+            type="date"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Au</label>
+          <input
+            value={dueDateTo}
+            onChange={(event) => setDueDateTo(event.target.value)}
+            type="date"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-transparent whitespace-nowrap">Actions</label>
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Réinitialiser
+          </button>
         </div>
       </div>
+
+     
 
       {message && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -351,7 +461,7 @@ export default function PaymentManagementPanel({
             disabled={busy || !canCreatePayment}
             className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
           >
-            {busy ? "Enregistrement..." : "Enregistrer le paiement"}
+            {"Enregistrer le paiement"}
           </button>
         </form>
       )}
@@ -372,7 +482,7 @@ export default function PaymentManagementPanel({
                   : "bg-white text-gray-600 hover:bg-gray-100"
               }`}
             >
-              Tous ({payments.length})
+              Tous ({baseFilteredPayments.length})
             </button>
             <button
               onClick={() => setStatusFilter("pending")}
@@ -382,7 +492,7 @@ export default function PaymentManagementPanel({
                   : "bg-white text-gray-600 hover:bg-gray-100"
               }`}
             >
-              En attente ({payments.filter(p => p.status === "pending").length})
+              En attente ({pendingCount})
             </button>
             <button
               onClick={() => setStatusFilter("overdue")}
@@ -392,7 +502,7 @@ export default function PaymentManagementPanel({
                   : "bg-white text-gray-600 hover:bg-gray-100"
               }`}
             >
-              En retard ({payments.filter(p => p.status === "overdue").length})
+              En retard ({overdueCount})
             </button>
             <button
               onClick={() => setStatusFilter("paid")}
@@ -402,7 +512,7 @@ export default function PaymentManagementPanel({
                   : "bg-white text-gray-600 hover:bg-gray-100"
               }`}
             >
-              Payés ({payments.filter(p => p.status === "paid").length})
+              Payés ({paidCount})
             </button>
             </div>
 
@@ -489,10 +599,10 @@ export default function PaymentManagementPanel({
                         {(payment.status === "pending" || payment.status === "overdue") && (
                           <button
                             onClick={() => handleMarkPaid(payment.id)}
-                            disabled={markingPaid === payment.id}
+                            disabled={sideOperationBusy}
                             className="text-[#0063fe] hover:underline text-sm font-medium disabled:opacity-60"
                           >
-                            {markingPaid === payment.id ? "..." : "Marquer payé"}
+                            Marquer payé
                           </button>
                         )}
                       </td>

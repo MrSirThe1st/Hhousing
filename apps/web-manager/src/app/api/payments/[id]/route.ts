@@ -4,7 +4,7 @@ import { requirePermission } from "../../../../api/organizations/permissions";
 import { Permission } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
-import { createPaymentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createInvoiceRepo, createPaymentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function GET(
   request: Request,
@@ -111,7 +111,11 @@ export async function PATCH(
       body,
       session
     },
-    { repository: paymentRepository, teamFunctionsRepository: createTeamFunctionsRepo() }
+    {
+      repository: paymentRepository,
+      teamFunctionsRepository: createTeamFunctionsRepo(),
+      invoiceRepository: createInvoiceRepo()
+    }
   );
 
   return jsonResponse(result.status, result.body);

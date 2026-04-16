@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import FinanceFilterForm from "../../../components/finance-filter-form";
 import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
-import FinanceSummaryCards from "../../../components/finance-summary-cards";
 import {
   buildExpenseDataset,
   buildFinanceQueryString,
@@ -61,7 +60,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
         </div>
       </div>
 
-      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+      <div className="flex flex-wrap items-center gap-8 border-b border-slate-200 pb-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Total revenus</p>
           <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(revenueDataset.revenueTotals)}</p>
@@ -72,6 +71,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Total dépenses</p>
           <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(expenseDataset.expenseTotals)}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Dépôts (passif)</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(revenueDataset.depositLiabilityTotals)}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />

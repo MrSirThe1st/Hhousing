@@ -118,5 +118,6 @@ Use these focused docs only when the task needs them:
 - `docs/context/roles-and-auth.md` — membership model, auth rules, role capabilities
 - `docs/context/features-tenant.md` — tenant mobile features and screens
 - `docs/context/features-manager.md` — manager web features and screens
+- `docs/context/finance-controls.md` — finance invariants, ledger/source-of-truth rules, reconciliation controls
 - `docs/context/features-owner-admin.md` — deferred owner/admin portals
 - `docs/context/brand.md` — colors, typography, localization

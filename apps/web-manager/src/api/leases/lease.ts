@@ -6,6 +6,7 @@ import type {
   ListLeasesOutput
 } from "@hhousing/api-contracts";
 import { Permission, parseCreateLeaseInput } from "@hhousing/api-contracts";
+import { calculateMonthlyProration } from "@hhousing/domain";
 import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
@@ -121,6 +122,13 @@ export async function createLease(
   }
 
   try {
+    const proration = parsed.data.paymentFrequency === "monthly"
+      ? calculateMonthlyProration({
+        startDate: parsed.data.startDate,
+        monthlyRentAmount: parsed.data.monthlyRentAmount
+      })
+      : null;
+
     const chargeRecords = (parsed.data.charges ?? []).map((charge) => ({
       id: deps.createId(),
       organizationId: parsed.data.organizationId,
@@ -132,6 +140,27 @@ export async function createLease(
       startDate: charge.startDate,
       endDate: charge.endDate ?? null
     }));
+
+    if (proration?.isProrated && !chargeRecords.some((charge) => charge.chargeType === "prorated_rent")) {
+      chargeRecords.push({
+        id: deps.createId(),
+        organizationId: parsed.data.organizationId,
+        label: proration.label,
+        chargeType: "prorated_rent",
+        amount: proration.proratedAmount,
+        currencyCode: parsed.data.currencyCode,
+        frequency: "one_time",
+        startDate: parsed.data.startDate,
+        endDate: null
+      });
+    }
+
+    const effectivePaymentStartDate = proration?.isProrated
+      ? proration.regularBillingStartDate
+      : parsed.data.paymentStartDate ?? parsed.data.startDate;
+    const effectiveDueDayOfMonth = proration?.isProrated
+      ? Number(proration.regularBillingStartDate.substring(8, 10))
+      : parsed.data.dueDayOfMonth ?? Number(effectivePaymentStartDate.substring(8, 10));
 
     const lease = await deps.repository.createLease({
       id: deps.createId(),
@@ -146,8 +175,8 @@ export async function createLease(
       fixedTermMonths: parsed.data.fixedTermMonths ?? null,
       autoRenewToMonthly: parsed.data.autoRenewToMonthly ?? false,
       paymentFrequency: parsed.data.paymentFrequency ?? "monthly",
-      paymentStartDate: parsed.data.paymentStartDate ?? parsed.data.startDate,
-      dueDayOfMonth: parsed.data.dueDayOfMonth ?? Number((parsed.data.paymentStartDate ?? parsed.data.startDate).substring(8, 10)),
+      paymentStartDate: effectivePaymentStartDate,
+      dueDayOfMonth: effectiveDueDayOfMonth,
       depositAmount: parsed.data.charges?.filter((charge) => charge.chargeType === "deposit").reduce((sum, charge) => sum + charge.amount, 0) ?? 0,
       status: "pending",
       charges: chargeRecords

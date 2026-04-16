@@ -7,6 +7,7 @@ import type { Listing } from "@hhousing/domain";
 import type { ManagerListingView } from "@hhousing/api-contracts";
 import { postWithAuth } from "../lib/api-client";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
+import UniversalLoadingState from "./universal-loading-state";
 
 interface ListingEditorFormProps {
   organizationId: string;
@@ -93,7 +94,6 @@ export default function ListingEditorForm({
   const [busyAction, setBusyAction] = useState<"draft" | "published" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [isRoutePending, startRouteTransition] = useTransition();
   const isSubmitting = busyAction !== null || isRoutePending;
 
@@ -108,12 +108,6 @@ export default function ListingEditorForm({
       });
     };
   }, [coverUpload, galleryUploads]);
-
-  useEffect(() => {
-    if (!isRoutePending && busyAction === null) {
-      setProgressMessage(null);
-    }
-  }, [busyAction, isRoutePending]);
 
   async function uploadImage(file: File, slot: string): Promise<string> {
     const supabase = createSupabaseBrowserClient();
@@ -262,18 +256,15 @@ export default function ListingEditorForm({
     setBusyAction(status);
     setError(null);
     setMessage(null);
-    setProgressMessage(status === "published" ? "Preparing listing publication..." : "Preparing draft save...");
 
     if (!form.coverImageUrl.trim() && coverUpload === null) {
       setError("Ajoutez une image de couverture avant d'enregistrer le listing.");
-      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
 
     if (form.galleryImageUrls.length + galleryUploads.length < 1) {
       setError("Ajoutez au moins une image de galerie avant d'enregistrer le listing.");
-      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
@@ -282,10 +273,6 @@ export default function ListingEditorForm({
     let galleryImageUrls = [...form.galleryImageUrls];
 
     try {
-      if (coverUpload || galleryUploads.length > 0) {
-        setProgressMessage("Uploading images...");
-      }
-
       if (coverUpload) {
         coverImageUrl = await uploadImage(coverUpload.file, "cover");
       }
@@ -298,12 +285,9 @@ export default function ListingEditorForm({
       }
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Erreur de telechargement des images.");
-      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
-
-    setProgressMessage(status === "published" ? "Publishing listing..." : "Saving draft...");
 
     const result = await postWithAuth<Listing>("/api/listings", {
       organizationId,
@@ -329,7 +313,6 @@ export default function ListingEditorForm({
 
     if (!result.success) {
       setError(result.error);
-      setProgressMessage(null);
       setBusyAction(null);
       return;
     }
@@ -346,7 +329,6 @@ export default function ListingEditorForm({
     setBusyAction(null);
 
     if (status === "published") {
-      setProgressMessage("Opening listings workspace...");
       startRouteTransition(() => {
         router.push("/dashboard/listings?tab=listings");
       });
@@ -354,7 +336,6 @@ export default function ListingEditorForm({
       return;
     }
 
-    setProgressMessage("Refreshing listing...");
     startRouteTransition(() => {
       router.refresh();
     });
@@ -394,13 +375,28 @@ return (
         </div>
       </div>
 
-      {/* PROGRESS */}
-      {progressMessage && (
-        <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
-          {progressMessage}
-        </div>
-      )}
+      <div className="flex items-center justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            void saveListing("draft");
+          }}
+          disabled={isSubmitting}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          Save edits
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            void saveListing("published");
+          }}
+          disabled={isSubmitting}
+          className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60"
+        >
+          Publish listing
+        </button>
+      </div>
 
       <fieldset disabled={isSubmitting} className="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
 
@@ -656,6 +652,12 @@ return (
         </section>
 
       </fieldset>
+
+      {isSubmitting ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   </div>
 );

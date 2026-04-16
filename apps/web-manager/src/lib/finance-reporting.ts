@@ -268,6 +268,7 @@ export function buildFinanceReportCsv(
 
   const summaryRows = [
     ["summary", "portfolio", "revenus", "total", formatCurrencySummary(revenueDataset.revenueTotals), "", "", "", "", "", "", "", ""],
+    ["summary", "portfolio", "depots_passif", "total", formatCurrencySummary(revenueDataset.depositLiabilityTotals), "", "", "", "", "", "", "", ""],
     ["summary", "portfolio", "depenses", "total", formatCurrencySummary(expenseDataset.expenseTotals), "", "", "", "", "", "", "", ""],
     [
       "summary",
@@ -499,7 +500,7 @@ export function buildRevenueDataset(
   );
   const leaseById = new Map(scopedPortfolio.leases.map((lease) => [lease.id, lease]));
 
-  const ledger: RevenueLedgerEntry[] = payments
+  const paidLedger: RevenueLedgerEntry[] = payments
     .filter((payment) => payment.status === "paid" && payment.paidDate !== null)
     .map((payment) => {
       const lease = leaseById.get(payment.leaseId);
@@ -529,7 +530,11 @@ export function buildRevenueDataset(
       return right.paidDate.localeCompare(left.paidDate);
     });
 
+  const depositLedger = paidLedger.filter((entry) => entry.paymentKind === "deposit");
+  const ledger = paidLedger.filter((entry) => entry.paymentKind !== "deposit");
+
   const revenueSummary = new Map<string, number>();
+  const depositLiabilitySummary = new Map<string, number>();
   const monthlySummary = new Map<string, Map<string, number>>();
   const propertySummary = new Map<string, { propertyId: string; propertyName: string; paymentCount: number; totals: Map<string, number> }>();
 
@@ -554,6 +559,10 @@ export function buildRevenueDataset(
     }
   }
 
+  for (const entry of depositLedger) {
+    addAmount(depositLiabilitySummary, entry.currencyCode, entry.amount);
+  }
+
   const monthlyRevenue: FinanceMonthlyBucket[] = [...monthlySummary.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([month, summary]) => ({
@@ -575,10 +584,12 @@ export function buildRevenueDataset(
     filters,
     propertyOptions,
     revenueTotals: toCurrencyTotals(revenueSummary),
+    depositLiabilityTotals: toCurrencyTotals(depositLiabilitySummary),
     monthlyRevenue,
     propertyRevenue,
     ledger,
-    recordedPaymentCount: ledger.length
+    recordedPaymentCount: ledger.length,
+    recordedDepositCount: depositLedger.length
   };
 }
 

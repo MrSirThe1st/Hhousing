@@ -39,6 +39,26 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
             Dépenses saisies manuellement, rattachées à une propriété ou au niveau organisation.
           </p>
         </div>
+        <ExpenseCreateForm
+          organizationId={session.organizationId}
+          propertyOptions={dataset.propertyOptions}
+          propertyUnitOptions={dataset.propertyUnitOptions}
+          expenseId={editingExpense?.id}
+          initialValues={editingExpense ? {
+            propertyId: editingExpense.propertyId ?? "",
+            unitId: editingExpense.unitId ?? "",
+            title: editingExpense.title,
+            category: editingExpense.category,
+            vendorName: editingExpense.vendorName ?? "",
+            payeeName: editingExpense.payeeName ?? "",
+            amount: editingExpense.amount.toString(),
+            currencyCode: editingExpense.currencyCode,
+            expenseDate: editingExpense.expenseDate,
+            note: editingExpense.note ?? ""
+          } : null}
+          cancelHref={baseHref}
+          displayMode="modal"
+        />
       </div>
 
       <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
@@ -93,27 +113,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
         <button type="submit" className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]">Appliquer</button>
       </form>
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <ExpenseCreateForm
-          organizationId={session.organizationId}
-          propertyOptions={dataset.propertyOptions}
-          propertyUnitOptions={dataset.propertyUnitOptions}
-          expenseId={editingExpense?.id}
-          initialValues={editingExpense ? {
-            propertyId: editingExpense.propertyId ?? "",
-            unitId: editingExpense.unitId ?? "",
-            title: editingExpense.title,
-            category: editingExpense.category,
-            vendorName: editingExpense.vendorName ?? "",
-            payeeName: editingExpense.payeeName ?? "",
-            amount: editingExpense.amount.toString(),
-            currencyCode: editingExpense.currencyCode,
-            expenseDate: editingExpense.expenseDate,
-            note: editingExpense.note ?? ""
-          } : null}
-          cancelHref={baseHref}
-        />
-
+      <section>
         <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-[#010a19]">Par propriété</h2>
           <p className="mt-1 text-sm text-gray-500">Vue agrégée des dépenses sur le portefeuille courant.</p>

@@ -44,14 +44,18 @@ export default async function PrintReportPage({ searchParams }: PrintReportPageP
           <p className="mt-2 text-sm text-gray-600">Période du {filters.from} au {filters.to}</p>
         </section>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-3">
+        <section className="mt-6 grid gap-4 md:grid-cols-4">
           <article className="rounded-xl border border-gray-200 p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Revenus</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Revenus (hors dépôts)</p>
             <p className="mt-2 text-lg font-semibold">{formatCurrencySummary(revenueDataset.revenueTotals)}</p>
           </article>
           <article className="rounded-xl border border-gray-200 p-4">
             <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Dépenses</p>
             <p className="mt-2 text-lg font-semibold">{formatCurrencySummary(expenseDataset.expenseTotals)}</p>
+          </article>
+          <article className="rounded-xl border border-gray-200 p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Dépôts (passif)</p>
+            <p className="mt-2 text-lg font-semibold">{formatCurrencySummary(revenueDataset.depositLiabilityTotals)}</p>
           </article>
           <article className="rounded-xl border border-gray-200 p-4">
             <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Net</p>

@@ -50,9 +50,14 @@ export type {
   CreateTenantRecordInput,
   CreateLeaseRecordInput,
   CreateLeaseChargeRecordInput,
+  MoveOutAggregateRecord,
+  ReplaceMoveOutChargeRecordInput,
+  UpsertMoveOutInspectionRecordInput,
+  CloseMoveOutRecordInput,
   CreateTenantInvitationRecordInput,
   TenantInvitationRecord,
   TenantInvitationPreviewRecord,
+  UpsertMoveOutRecordInput,
   TenantLeaseRepository
 } from "./leases/tenant-lease-record.types";
 export type { TenantLeaseQueryable } from "./leases/postgres-tenant-lease.repository";
@@ -66,6 +71,19 @@ export type {
   PaymentRepository
 } from "./payments/payment-record.types";
 export type { PaymentQueryable } from "./payments/postgres-payment.repository";
+export {
+  createPostgresInvoiceRepository,
+  createInvoiceRepositoryFromEnv
+} from "./invoices/postgres-invoice.repository";
+export type {
+  SyncInvoiceForPaidPaymentInput,
+  SyncInvoiceForPaidPaymentOutput,
+  QueueInvoiceEmailJobInput,
+  InvoiceDetailRecord,
+  ProcessableInvoiceEmailJob,
+  InvoiceRepository
+} from "./invoices/invoice-record.types";
+export type { InvoiceQueryable } from "./invoices/postgres-invoice.repository";
 export {
   createPostgresExpenseRepository,
   createExpenseRepositoryFromEnv

@@ -64,7 +64,7 @@ export default function ActionMenu({ items, align = "right", triggerLabel }: Act
       </button>
 
       {open ? (
-        <div className={`absolute ${panelPositionClassName} z-20 mt-2 min-w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg`}>
+        <div className={`absolute ${panelPositionClassName} z-50 mt-2 min-w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg`}>
           {items.map((item) => {
             const className = `block w-full px-4 py-2.5 text-left text-sm transition ${
               item.tone === "danger"
@@ -72,7 +72,7 @@ export default function ActionMenu({ items, align = "right", triggerLabel }: Act
                 : "text-slate-700 hover:bg-slate-50"
             } ${item.disabled ? "cursor-not-allowed opacity-60" : ""}`;
 
-            if (item.href) {
+            if (item.href && !item.disabled) {
               return (
                 <Link
                   key={item.label}
@@ -82,6 +82,14 @@ export default function ActionMenu({ items, align = "right", triggerLabel }: Act
                 >
                   {item.label}
                 </Link>
+              );
+            }
+
+            if (item.href && item.disabled) {
+              return (
+                <span key={item.label} className={className}>
+                  {item.label}
+                </span>
               );
             }
 

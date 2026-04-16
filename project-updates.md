@@ -2,6 +2,180 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-16
+- Change type: Infra + Invoicing
+- Description: Added a deployment cron for invoice email job processing so queued invoice emails are periodically claimed and sent.
+- Impact: Updated `apps/web-manager/vercel.json` to schedule `/api/internal/invoices/process-email-jobs` every 10 minutes; existing queue processor route and Resend envs remain unchanged.
+- Tests: not run (deployment scheduler config only).
+
+## 2026-04-16
+- Change type: Frontend + Payments/Invoices UX
+- Description: Added effective client-side filters to manager payments and invoices workspaces, including text search, entity/status selectors, and due-date range filtering (`du` / `au`) to display records within a specific period.
+- Impact: Updated `apps/web-manager/src/components/payment-management-panel.tsx` with filters for search, lease, payment type, status chips, and due-date range; updated `apps/web-manager/src/components/invoice-management-panel.tsx` with filters for search, lease, invoice status, email status, and due-date range, with summaries now reflecting the filtered dataset.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + Payments UX
+- Description: Replaced payments-page inline mark-paid loading with the shared full-screen centered material-wave overlay for both payment registration and mark-paid mutations.
+- Impact: Updated `apps/web-manager/src/components/payment-management-panel.tsx` to drive a single full-screen `UniversalLoadingState` overlay from create-payment and mark-paid busy state and removed the inline `...` action label.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Full-stack + Invoicing Follow-up
+- Description: Added invoice void flow, detail drawer UX with retry/application history, and action routing for send/resend/void from invoice detail.
+- Impact: Extended invoice contracts with void input/output in `packages/api-contracts/src/invoices/*`; added `voidInvoice` repository behavior with credit adjustment in `packages/data-access/src/invoices/postgres-invoice.repository.ts`; added invoice service `voidInvoice` in `apps/web-manager/src/api/invoices/invoice.ts`; updated `apps/web-manager/src/app/api/invoices/[id]/route.ts` PATCH action dispatch (`send|resend|void`); upgraded `apps/web-manager/src/components/invoice-management-panel.tsx` with right-side detail panel, retry history display, payment applications list, and void reason workflow + warning.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Full-stack + Invoicing Foundation
+- Description: Implemented first invoicing slice with lease-period invoices, payment-to-invoice synchronization (issued/partial/paid), overpayment credit tracking, async email queue with retry states, and manager invoices workspace.
+- Impact: Added migration `db/migrations/0036_init_invoices.sql` (`invoices`, `invoice_payment_applications`, `lease_credit_balances`, `invoice_email_jobs`); added domain `packages/domain/src/entities/invoice.types.ts`; added API contracts `packages/api-contracts/src/invoices/invoice.types.ts` + `invoice.validation.ts`; added data-access invoice repository in `packages/data-access/src/invoices/*`; wired invoice repo factories in `packages/data-access/src/index.ts` + `apps/web-manager/src/app/api/shared.ts`; extended mark-paid service flow in `apps/web-manager/src/api/payments/payment.ts` + `apps/web-manager/src/app/api/payments/[id]/route.ts` to sync invoices/credits and auto-queue paid-email jobs; added invoice APIs `apps/web-manager/src/api/invoices/invoice.ts`, routes `apps/web-manager/src/app/api/invoices/route.ts`, `apps/web-manager/src/app/api/invoices/[id]/route.ts`; added async job processor route `apps/web-manager/src/app/api/internal/invoices/process-email-jobs/route.ts`; added manager UI `apps/web-manager/src/app/dashboard/invoices/page.tsx`, `apps/web-manager/src/app/dashboard/invoices/loading.tsx`, `apps/web-manager/src/components/invoice-management-panel.tsx`; added sidebar entry in `apps/web-manager/src/components/sidebar.tsx`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + Expenses UX
+- Description: Replaced inline expense-entry panel with a popup form to reduce page crowding; form now opens from add-expense CTA and auto-opens in edit mode from ledger actions.
+- Impact: Updated `apps/web-manager/src/components/expense-create-form.tsx` with `displayMode` (`inline`|`modal`) and modal open/close flow; updated `apps/web-manager/src/app/dashboard/expenses/page.tsx` to mount the form as a modal trigger in the header and remove inline two-column form layout.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + UX Loading Behavior
+- Description: Switched dashboard documents route initial load to skeleton and centralized side-operation loading into a full-screen material-wave overlay.
+- Impact: Updated `apps/web-manager/src/app/dashboard/documents/loading.tsx` to use `TableSkeleton`; updated `apps/web-manager/src/components/documents-workspace-panel.tsx` to show a fixed overlay `UniversalLoadingState` for upload/delete/template-save/email-send mutations and removed duplicate inline busy labels.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + Lease UX Cleanup
+- Description: Removed duplicate in-page lease email actions from lease detail; draft-email send and activation resend now live only in the dedicated lease emails workspace.
+- Impact: Updated `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` to remove duplicate send/resend sections and related local state/handlers; updated `apps/web-manager/src/app/dashboard/leases/[id]/page.tsx` to drop now-unused selected-document prop wiring.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + Lease Workflow Bugfix
+- Description: Fixed lease detail runtime crash after saving lease draft where selectedDocumentIds was undefined and UI evaluated selectedDocumentIds.length.
+- Impact: Updated `apps/web-manager/src/app/dashboard/leases/[id]/page.tsx` to pass `initialSelectedDocumentIds` derived from lease-attached documents; added defensive fallback in `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` to default to an empty array.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + Email Workflow
+- Description: Added a dedicated lease email workspace page and linked it from the lease action menu for draft-email sending with document selection and activation-email resend.
+- Impact: Added `apps/web-manager/src/app/dashboard/leases/[id]/emails/page.tsx` and `apps/web-manager/src/app/dashboard/leases/[id]/emails/lease-email-workspace-client.tsx` (searchable/scrollable document selection UI for large file sets, send draft email action, resend activation action); updated `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` action menu with `Envoyer l'email du brouillon` entry and per-action status gating.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + Workflow Guard
+- Description: Added lease detail action menu (Move out + Ajouter un document), wired document upload popup trigger from menu, and restricted move-out actions/pages to active leases only.
+- Impact: Updated `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` (new `ActionMenu` actions, active-only gating, external document upload trigger), updated `apps/web-manager/src/components/action-menu.tsx` (disabled links no longer navigate), updated `apps/web-manager/src/components/contextual-document-panel.tsx` (new external upload open signal), and updated `apps/web-manager/src/app/dashboard/leases/[id]/move-out/page.tsx` (server-side active lease guard).
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Frontend + Navigation
+- Description: Moved lease move-out workflow to a dedicated page and added explicit navigation from lease detail.
+- Impact: Added `apps/web-manager/src/app/dashboard/leases/[id]/move-out/page.tsx` and `apps/web-manager/src/app/dashboard/leases/[id]/move-out/move-out-flow-client.tsx`; updated `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` with a `Gérer le move-out` button linking to `/dashboard/leases/[id]/move-out` and disabled inline move-out rendering in lease detail.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: API + Frontend + Controls
+- Description: Added move-out reconciliation controls to detect closure integrity issues and snapshot/live drift, with a dedicated endpoint and lease-detail visibility.
+- Impact: Extended `apps/web-manager/src/api/leases/move-out.ts` with `buildMoveOutReconciliation` (blocking/warning/drift checks, closed snapshot integrity checks, closure event checks), added route `apps/web-manager/src/app/api/leases/[id]/move-out/reconciliation/route.ts` and tests `apps/web-manager/src/app/api/leases/[id]/move-out/reconciliation/route.test.ts`, and updated `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` to fetch/render reconciliation anomalies and refresh them after save/close actions.
+- Tests: `pnpm -C apps/web-manager test -- 'src/app/api/leases/[id]/move-out/reconciliation/route.test.ts' 'src/app/api/leases/[id]/move-out/close/route.test.ts' 'src/app/api/leases/[id]/move-out/inspection/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: API + Frontend + Domain
+- Description: Added move-out closure workflow with immutable snapshot finalization, ledger-bound closure id input, and lease-detail close action wiring.
+- Impact: Extended move-out contracts/validation in `packages/api-contracts/src/leases/move-out.types.ts` and `packages/api-contracts/src/leases/move-out.validation.ts` (close input/output parser + exports), extended tenant-lease repository contract and postgres implementation with `closeMoveOut` in `packages/data-access/src/leases/tenant-lease-record.types.ts` and `packages/data-access/src/leases/postgres-tenant-lease.repository.ts`, added `closeLeaseMoveOut` service logic with snapshot hash in `apps/web-manager/src/api/leases/move-out.ts`, added close route `apps/web-manager/src/app/api/leases/[id]/move-out/close/route.ts`, wired close controls in `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx`, and updated strict test mocks in `apps/web-manager/src/api/leases/lease.test.ts` and `apps/web-manager/src/api/tenants/create-tenant.test.ts`.
+- Tests: `pnpm -C apps/web-manager exec vitest run 'src/app/api/leases/[id]/move-out/close/route.test.ts'` ✓, `pnpm -C apps/web-manager exec vitest run 'src/app/api/leases/[id]/move-out/inspection/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: API + Frontend + Tests
+- Description: Completed move-out inspection workflow wiring and replaced lease-detail direct termination flow with move-out draft/confirmation + inspection save actions powered by the dedicated move-out endpoints.
+- Impact: Updated `apps/web-manager/src/lib/api-client.ts` with `getWithAuth`; rebuilt `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` to load/save move-out and inspection state through `/api/leases/[id]/move-out` and `/api/leases/[id]/move-out/inspection`; added route tests in `apps/web-manager/src/app/api/leases/[id]/move-out/inspection/route.test.ts` covering auth failure, payload validation, and success.
+- Tests: `pnpm -C apps/web-manager exec vitest run 'src/app/api/leases/[id]/move-out/inspection/route.test.ts'` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Backend + Lease Workflow
+- Description: Added dedicated move-out inspection persistence with structured checklist items, photo document references, service handling, and a lease-scoped inspection API endpoint.
+- Impact: Updated `packages/domain/src/entities/move-out.types.ts` and `packages/domain/src/index.ts` to expose typed inspection checklist items; extended `packages/api-contracts/src/leases/move-out.types.ts`, `packages/api-contracts/src/leases/move-out.validation.ts`, and `packages/api-contracts/src/index.ts` with inspection input/output parsing; extended `packages/data-access/src/leases/tenant-lease-record.types.ts`, `packages/data-access/src/leases/postgres-tenant-lease.repository.ts`, and `packages/data-access/src/index.ts` with inspection upsert support; updated `apps/web-manager/src/api/leases/move-out.ts`; added `apps/web-manager/src/app/api/leases/[id]/move-out/inspection/route.ts`; updated strict repository mocks in `apps/web-manager/src/api/leases/lease.test.ts` and `apps/web-manager/src/api/tenants/create-tenant.test.ts`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Backend + Lease Workflow
+- Description: Implemented the first move-out backend domain slice with shared types/contracts, repository support, settlement preview logic, and a dedicated lease move-out API route for reading and upserting move-out drafts/confirmed records plus manual charges.
+- Impact: Added `packages/domain/src/entities/move-out.types.ts`; added `packages/api-contracts/src/leases/move-out.types.ts` and `packages/api-contracts/src/leases/move-out.validation.ts`; exported them from `packages/domain/src/index.ts` and `packages/api-contracts/src/index.ts`; extended `packages/data-access/src/leases/tenant-lease-record.types.ts`, `packages/data-access/src/leases/postgres-tenant-lease.repository.ts`, and `packages/data-access/src/index.ts` with move-out aggregate methods; added `apps/web-manager/src/api/leases/move-out.ts` and `apps/web-manager/src/app/api/leases/[id]/move-out/route.ts`; updated strict repository mocks in `apps/web-manager/src/api/leases/lease.test.ts` and `apps/web-manager/src/api/tenants/create-tenant.test.ts`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Web + Domain + Lease Billing
+- Description: Added a shared monthly proration utility and wired move-in flows to auto-generate first-month prorated rent for monthly leases starting mid-month while shifting the first full recurring billing date to the next month.
+- Impact: Added `packages/domain/src/proration/monthly-proration.types.ts` and `packages/domain/src/proration/calculate-monthly-proration.ts`, exported them from `packages/domain/src/index.ts`, updated `apps/web-manager/src/api/leases/lease.ts` to auto-create a one-time `prorated_rent` charge and normalize `paymentStartDate`/`dueDayOfMonth`, and updated `apps/web-manager/src/components/lease-move-in-form.tsx` to preview automatic proration and remove the manual prorated-rent entry path.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: DB + Finance Foundation
+- Description: Added the initial finance-ledger and move-out schema foundation: ledger accounts, central category registry, ledger entries with DB-enforced posting rules, and core move-out tables with deterministic closure boundary fields and snapshot immutability guards.
+- Impact: Added `db/migrations/0035_finance_ledger_and_move_out_foundation.sql` creating `finance_ledger_accounts`, `finance_ledger_categories`, `finance_ledger_entries`, `move_outs`, `move_out_charges`, and `move_out_inspections`, plus validation/update triggers for ledger posting rules, child org consistency, and closed move-out snapshot immutability.
+- Tests: not run (schema migration added to repo; not applied in a database during this slice).
+
+## 2026-04-16
+- Change type: Web + Reporting + Finance Controls
+- Description: Started finance-control implementation by enforcing operational revenue aggregation to exclude deposits, surfacing deposits as explicit liability totals in reporting surfaces, and adding a canonical finance controls context document.
+- Impact: Updated `apps/web-manager/src/lib/finance-reporting.types.ts` and `apps/web-manager/src/lib/finance-reporting.ts` (deposit liability totals + operational revenue-only ledger aggregation), updated `apps/web-manager/src/app/dashboard/revenues/page.tsx`, `apps/web-manager/src/app/dashboard/reports/page.tsx`, and `apps/web-manager/src/app/reports/finance/print/page.tsx` to display deposits separately from revenues, added `docs/context/finance-controls.md`, and registered it in `project-context.md`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Web + Frontend + UX
+- Description: Updated lease detail activation-email resend UX: button is now unavailable before lease finalization/activation and moved below the move-in finalization area.
+- Impact: Updated `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` so resend is enabled only when lease status is `active`; added pending-state helper text; repositioned the "Accès locataire" block below the finalization section.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Web + Frontend + UX
+- Description: Restored direct navigation to lease detail by clicking a lease row in the leases table.
+- Impact: Updated `apps/web-manager/src/components/lease-management-panel.tsx` so each row opens `/dashboard/leases/[id]` on click/Enter/Space (keyboard accessible), while preserving tenant-name link behavior.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-16
+- Change type: Web + Frontend + UX
+- Description: Replaced inline loading labels with full-screen centered material-wave overlays for lease draft registration and lease finalization/activation flows.
+- Impact: Updated `apps/web-manager/src/components/lease-move-in-form.tsx` to show `UniversalLoadingState` overlay during draft save (`busy`) and updated `apps/web-manager/src/app/dashboard/leases/[id]/lease-detail-client.tsx` to show the same overlay during finalization (`finalizing`).
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-15
+- Change type: Web + Access Scope Bugfix
+- Description: Fixed tenant detail page false "Locataire introuvable" for newly created tenants without leases.
+- Impact: Updated [apps/web-manager/src/app/dashboard/tenants/[id]/page.tsx](apps/web-manager/src/app/dashboard/tenants/[id]/page.tsx) to align with API access rule: tenant is visible if in scoped tenant IDs OR if the tenant has no organization lease yet.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-05-01
+- Change type: Full-stack (DB + domain + api-contracts + data-access + web-manager)
+- Description: Unified tenant profile and listing application fields across all three surfaces (tenant create, tenant detail/edit, public listing application form). Added 4 new DB columns to `tenants` (employment_status, job_title, monthly_income, number_of_occupants) and 4 to `listing_applications` (date_of_birth, employment_status, job_title, number_of_occupants). Migration: `db/migrations/0034_tenant_and_application_extended_fields.sql` (must be applied to DB). The "convert application → tenant" route (`/api/applications/[id]/convert`) now copies employment_status, job_title, numberOfOccupants from the application into the new tenant automatically.
+- Impact: `db/migrations/0034_...sql`; `packages/domain` (tenant.types, listing-application.types); `packages/api-contracts` (tenant-lease.types/validation, listing.types/validation); `packages/data-access` (tenant-lease-record.types, listing-record.types, postgres-tenant-lease.repository, postgres-listing.repository); `apps/web-manager` (tenant-management.types, create-tenant service, tenants/[id] PATCH route, applications/[id]/convert route, tenant-create-form, tenant-detail-client, public-listing-application-form).
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + UX
+- Description: Added structured listings filters, restored explicit listing save/publish actions, and aligned listing detail route loading to platform skeletons.
+- Impact: Updated `apps/web-manager/src/components/listing-management-panel.tsx` listings tab with properties-style filter controls (search, status, city, property); updated `apps/web-manager/src/components/listing-editor-form.tsx` with `Save edits` and `Publish listing` actions plus full-screen `UniversalLoadingState` overlay during save/publish; updated `apps/web-manager/src/app/dashboard/listings/[unitid]/loading.tsx` to use `TableSkeleton` instead of the universal loader.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + UX
+- Description: Switched owner creation loading on `/dashboard/clients/add` from inline button text to a full-screen centered material-wave overlay.
+- Impact: Updated `apps/web-manager/src/components/owner-client-create-panel.tsx` to render `UniversalLoadingState` in a fixed overlay when submit is in-flight and removed inline `Création...` button text.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + UX
+- Description: Updated property/unit creation to use full-screen centered material-wave loading overlays and removed the unused actions button column from the portfolio properties table.
+- Impact: Updated `apps/web-manager/src/components/property-create-form.tsx` and `apps/web-manager/src/components/unit-create-form.tsx` to render `UniversalLoadingState` in a fixed overlay during submit flows (no inline submit loading text); updated `apps/web-manager/src/components/property-management-panel.tsx` to remove the properties-table action menu column.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-15
+- Change type: Web + Frontend + UX
+- Description: Rolled back unintended portfolio navigation loading overlay, removed inline owner-client creation from property add, and added explicit icon+label field guidance on property/unit add forms.
+- Impact: Updated `apps/web-manager/src/components/property-management-panel.tsx` to remove route-navigation loading overlay hooks; updated `apps/web-manager/src/components/property-create-form.tsx` to keep owner selection only (no create-on-the-fly owner client) and add platform-style icons/labels to all main form fields; updated `apps/web-manager/src/components/unit-create-form.tsx` to add platform-style icons beside existing field labels.
+- Tests: `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager typecheck` ✓.
+
 ## 2026-04-15
 - Change type: Web + Frontend + UX
 - Description: Switched portfolio page action loading to a centered full-screen material-wave overlay so action-triggered navigation no longer relies on inline progress states.

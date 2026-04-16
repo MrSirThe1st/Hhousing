@@ -20,6 +20,10 @@ type TenantFormData = {
   phone: string;
   dateOfBirth: string;
   photoUrl: string;
+  employmentStatus: string;
+  jobTitle: string;
+  monthlyIncome: string;
+  numberOfOccupants: string;
 };
 
 interface TenantDetailClientProps {
@@ -106,7 +110,11 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
     email: initialTenant.email ?? "",
     phone: initialTenant.phone ?? "",
     dateOfBirth: initialTenant.dateOfBirth ?? "",
-    photoUrl: initialTenant.photoUrl ?? ""
+    photoUrl: initialTenant.photoUrl ?? "",
+    employmentStatus: initialTenant.employmentStatus ?? "",
+    jobTitle: initialTenant.jobTitle ?? "",
+    monthlyIncome: initialTenant.monthlyIncome !== null && initialTenant.monthlyIncome !== undefined ? String(initialTenant.monthlyIncome) : "",
+    numberOfOccupants: initialTenant.numberOfOccupants !== null && initialTenant.numberOfOccupants !== undefined ? String(initialTenant.numberOfOccupants) : ""
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -116,9 +124,13 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
     Boolean(tenant.email),
     Boolean(tenant.phone),
     Boolean(tenant.dateOfBirth),
-    Boolean(tenant.photoUrl)
+    Boolean(tenant.photoUrl),
+    Boolean(tenant.employmentStatus),
+    Boolean(tenant.jobTitle),
+    tenant.monthlyIncome !== null,
+    tenant.numberOfOccupants !== null
   ].filter(Boolean).length;
-  const profileCompletion = Math.round((profileFieldsCompleted / 5) * 100);
+  const profileCompletion = Math.round((profileFieldsCompleted / 9) * 100);
   const hasContact = Boolean(tenant.email || tenant.phone);
   const tenantAge = getAgeLabel(tenant.dateOfBirth);
   const birthDateLabel = formatOptionalDate(tenant.dateOfBirth);
@@ -130,7 +142,11 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
       email: tenant.email ?? "",
       phone: tenant.phone ?? "",
       dateOfBirth: tenant.dateOfBirth ?? "",
-      photoUrl: tenant.photoUrl ?? ""
+      photoUrl: tenant.photoUrl ?? "",
+      employmentStatus: tenant.employmentStatus ?? "",
+      jobTitle: tenant.jobTitle ?? "",
+      monthlyIncome: tenant.monthlyIncome !== null && tenant.monthlyIncome !== undefined ? String(tenant.monthlyIncome) : "",
+      numberOfOccupants: tenant.numberOfOccupants !== null && tenant.numberOfOccupants !== undefined ? String(tenant.numberOfOccupants) : ""
     });
   }
 
@@ -144,7 +160,11 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
       email: formData.email.trim() || null,
       phone: formData.phone.trim() || null,
       dateOfBirth: formData.dateOfBirth || null,
-      photoUrl: formData.photoUrl.trim() || null
+      photoUrl: formData.photoUrl.trim() || null,
+      employmentStatus: formData.employmentStatus.trim() || null,
+      jobTitle: formData.jobTitle.trim() || null,
+      monthlyIncome: formData.monthlyIncome.trim() ? Number(formData.monthlyIncome) : null,
+      numberOfOccupants: formData.numberOfOccupants.trim() ? Number(formData.numberOfOccupants) : null
     });
 
     if (!result.success) {
@@ -259,6 +279,10 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
                 <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Nom complet</dt><dd className="text-sm font-medium text-[#010a19]">{tenant.fullName}</dd></div>
                 <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Date de naissance</dt><dd className="text-sm font-medium text-[#010a19]">{birthDateLabel}</dd></div>
                 <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Âge estimé</dt><dd className="text-sm font-medium text-[#010a19]">{tenantAge}</dd></div>
+                <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Statut professionnel</dt><dd className="text-sm font-medium text-[#010a19]">{tenant.employmentStatus ?? "Non renseigné"}</dd></div>
+                <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Poste / Fonction</dt><dd className="text-sm font-medium text-[#010a19]">{tenant.jobTitle ?? "Non renseigné"}</dd></div>
+                <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Revenu mensuel</dt><dd className="text-sm font-medium text-[#010a19]">{tenant.monthlyIncome !== null && tenant.monthlyIncome !== undefined ? tenant.monthlyIncome.toLocaleString("fr-FR") : "Non renseigné"}</dd></div>
+                <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Nombre d'occupants</dt><dd className="text-sm font-medium text-[#010a19]">{tenant.numberOfOccupants !== null && tenant.numberOfOccupants !== undefined ? tenant.numberOfOccupants : "Non renseigné"}</dd></div>
                 <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Créé le</dt><dd className="text-sm font-medium text-[#010a19]">{createdAtLabel}</dd></div>
                 <div className="grid gap-2 px-1 py-3 md:grid-cols-[220px_minmax(0,1fr)]"><dt className="text-sm text-slate-500">Identifiant dossier</dt><dd className="text-sm font-medium text-[#010a19]">{tenant.id}</dd></div>
               </dl>
@@ -287,6 +311,20 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Date de naissance</label><input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData((prev) => ({ ...prev, dateOfBirth: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">E-mail</label><input type="email" value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Statut professionnel</label>
+                <select value={formData.employmentStatus} onChange={(e) => setFormData((prev) => ({ ...prev, employmentStatus: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20">
+                  <option value="">— Sélectionner —</option>
+                  <option value="employed">Salarié(e)</option>
+                  <option value="self_employed">Indépendant(e)</option>
+                  <option value="unemployed">Sans emploi</option>
+                  <option value="student">Étudiant(e)</option>
+                  <option value="retired">Retraité(e)</option>
+                </select>
+              </div>
+              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Poste / Intitulé de fonction</label><input type="text" value={formData.jobTitle} onChange={(e) => setFormData((prev) => ({ ...prev, jobTitle: e.target.value }))} placeholder="Ex. Ingénieur, Enseignant…" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Revenu mensuel <span className="font-normal text-gray-400">(optionnel)</span></label><input inputMode="decimal" value={formData.monthlyIncome} onChange={(e) => setFormData((prev) => ({ ...prev, monthlyIncome: e.target.value }))} placeholder="0.00" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre d'occupants</label><input type="number" min="1" value={formData.numberOfOccupants} onChange={(e) => setFormData((prev) => ({ ...prev, numberOfOccupants: e.target.value }))} placeholder="1" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
             </div>
             <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Photo (URL)</label><input type="url" value={formData.photoUrl} onChange={(e) => setFormData((prev) => ({ ...prev, photoUrl: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
             {error ? <p className="rounded-lg border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-600">{error}</p> : null}

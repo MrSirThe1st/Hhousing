@@ -42,8 +42,11 @@ type ContextualDocumentPanelProps = {
   preferredDocumentEmptyMessage?: string;
   preferredDocumentReadyMessage?: string;
   showUploadFormOnMount?: boolean;
+  openUploadSignal?: number;
+  refreshSignal?: number;
   containerClassName?: string;
   showAddButton?: boolean;
+  onAddButtonClick?: () => void;
 };
 
 export default function ContextualDocumentPanel({
@@ -57,8 +60,11 @@ export default function ContextualDocumentPanel({
   preferredDocumentEmptyMessage,
   preferredDocumentReadyMessage,
   showUploadFormOnMount = false,
+  openUploadSignal = 0,
+  refreshSignal = 0,
   containerClassName = "mt-6 rounded-2xl border border-slate-400",
-  showAddButton = true
+  showAddButton = true,
+  onAddButtonClick
 }: ContextualDocumentPanelProps): React.ReactElement {
   const router = useRouter();
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
@@ -114,6 +120,17 @@ export default function ContextualDocumentPanel({
       setShowUploadForm(true);
     }
   }, [showUploadFormOnMount]);
+
+  useEffect(() => {
+    if (openUploadSignal > 0) {
+      setShowUploadForm(true);
+    }
+  }, [openUploadSignal]);
+
+  useEffect(() => {
+    if (!sessionInfo) return;
+    void fetchDocuments(sessionInfo.organizationId);
+  }, [refreshSignal, sessionInfo, fetchDocuments]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
     setFile(e.target.files?.[0] ?? null);
@@ -209,7 +226,13 @@ export default function ContextualDocumentPanel({
         </div>
         {!loading && sessionInfo && showAddButton && (
           <button
-            onClick={() => setShowUploadForm(!showUploadForm)}
+            onClick={() => {
+              if (onAddButtonClick) {
+                onAddButtonClick();
+                return;
+              }
+              setShowUploadForm(!showUploadForm);
+            }}
             className="rounded-lg bg-[#0063fe] px-3 py-2 text-xs font-semibold text-white hover:bg-[#0050d0]"
           >
             {showUploadForm ? "Annuler" : addButtonLabel}
@@ -277,7 +300,7 @@ export default function ContextualDocumentPanel({
           Aucun document.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="relative overflow-visible rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
               <tr>

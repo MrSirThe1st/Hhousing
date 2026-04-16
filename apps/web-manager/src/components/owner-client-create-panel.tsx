@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CreateOwnerOutput } from "@hhousing/api-contracts";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth } from "../lib/api-client";
+import UniversalLoadingState from "./universal-loading-state";
 
 interface OwnerClientCreatePanelProps {
   organizationId: string;
@@ -264,7 +265,7 @@ export default function OwnerClientCreatePanel({
             disabled={busy || form.fullName.trim().length === 0 || (form.isCompany && form.companyName.trim().length === 0)}
             className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
           >
-            {busy ? "Création..." : "Ajouter"}
+            Ajouter
           </button>
         </div>
       </form>
@@ -277,6 +278,12 @@ export default function OwnerClientCreatePanel({
       {error ? (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
+        </div>
+      ) : null}
+
+      {busy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
         </div>
       ) : null}
     </section>

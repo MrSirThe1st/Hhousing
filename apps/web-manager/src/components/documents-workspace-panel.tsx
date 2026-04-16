@@ -242,6 +242,12 @@ export default function DocumentsWorkspacePanel({
     () => templates.filter((template) => template.source === "custom"),
     [templates]
   );
+  const sideOperationBusy =
+    uploadBusy ||
+    templateBusy ||
+    sendBusy ||
+    deletingDocumentId !== null ||
+    deletingTemplateId !== null;
 
   async function handleUploadDocument(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -489,7 +495,7 @@ export default function DocumentsWorkspacePanel({
               </div>
 
               <button type="submit" disabled={uploadBusy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">
-                {uploadBusy ? "Téléchargement..." : "Télécharger le document"}
+                Télécharger le document
               </button>
             </form>
           ) : null}
@@ -540,7 +546,7 @@ export default function DocumentsWorkspacePanel({
                       <td className="px-4 py-3 space-x-3">
                         <a href={document.fileUrl} target="_blank" rel="noopener noreferrer" className="text-[#0063fe] hover:underline text-sm font-medium">Ouvrir</a>
                         <button type="button" onClick={() => handleDeleteDocument(document.id)} disabled={deletingDocumentId === document.id} className="text-red-600 hover:underline text-sm font-medium disabled:opacity-60">
-                          {deletingDocumentId === document.id ? "..." : "Supprimer"}
+                          Supprimer
                         </button>
                       </td>
                     </tr>
@@ -572,7 +578,6 @@ export default function DocumentsWorkspacePanel({
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-import UniversalLoadingState from "./universal-loading-state";
               <h2 className="text-base font-semibold text-[#010a19]">Templates personnalisés</h2>
               <p className="mt-1 text-sm text-gray-500">Créez vos propres modèles d'envoi, puis réutilisez-les dans l'onglet Envoi.</p>
               {templatesLoading ? (
@@ -604,7 +609,7 @@ import UniversalLoadingState from "./universal-loading-state";
                             Modifier
                           </button>
                           <button type="button" onClick={() => void handleDeleteTemplate(template.id)} disabled={deletingTemplateId === template.id} className="text-sm font-medium text-red-600 hover:underline disabled:opacity-60">
-                            {deletingTemplateId === template.id ? "..." : "Supprimer"}
+                            Supprimer
                           </button>
                         </div>
                       </div>
@@ -645,7 +650,7 @@ import UniversalLoadingState from "./universal-loading-state";
             </div>
             <div className="flex gap-3">
               <button type="submit" disabled={templateBusy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">
-                {templateBusy ? "Enregistrement..." : editingTemplateId ? "Mettre à jour" : "Créer le template"}
+                {editingTemplateId ? "Mettre à jour" : "Créer le template"}
               </button>
               {editingTemplateId ? (
                 <button type="button" onClick={() => { setEditingTemplateId(null); setTemplateForm(INITIAL_TEMPLATE_FORM); }} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -748,10 +753,16 @@ import UniversalLoadingState from "./universal-loading-state";
               <textarea value={emailBody} onChange={(event) => setEmailBody(event.target.value)} className="min-h-80 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required />
             </label>
             <button type="submit" disabled={sendBusy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">
-              {sendBusy ? "Envoi..." : "Envoyer l'email"}
+              Envoyer l'email
             </button>
           </section>
         </form>
+      ) : null}
+
+      {sideOperationBusy ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-white/75 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
       ) : null}
     </div>
   );

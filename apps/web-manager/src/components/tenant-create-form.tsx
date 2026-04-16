@@ -7,12 +7,17 @@ import type { Tenant } from "@hhousing/domain";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth } from "../lib/api-client";
 import type { TenantFormState } from "./tenant-management.types";
+import UniversalLoadingState from "./universal-loading-state";
 
 const INITIAL_TENANT_FORM: TenantFormState = {
   fullName: "",
   email: "",
   phone: "",
-  dateOfBirth: ""
+  dateOfBirth: "",
+  employmentStatus: "",
+  jobTitle: "",
+  monthlyIncome: "",
+  numberOfOccupants: ""
 };
 
 interface TenantCreateFormProps {
@@ -73,7 +78,11 @@ export default function TenantCreateForm({ organizationId }: TenantCreateFormPro
       email: tenantForm.email.trim() || null,
       phone: tenantForm.phone.trim() || null,
       dateOfBirth: tenantForm.dateOfBirth || null,
-      photoUrl
+      photoUrl,
+      employmentStatus: tenantForm.employmentStatus.trim() || null,
+      jobTitle: tenantForm.jobTitle.trim() || null,
+      monthlyIncome: tenantForm.monthlyIncome.trim() ? Number(tenantForm.monthlyIncome) : null,
+      numberOfOccupants: tenantForm.numberOfOccupants.trim() ? Number(tenantForm.numberOfOccupants) : null
     });
 
     if (!result.success) {
@@ -144,6 +153,51 @@ export default function TenantCreateForm({ organizationId }: TenantCreateFormPro
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Statut professionnel</span>
+            <select
+              value={tenantForm.employmentStatus}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, employmentStatus: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">— Sélectionner —</option>
+              <option value="employed">Salarié(e)</option>
+              <option value="self_employed">Indépendant(e)</option>
+              <option value="unemployed">Sans emploi</option>
+              <option value="student">Étudiant(e)</option>
+              <option value="retired">Retraité(e)</option>
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Poste / Intitulé de fonction</span>
+            <input
+              value={tenantForm.jobTitle}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, jobTitle: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Ex. Ingénieur, Enseignant…"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Revenu mensuel <span className="font-normal text-gray-400">(optionnel)</span></span>
+            <input
+              inputMode="decimal"
+              value={tenantForm.monthlyIncome}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, monthlyIncome: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="0.00"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Nombre d'occupants</span>
+            <input
+              type="number"
+              min="1"
+              value={tenantForm.numberOfOccupants}
+              onChange={(event) => setTenantForm((previous) => ({ ...previous, numberOfOccupants: event.target.value }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="1"
+            />
+          </label>
         </div>
 
         {error ? (
@@ -155,9 +209,15 @@ export default function TenantCreateForm({ organizationId }: TenantCreateFormPro
           disabled={busy}
           className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
         >
-          {busy ? "Création..." : "Créer le locataire"}
+          Créer le locataire
         </button>
       </form>
+
+      {busy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   );
 }

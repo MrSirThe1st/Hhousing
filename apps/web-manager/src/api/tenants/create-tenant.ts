@@ -62,7 +62,11 @@ export async function createTenant(
     email: parsed.data.email,
     phone: parsed.data.phone,
     dateOfBirth: parsed.data.dateOfBirth ?? null,
-    photoUrl: parsed.data.photoUrl ?? null
+    photoUrl: parsed.data.photoUrl ?? null,
+    employmentStatus: parsed.data.employmentStatus ?? null,
+    jobTitle: parsed.data.jobTitle ?? null,
+    monthlyIncome: parsed.data.monthlyIncome ?? null,
+    numberOfOccupants: parsed.data.numberOfOccupants ?? null
   });
 
   return { status: 201, body: { success: true, data: tenant } };

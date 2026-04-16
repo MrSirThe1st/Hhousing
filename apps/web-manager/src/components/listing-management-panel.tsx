@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
@@ -96,6 +96,10 @@ export default function ListingManagementPanel({
 
   const [applicationBusyState, setApplicationBusyState] = useState<ApplicationBusyState | null>(null);
   const [applicationError, setApplicationError] = useState<string | null>(null);
+  const [listingSearchTerm, setListingSearchTerm] = useState("");
+  const [listingStatusFilter, setListingStatusFilter] = useState<"all" | "published" | "draft" | "not_configured">("all");
+  const [listingCityFilter, setListingCityFilter] = useState<string>("all");
+  const [listingPropertyFilter, setListingPropertyFilter] = useState<string>("all");
   const [isRoutePending, startRouteTransition] = useTransition();
 
   const screeningItems = applications.filter((a) => a.application.status !== "converted");
@@ -107,6 +111,37 @@ export default function ListingManagementPanel({
   const publishedListingsCount = listings.filter((item) => item.listing?.status === "published").length;
   const totalApplicationsCount = applications.length;
   const approvedApplicationsCount = applications.filter((app) => app.application.status === "approved").length;
+  const listingCityOptions = useMemo(
+    () => [...new Set(listings.map((item) => item.property.city))].sort((left, right) => left.localeCompare(right, "fr")),
+    [listings]
+  );
+  const listingPropertyOptions = useMemo(
+    () => [...new Map(listings.map((item) => [item.property.id, { id: item.property.id, name: item.property.name }])).values()]
+      .sort((left, right) => left.name.localeCompare(right.name, "fr")),
+    [listings]
+  );
+  const filteredListings = useMemo(() => {
+    const normalizedSearchTerm = listingSearchTerm.trim().toLowerCase();
+
+    return listings.filter((item) => {
+      const listingLabel = item.property.propertyType === "multi_unit"
+        ? `${item.property.name} ${item.unit.unitNumber}`
+        : item.property.name;
+      const matchesSearch =
+        normalizedSearchTerm.length === 0 ||
+        listingLabel.toLowerCase().includes(normalizedSearchTerm) ||
+        item.property.city.toLowerCase().includes(normalizedSearchTerm);
+      const matchesStatus =
+        listingStatusFilter === "all" ||
+        (listingStatusFilter === "published" && item.listing?.status === "published") ||
+        (listingStatusFilter === "draft" && item.listing?.status === "draft") ||
+        (listingStatusFilter === "not_configured" && item.listing === null);
+      const matchesCity = listingCityFilter === "all" || item.property.city === listingCityFilter;
+      const matchesProperty = listingPropertyFilter === "all" || item.property.id === listingPropertyFilter;
+
+      return matchesSearch && matchesStatus && matchesCity && matchesProperty;
+    });
+  }, [listingCityFilter, listingPropertyFilter, listingSearchTerm, listingStatusFilter, listings]);
 
   useEffect(() => {
     if (!isRoutePending && applicationBusyState?.action === "status") {
@@ -249,67 +284,133 @@ export default function ListingManagementPanel({
       </div>
 
       {activeTab === "listings" && (
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              <tr>
-                <th className="px-5 py-3 text-left">Listing</th>
-                <th className="px-5 py-3 text-left">Rent</th>
-                <th className="px-5 py-3 text-left">Status</th>
-                <th className="px-5 py-3 text-left">Applications</th>
-                <th className="px-5 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {listings.map((item) => (
-                <tr key={item.unit.id} className="hover:bg-slate-50/80">
-                  <td className="px-5 py-4">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
-                      {item.property.city}
-                    </p>
-                    <p className="font-medium text-[#010a19]">
-                      {item.property.propertyType === "multi_unit"
-                        ? `${item.property.name} · Unit ${item.unit.unitNumber}`
-                        : item.property.name}
-                    </p>
-                  </td>
-                  <td className="px-5 py-4 text-slate-600">
-                    {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        item.listing?.status === "published"
-                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
-                          : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
-                      }`}
-                    >
-                      {item.listing?.status ?? "unpublished"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-slate-600">{item.applicationCount}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <Link
-                        href={`/dashboard/listings/${item.unit.id}`}
-                        className="text-sm font-medium text-[#0063fe] hover:underline"
-                      >
-                        {item.listing ? "Edit" : "Set up"}
-                      </Link>
-                      {item.listing?.status === "published" && (
-                        <Link
-                          href={`/listing/${item.listing.id}`}
-                          className="text-sm text-slate-600 hover:text-slate-900"
+        <div className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-end">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">Search listing</label>
+              <input
+                value={listingSearchTerm}
+                onChange={(event) => setListingSearchTerm(event.target.value)}
+                placeholder="Property, unit or city"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">Status</label>
+              <select
+                value={listingStatusFilter}
+                onChange={(event) => setListingStatusFilter(event.target.value as "all" | "published" | "draft" | "not_configured")}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+              >
+                <option value="all">All</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+                <option value="not_configured">Not configured</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">City</label>
+              <select
+                value={listingCityFilter}
+                onChange={(event) => setListingCityFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+              >
+                <option value="all">All cities</option>
+                {listingCityOptions.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">Property</label>
+              <select
+                value={listingPropertyFilter}
+                onChange={(event) => setListingPropertyFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+              >
+                <option value="all">All properties</option>
+                {listingPropertyOptions.map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {filteredListings.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
+              No listings match the selected filters.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <tr>
+                    <th className="px-5 py-3 text-left">Listing</th>
+                    <th className="px-5 py-3 text-left">Rent</th>
+                    <th className="px-5 py-3 text-left">Status</th>
+                    <th className="px-5 py-3 text-left">Applications</th>
+                    <th className="px-5 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredListings.map((item) => (
+                    <tr key={item.unit.id} className="hover:bg-slate-50/80">
+                      <td className="px-5 py-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          {item.property.city}
+                        </p>
+                        <p className="font-medium text-[#010a19]">
+                          {item.property.propertyType === "multi_unit"
+                            ? `${item.property.name} · Unit ${item.unit.unitNumber}`
+                            : item.property.name}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4 text-slate-600">
+                        {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            item.listing?.status === "published"
+                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                              : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+                          }`}
                         >
-                          View
-                        </Link>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                          {item.listing?.status ?? "unpublished"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-slate-600">{item.applicationCount}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/dashboard/listings/${item.unit.id}`}
+                            className="text-sm font-medium text-[#0063fe] hover:underline"
+                          >
+                            {item.listing ? "Edit" : "Set up"}
+                          </Link>
+                          {item.listing?.status === "published" && (
+                            <Link
+                              href={`/listing/${item.listing.id}`}
+                              className="text-sm text-slate-600 hover:text-slate-900"
+                            >
+                              View
+                            </Link>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

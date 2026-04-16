@@ -106,11 +106,31 @@ export type {
   ListLeasesOutput,
   ListTenantsOutput
 } from "./leases/tenant-lease.types";
+export type {
+  UpsertMoveOutChargeInput,
+  UpsertMoveOutInput,
+  UpsertMoveOutInspectionInput,
+  CloseMoveOutInput,
+  MoveOutSettlementSummary,
+  MoveOutReconciliationIssue,
+  MoveOutReconciliationSeverity,
+  LeaseMoveOutView,
+  GetLeaseMoveOutOutput,
+  GetMoveOutReconciliationOutput,
+  UpsertMoveOutOutput,
+  UpsertMoveOutInspectionOutput,
+  CloseMoveOutOutput
+} from "./leases/move-out.types";
 export {
   parseCreateTenantInput,
   parseCreateLeaseInput,
   parseFinalizeLeaseInput
 } from "./leases/tenant-lease.validation";
+export {
+  parseUpsertMoveOutInput,
+  parseUpsertMoveOutInspectionInput,
+  parseCloseMoveOutInput
+} from "./leases/move-out.validation";
 export type {
   CreatePaymentInput,
   CreatePaymentOutput,
@@ -123,6 +143,20 @@ export {
   parseCreatePaymentInput,
   parseMarkPaymentPaidInput
 } from "./payments/payment.validation";
+export type {
+  ListInvoicesFilter,
+  ListInvoicesOutput,
+  GetInvoiceDetailOutput,
+  QueueInvoiceEmailInput,
+  QueueInvoiceEmailOutput,
+  VoidInvoiceInput,
+  VoidInvoiceOutput
+} from "./invoices/invoice.types";
+export {
+  parseListInvoicesFilter,
+  parseQueueInvoiceEmailInput,
+  parseVoidInvoiceInput
+} from "./invoices/invoice.validation";
 export type {
   CreateExpenseInput,
   CreateExpenseOutput,

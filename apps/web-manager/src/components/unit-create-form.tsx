@@ -7,6 +7,7 @@ import type { CreateUnitOutput, PropertyWithUnitsView } from "@hhousing/api-cont
 import { postWithAuth } from "../lib/api-client";
 import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 import type { UnitFormState } from "./property-management.types";
+import UniversalLoadingState from "./universal-loading-state";
 
 const INITIAL_UNIT_FORM: UnitFormState = {
   propertyId: "",
@@ -38,6 +39,86 @@ function buildUnitNumber(baseUnitNumber: string, index: number, unitCount: numbe
   }
 
   return `${baseUnitNumber} - Unite ${index + 1}`;
+}
+
+type UnitFieldIconName =
+  | "property"
+  | "unit"
+  | "rent"
+  | "deposit"
+  | "currency"
+  | "bed"
+  | "bath"
+  | "size"
+  | "count";
+
+function UnitFieldIcon({ name }: { name: UnitFieldIconName }): React.ReactElement {
+  switch (name) {
+    case "property":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
+          <path d="M4 20.5V9.5L12 4l8 5.5v11" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M9 20.5v-5h6v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "unit":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
+          <path d="M5 18.5V5.5h14v13" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M8 9.5h8M8 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "rent":
+    case "deposit":
+    case "currency":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
+          <rect x="4" y="6" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M4 10h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M8 14.5h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "bed":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M5.5 19c0-3.2 2.9-5.5 6.5-5.5s6.5 2.3 6.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "bath":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
+          <path d="M14.5 6.5a3 3 0 0 1 3.9 3.9l-7.8 7.8-4.6 1 1-4.6 7.5-7.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M13 8l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "size":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
+          <path d="M4 18.5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M6.5 15l4-4 3 2.5 4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M15.5 8.5H18v2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "count":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
+          <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+          <rect x="13.5" y="3.5" width="7" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+          <rect x="13.5" y="11.5" width="7" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+          <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+      );
+  }
+}
+
+function UnitFieldLabel({ icon, label }: { icon: UnitFieldIconName; label: string }): React.ReactElement {
+  return (
+    <span className="mb-1.5 flex items-center gap-1.5">
+      <UnitFieldIcon name={icon} />
+      <span>{label}</span>
+    </span>
+  );
 }
 
 interface UnitCreateFormProps {
@@ -205,7 +286,7 @@ export default function UnitCreateForm({
         </div>
 
         <label className="block text-sm font-medium text-gray-700">
-          <span className="mb-1.5 block">Bien</span>
+          <UnitFieldLabel icon="property" label="Bien" />
           <select
             value={unitForm.propertyId}
             onChange={(event) => {
@@ -238,7 +319,7 @@ export default function UnitCreateForm({
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="block text-sm font-medium text-gray-700 xl:col-span-2">
-            <span className="mb-1.5 block">Numéro ou préfixe d'unité</span>
+            <UnitFieldLabel icon="unit" label="Numéro ou préfixe d'unité" />
             <input
               value={unitForm.unitNumber}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, unitNumber: event.target.value }))}
@@ -248,7 +329,7 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Loyer mensuel</span>
+            <UnitFieldLabel icon="rent" label="Loyer mensuel" />
             <input
               value={unitForm.monthlyRentAmount}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, monthlyRentAmount: event.target.value }))}
@@ -259,7 +340,7 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Caution</span>
+            <UnitFieldLabel icon="deposit" label="Caution" />
             <input
               value={unitForm.depositAmount}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, depositAmount: event.target.value }))}
@@ -270,7 +351,7 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Devise</span>
+            <UnitFieldLabel icon="currency" label="Devise" />
             <input
               value={unitForm.currencyCode}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, currencyCode: event.target.value }))}
@@ -281,7 +362,7 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Chambres</span>
+            <UnitFieldLabel icon="bed" label="Chambres" />
             <input
               value={unitForm.bedroomCount}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, bedroomCount: event.target.value }))}
@@ -291,7 +372,7 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Salles de bain</span>
+            <UnitFieldLabel icon="bath" label="Salles de bain" />
             <input
               value={unitForm.bathroomCount}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, bathroomCount: event.target.value }))}
@@ -301,7 +382,7 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Surface m²</span>
+            <UnitFieldLabel icon="size" label="Surface m²" />
             <input
               value={unitForm.sizeSqm}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, sizeSqm: event.target.value }))}
@@ -311,7 +392,7 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Nombre d'unités</span>
+            <UnitFieldLabel icon="count" label="Nombre d'unités" />
             <input
               value={unitForm.unitCount}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, unitCount: event.target.value }))}
@@ -382,13 +463,17 @@ export default function UnitCreateForm({
           disabled={unitBusy || unitCreateOptions.length === 0}
           className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
         >
-          {unitBusy
-            ? "Création..."
-            : selectedCreateProperty?.property.propertyType === "multi_unit" && Number(unitForm.unitCount || "1") > 1
-              ? "Créer les unités"
-              : "Créer l'unité"}
+          {selectedCreateProperty?.property.propertyType === "multi_unit" && Number(unitForm.unitCount || "1") > 1
+            ? "Créer les unités"
+            : "Créer l'unité"}
         </button>
       </form>
+
+      {unitBusy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   );
 }

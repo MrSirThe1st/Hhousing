@@ -37,6 +37,9 @@ vi.mock("../../shared", async () => {
       getPaymentById: typeof getPaymentByIdMock;
     } => ({
       getPaymentById: getPaymentByIdMock
+    }),
+    createInvoiceRepo: () => ({
+      syncInvoiceForPaidPayment: vi.fn().mockResolvedValue(undefined)
     })
   };
 });

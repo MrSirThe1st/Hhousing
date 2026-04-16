@@ -13,8 +13,11 @@ export default function PublicListingApplicationForm({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [employmentInfo, setEmploymentInfo] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [employmentStatus, setEmploymentStatus] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [monthlyIncome, setMonthlyIncome] = useState("");
+  const [numberOfOccupants, setNumberOfOccupants] = useState("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +30,16 @@ export default function PublicListingApplicationForm({
     setSuccess(null);
 
     const parsedIncome = monthlyIncome.trim().length > 0 ? Number(monthlyIncome) : null;
+    const parsedOccupants = numberOfOccupants.trim().length > 0 ? Number(numberOfOccupants) : null;
     const result = await postPublic<{ id: string }>(`/api/public/listings/${listingId}/applications`, {
       fullName,
       email,
       phone,
-      employmentInfo: employmentInfo.trim() || null,
+      dateOfBirth: dateOfBirth || null,
+      employmentStatus: employmentStatus || null,
+      jobTitle: jobTitle.trim() || null,
       monthlyIncome: parsedIncome,
+      numberOfOccupants: parsedOccupants,
       notes: notes.trim() || null
     });
 
@@ -46,8 +53,11 @@ export default function PublicListingApplicationForm({
     setFullName("");
     setEmail("");
     setPhone("");
-    setEmploymentInfo("");
+    setDateOfBirth("");
+    setEmploymentStatus("");
+    setJobTitle("");
     setMonthlyIncome("");
+    setNumberOfOccupants("");
     setNotes("");
     setBusy(false);
   }
@@ -72,15 +82,15 @@ export default function PublicListingApplicationForm({
           />
         </label>
         <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Téléphone</span>
+          <span className="mb-1.5 block">Date de naissance</span>
           <input
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
+            type="date"
+            value={dateOfBirth}
+            onChange={(event) => setDateOfBirth(event.target.value)}
             className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+        <label className="block text-sm font-medium text-slate-700">
           <span className="mb-1.5 block">Email</span>
           <input
             type="email"
@@ -90,32 +100,67 @@ export default function PublicListingApplicationForm({
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-          <span className="mb-1.5 block">Emploi ou détails du revenu</span>
-          <textarea
-            value={employmentInfo}
-            onChange={(event) => setEmploymentInfo(event.target.value)}
-            className="min-h-28 w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Employeur, poste, fréquence du revenu, garant ou autre contexte"
+        <label className="block text-sm font-medium text-slate-700">
+          <span className="mb-1.5 block">Téléphone</span>
+          <input
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            required
           />
         </label>
         <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Revenu mensuel</span>
+          <span className="mb-1.5 block">Statut professionnel</span>
+          <select
+            value={employmentStatus}
+            onChange={(event) => setEmploymentStatus(event.target.value)}
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+          >
+            <option value="">— Sélectionner —</option>
+            <option value="employed">Salarié(e)</option>
+            <option value="self_employed">Indépendant(e)</option>
+            <option value="unemployed">Sans emploi</option>
+            <option value="student">Étudiant(e)</option>
+            <option value="retired">Retraité(e)</option>
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-slate-700">
+          <span className="mb-1.5 block">Poste / Intitulé de fonction</span>
+          <input
+            value={jobTitle}
+            onChange={(event) => setJobTitle(event.target.value)}
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            placeholder="Ex. Ingénieur, Enseignant…"
+          />
+        </label>
+        <label className="block text-sm font-medium text-slate-700">
+          <span className="mb-1.5 block">Revenu mensuel <span className="font-normal text-slate-400">(optionnel)</span></span>
           <input
             inputMode="decimal"
             value={monthlyIncome}
             onChange={(event) => setMonthlyIncome(event.target.value)}
             className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Optionnel"
+            placeholder="0.00"
           />
         </label>
         <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Notes</span>
+          <span className="mb-1.5 block">Nombre d'occupants</span>
+          <input
+            type="number"
+            min="1"
+            value={numberOfOccupants}
+            onChange={(event) => setNumberOfOccupants(event.target.value)}
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            placeholder="1"
+          />
+        </label>
+        <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+          <span className="mb-1.5 block">Notes <span className="font-normal text-slate-400">(optionnel)</span></span>
           <input
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Optionnel"
+            placeholder="Informations complémentaires…"
           />
         </label>
       </div>

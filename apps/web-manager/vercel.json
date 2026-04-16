@@ -3,6 +3,10 @@
     {
       "path": "/api/internal/payments/generate-recurring",
       "schedule": "5 0 1 * *"
+    },
+    {
+      "path": "/api/internal/invoices/process-email-jobs",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

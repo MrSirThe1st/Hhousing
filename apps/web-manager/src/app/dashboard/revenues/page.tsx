@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import type { PaymentKind } from "@hhousing/domain";
 import FinanceFilterForm from "../../../components/finance-filter-form";
 import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
-import FinanceSummaryCards from "../../../components/finance-summary-cards";
 import {
   buildRevenueDataset,
   formatCurrencySummary,
@@ -47,12 +46,12 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Revenus</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Paiements marqués comme payés, transformés en revenus comptabilisés.
+            Revenus opérationnels encaissés (hors dépôts de garantie).
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+      <div className="flex flex-wrap items-center gap-8 border-b border-slate-200 pb-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Revenu encaissé</p>
           <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.revenueTotals)}</p>
@@ -63,6 +62,14 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Encaissements</p>
           <p className="text-xl font-semibold text-slate-900">{dataset.recordedPaymentCount.toLocaleString("fr-FR")}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Dépôts (passif)</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.depositLiabilityTotals)}</p>
+          <p className="mt-1 text-xs text-slate-500">{dataset.recordedDepositCount.toLocaleString("fr-FR")} encaissement(s)</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />

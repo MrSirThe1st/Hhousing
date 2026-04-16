@@ -23,6 +23,13 @@ function asOptionalText(value: unknown): string | null {
   return asNonEmptyText(value);
 }
 
+function asIsoDate(value: unknown): string | null {
+  const text = asNonEmptyText(value);
+  if (text === null) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  return text;
+}
+
 function asBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
@@ -146,8 +153,12 @@ export function parseSubmitListingApplicationInput(input: unknown): ApiResult<Su
       fullName,
       email,
       phone,
+      dateOfBirth: asIsoDate(input.dateOfBirth),
+      employmentStatus: asOptionalText(input.employmentStatus),
+      jobTitle: asOptionalText(input.jobTitle),
       employmentInfo: asOptionalText(input.employmentInfo),
       monthlyIncome,
+      numberOfOccupants: typeof input.numberOfOccupants === "number" && Number.isInteger(input.numberOfOccupants) && input.numberOfOccupants > 0 ? input.numberOfOccupants : null,
       notes: asOptionalText(input.notes)
     }
   };

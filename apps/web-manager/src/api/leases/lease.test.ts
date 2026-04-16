@@ -122,6 +122,11 @@ describe("createLease", () => {
         createdAtIso: "2026-03-31T00:00:00.000Z"
       }),
       getLeaseById: vi.fn(),
+      getMoveOutByLeaseId: vi.fn(),
+      upsertMoveOut: vi.fn(),
+      upsertMoveOutInspection: vi.fn(),
+      closeMoveOut: vi.fn(),
+      replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
@@ -198,6 +203,11 @@ describe("createLease", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn(),
       getLeaseById: vi.fn(),
+      getMoveOutByLeaseId: vi.fn(),
+      upsertMoveOut: vi.fn(),
+      upsertMoveOutInspection: vi.fn(),
+      closeMoveOut: vi.fn(),
+      replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
@@ -248,6 +258,11 @@ describe("createLease", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn(),
       getLeaseById: vi.fn(),
+      getMoveOutByLeaseId: vi.fn(),
+      upsertMoveOut: vi.fn(),
+      upsertMoveOutInspection: vi.fn(),
+      closeMoveOut: vi.fn(),
+      replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()

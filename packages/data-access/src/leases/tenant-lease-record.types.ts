@@ -1,4 +1,4 @@
-import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 
 export interface CreateTenantInvitationRecordInput {
@@ -48,6 +48,10 @@ export interface CreateTenantRecordInput {
   phone: string | null;
   dateOfBirth: string | null;
   photoUrl: string | null;
+  employmentStatus: string | null;
+  jobTitle: string | null;
+  monthlyIncome: number | null;
+  numberOfOccupants: number | null;
 }
 
 export interface CreateLeaseChargeRecordInput {
@@ -90,6 +94,10 @@ export interface UpdateTenantRecordInput {
   phone: string | null;
   dateOfBirth: string | null;
   photoUrl: string | null;
+  employmentStatus: string | null;
+  jobTitle: string | null;
+  monthlyIncome: number | null;
+  numberOfOccupants: number | null;
 }
 
 export interface UpdateLeaseRecordInput {
@@ -99,6 +107,59 @@ export interface UpdateLeaseRecordInput {
   status: "active" | "ended" | "pending";
   signedAt?: string | null;
   signingMethod?: LeaseSigningMethod | null;
+}
+
+export interface UpsertMoveOutRecordInput {
+  id: string;
+  organizationId: string;
+  leaseId: string;
+  initiatedByUserId: string | null;
+  moveOutDate: string;
+  reason: string | null;
+  status: "draft" | "confirmed";
+}
+
+export interface ReplaceMoveOutChargeRecordInput {
+  moveOutId: string;
+  organizationId: string;
+  charges: Array<{
+    id: string;
+    chargeType: "unpaid_rent" | "prorated_rent" | "fee" | "damage" | "cleaning" | "penalty" | "deposit_deduction" | "credit";
+    amount: number;
+    currencyCode: string;
+    note: string | null;
+    sourceReferenceType: string | null;
+    sourceReferenceId: string | null;
+  }>;
+}
+
+export interface UpsertMoveOutInspectionRecordInput {
+  id: string;
+  moveOutId: string;
+  organizationId: string;
+  checklistSnapshot: Array<{
+    id: string;
+    label: string;
+    isChecked: boolean;
+    note: string | null;
+  }>;
+  notes: string | null;
+  photoDocumentIds: string[];
+  inspectedAtIso: string | null;
+}
+
+export interface CloseMoveOutRecordInput {
+  moveOutId: string;
+  organizationId: string;
+  closureLedgerEventId: number;
+  finalizedStatementSnapshot: unknown;
+  finalizedStatementHash: string;
+}
+
+export interface MoveOutAggregateRecord {
+  moveOut: MoveOut;
+  charges: MoveOutCharge[];
+  inspection: MoveOutInspection | null;
 }
 
 export interface TenantLeaseRepository {
@@ -122,6 +183,11 @@ export interface TenantLeaseRepository {
   listTenantsByOrganization(organizationId: string): Promise<Tenant[]>;
   getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null>;
   getLeaseById(leaseId: string, organizationId: string): Promise<LeaseWithTenantView | null>;
+  getMoveOutByLeaseId(leaseId: string, organizationId: string): Promise<MoveOutAggregateRecord | null>;
+  upsertMoveOut(input: UpsertMoveOutRecordInput): Promise<MoveOut>;
+  replaceMoveOutCharges(input: ReplaceMoveOutChargeRecordInput): Promise<MoveOutCharge[]>;
+  upsertMoveOutInspection(input: UpsertMoveOutInspectionRecordInput): Promise<MoveOutInspection>;
+  closeMoveOut(input: CloseMoveOutRecordInput): Promise<MoveOut | null>;
   updateTenant(input: UpdateTenantRecordInput): Promise<Tenant | null>;
   updateLease(input: UpdateLeaseRecordInput): Promise<Lease | null>;
   deleteTenant(tenantId: string, organizationId: string): Promise<boolean>;

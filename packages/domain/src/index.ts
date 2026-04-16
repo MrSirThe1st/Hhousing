@@ -13,8 +13,27 @@ export type { Unit, UnitStatus } from "./entities/unit.types";
 export type { Tenant } from "./entities/tenant.types";
 export type { Lease, LeaseStatus, LeaseTermType, LeasePaymentFrequency, LeaseSigningMethod } from "./entities/lease.types";
 export type { LeaseChargeTemplate, LeaseChargeType, LeaseChargeFrequency } from "./entities/lease-charge.types";
+export type {
+  MoveOut,
+  MoveOutCharge,
+  MoveOutChargeType,
+  MoveOutInspection,
+  MoveOutInspectionChecklistItem,
+  MoveOutStatus
+} from "./entities/move-out.types";
 export type { EmailTemplate, EmailTemplateScenario } from "./entities/email-template.types";
 export type { Payment, PaymentStatus, PaymentKind, PaymentBillingFrequency } from "./entities/payment.types";
+export type {
+  Invoice,
+  InvoiceType,
+  InvoiceStatus,
+  InvoiceEmailStatus,
+  InvoicePaymentApplication,
+  LeaseCreditBalance,
+  InvoiceEmailJob,
+  InvoiceEmailJobKind,
+  InvoiceEmailJobStatus
+} from "./entities/invoice.types";
 export type { Expense, ExpenseCategory } from "./entities/expense.types";
 export type {
   Task,
@@ -46,3 +65,5 @@ export type {
   TeamMemberInvitation,
   TeamMemberInvitationRole
 } from "./entities/team-member-invitation.types";
+export type { MonthlyProrationInput, MonthlyProrationResult } from "./proration/monthly-proration.types";
+export { calculateMonthlyProration } from "./proration/calculate-monthly-proration";

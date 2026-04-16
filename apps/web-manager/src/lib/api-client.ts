@@ -35,6 +35,10 @@ export async function postWithAuth<T>(url: string, body: unknown): Promise<ApiRe
   return fetchWithAuth<T>(url, "POST", body);
 }
 
+export async function getWithAuth<T>(url: string): Promise<ApiResult<T>> {
+  return fetchWithAuth<T>(url, "GET");
+}
+
 export async function postPublic<T>(url: string, body: unknown): Promise<ApiResult<T>> {
   return fetchWithAuth<T>(url, "POST", body);
 }

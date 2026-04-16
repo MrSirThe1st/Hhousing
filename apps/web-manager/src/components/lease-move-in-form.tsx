@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { CreateLeaseOutput, PropertyWithUnitsView } from "@hhousing/api-contracts";
-import type { Tenant } from "@hhousing/domain";
+import { calculateMonthlyProration, type Tenant } from "@hhousing/domain";
 import { postWithAuth } from "../lib/api-client";
+import UniversalLoadingState from "./universal-loading-state";
 
 type ChargeFrequency = "one_time" | "monthly" | "quarterly" | "annually";
-type ChargeType = "deposit" | "fee" | "other" | "prorated_rent";
+type ChargeType = "deposit" | "fee" | "other";
 
 interface ChargeRowState {
   id: string;
@@ -24,7 +25,7 @@ interface ChargeRowState {
 function createChargeRow(chargeType: ChargeType): ChargeRowState {
   return {
     id: `${chargeType}_${Math.random().toString(36).slice(2, 8)}`,
-    label: chargeType === "deposit" ? "Dépôt de garantie" : chargeType === "prorated_rent" ? "Loyer proratisé" : "",
+    label: chargeType === "deposit" ? "Dépôt de garantie" : "",
     amount: "",
     currencyCode: "CDF",
     frequency: chargeType === "deposit" ? "one_time" : "monthly",
@@ -109,7 +110,22 @@ export default function LeaseMoveInForm({
     setInviteEmail(selectedTenant?.email ?? "");
   }, [selectedTenant]);
 
-  const dueDayOfMonth = Number(paymentStartDate.substring(8, 10));
+  const rentAmount = Number(monthlyRentAmount);
+  const prorationPreview = useMemo(() => {
+    if (paymentFrequency !== "monthly" || !Number.isFinite(rentAmount) || rentAmount <= 0) {
+      return null;
+    }
+
+    return calculateMonthlyProration({
+      startDate: paymentStartDate,
+      monthlyRentAmount: rentAmount
+    });
+  }, [paymentFrequency, paymentStartDate, rentAmount]);
+
+  const recurringStartDate = prorationPreview?.isProrated
+    ? prorationPreview.regularBillingStartDate
+    : paymentStartDate;
+  const dueDayOfMonth = Number(recurringStartDate.substring(8, 10));
 
   function updateChargeRow(
     setRows: React.Dispatch<React.SetStateAction<ChargeRowState[]>>,
@@ -143,7 +159,6 @@ export default function LeaseMoveInForm({
       return;
     }
 
-    const rentAmount = Number(monthlyRentAmount);
     if (!Number.isFinite(rentAmount) || rentAmount <= 0) {
       setError("Le loyer doit être un nombre positif.");
       setBusy(false);
@@ -186,7 +201,7 @@ export default function LeaseMoveInForm({
       fixedTermMonths: termType === "fixed" ? Number(fixedTermMonths) : null,
       autoRenewToMonthly,
       paymentFrequency,
-      paymentStartDate,
+      paymentStartDate: recurringStartDate,
       dueDayOfMonth,
       charges: allCharges
     });
@@ -316,6 +331,28 @@ export default function LeaseMoveInForm({
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
             Jour d'échéance auto-rempli: {dueDayOfMonth}
           </div>
+          {paymentFrequency === "monthly" ? (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-sm text-slate-700">
+              {prorationPreview?.isProrated ? (
+                <>
+                  <p className="font-medium text-[#010a19]">Prorata automatique activé</p>
+                  <p className="mt-1">
+                    {prorationPreview.label}: {prorationPreview.proratedAmount.toLocaleString("fr-FR")} {currencyCode.trim().toUpperCase()} pour {prorationPreview.coveredDayCount} jour(s) sur {prorationPreview.totalDayCount}.
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    La première échéance mensuelle complète sera planifiée le {new Date(prorationPreview.regularBillingStartDate).toLocaleDateString("fr-FR")}.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-[#010a19]">Aucun prorata requis</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Le bail commence en début de mois. La première échéance complète reste fixée au {new Date(recurringStartDate).toLocaleDateString("fr-FR")}.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
@@ -353,7 +390,6 @@ export default function LeaseMoveInForm({
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
             <button type="button" onClick={() => addChargeRow(setOtherCharges, "fee")} className="rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50">Ajouter des frais ponctuels</button>
-            <button type="button" onClick={() => addChargeRow(setOtherCharges, "prorated_rent")} className="rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50">Ajouter un loyer proratisé</button>
           </div>
           {otherCharges.length === 0 ? <p className="text-sm text-gray-500">Aucune charge supplémentaire.</p> : null}
           {otherCharges.map((row) => (
@@ -412,9 +448,15 @@ export default function LeaseMoveInForm({
         {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
         <button type="submit" disabled={busy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">
-          {busy ? "Enregistrement..." : "Enregistrer comme brouillon"}
+          Enregistrer comme brouillon
         </button>
       </form>
+
+      {busy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   );
 }

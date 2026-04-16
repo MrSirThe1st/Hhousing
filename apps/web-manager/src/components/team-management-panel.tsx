@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TeamFunctionCode, type TeamFunction } from "@hhousing/api-contracts";
 import type { OrganizationMembership, TeamMemberInvitation } from "@hhousing/domain";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
+import UniversalLoadingState from "./universal-loading-state";
 
 type TeamDashboardMember = OrganizationMembership & {
   displayName: string;
@@ -211,6 +212,7 @@ export default function TeamManagementPanel({
   const assignableMembers = filteredMembers.filter(
     (member) => member.id !== accountOwner?.id && member.role !== "landlord"
   );
+  const isActionBusy = busyInvite || busyInvitationId !== null || busyMemberId !== null;
 
   async function handleInvite(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -765,6 +767,12 @@ export default function TeamManagementPanel({
               </div>
             </form>
           </div>
+        </div>
+      ) : null}
+
+      {isActionBusy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
         </div>
       ) : null}
     </div>

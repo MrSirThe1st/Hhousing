@@ -11,6 +11,10 @@ type PatchTenantBody = {
   phone: string | null;
   dateOfBirth: string | null;
   photoUrl: string | null;
+  employmentStatus: string | null;
+  jobTitle: string | null;
+  monthlyIncome: number | null;
+  numberOfOccupants: number | null;
 };
 
 function canAccessTenantInCurrentScope(
@@ -56,7 +60,11 @@ function validatePatchTenantBody(input: unknown): ApiResult<PatchTenantBody> {
       email,
       phone,
       dateOfBirth,
-      photoUrl
+      photoUrl,
+      employmentStatus: typeof payload.employmentStatus === "string" ? payload.employmentStatus.trim() || null : null,
+      jobTitle: typeof payload.jobTitle === "string" ? payload.jobTitle.trim() || null : null,
+      monthlyIncome: typeof payload.monthlyIncome === "number" && Number.isFinite(payload.monthlyIncome) ? payload.monthlyIncome : null,
+      numberOfOccupants: typeof payload.numberOfOccupants === "number" && Number.isInteger(payload.numberOfOccupants) && payload.numberOfOccupants > 0 ? payload.numberOfOccupants : null
     }
   };
 }
@@ -186,7 +194,11 @@ export async function PATCH(
       email: parsed.data.email,
       phone: parsed.data.phone,
       dateOfBirth: parsed.data.dateOfBirth ?? existingTenant.dateOfBirth,
-      photoUrl: parsed.data.photoUrl ?? existingTenant.photoUrl
+      photoUrl: parsed.data.photoUrl ?? existingTenant.photoUrl,
+      employmentStatus: parsed.data.employmentStatus ?? existingTenant.employmentStatus,
+      jobTitle: parsed.data.jobTitle ?? existingTenant.jobTitle,
+      monthlyIncome: parsed.data.monthlyIncome ?? existingTenant.monthlyIncome,
+      numberOfOccupants: parsed.data.numberOfOccupants ?? existingTenant.numberOfOccupants
     });
 
     if (!tenant) {

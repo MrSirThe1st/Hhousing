@@ -213,7 +213,8 @@ export default function Sidebar({ currentRoleLabel }: SidebarProps): React.React
         { href: "/dashboard/revenues", label: "Revenus", icon: "revenues" },
         { href: "/dashboard/expenses", label: "Dépenses", icon: "expenses" },
         { href: "/dashboard/reports", label: "Rapports", icon: "reports" },
-        { href: "/dashboard/payments", label: "Paiements", icon: "payments", badgeCount: badgeCounts.payments }
+        { href: "/dashboard/payments", label: "Paiements", icon: "payments", badgeCount: badgeCounts.payments },
+        { href: "/dashboard/invoices", label: "Factures", icon: "payments" }
       ]
     },
     {

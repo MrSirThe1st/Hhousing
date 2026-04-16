@@ -86,7 +86,11 @@ export async function POST(
     email: applicationView.application.email,
     phone: applicationView.application.phone,
     dateOfBirth: null,
-    photoUrl: null
+    photoUrl: null,
+    employmentStatus: applicationView.application.employmentStatus,
+    jobTitle: applicationView.application.jobTitle,
+    monthlyIncome: null,
+    numberOfOccupants: applicationView.application.numberOfOccupants
   });
 
   const updatedApplication = await listingRepo.markApplicationConverted(id, organizationId, tenant.id);
