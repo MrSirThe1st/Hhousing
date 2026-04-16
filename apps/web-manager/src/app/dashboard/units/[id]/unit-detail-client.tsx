@@ -14,6 +14,11 @@ const ContextualDocumentPanel = dynamic(
   { ssr: false }
 );
 
+const ContextualDocumentUploadForm = dynamic(
+  () => import("../../../../components/contextual-document-upload-form"),
+  { ssr: false }
+);
+
 type UnitFormData = {
   propertyId: string;
   unitNumber: string;
@@ -94,6 +99,7 @@ export default function UnitDetailClient({ id, initialUnit, initialProperty }: U
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentRefreshSignal, setDocumentRefreshSignal] = useState(0);
   const [formData, setFormData] = useState<UnitFormData>({
     propertyId: initialUnit.propertyId,
     unitNumber: initialUnit.unitNumber,
@@ -168,7 +174,7 @@ export default function UnitDetailClient({ id, initialUnit, initialProperty }: U
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <ActionMenu items={[{ label: "Ajouter un document", onSelect: () => setDocumentModalOpen(true) }, { label: "Modifier l’unité", onSelect: () => setEditMode(true) }, { label: deleting ? "Suppression..." : "Supprimer l’unité", onSelect: () => { void handleDelete(); }, tone: "danger", disabled: deleting }]} />
+                <ActionMenu items={[{ label: "Modifier l’unité", onSelect: () => setEditMode(true) }, { label: deleting ? "Suppression..." : "Supprimer l’unité", onSelect: () => { void handleDelete(); }, tone: "danger", disabled: deleting }]} />
               </div>
             </div>
             <div className="mt-6 border-t border-slate-200 pt-5"><h2 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.08em] text-slate-500"><LayersIcon className="h-4 w-4" />Résumé</h2><div className="mt-3 grid gap-x-6 gap-y-4 md:grid-cols-3 xl:grid-cols-6"><div><p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><MoneyIcon className="h-3.5 w-3.5" />Loyer</p><p className="mt-1 text-sm font-semibold text-[#010a19]">{formatCurrencyAmount(unit.monthlyRentAmount, unit.currencyCode)}</p></div><div><p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><MoneyIcon className="h-3.5 w-3.5" />Dépôt</p><p className="mt-1 text-sm font-semibold text-[#010a19]">{formatCurrencyAmount(unit.depositAmount, unit.currencyCode)}</p></div><div><p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><BedIcon className="h-3.5 w-3.5" />Chambres</p><p className="mt-1 text-sm font-semibold text-[#010a19]">{formatOptionalNumber(unit.bedroomCount)}</p></div><div><p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><BathIcon className="h-3.5 w-3.5" />Salles de bain</p><p className="mt-1 text-sm font-semibold text-[#010a19]">{formatOptionalNumber(unit.bathroomCount)}</p></div><div><p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><RulerIcon className="h-3.5 w-3.5" />Surface</p><p className="mt-1 text-sm font-semibold text-[#010a19]">{formatOptionalNumber(unit.sizeSqm, "m²")}</p></div><div><p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><CalendarIcon className="h-3.5 w-3.5" />Créée le</p><p className="mt-1 text-sm font-semibold text-[#010a19]">{new Date(unit.createdAtIso).toLocaleDateString("fr-FR")}</p></div></div></div>
@@ -188,8 +194,8 @@ export default function UnitDetailClient({ id, initialUnit, initialProperty }: U
           </form>
         )}
       </div>
-      <ContextualDocumentPanel attachmentType="unit" attachmentId={id} title="Documents de l'unité" description="Centralisez ici les plans, états des lieux, contrats techniques et tout document propre à cette unité." addButtonLabel="Ajouter un document" showAddButton={false} />
-      {documentModalOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/55 p-4" onClick={() => setDocumentModalOpen(false)} role="dialog" aria-modal="true" aria-label="Ajouter un document à l'unité"><div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-between border-b border-slate-200 px-6 py-4"><div><h2 className="text-lg font-semibold text-[#010a19]">Ajouter un document</h2><p className="mt-1 text-sm text-slate-500">Importez un document et rattachez-le directement à cette unité.</p></div><button type="button" onClick={() => setDocumentModalOpen(false)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Fermer</button></div><div className="p-6"><ContextualDocumentPanel attachmentType="unit" attachmentId={id} title="Documents de l'unité" description="Ajoutez un plan, un état des lieux, un contrat technique ou toute pièce utile à cette unité." addButtonLabel="Ajouter un document" showUploadFormOnMount={true} containerClassName="mt-0 rounded-2xl border border-slate-200" showAddButton={false} /></div></div></div> : null}
+      <ContextualDocumentPanel attachmentType="unit" attachmentId={id} title="Documents de l'unité" description="Centralisez ici les plans, états des lieux, contrats techniques et tout document propre à cette unité." addButtonLabel="Ajouter un document" showAddButton={true} onAddButtonClick={() => setDocumentModalOpen(true)} refreshSignal={documentRefreshSignal} />
+      {documentModalOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/55 p-4" onClick={() => setDocumentModalOpen(false)} role="dialog" aria-modal="true" aria-label="Ajouter un document à l'unité"><div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-between border-b border-slate-200 px-6 py-4"><div><h2 className="text-lg font-semibold text-[#010a19]">Ajouter un document</h2><p className="mt-1 text-sm text-slate-500">Importez un document et rattachez-le directement à cette unité.</p></div><button type="button" onClick={() => setDocumentModalOpen(false)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Fermer</button></div><div className="p-6"><ContextualDocumentUploadForm attachmentType="unit" attachmentId={id} defaultDocumentType="other" onUploaded={() => { setDocumentRefreshSignal((current) => current + 1); }} /></div></div></div> : null}
     </div>
   );
 }

@@ -14,6 +14,11 @@ const ContextualDocumentPanel = dynamic(
   { ssr: false }
 );
 
+const ContextualDocumentUploadForm = dynamic(
+  () => import("../../../../components/contextual-document-upload-form"),
+  { ssr: false }
+);
+
 type TenantFormData = {
   fullName: string;
   email: string;
@@ -105,6 +110,7 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentRefreshSignal, setDocumentRefreshSignal] = useState(0);
   const [formData, setFormData] = useState<TenantFormData>({
     fullName: initialTenant.fullName,
     email: initialTenant.email ?? "",
@@ -236,7 +242,6 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
               <div className="flex flex-wrap items-center gap-3">
                 <ActionMenu
                   items={[
-                    { label: "Ajouter un document", onSelect: () => setDocumentModalOpen(true) },
                     { label: "Modifier le locataire", onSelect: () => setEditMode(true) },
                     {
                       label: deleting ? "Suppression..." : "Supprimer le locataire",
@@ -339,7 +344,9 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
         title="Documents du locataire"
         description="Centralisez ici les pièces d'identité, formulaires, justificatifs et documents propres à ce locataire."
         addButtonLabel="Ajouter un document"
-        showAddButton={false}
+        showAddButton={true}
+        onAddButtonClick={() => setDocumentModalOpen(true)}
+        refreshSignal={documentRefreshSignal}
       />
 
       {documentModalOpen ? (
@@ -351,7 +358,7 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
           aria-label="Ajouter un document au locataire"
         >
           <div
-            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -369,15 +376,13 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
             </div>
 
             <div className="p-6">
-              <ContextualDocumentPanel
+              <ContextualDocumentUploadForm
                 attachmentType="tenant"
                 attachmentId={id}
-                title="Documents du locataire"
-                description="Ajoutez une pièce d'identité, une autorisation, un justificatif ou tout document utile à ce dossier locataire."
-                addButtonLabel="Ajouter un document"
-                showUploadFormOnMount={true}
-                containerClassName="mt-0 rounded-2xl border border-slate-200"
-                showAddButton={false}
+                defaultDocumentType="other"
+                onUploaded={() => {
+                  setDocumentRefreshSignal((current) => current + 1);
+                }}
               />
             </div>
           </div>

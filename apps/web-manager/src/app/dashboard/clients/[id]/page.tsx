@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
 import ActionMenu from "../../../../components/action-menu";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
-import ContextualDocumentPanel from "../../../../components/contextual-document-panel";
+import OwnerDocumentsSectionClient from "../../../../components/owner-documents-section-client";
 import { getServerAuthSession } from "../../../../lib/session";
 
 function formatCurrencySummary(summary: Map<string, number>): string {
@@ -366,14 +366,7 @@ export default async function ClientDetailPage(
         </section>
       </div>
 
-      <ContextualDocumentPanel
-        attachmentType="owner"
-        attachmentId={client.id}
-        title="Documents du propriétaire"
-        description="Ajoutez les pièces d'identité, mandats, contrats ou autres documents liés à ce propriétaire."
-        addButtonLabel="+ Ajouter un document"
-        defaultDocumentType="other"
-      />
+      <OwnerDocumentsSectionClient ownerId={client.id} />
     </div>
   );
 }

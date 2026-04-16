@@ -13,6 +13,11 @@ const ContextualDocumentPanel = dynamic(
   { ssr: false }
 );
 
+const ContextualDocumentUploadForm = dynamic(
+  () => import("../../../../components/contextual-document-upload-form"),
+  { ssr: false }
+);
+
 type PropertyFormData = {
   name: string;
   address: string;
@@ -62,6 +67,7 @@ export default function PropertyDetailClient({
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentRefreshSignal, setDocumentRefreshSignal] = useState(0);
   const [formData, setFormData] = useState<PropertyFormData>({
     name: initialProperty.name,
     address: initialProperty.address,
@@ -167,7 +173,6 @@ export default function PropertyDetailClient({
                   </Link>
                   <ActionMenu
                     items={[
-                      { label: "Ajouter un document", onSelect: () => setDocumentModalOpen(true) },
                       { label: "Modifier la propriété", onSelect: () => setEditMode(true) },
                       {
                         label: deleting ? "Suppression..." : "Supprimer la propriété",
@@ -367,6 +372,18 @@ export default function PropertyDetailClient({
           </div>
         )}
       </div>
+
+      <ContextualDocumentPanel
+        attachmentType="property"
+        attachmentId={id}
+        title="Documents de la propriété"
+        description="Centralisez ici les titres, contrats, attestations et pièces liées à cette propriété."
+        addButtonLabel="Ajouter un document"
+        showAddButton={true}
+        onAddButtonClick={() => setDocumentModalOpen(true)}
+        refreshSignal={documentRefreshSignal}
+      />
+
       {documentModalOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/55 p-4"
@@ -376,7 +393,7 @@ export default function PropertyDetailClient({
           aria-label="Ajouter un document à la propriété"
         >
           <div
-            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -394,14 +411,13 @@ export default function PropertyDetailClient({
             </div>
 
             <div className="p-6">
-              <ContextualDocumentPanel
+              <ContextualDocumentUploadForm
                 attachmentType="property"
                 attachmentId={id}
-                title="Documents de la propriété"
-                description="Ajoutez un titre, un contrat, une attestation ou toute pièce utile à cette propriété."
-                addButtonLabel="Ajouter un document"
-                showUploadFormOnMount={true}
-                containerClassName="mt-0 rounded-2xl border border-slate-200"
+                defaultDocumentType="other"
+                onUploaded={() => {
+                  setDocumentRefreshSignal((current) => current + 1);
+                }}
               />
             </div>
           </div>
