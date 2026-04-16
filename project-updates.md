@@ -9,10 +9,10 @@ Use this file as the first project memory source before searching the codebase.
 - Tests: not run (deployment scheduler config only).
 
 ## 2026-04-17
-- Change type: Infra + Invoicing
-- Description: Reduced invoice email job cron frequency to once daily to satisfy Vercel Hobby cron limits and restore deployability.
-- Impact: Updated `apps/web-manager/vercel.json` to run `/api/internal/invoices/process-email-jobs` daily at 02:00 UTC instead of every 10 minutes; monthly recurring payment cron unchanged.
-- Tests: not run (deployment scheduler config only).
+- Change type: Infra
+- Description: Removed unsupported 10-minute invoice email cron from Vercel config to restore deployability on Hobby plan. Invoice emails remain queued for background processing; process route still available for manual/future async triggers.
+- Impact: Removed `/api/internal/invoices/process-email-jobs` cron from `apps/web-manager/vercel.json` (Hobby max once-daily). Monthly recurring payment cron unchanged. Invoice queue system unchanged for now.
+- Tests: not run (Vercel config only).
 
 ## 2026-04-16
 - Change type: Frontend + Payments/Invoices UX
