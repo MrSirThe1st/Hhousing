@@ -4,7 +4,16 @@ import { requirePermission } from "../../../../api/organizations/permissions";
 import { Permission } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
-import { createInvoiceRepo, createPaymentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { sendManagedEmailFromEnv } from "../../../../lib/email/resend";
+import {
+  createInvoiceRepo,
+  createPaymentRepo,
+  createRepositoryFromEnv,
+  createTeamFunctionsRepo,
+  createTenantLeaseRepo,
+  jsonResponse,
+  parseJsonBody
+} from "../../shared";
 
 export async function GET(
   request: Request,
@@ -105,6 +114,8 @@ export async function PATCH(
     });
   }
 
+  const organizationRepositoryResult = createRepositoryFromEnv();
+
   const result = await markPaymentPaid(
     {
       paymentId: id,
@@ -114,7 +125,10 @@ export async function PATCH(
     {
       repository: paymentRepository,
       teamFunctionsRepository: createTeamFunctionsRepo(),
-      invoiceRepository: createInvoiceRepo()
+      invoiceRepository: createInvoiceRepo(),
+      tenantRepository: createTenantLeaseRepo(),
+      organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
+      sendInvoicePaidEmail: sendManagedEmailFromEnv
     }
   );
 

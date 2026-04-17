@@ -2,6 +2,18 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-18
+- Change type: API + Data-access + Payments/Invoices
+- Description: Switched paid-invoice email delivery from queued `auto_on_paid` jobs to immediate send in the mark-paid payment flow; invoice email status is now updated directly to `sent` or `failed` after delivery attempt.
+- Impact: Updated `apps/web-manager/src/api/payments/payment.ts` (direct send path + deps), `apps/web-manager/src/app/api/payments/[id]/route.ts` (email sender/tenant/org deps wiring), `packages/data-access/src/invoices/postgres-invoice.repository.ts` (removed auto queue insert from `syncInvoiceForPaidPayment`, added `markInvoiceEmailSent/markInvoiceEmailFailed`), and `packages/data-access/src/invoices/invoice-record.types.ts` (contract updates).
+- Tests: `pnpm -C apps/web-manager typecheck` ✓; `pnpm -C apps/web-manager test -- 'src/app/api/payments/[id]/route.test.ts'` ran and surfaced 1 unrelated existing failure in `src/api/tenants/create-tenant.test.ts`.
+
+## 2026-04-18
+- Change type: API + Frontend + Contracts + Data-access
+- Description: Removed invoice email queue remnants from runtime paths and UI: send/resend queue actions, queue parser/types, queue processor route, and invoice detail email-job history panel are now removed.
+- Impact: Updated `apps/web-manager/src/components/invoice-management-panel.tsx` (removed send/resend buttons and email-job history section), `apps/web-manager/src/api/invoices/invoice.ts` + `apps/web-manager/src/app/api/invoices/[id]/route.ts` + `apps/web-manager/src/api/index.ts` (removed queue action/service/export), `packages/api-contracts/src/invoices/*` + `packages/api-contracts/src/index.ts` (removed queue contracts/parser and `emailJobs` from detail output), `packages/data-access/src/invoices/*` + `packages/data-access/src/index.ts` (removed queue interfaces/methods and invoice-detail emailJobs payload), and deleted `apps/web-manager/src/app/api/internal/invoices/process-email-jobs/route.ts`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓; `pnpm -C apps/web-manager exec vitest run src/api/invoices/invoice.test.ts 'src/app/api/payments/[id]/route.test.ts'` ✓.
+
 ## 2026-04-16
 - Change type: Infra + Invoicing
 - Description: Added a deployment cron for invoice email job processing so queued invoice emails are periodically claimed and sent.

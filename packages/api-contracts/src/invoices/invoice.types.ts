@@ -1,4 +1,4 @@
-import type { Invoice, InvoiceEmailJob, InvoicePaymentApplication, LeaseCreditBalance } from "@hhousing/domain";
+import type { Invoice, InvoicePaymentApplication, LeaseCreditBalance } from "@hhousing/domain";
 
 export interface ListInvoicesFilter {
   organizationId: string;
@@ -16,18 +16,6 @@ export interface GetInvoiceDetailOutput {
   invoice: Invoice;
   applications: InvoicePaymentApplication[];
   creditBalance: LeaseCreditBalance | null;
-  emailJobs: InvoiceEmailJob[];
-}
-
-export interface QueueInvoiceEmailInput {
-  invoiceId: string;
-  organizationId: string;
-  reason: "send" | "resend";
-}
-
-export interface QueueInvoiceEmailOutput {
-  invoice: Invoice;
-  queued: boolean;
 }
 
 export interface VoidInvoiceInput {

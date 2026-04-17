@@ -36,7 +36,7 @@ const EMAIL_STYLES: Record<Invoice["emailStatus"], string> = {
 
 const EMAIL_LABELS: Record<Invoice["emailStatus"], string> = {
   not_sent: "Not sent",
-  queued: "Queued",
+  queued: "Pending",
   sent: "Sent",
   failed: "Failed"
 };
@@ -134,29 +134,6 @@ export default function InvoiceManagementPanel({
     setLeaseFilter("all");
     setDueDateFrom("");
     setDueDateTo("");
-  }
-
-  async function queueEmail(invoiceId: string, action: "send" | "resend"): Promise<void> {
-    setBusyInvoiceId(invoiceId);
-    setError(null);
-    setMessage(null);
-
-    const result = await patchWithAuth<{ invoice: Invoice; queued: boolean }>(`/api/invoices/${invoiceId}`, {
-      action
-    });
-
-    if (!result.success) {
-      setError(result.error);
-      setBusyInvoiceId(null);
-      return;
-    }
-
-    setMessage(action === "send" ? "Envoi de facture mis en file d'attente." : "Réenvoi de facture mis en file d'attente.");
-    setBusyInvoiceId(null);
-    if (selectedInvoiceId === invoiceId) {
-      await loadInvoiceDetail(invoiceId);
-    }
-    router.refresh();
   }
 
   async function loadInvoiceDetail(invoiceId: string): Promise<void> {
@@ -312,7 +289,7 @@ export default function InvoiceManagementPanel({
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#010a19]">Journal des factures</h2>
-        <p className="mt-1 text-sm text-gray-500">Les détails de retry restent dans la vue détail de facture; le tableau affiche seulement l'état d'envoi.</p>
+        <p className="mt-1 text-sm text-gray-500">Suivi des statuts de facture et d'email.</p>
 
         {filteredInvoices.length === 0 ? (
           <p className="mt-5 text-sm text-gray-500">Aucune facture pour les filtres actifs.</p>
@@ -365,16 +342,6 @@ export default function InvoiceManagementPanel({
                           >
                             View
                           </button>
-                          {invoice.status !== "void" ? (
-                            <button
-                              type="button"
-                              onClick={() => void queueEmail(invoice.id, invoice.emailStatus === "not_sent" ? "send" : "resend")}
-                              disabled={busyInvoiceId === invoice.id}
-                              className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                            >
-                              {invoice.emailStatus === "not_sent" ? "Send" : "Resend"}
-                            </button>
-                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -392,7 +359,7 @@ export default function InvoiceManagementPanel({
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-[#010a19]">Détail facture</h2>
-                <p className="text-sm text-gray-500">Historique d'envoi/retry et applications de paiements.</p>
+                <p className="text-sm text-gray-500">Applications de paiements et contrôles de facture.</p>
               </div>
               <button
                 type="button"
@@ -419,24 +386,6 @@ export default function InvoiceManagementPanel({
                     <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Paid:</span> {detail.invoice.amountPaid.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {detail.invoice.currencyCode}</p>
                     <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Status:</span> {STATUS_LABELS[detail.invoice.status]}</p>
                     <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Email:</span> {EMAIL_LABELS[detail.invoice.emailStatus]}</p>
-                  </div>
-                </section>
-
-                <section className="rounded-xl border border-gray-200 bg-white p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="text-base font-semibold text-[#010a19]">Actions</h3>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {detail.invoice.status !== "void" ? (
-                      <button
-                        type="button"
-                        onClick={() => void queueEmail(detail.invoice.id, detail.invoice.emailStatus === "not_sent" ? "send" : "resend")}
-                        disabled={busyInvoiceId === detail.invoice.id}
-                        className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                      >
-                        {detail.invoice.emailStatus === "not_sent" ? "Send" : "Resend"}
-                      </button>
-                    ) : null}
                   </div>
                 </section>
 
@@ -484,26 +433,6 @@ export default function InvoiceManagementPanel({
                   )}
                 </section>
 
-                <section className="rounded-xl border border-gray-200 bg-white p-4">
-                  <h3 className="text-base font-semibold text-[#010a19]">Historique envoi email</h3>
-                  {detail.emailJobs.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">Aucun job d'envoi.</p>
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      {detail.emailJobs.map((job) => (
-                        <div key={job.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">{job.jobKind}</span>
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{job.status}</span>
-                            <span className="text-xs text-gray-500">attempt {job.attemptCount}/{job.maxAttempts}</span>
-                          </div>
-                          <p className="mt-1 text-xs text-gray-500">{new Date(job.updatedAtIso).toLocaleString("fr-FR")}</p>
-                          {job.lastError ? <p className="mt-1 text-xs text-red-600">{job.lastError}</p> : null}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
               </div>
             ) : (
               <p className="text-sm text-gray-500">Chargement du détail...</p>

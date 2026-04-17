@@ -78,9 +78,7 @@ export {
 export type {
   SyncInvoiceForPaidPaymentInput,
   SyncInvoiceForPaidPaymentOutput,
-  QueueInvoiceEmailJobInput,
   InvoiceDetailRecord,
-  ProcessableInvoiceEmailJob,
   InvoiceRepository
 } from "./invoices/invoice-record.types";
 export type { InvoiceQueryable } from "./invoices/postgres-invoice.repository";

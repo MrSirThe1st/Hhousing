@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { Invoice, InvoiceEmailJob } from "@hhousing/domain";
+import type { Invoice } from "@hhousing/domain";
 import type { InvoiceRepository } from "@hhousing/data-access";
 import type { TeamPermissionRepository } from "../organizations/permissions";
-import { getInvoiceDetail, queueInvoiceEmail, voidInvoice } from "./invoice";
+import { getInvoiceDetail, voidInvoice } from "./invoice";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -65,12 +65,9 @@ function makeRepo(overrides: Partial<InvoiceRepository> = {}): InvoiceRepository
     getInvoiceById: vi.fn().mockResolvedValue(null),
     getInvoiceDetail: vi.fn().mockResolvedValue(null),
     voidInvoice: vi.fn().mockResolvedValue(null),
-    queueInvoiceEmailJob: vi.fn().mockResolvedValue(true),
     syncInvoiceForPaidPayment: vi.fn(),
-    claimProcessableEmailJobs: vi.fn().mockResolvedValue([]),
-    markEmailJobSent: vi.fn().mockResolvedValue(undefined),
-    markEmailJobFailed: vi.fn().mockResolvedValue(undefined),
-    releaseProcessingEmailJob: vi.fn().mockResolvedValue(undefined),
+    markInvoiceEmailSent: vi.fn().mockResolvedValue(undefined),
+    markInvoiceEmailFailed: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as InvoiceRepository;
 }
@@ -105,8 +102,7 @@ describe("getInvoiceDetail", () => {
       getInvoiceDetail: vi.fn().mockResolvedValue({
         invoice,
         applications: [],
-        creditBalance: null,
-        emailJobs: [],
+        creditBalance: null
       }),
     });
 
@@ -119,7 +115,6 @@ describe("getInvoiceDetail", () => {
     if (!result.body.success) throw new Error("Expected success");
     expect(result.body.data.invoice.id).toBe("inv_test001");
     expect(result.body.data.applications).toEqual([]);
-    expect(result.body.data.emailJobs).toEqual([]);
   });
 
   it("returns creditBalance when present", async () => {
@@ -136,8 +131,7 @@ describe("getInvoiceDetail", () => {
       getInvoiceDetail: vi.fn().mockResolvedValue({
         invoice,
         applications: [],
-        creditBalance,
-        emailJobs: [],
+        creditBalance
       }),
     });
 
@@ -149,98 +143,6 @@ describe("getInvoiceDetail", () => {
     expect(result.status).toBe(200);
     if (!result.body.success) throw new Error("Expected success");
     expect(result.body.data.creditBalance?.creditAmount).toBe(50);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// queueInvoiceEmail — send / resend dispatch
-// ---------------------------------------------------------------------------
-
-describe("queueInvoiceEmail", () => {
-  it("returns 401 when session is null", async () => {
-    const result = await queueInvoiceEmail(
-      { invoiceId: "inv_test001", body: { action: "send" }, session: null },
-      { repository: makeRepo(), createId: () => "iej_1", teamFunctionsRepository: makeTeamFunctionsRepo() }
-    );
-    expect(result.status).toBe(401);
-  });
-
-  it("returns 400 when body action is invalid", async () => {
-    const result = await queueInvoiceEmail(
-      { invoiceId: "inv_test001", body: { action: "void" }, session: makeSession() },
-      { repository: makeRepo(), createId: () => "iej_1", teamFunctionsRepository: makeTeamFunctionsRepo() }
-    );
-    expect(result.status).toBe(400);
-    expect(result.body.success).toBe(false);
-  });
-
-  it("returns 404 when invoice not found", async () => {
-    const repo = makeRepo({ getInvoiceById: vi.fn().mockResolvedValue(null) });
-    const result = await queueInvoiceEmail(
-      { invoiceId: "inv_missing", body: { action: "send" }, session: makeSession() },
-      { repository: repo, createId: () => "iej_1", teamFunctionsRepository: makeTeamFunctionsRepo() }
-    );
-    expect(result.status).toBe(404);
-  });
-
-  it("returns 400 when invoice is void", async () => {
-    const voidInv = makeInvoice({ status: "void" });
-    const refreshed = makeInvoice({ emailStatus: "queued" });
-    const repo = makeRepo({
-      getInvoiceById: vi.fn()
-        .mockResolvedValueOnce(voidInv),
-    });
-    const result = await queueInvoiceEmail(
-      { invoiceId: "inv_test001", body: { action: "send" }, session: makeSession() },
-      { repository: repo, createId: () => "iej_1", teamFunctionsRepository: makeTeamFunctionsRepo() }
-    );
-    expect(result.status).toBe(400);
-    if (!result.body.success === false) throw new Error("Expected failure");
-    expect(result.body.success).toBe(false);
-  });
-
-  it("returns 200 and queues job for send action", async () => {
-    const inv = makeInvoice();
-    const refreshed = makeInvoice({ emailStatus: "queued" });
-    const repo = makeRepo({
-      getInvoiceById: vi.fn()
-        .mockResolvedValueOnce(inv)
-        .mockResolvedValueOnce(refreshed),
-      queueInvoiceEmailJob: vi.fn().mockResolvedValue(true),
-    });
-
-    const result = await queueInvoiceEmail(
-      { invoiceId: "inv_test001", body: { action: "send" }, session: makeSession() },
-      { repository: repo, createId: () => "iej_1", teamFunctionsRepository: makeTeamFunctionsRepo() }
-    );
-
-    expect(result.status).toBe(200);
-    if (!result.body.success) throw new Error("Expected success");
-    expect(result.body.data.invoice.emailStatus).toBe("queued");
-    expect(repo.queueInvoiceEmailJob).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "iej_1", reason: "send" })
-    );
-  });
-
-  it("returns 200 and queues job for resend action", async () => {
-    const inv = makeInvoice({ emailStatus: "sent", emailSentCount: 1 });
-    const refreshed = makeInvoice({ emailStatus: "queued", emailSentCount: 1 });
-    const repo = makeRepo({
-      getInvoiceById: vi.fn()
-        .mockResolvedValueOnce(inv)
-        .mockResolvedValueOnce(refreshed),
-      queueInvoiceEmailJob: vi.fn().mockResolvedValue(true),
-    });
-
-    const result = await queueInvoiceEmail(
-      { invoiceId: "inv_test001", body: { action: "resend" }, session: makeSession() },
-      { repository: repo, createId: () => "iej_2", teamFunctionsRepository: makeTeamFunctionsRepo() }
-    );
-
-    expect(result.status).toBe(200);
-    expect(repo.queueInvoiceEmailJob).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: "resend" })
-    );
   });
 });
 

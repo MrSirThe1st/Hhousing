@@ -2,7 +2,6 @@ import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import type { ListInvoicesFilter } from "@hhousing/api-contracts";
 import type {
   Invoice,
-  InvoiceEmailJob,
   InvoicePaymentApplication,
   LeaseCreditBalance
 } from "@hhousing/domain";
@@ -10,8 +9,6 @@ import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-en
 import type {
   InvoiceDetailRecord,
   InvoiceRepository,
-  ProcessableInvoiceEmailJob,
-  QueueInvoiceEmailJobInput,
   SyncInvoiceForPaidPaymentInput,
   SyncInvoiceForPaidPaymentOutput
 } from "./invoice-record.types";
@@ -64,29 +61,9 @@ interface LeaseCreditBalanceRow extends QueryResultRow {
   updated_at: string | Date;
 }
 
-interface InvoiceEmailJobRow extends QueryResultRow {
-  id: string;
-  organization_id: string;
-  invoice_id: string;
-  job_kind: "send" | "resend" | "auto_on_paid";
-  status: "queued" | "processing" | "sent" | "failed";
-  attempt_count: number;
-  max_attempts: number;
-  next_attempt_at: string | Date;
-  last_error: string | null;
-  locked_at: string | Date | null;
-  created_at: string | Date;
-  updated_at: string | Date;
-}
-
 interface LeaseContextRow extends QueryResultRow {
   property_id: string;
   unit_id: string;
-}
-
-interface TenantEmailRow extends QueryResultRow {
-  tenant_email: string | null;
-  tenant_full_name: string;
 }
 
 export interface InvoiceQueryable {
@@ -175,23 +152,6 @@ function mapCredit(row: LeaseCreditBalanceRow): LeaseCreditBalance {
     leaseId: row.lease_id,
     currencyCode: row.currency_code,
     creditAmount: toNumber(row.credit_amount),
-    updatedAtIso: toIso(row.updated_at)
-  };
-}
-
-function mapEmailJob(row: InvoiceEmailJobRow): InvoiceEmailJob {
-  return {
-    id: row.id,
-    organizationId: row.organization_id,
-    invoiceId: row.invoice_id,
-    jobKind: row.job_kind,
-    status: row.status,
-    attemptCount: row.attempt_count,
-    maxAttempts: row.max_attempts,
-    nextAttemptAtIso: toIso(row.next_attempt_at),
-    lastError: row.last_error,
-    lockedAtIso: row.locked_at ? toIso(row.locked_at) : null,
-    createdAtIso: toIso(row.created_at),
     updatedAtIso: toIso(row.updated_at)
   };
 }
@@ -309,7 +269,7 @@ export function createPostgresInvoiceRepository(client: InvoiceQueryable): Invoi
         return null;
       }
 
-      const [applicationsResult, creditResult, jobsResult] = await Promise.all([
+      const [applicationsResult, creditResult] = await Promise.all([
         client.query<InvoicePaymentApplicationRow>(
           `select
              id, organization_id, invoice_id, payment_id, applied_amount, applied_at, created_at
@@ -324,24 +284,13 @@ export function createPostgresInvoiceRepository(client: InvoiceQueryable): Invoi
            where lease_id = $1 and organization_id = $2 and currency_code = $3
            limit 1`,
           [invoice.leaseId, organizationId, invoice.currencyCode]
-        ),
-        client.query<InvoiceEmailJobRow>(
-          `select
-             id, organization_id, invoice_id, job_kind, status, attempt_count,
-             max_attempts, next_attempt_at, last_error, locked_at, created_at, updated_at
-           from invoice_email_jobs
-           where invoice_id = $1 and organization_id = $2
-           order by created_at desc
-           limit 20`,
-          [invoiceId, organizationId]
         )
       ]);
 
       return {
         invoice,
         applications: applicationsResult.rows.map(mapApplication),
-        creditBalance: creditResult.rows[0] ? mapCredit(creditResult.rows[0]) : null,
-        emailJobs: jobsResult.rows.map(mapEmailJob)
+        creditBalance: creditResult.rows[0] ? mapCredit(creditResult.rows[0]) : null
       };
     },
 
@@ -421,26 +370,6 @@ export function createPostgresInvoiceRepository(client: InvoiceQueryable): Invoi
       });
     },
 
-    async queueInvoiceEmailJob(input: QueueInvoiceEmailJobInput): Promise<boolean> {
-      const result = await client.query(
-        `insert into invoice_email_jobs (
-           id, organization_id, invoice_id, job_kind, status, attempt_count, max_attempts, next_attempt_at
-         ) values ($1, $2, $3, $4, 'queued', 0, $5, now())`,
-        [input.id, input.organizationId, input.invoiceId, input.reason, input.maxAttempts ?? 3]
-      );
-
-      if ((result.rowCount ?? 0) > 0) {
-        await client.query(
-          `update invoices
-           set email_status = 'queued', last_email_error = null
-           where id = $1 and organization_id = $2 and status <> 'void'`,
-          [input.invoiceId, input.organizationId]
-        );
-      }
-
-      return (result.rowCount ?? 0) > 0;
-    },
-
     async syncInvoiceForPaidPayment(input: SyncInvoiceForPaidPaymentInput): Promise<SyncInvoiceForPaidPaymentOutput> {
       return withTransaction(client, async (tx) => {
         const existingApplicationResult = await tx.query<InvoicePaymentApplicationRow>(
@@ -473,8 +402,7 @@ export function createPostgresInvoiceRepository(client: InvoiceQueryable): Invoi
           return {
             invoice: mapInvoice(existingInvoiceResult.rows[0]),
             appliedAmount: 0,
-            creditCreatedAmount: 0,
-            queuedEmailJob: false
+            creditCreatedAmount: 0
           };
         }
 
@@ -647,208 +575,33 @@ export function createPostgresInvoiceRepository(client: InvoiceQueryable): Invoi
           );
         }
 
-        let queuedEmailJob = false;
-        const mappedInvoice = mapInvoice(invoiceRow);
-        if (mappedInvoice.status === "paid" && (mappedInvoice.emailStatus === "not_sent" || mappedInvoice.emailStatus === "failed")) {
-          await tx.query(
-            `insert into invoice_email_jobs (
-               id, organization_id, invoice_id, job_kind, status, attempt_count, max_attempts, next_attempt_at
-             ) values (
-               'iej_' || replace(gen_random_uuid()::text, '-', ''),
-               $1, $2, 'auto_on_paid', 'queued', 0, 3, now()
-             )`,
-            [input.organizationId, mappedInvoice.id]
-          );
-
-          await tx.query(
-            `update invoices
-             set email_status = 'queued', last_email_error = null
-             where id = $1 and organization_id = $2`,
-            [mappedInvoice.id, input.organizationId]
-          );
-
-          queuedEmailJob = true;
-
-          const refreshedInvoiceResult = await tx.query<InvoiceRow>(
-            `select
-               id, organization_id, lease_id, tenant_id, property_id, unit_id,
-               invoice_year, invoice_sequence, invoice_number, invoice_type, period,
-               issue_date, due_date, currency_code, total_amount, amount_paid,
-               status, paid_at, email_status, email_sent_count, last_emailed_at,
-               last_email_error, void_reason, voided_at, source_payment_id, created_at
-             from invoices
-             where id = $1 and organization_id = $2
-             limit 1`,
-            [mappedInvoice.id, input.organizationId]
-          );
-
-          if (refreshedInvoiceResult.rows[0]) {
-            return {
-              invoice: mapInvoice(refreshedInvoiceResult.rows[0]),
-              appliedAmount,
-              creditCreatedAmount,
-              queuedEmailJob
-            };
-          }
-        }
-
         return {
           invoice: mapInvoice(invoiceRow),
           appliedAmount,
-          creditCreatedAmount,
-          queuedEmailJob
+          creditCreatedAmount
         };
       });
     },
 
-    async claimProcessableEmailJobs(limit: number): Promise<ProcessableInvoiceEmailJob[]> {
-      if (limit <= 0) {
-        return [];
-      }
-
-      return withTransaction(client, async (tx) => {
-        const claimedResult = await tx.query<InvoiceEmailJobRow>(
-          `with candidates as (
-             select id
-             from invoice_email_jobs
-             where status = 'queued'
-               and next_attempt_at <= now()
-             order by created_at asc
-             limit $1
-             for update skip locked
-           )
-           update invoice_email_jobs jobs
-           set status = 'processing', locked_at = now(), updated_at = now()
-           from candidates
-           where jobs.id = candidates.id
-           returning
-             jobs.id, jobs.organization_id, jobs.invoice_id, jobs.job_kind, jobs.status,
-             jobs.attempt_count, jobs.max_attempts, jobs.next_attempt_at, jobs.last_error,
-             jobs.locked_at, jobs.created_at, jobs.updated_at`,
-          [limit]
-        );
-
-        if (claimedResult.rows.length === 0) {
-          return [];
-        }
-
-        const hydrated: ProcessableInvoiceEmailJob[] = [];
-
-        for (const jobRow of claimedResult.rows) {
-          const invoiceResult = await tx.query<InvoiceRow>(
-            `select
-               id, organization_id, lease_id, tenant_id, property_id, unit_id,
-               invoice_year, invoice_sequence, invoice_number, invoice_type, period,
-               issue_date, due_date, currency_code, total_amount, amount_paid,
-               status, paid_at, email_status, email_sent_count, last_emailed_at,
-               last_email_error, void_reason, voided_at, source_payment_id, created_at
-             from invoices
-             where id = $1 and organization_id = $2
-             limit 1`,
-            [jobRow.invoice_id, jobRow.organization_id]
-          );
-
-          const invoiceRow = invoiceResult.rows[0];
-          if (!invoiceRow) {
-            continue;
-          }
-
-          const tenantResult = await tx.query<TenantEmailRow>(
-            `select email as tenant_email, full_name as tenant_full_name
-             from tenants
-             where id = $1 and organization_id = $2
-             limit 1`,
-            [invoiceRow.tenant_id, invoiceRow.organization_id]
-          );
-
-          const tenant = tenantResult.rows[0];
-          if (!tenant?.tenant_email) {
-            continue;
-          }
-
-          hydrated.push({
-            job: mapEmailJob(jobRow),
-            invoice: mapInvoice(invoiceRow),
-            tenantEmail: tenant.tenant_email,
-            tenantFullName: tenant.tenant_full_name
-          });
-        }
-
-        return hydrated;
-      });
-    },
-
-    async markEmailJobSent(jobId: string, organizationId: string): Promise<void> {
-      await withTransaction(client, async (tx) => {
-        const updateJobResult = await tx.query<InvoiceEmailJobRow>(
-          `update invoice_email_jobs
-           set status = 'sent',
-               attempt_count = attempt_count + 1,
-               locked_at = null,
-               last_error = null,
-               updated_at = now()
-           where id = $1 and organization_id = $2
-           returning
-             id, organization_id, invoice_id, job_kind, status, attempt_count,
-             max_attempts, next_attempt_at, last_error, locked_at, created_at, updated_at`,
-          [jobId, organizationId]
-        );
-
-        const job = updateJobResult.rows[0];
-        if (!job) {
-          return;
-        }
-
-        await tx.query(
-          `update invoices
-           set email_status = 'sent',
-               email_sent_count = email_sent_count + 1,
-               last_emailed_at = now(),
-               last_email_error = null
-           where id = $1 and organization_id = $2`,
-          [job.invoice_id, job.organization_id]
-        );
-      });
-    },
-
-    async markEmailJobFailed(jobId: string, organizationId: string, errorMessage: string): Promise<void> {
-      await withTransaction(client, async (tx) => {
-        const updateJobResult = await tx.query<InvoiceEmailJobRow>(
-          `update invoice_email_jobs
-           set attempt_count = attempt_count + 1,
-               status = case when attempt_count + 1 >= max_attempts then 'failed' else 'queued' end,
-               next_attempt_at = case when attempt_count + 1 >= max_attempts then next_attempt_at else now() + interval '5 minutes' end,
-               last_error = $3,
-               locked_at = null,
-               updated_at = now()
-           where id = $1 and organization_id = $2
-           returning
-             id, organization_id, invoice_id, job_kind, status, attempt_count,
-             max_attempts, next_attempt_at, last_error, locked_at, created_at, updated_at`,
-          [jobId, organizationId, errorMessage.slice(0, 1000)]
-        );
-
-        const job = updateJobResult.rows[0];
-        if (!job) {
-          return;
-        }
-
-        await tx.query(
-          `update invoices
-           set email_status = 'failed',
-               last_email_error = $3
-           where id = $1 and organization_id = $2`,
-          [job.invoice_id, job.organization_id, errorMessage.slice(0, 1000)]
-        );
-      });
-    },
-
-    async releaseProcessingEmailJob(jobId: string, organizationId: string): Promise<void> {
+    async markInvoiceEmailSent(invoiceId: string, organizationId: string): Promise<void> {
       await client.query(
-        `update invoice_email_jobs
-         set status = 'queued', locked_at = null, updated_at = now()
-         where id = $1 and organization_id = $2 and status = 'processing'`,
-        [jobId, organizationId]
+        `update invoices
+         set email_status = 'sent',
+             email_sent_count = email_sent_count + 1,
+             last_emailed_at = now(),
+             last_email_error = null
+         where id = $1 and organization_id = $2`,
+        [invoiceId, organizationId]
+      );
+    },
+
+    async markInvoiceEmailFailed(invoiceId: string, organizationId: string, errorMessage: string): Promise<void> {
+      await client.query(
+        `update invoices
+         set email_status = 'failed',
+             last_email_error = $3
+         where id = $1 and organization_id = $2`,
+        [invoiceId, organizationId, errorMessage.slice(0, 1000)]
       );
     }
   };

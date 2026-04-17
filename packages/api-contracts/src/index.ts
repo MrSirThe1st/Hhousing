@@ -147,14 +147,11 @@ export type {
   ListInvoicesFilter,
   ListInvoicesOutput,
   GetInvoiceDetailOutput,
-  QueueInvoiceEmailInput,
-  QueueInvoiceEmailOutput,
   VoidInvoiceInput,
   VoidInvoiceOutput
 } from "./invoices/invoice.types";
 export {
   parseListInvoicesFilter,
-  parseQueueInvoiceEmailInput,
   parseVoidInvoiceInput
 } from "./invoices/invoice.validation";
 export type {

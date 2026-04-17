@@ -1,5 +1,5 @@
 import type { ApiResult } from "../api-result.types";
-import type { ListInvoicesFilter, QueueInvoiceEmailInput, VoidInvoiceInput } from "./invoice.types";
+import type { ListInvoicesFilter, VoidInvoiceInput } from "./invoice.types";
 
 function asNonEmptyText(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -91,39 +91,6 @@ export function parseListInvoicesFilter(input: {
       status,
       emailStatus,
       year
-    }
-  };
-}
-
-export function parseQueueInvoiceEmailInput(
-  invoiceId: string,
-  input: unknown,
-  sessionOrganizationId: string
-): ApiResult<QueueInvoiceEmailInput> {
-  if (typeof input !== "object" || input === null) {
-    return {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "Body must be an object"
-    };
-  }
-
-  const payload = input as Record<string, unknown>;
-  const action = asNonEmptyText(payload.action);
-  if (action !== "send" && action !== "resend") {
-    return {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "action must be send or resend"
-    };
-  }
-
-  return {
-    success: true,
-    data: {
-      invoiceId,
-      organizationId: sessionOrganizationId,
-      reason: action
     }
   };
 }

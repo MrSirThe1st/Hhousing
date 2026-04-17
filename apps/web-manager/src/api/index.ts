@@ -123,7 +123,6 @@ export {
 export {
   listInvoices,
   getInvoiceDetail,
-  queueInvoiceEmail,
   voidInvoice,
   type ListInvoicesDeps,
   type ListInvoicesRequest,
@@ -131,9 +130,6 @@ export {
   type GetInvoiceDetailDeps,
   type GetInvoiceDetailRequest,
   type GetInvoiceDetailResponse,
-  type QueueInvoiceEmailDeps,
-  type QueueInvoiceEmailRequest,
-  type QueueInvoiceEmailResponse,
   type VoidInvoiceDeps,
   type VoidInvoiceRequest,
   type VoidInvoiceResponse

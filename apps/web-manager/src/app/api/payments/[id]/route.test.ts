@@ -33,13 +33,23 @@ vi.mock("../../shared", async () => {
     createTeamFunctionsRepo: () => ({
       listMemberFunctions: vi.fn().mockResolvedValue([])
     }),
+    createRepositoryFromEnv: () => ({
+      success: false,
+      code: "INTERNAL_ERROR",
+      error: "not configured"
+    }),
     createPaymentRepo: (): {
       getPaymentById: typeof getPaymentByIdMock;
     } => ({
       getPaymentById: getPaymentByIdMock
     }),
+    createTenantLeaseRepo: () => ({
+      getTenantById: vi.fn().mockResolvedValue(null)
+    }),
     createInvoiceRepo: () => ({
-      syncInvoiceForPaidPayment: vi.fn().mockResolvedValue(undefined)
+      syncInvoiceForPaidPayment: vi.fn().mockResolvedValue(undefined),
+      markInvoiceEmailSent: vi.fn().mockResolvedValue(undefined),
+      markInvoiceEmailFailed: vi.fn().mockResolvedValue(undefined)
     })
   };
 });
