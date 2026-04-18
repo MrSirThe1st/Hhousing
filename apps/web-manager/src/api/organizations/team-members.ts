@@ -264,11 +264,7 @@ async function requireTeamInviteAuthority(
   repository: AuthRepository,
   teamFunctionsRepository?: TeamFunctionsRepository
 ): Promise<ApiResult<AuthSession>> {
-  if (session.role === "landlord") {
-    return { success: true, data: session };
-  }
-
-  if (session.role !== "property_manager") {
+  if (session.role !== "landlord" && session.role !== "property_manager") {
     return {
       success: false,
       code: "FORBIDDEN",
@@ -383,19 +379,19 @@ async function createAndSendTeamMemberInvitation(params: {
 /**
  * Validate function assignment escalation
  * - LEASING_AGENT, ACCOUNTANT, MAINTENANCE_MANAGER: anyone can assign
- * - ADMIN: only landlord can assign
+ * - ADMIN: only account owner or explicit org-admin authority can assign
  */
 function validateFunctionEscalation(
-  inviterRole: "landlord" | "property_manager",
+  inviterCanAssignAdmin: boolean,
   functionCode: TeamFunctionCode
 ): ApiResult<void> {
   const adminOnlyFunctions: TeamFunctionCode[] = [TeamFunctionCode.ADMIN];
 
-  if (adminOnlyFunctions.includes(functionCode) && inviterRole !== "landlord") {
+  if (adminOnlyFunctions.includes(functionCode) && !inviterCanAssignAdmin) {
     return {
       success: false,
       code: "FORBIDDEN",
-      error: `Only landlords can assign the ${functionCode} function`
+      error: `Only the account owner or an organization admin can assign the ${functionCode} function`
     };
   }
 
@@ -990,10 +986,37 @@ export async function updateMemberFunctions(
     };
   }
 
-  // Validate escalation: property_manager cannot assign ADMIN
+  // Validate escalation: ADMIN requires account-owner or explicit org-admin authority
+  const currentMembership = await deps.repository.getMembershipByUserAndOrg(
+    sessionResult.data.userId,
+    sessionResult.data.organizationId
+  );
+  if (currentMembership === null) {
+    return {
+      status: 403,
+      body: { success: false, code: "FORBIDDEN", error: "Only the account owner or an admin can manage team invitations" }
+    };
+  }
+
+  const operatorMemberships = (await deps.repository.listMembershipsByOrganization(sessionResult.data.organizationId))
+    .filter((item) => item.role === "landlord" || item.role === "property_manager")
+    .sort(
+      (left, right) =>
+        new Date(left.createdAtIso).getTime() - new Date(right.createdAtIso).getTime()
+    );
+  const accountOwnerMembership = operatorMemberships[0] ?? null;
+  const isAccountOwner = accountOwnerMembership?.id === currentMembership.id;
+  const hasManageOrganizationPermission = await memberHasStrictTeamPermission(
+    sessionResult.data,
+    deps.repository,
+    deps.teamFunctionsRepository,
+    Permission.MANAGE_ORG
+  );
+  const canAssignAdmin = isAccountOwner || hasManageOrganizationPermission;
+
   for (const functionCode of newFunctionCodes) {
     const escalationCheck = validateFunctionEscalation(
-      sessionResult.data.role as "landlord" | "property_manager",
+      canAssignAdmin,
       functionCode
     );
     if (!escalationCheck.success) {

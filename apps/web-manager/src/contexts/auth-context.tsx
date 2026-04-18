@@ -42,7 +42,21 @@ export function AuthProvider({
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      return;
+    }
+
+    const normalizedMessage = error.message.toLowerCase();
+    if (normalizedMessage.includes("session") && normalizedMessage.includes("not found")) {
+      return;
+    }
+
+    if (normalizedMessage.includes("session") && normalizedMessage.includes("missing")) {
+      return;
+    }
+
+    throw error;
   }, [supabase]);
 
   return (

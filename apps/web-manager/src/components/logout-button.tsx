@@ -8,7 +8,6 @@ export default function LogoutButton(): React.ReactElement {
   const router = useRouter();
   const { signOut } = useAuth();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleLogout(): Promise<void> {
     if (busy) {
@@ -16,15 +15,14 @@ export default function LogoutButton(): React.ReactElement {
     }
 
     setBusy(true);
-    setError(null);
 
     try {
       await signOut();
+    } catch {
+      // Ignore transient auth/session errors and continue logout navigation.
+    } finally {
       router.replace("/login");
       router.refresh();
-    } catch {
-      setError("Deconnexion impossible.");
-      setBusy(false);
     }
   }
 
@@ -38,7 +36,6 @@ export default function LogoutButton(): React.ReactElement {
       >
         {busy ? "Deconnexion..." : "Se deconnecter"}
       </button>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
     </div>
   );
 }

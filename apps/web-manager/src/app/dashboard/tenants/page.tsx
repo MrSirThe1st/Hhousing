@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import { listTenants } from "../../../api";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import TenantManagementPanel from "../../../components/tenant-management-panel";
 import type { TenantListItem } from "../../../components/tenant-management.types";
 
 export default async function TenantsPage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("operations");
+  const { session, access } = await requireDashboardSectionAccess("operations");
 
   const tenantLeaseRepo = createTenantLeaseRepo();
 
@@ -35,6 +36,11 @@ export default async function TenantsPage(): Promise<React.ReactElement> {
       }))
     : [];
 
-  return <TenantManagementPanel organizationId={session.organizationId ?? ""} tenants={tenants} />;
+  return (
+    <>
+      {!access.operationsWritable && <ReadOnlyBanner />}
+      <TenantManagementPanel organizationId={session.organizationId ?? ""} tenants={tenants} />
+    </>
+  );
 }
 

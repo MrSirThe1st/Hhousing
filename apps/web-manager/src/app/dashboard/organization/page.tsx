@@ -1,15 +1,29 @@
 import { redirect } from "next/navigation";
 import { createRepositoryFromEnv } from "../../api/shared";
-import LogoutButton from "../../../components/logout-button";
+import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 import OrganizationSettingsForm from "../../../components/organization-settings-form";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 export default async function OrganizationSettingsPage(): Promise<React.ReactElement> {
   const { session, access } = await requireDashboardSectionAccess("organization");
 
-  if (!access.manageOrganization) {
+  if (!access.organization) {
     redirect("/dashboard");
   }
+
+  const authRepository = createAuthRepositoryFromEnv(process.env);
+  const operatorMemberships = (await authRepository.listMembershipsByOrganization(session.organizationId))
+    .filter((membership) => membership.role === "landlord" || membership.role === "property_manager")
+    .sort(
+      (left, right) =>
+        new Date(left.createdAtIso).getTime() - new Date(right.createdAtIso).getTime()
+    );
+  const accountOwnerMembership = operatorMemberships[0] ?? null;
+  const currentMembership = session.memberships.find(
+    (membership) => membership.organizationId === session.organizationId
+  );
+  const canEditOrganization =
+    currentMembership !== undefined && accountOwnerMembership?.id === currentMembership.id;
 
   const repositoryResult = createRepositoryFromEnv();
   if (!repositoryResult.success) {
@@ -30,9 +44,8 @@ export default async function OrganizationSettingsPage(): Promise<React.ReactEle
             Details de votre agence, logo et informations reutilisables.
           </p>
         </div>
-        <LogoutButton />
       </div>
-      <OrganizationSettingsForm organization={organization} />
+      <OrganizationSettingsForm organization={organization} canEdit={canEditOrganization} />
     </div>
   );
 }

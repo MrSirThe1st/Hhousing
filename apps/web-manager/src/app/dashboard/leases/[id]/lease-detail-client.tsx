@@ -13,7 +13,7 @@ import type {
   UpsertMoveOutInput
 } from "@hhousing/api-contracts";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
-import type { Document, Lease, Payment } from "@hhousing/domain";
+import type { Document, Lease, Payment, Property, Tenant, Unit } from "@hhousing/domain";
 import { getWithAuth, patchWithAuth } from "../../../../lib/api-client";
 import UniversalLoadingState from "../../../../components/universal-loading-state";
 import ActionMenu from "../../../../components/action-menu";
@@ -88,9 +88,12 @@ interface LeaseDetailClientProps {
   initialLease: LeaseWithTenantView;
   initialPayments: Payment[];
   initialAvailableDocuments: Document[];
+  tenant: Tenant | null;
+  unit: Unit | null;
+  property: Property | null;
 }
 
-export default function LeaseDetailClient({ id, initialLease, initialPayments, initialAvailableDocuments }: LeaseDetailClientProps): React.ReactElement {
+export default function LeaseDetailClient({ id, initialLease, initialPayments, initialAvailableDocuments, tenant, unit, property }: LeaseDetailClientProps): React.ReactElement {
   const router = useRouter();
   const [lease] = useState<LeaseWithTenantView>(initialLease);
   const [payments] = useState<Payment[]>(initialPayments);
@@ -372,13 +375,69 @@ export default function LeaseDetailClient({ id, initialLease, initialPayments, i
           <p className="mb-4 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-700">Certaines actions sont désactivées selon le statut du bail.</p>
         ) : null}
 
-        <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div><p className="text-sm text-gray-500">Date de début</p><p className="text-base font-medium text-[#010a19]">{lease.startDate}</p></div>
-          <div><p className="text-sm text-gray-500">Date de fin</p><p className="text-base font-medium text-[#010a19]">{lease.endDate ?? "Ouvert"}</p></div>
-          <div><p className="text-sm text-gray-500">Loyer mensuel</p><p className="text-base font-medium text-[#010a19]">{lease.monthlyRentAmount.toLocaleString("fr-FR")} {lease.currencyCode}</p></div>
-          <div><p className="text-sm text-gray-500">Créé le</p><p className="text-base font-medium text-[#010a19]">{new Date(lease.createdAtIso).toLocaleDateString("fr-FR")}</p></div>
-          <div><p className="text-sm text-gray-500">Signé le</p><p className="text-base font-medium text-[#010a19]">{lease.signedAt ?? "Non renseigné"}</p></div>
-          <div><p className="text-sm text-gray-500">Méthode de signature</p><p className="text-base font-medium text-[#010a19]">{lease.signingMethod ?? "Non renseignée"}</p></div>
+        {/* Tenant */}
+        <div className="mb-6">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Tenant</h2>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
+            <div><p className="text-xs text-slate-500">Full name</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.tenantFullName}</p></div>
+            <div><p className="text-xs text-slate-500">Email</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.tenantEmail ?? "—"}</p></div>
+            <div><p className="text-xs text-slate-500">Phone</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{tenant?.phone ?? "—"}</p></div>
+          </div>
+        </div>
+
+        <div className="mb-6 border-t border-slate-100" />
+
+        {/* Property & Unit */}
+        {(property ?? unit) ? (
+          <div className="mb-6">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Property &amp; Unit</h2>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
+              {property ? (
+                <>
+                  <div><p className="text-xs text-slate-500">Property name</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{property.name}</p></div>
+                  <div className="md:col-span-2"><p className="text-xs text-slate-500">Address</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{property.address}{property.city ? `, ${property.city}` : ""}</p></div>
+                </>
+              ) : null}
+              {unit ? (
+                <>
+                  <div><p className="text-xs text-slate-500">Unit</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{unit.unitNumber}</p></div>
+                  <div><p className="text-xs text-slate-500">Bedrooms / Bathrooms</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{unit.bedroomCount ?? "—"} bd / {unit.bathroomCount ?? "—"} ba</p></div>
+                  <div><p className="text-xs text-slate-500">Size</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{unit.sizeSqm != null ? `${unit.sizeSqm} m²` : "—"}</p></div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mb-6 border-t border-slate-100" />
+
+        {/* Lease Terms */}
+        <div className="mb-6">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Lease Terms</h2>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
+            <div><p className="text-xs text-slate-500">Start date</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.startDate}</p></div>
+            <div><p className="text-xs text-slate-500">End date</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.endDate ?? "Open-ended"}</p></div>
+            <div><p className="text-xs text-slate-500">Term type</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.termType === "fixed" ? `Fixed${lease.fixedTermMonths ? ` · ${lease.fixedTermMonths} months` : ""}` : "Month-to-month"}</p></div>
+            <div><p className="text-xs text-slate-500">Payment frequency</p><p className="mt-0.5 text-sm font-medium capitalize text-[#010a19]">{lease.paymentFrequency}</p></div>
+            <div><p className="text-xs text-slate-500">Payment start</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.paymentStartDate}</p></div>
+            <div><p className="text-xs text-slate-500">Due day of month</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.dueDayOfMonth}</p></div>
+            <div><p className="text-xs text-slate-500">Auto-renew</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.autoRenewToMonthly ? "Yes" : "No"}</p></div>
+            <div><p className="text-xs text-slate-500">Activated</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.activatedAtIso ? new Date(lease.activatedAtIso).toLocaleDateString() : "—"}</p></div>
+            <div><p className="text-xs text-slate-500">Created</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{new Date(lease.createdAtIso).toLocaleDateString()}</p></div>
+          </div>
+        </div>
+
+        <div className="mb-6 border-t border-slate-100" />
+
+        {/* Financials */}
+        <div className="mb-6">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Financials</h2>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
+            <div><p className="text-xs text-slate-500">Monthly rent</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.monthlyRentAmount.toLocaleString()} {lease.currencyCode}</p></div>
+            <div><p className="text-xs text-slate-500">Security deposit</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.depositAmount.toLocaleString()} {lease.currencyCode}</p></div>
+            <div><p className="text-xs text-slate-500">Signing method</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.signingMethod ? lease.signingMethod.replace(/_/g, " ") : "—"}</p></div>
+            <div><p className="text-xs text-slate-500">Signed at</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.signedAt ?? "—"}</p></div>
+          </div>
         </div>
 
         {lease.status === "pending" ? (

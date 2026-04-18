@@ -7,6 +7,7 @@ const {
   listMembershipsByOrganizationMock,
   listMemberFunctionsMock,
   listFunctionsByOrganizationMock,
+  ensureDefaultFunctionsForOrganizationMock,
   clearMemberFunctionsMock,
   assignFunctionToMemberMock
 } = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ const {
   listMembershipsByOrganizationMock: vi.fn(),
   listMemberFunctionsMock: vi.fn(),
   listFunctionsByOrganizationMock: vi.fn(),
+  ensureDefaultFunctionsForOrganizationMock: vi.fn(),
   clearMemberFunctionsMock: vi.fn(),
   assignFunctionToMemberMock: vi.fn()
 }));
@@ -37,6 +39,7 @@ vi.mock("../../../../shared", async () => {
     createTeamFunctionsRepo: () => ({
       listMemberFunctions: listMemberFunctionsMock,
       listFunctionsByOrganization: listFunctionsByOrganizationMock,
+      ensureDefaultFunctionsForOrganization: ensureDefaultFunctionsForOrganizationMock,
       clearMemberFunctions: clearMemberFunctionsMock,
       assignFunctionToMember: assignFunctionToMemberMock
     })
@@ -112,6 +115,7 @@ describe("/api/organizations/members/[id]/functions", () => {
       }
     ]);
     clearMemberFunctionsMock.mockResolvedValue(undefined);
+    ensureDefaultFunctionsForOrganizationMock.mockResolvedValue(undefined);
     assignFunctionToMemberMock.mockResolvedValue({
       id: "mf-1",
       organizationId: "org-1",
@@ -122,7 +126,40 @@ describe("/api/organizations/members/[id]/functions", () => {
     });
   });
 
-  it("allows a landlord to assign admin access", async () => {
+  it("allows an account-owner landlord to assign admin access", async () => {
+    getMembershipByUserAndOrgMock.mockResolvedValue({
+      id: "owner-landlord",
+      userId: "landlord-1",
+      organizationId: "org-1",
+      organizationName: "Org A",
+      role: "landlord",
+      status: "active",
+      capabilities: { canOwnProperties: true },
+      createdAtIso: "2026-01-01T00:00:00.000Z"
+    });
+    listMembershipsByOrganizationMock.mockResolvedValue([
+      {
+        id: "owner-landlord",
+        userId: "landlord-1",
+        organizationId: "org-1",
+        organizationName: "Org A",
+        role: "landlord",
+        status: "active",
+        capabilities: { canOwnProperties: true },
+        createdAtIso: "2026-01-01T00:00:00.000Z"
+      },
+      {
+        id: "member-2",
+        userId: "user-2",
+        organizationId: "org-1",
+        organizationName: "Org A",
+        role: "property_manager",
+        status: "active",
+        capabilities: { canOwnProperties: false },
+        createdAtIso: "2026-02-01T00:00:00.000Z"
+      }
+    ]);
+
     extractAuthSessionFromCookiesMock.mockResolvedValue({
       userId: "landlord-1",
       role: "landlord",
@@ -188,9 +225,9 @@ describe("/api/organizations/members/[id]/functions", () => {
     );
   });
 
-  it("blocks a property manager admin from assigning admin access", async () => {
+  it("allows an account-owner property manager to assign admin access", async () => {
     extractAuthSessionFromCookiesMock.mockResolvedValue({
-      userId: "user-1",
+      userId: "founder-user",
       role: "property_manager",
       organizationId: "org-1",
       capabilities: { canOwnProperties: false },
@@ -217,11 +254,49 @@ describe("/api/organizations/members/[id]/functions", () => {
       { params: Promise.resolve({ id: "member-2" }) }
     );
 
+    expect(response.status).toBe(200);
+    expect(assignFunctionToMemberMock).toHaveBeenCalledWith(
+      "member-2",
+      "fn-admin",
+      "org-1",
+      "founder-user"
+    );
+  });
+
+  it("blocks non-owner property manager without org-admin authority from assigning admin access", async () => {
+    extractAuthSessionFromCookiesMock.mockResolvedValue({
+      userId: "user-1",
+      role: "property_manager",
+      organizationId: "org-1",
+      capabilities: { canOwnProperties: false },
+      memberships: []
+    });
+    listMemberFunctionsMock.mockResolvedValue([
+      {
+        id: "fn-team-manager",
+        organizationId: "org-1",
+        functionCode: "LEASING_AGENT",
+        displayName: "Property Manager",
+        description: null,
+        permissions: ["manage_team"],
+        createdAt: new Date("2026-01-01T00:00:00.000Z")
+      }
+    ]);
+
+    const response = await PATCH(
+      new Request("http://localhost/api/organizations/members/member-2/functions", {
+        method: "PATCH",
+        body: JSON.stringify({ functions: ["ADMIN"] }),
+        headers: { "content-type": "application/json" }
+      }),
+      { params: Promise.resolve({ id: "member-2" }) }
+    );
+
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual({
       success: false,
       code: "FORBIDDEN",
-      error: "Only landlords can assign the ADMIN function"
+      error: "Only the account owner or an organization admin can assign the ADMIN function"
     });
     expect(clearMemberFunctionsMock).not.toHaveBeenCalled();
   });

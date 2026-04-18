@@ -9,6 +9,7 @@ import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 
 interface OrganizationSettingsFormProps {
   organization: Organization;
+  canEdit: boolean;
 }
 
 interface OrganizationFormState {
@@ -35,7 +36,7 @@ function buildInitialState(organization: Organization): OrganizationFormState {
   };
 }
 
-export default function OrganizationSettingsForm({ organization }: OrganizationSettingsFormProps): React.ReactElement {
+export default function OrganizationSettingsForm({ organization, canEdit }: OrganizationSettingsFormProps): React.ReactElement {
   const router = useRouter();
   const [form, setForm] = useState<OrganizationFormState>(() => buildInitialState(organization));
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -67,6 +68,9 @@ export default function OrganizationSettingsForm({ organization }: OrganizationS
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (!canEdit) {
+      return;
+    }
     setBusy(true);
     setMessage(null);
     setError(null);
@@ -122,6 +126,7 @@ export default function OrganizationSettingsForm({ organization }: OrganizationS
           type="file"
           accept="image/*"
           onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
+          disabled={!canEdit || busy}
           className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
         />
       </section>
@@ -134,39 +139,44 @@ export default function OrganizationSettingsForm({ organization }: OrganizationS
 
         {message ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div> : null}
         {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+        {!canEdit ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Seul le createur initial de l'organisation peut modifier ces informations.
+          </div>
+        ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium text-slate-700">Nom</span>
-            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" required />
+            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" required />
           </label>
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium text-slate-700">Email de contact</span>
-            <input type="email" value={form.contactEmail} onChange={(event) => setForm((current) => ({ ...current, contactEmail: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
+            <input type="email" value={form.contactEmail} onChange={(event) => setForm((current) => ({ ...current, contactEmail: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" />
           </label>
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium text-slate-700">Telephone</span>
-            <input value={form.contactPhone} onChange={(event) => setForm((current) => ({ ...current, contactPhone: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
+            <input value={form.contactPhone} onChange={(event) => setForm((current) => ({ ...current, contactPhone: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" />
           </label>
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium text-slate-700">WhatsApp</span>
-            <input value={form.contactWhatsapp} onChange={(event) => setForm((current) => ({ ...current, contactWhatsapp: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
+            <input value={form.contactWhatsapp} onChange={(event) => setForm((current) => ({ ...current, contactWhatsapp: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" />
           </label>
           <label className="block text-sm md:col-span-2">
             <span className="mb-1.5 block font-medium text-slate-700">Site web</span>
-            <input value={form.websiteUrl} onChange={(event) => setForm((current) => ({ ...current, websiteUrl: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" placeholder="https://..." />
+            <input value={form.websiteUrl} onChange={(event) => setForm((current) => ({ ...current, websiteUrl: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="https://..." />
           </label>
           <label className="block text-sm md:col-span-2">
             <span className="mb-1.5 block font-medium text-slate-700">Adresse</span>
-            <textarea value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
+            <textarea value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} disabled={!canEdit || busy} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" />
           </label>
           <label className="block text-sm md:col-span-2">
             <span className="mb-1.5 block font-medium text-slate-700">Signature email</span>
-            <textarea value={form.emailSignature} onChange={(event) => setForm((current) => ({ ...current, emailSignature: event.target.value }))} className="min-h-32 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" placeholder="Ex: L'equipe Gestion Horizon\ncontact@...\n+243 ..." />
+            <textarea value={form.emailSignature} onChange={(event) => setForm((current) => ({ ...current, emailSignature: event.target.value }))} disabled={!canEdit || busy} className="min-h-32 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="Ex: L'equipe Gestion Horizon\ncontact@...\n+243 ..." />
           </label>
         </div>
 
-        <button type="submit" disabled={busy} className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60">
+        <button type="submit" disabled={!canEdit || busy} className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60">
           {busy ? "Enregistrement..." : "Enregistrer"}
         </button>
       </section>

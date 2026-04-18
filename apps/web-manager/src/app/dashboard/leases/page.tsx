@@ -4,10 +4,11 @@ import { listLeases } from "../../../api";
 import LeaseManagementPanel from "../../../components/lease-management-panel";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 export default async function LeasesPage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("operations");
+  const { session, access } = await requireDashboardSectionAccess("operations");
 
   const tenantRepo = createTenantLeaseRepo();
   const teamFunctionsRepo = createTeamFunctionsRepo();
@@ -23,6 +24,11 @@ export default async function LeasesPage(): Promise<React.ReactElement> {
     ? filterLeasesByScope(result.body.data.leases, scopedPortfolio)
     : [];
 
-  return <LeaseManagementPanel leases={leases} />;
+  return (
+    <>
+      {!access.operationsWritable && <ReadOnlyBanner />}
+      <LeaseManagementPanel leases={leases} />
+    </>
+  );
 }
 

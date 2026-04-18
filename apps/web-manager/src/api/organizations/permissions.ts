@@ -20,25 +20,18 @@ function isMissingTeamFunctionsSchema(error: unknown): boolean {
 }
 
 /**
- * Verify user has required permission
- * Operators (landlord/property_manager) can have functions, which grant permissions
- * Tenants cannot have functions
+ * Verify user has required permission.
+ * Pass writeOnly = true to enforce the permission check (mutations).
+ * By default (writeOnly = false) any authenticated operator can read — no permission required.
  */
 export async function requirePermission(
   session: AuthSession,
   permission: Permission,
-  teamFunctionsRepo: TeamPermissionRepository
+  teamFunctionsRepo: TeamPermissionRepository,
+  writeOnly: boolean = false
 ): Promise<ApiResult<AuthSession>> {
-  // Landlords keep full org access by role.
-  if (session.role === "landlord") {
-    return {
-      success: true,
-      data: session
-    };
-  }
-
-  // Only operator roles can use function-based permissions.
-  if (session.role !== "property_manager") {
+  // Only operator roles are eligible.
+  if (session.role !== "property_manager" && session.role !== "landlord") {
     return {
       success: false,
       code: "FORBIDDEN",
@@ -46,16 +39,18 @@ export async function requirePermission(
     };
   }
 
+  // Read operations: always allow any authenticated operator.
+  if (!writeOnly) {
+    return { success: true, data: session };
+  }
+
   const membership = session.memberships.find(
     (item) => item.organizationId === session.organizationId
   );
 
-  // Backward compatibility: existing managers without membership context keep access.
+  // Backward compatibility: existing managers without membership context keep write access.
   if (!membership) {
-    return {
-      success: true,
-      data: session
-    };
+    return { success: true, data: session };
   }
 
   let functions: TeamFunction[] = [];
@@ -65,20 +60,12 @@ export async function requirePermission(
     if (!isMissingTeamFunctionsSchema(error)) {
       throw error;
     }
-
-    // Backward compatibility during migration rollout.
-    return {
-      success: true,
-      data: session
-    };
+    return { success: true, data: session };
   }
 
-  // Backward compatibility: existing managers with zero assigned functions keep access.
+  // Backward compatibility: members with zero assigned functions keep write access.
   if (functions.length === 0) {
-    return {
-      success: true,
-      data: session
-    };
+    return { success: true, data: session };
   }
 
   const hasPermission = functions.some((teamFunction) =>
@@ -93,10 +80,7 @@ export async function requirePermission(
     };
   }
 
-  return {
-    success: true,
-    data: session
-  };
+  return { success: true, data: session };
 }
 
 /**

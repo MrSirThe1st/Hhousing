@@ -101,7 +101,8 @@ export async function createLease(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.CREATE_LEASE,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return {

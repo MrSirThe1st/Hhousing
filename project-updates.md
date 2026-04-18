@@ -3,6 +3,30 @@
 Use this file as the first project memory source before searching the codebase.
 
 ## 2026-04-18
+- Change type: Web + Team UX
+- Description: Improved team members display from card-based layout to a clean table UI with columns for member name, contact status, email, and role. Added action buttons in the table for managers to configure member roles directly.
+- Impact: Updated `apps/web-manager/src/components/team-management-panel.tsx` to render members in a responsive table instead of card layout with status badge, role tags, and inline configure button.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-04-18
+- Change type: Web + API + Auth UX
+- Description: Added operator self-profile flow with header avatar entry and moved logout action out of organization settings into the user profile page. Tightened organization settings write authority to account owner only, and removed transitional non-owner full-access fallback in dashboard access resolution.
+- Impact: Added `apps/web-manager/src/app/dashboard/profile/page.tsx`, `apps/web-manager/src/components/operator-profile-panel.tsx`, `apps/web-manager/src/components/dashboard-user-avatar-link.tsx`; updated `apps/web-manager/src/app/dashboard/layout.tsx`, `apps/web-manager/src/app/dashboard/organization/page.tsx`, `apps/web-manager/src/components/organization-settings-form.tsx`, `apps/web-manager/src/app/api/organization/route.ts`, and `apps/web-manager/src/lib/dashboard-access.ts`; updated tests in `apps/web-manager/src/app/api/organization/route.test.ts`.
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓, `pnpm build` ✓.
+
+## 2026-04-18
+- Change type: Web + Permissions + Tests
+- Description: Removed landlord-specific dashboard access shortcut and aligned section authority to account-owner semantics plus explicit permission checks. Also fixed stale route test mocks for property client reassignment to include membership context required by audit actor resolution.
+- Impact: Updated `apps/web-manager/src/lib/dashboard-access.ts` (operator-wide account-owner access model), updated `apps/web-manager/src/app/api/properties/[id]/client/route.test.ts` (session membership mock shape).
+- Tests: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` ✓, `pnpm build` ✓.
+
+## 2026-04-18
+- Change type: Web + API + Permissions
+- Description: Refactored team admin-assignment authority to remove landlord-only hardcoding. ADMIN function assignment now depends on explicit authority (account owner or organization-admin permission), and Team UI messaging now reflects that model.
+- Impact: Updated `apps/web-manager/src/api/organizations/team-members.ts` escalation checks, `apps/web-manager/src/app/dashboard/team/page.tsx` admin-assignability computation, `apps/web-manager/src/components/team-management-panel.tsx` admin gating copy, and `docs/context/roles-and-auth.md` authority wording.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager exec vitest run 'src/app/api/organizations/members/[id]/functions/route.test.ts'` ✓.
+
+## 2026-04-18
 - Change type: API + Audit Coverage Hardening
 - Description: Completed exhaustive operator-side audit instrumentation across remaining mutation routes/services. Added audit events for owner/client create-update-invite, tenant update/delete/invite, document upload-delete, listings upsert, application review + convert, tasks create-update-delete, calendar events create-update-delete, organization settings update + organization creation, email templates create-update-delete, property update-delete-owner reassignment, unit update-delete, lease update/finalize/draft-email/invite-resend, invoice void, and manager conversation start/send.
 - Impact: Updated service-layer modules `apps/web-manager/src/api/properties/owner-clients.ts`, `apps/web-manager/src/api/owners/owner-invitations.ts`, `apps/web-manager/src/api/tenants/tenant-invitations.ts`, `apps/web-manager/src/api/documents/document.ts`, `apps/web-manager/src/api/leases/move-out.ts`, `apps/web-manager/src/api/invoices/invoice.ts`, `apps/web-manager/src/api/messages/message.ts`, `apps/web-manager/src/api/organizations/create-organization.ts`; updated route handlers under `apps/web-manager/src/app/api/**` for listings, applications, tasks, calendar-events, organization, email-templates, tenants/[id], units/[id], properties/[id], properties/[id]/client, leases/[id], and move-out routes; improved shared helper `apps/web-manager/src/api/audit-log.ts` to accept either session-based or explicit organization/member context.

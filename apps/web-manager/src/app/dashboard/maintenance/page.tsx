@@ -6,11 +6,12 @@ import {
   getScopedPortfolioData
 } from "../../../lib/operator-scope-portfolio";
 import { createMaintenanceRepo, createTeamFunctionsRepo } from "../../api/shared";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import MaintenanceManagementPanel from "../../../components/maintenance-management-panel";
 
 export default async function MaintenancePage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("services");
+  const { session, access } = await requireDashboardSectionAccess("services");
 
   const maintenanceRepo = createMaintenanceRepo();
   const teamFunctionsRepo = createTeamFunctionsRepo();
@@ -27,9 +28,12 @@ export default async function MaintenancePage(): Promise<React.ReactElement> {
     : [];
 
   return (
-    <MaintenanceManagementPanel
-      requests={requests}
-    />
+    <>
+      {!access.servicesWritable && <ReadOnlyBanner />}
+      <MaintenanceManagementPanel
+        requests={requests}
+      />
+    </>
   );
 }
 

@@ -165,7 +165,8 @@ export async function startManagerConversation(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.MESSAGE_TENANTS,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: 403, body: permissionResult };
@@ -253,7 +254,8 @@ export async function sendManagerMessage(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.MESSAGE_TENANTS,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: 403, body: permissionResult };

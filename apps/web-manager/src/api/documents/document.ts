@@ -44,7 +44,8 @@ export async function createDocument(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.UPLOAD_DOCUMENTS,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };
@@ -185,7 +186,8 @@ export async function deleteDocument(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.UPLOAD_DOCUMENTS,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };

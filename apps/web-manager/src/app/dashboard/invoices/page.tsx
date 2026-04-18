@@ -4,11 +4,12 @@ import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { listInvoices, listLeases } from "../../../api";
 import { createInvoiceRepo, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import InvoiceManagementPanel from "../../../components/invoice-management-panel";
 
 export default async function InvoicesPage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("finances");
+  const { session, access } = await requireDashboardSectionAccess("finances");
 
   const teamFunctionsRepo = createTeamFunctionsRepo();
   const scopedPortfolio = await getScopedPortfolioData(session);
@@ -49,5 +50,10 @@ export default async function InvoicesPage(): Promise<React.ReactElement> {
     : [];
   const scopedCredits: LeaseCreditBalance[] = credits.filter((credit) => scopedPortfolio.leaseIds.has(credit.leaseId));
 
-  return <InvoiceManagementPanel invoices={invoices} leases={leases} credits={scopedCredits} />;
+  return (
+    <>
+      {!access.financesWritable && <ReadOnlyBanner />}
+      <InvoiceManagementPanel invoices={invoices} leases={leases} credits={scopedCredits} />
+    </>
+  );
 }

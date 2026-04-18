@@ -9,6 +9,7 @@ import TeamManagementPanel from "../../../components/team-management-panel";
 type TeamDashboardMember = OrganizationMembership & {
   displayName: string;
   email: string | null;
+  avatarUrl: string | null;
   functions: TeamFunction[];
 };
 
@@ -21,6 +22,7 @@ type SupabaseAdminUser = {
 type MemberIdentity = {
   displayName: string;
   email: string | null;
+  avatarUrl: string | null;
 };
 
 function isHigherPriorityMembership(
@@ -144,11 +146,18 @@ async function listMemberIdentities(userIds: string[]): Promise<Map<string, Memb
           ? user.email.trim()
           : null;
 
+        const meta = user.user_metadata;
+        const avatarUrl =
+          meta && typeof meta === "object" && "avatar_url" in meta && typeof (meta as Record<string, unknown>).avatar_url === "string"
+            ? ((meta as Record<string, unknown>).avatar_url as string)
+            : null;
+
         return [
           user.id,
           {
             displayName: readUserMetadataName(user.user_metadata) ?? buildFallbackName(email, "property_manager"),
-            email
+            email,
+            avatarUrl
           }
         ] satisfies [string, MemberIdentity];
       })
@@ -221,6 +230,7 @@ export default async function TeamPage(): Promise<React.ReactElement> {
       memberIdentities.get(membership.userId)?.displayName ??
       buildFallbackName(memberIdentities.get(membership.userId)?.email ?? null, membership.role),
     email: memberIdentities.get(membership.userId)?.email ?? null,
+    avatarUrl: memberIdentities.get(membership.userId)?.avatarUrl ?? null,
     functions: memberFunctionsById.get(membership.id) ?? []
   }))); 
   const accountOwner = members
@@ -235,6 +245,10 @@ export default async function TeamPage(): Promise<React.ReactElement> {
     (session.role === "property_manager" &&
       (accountOwner?.userId === session.userId ||
         (currentMember !== null && memberHasPermission(currentMember.functions, Permission.MANAGE_TEAM))));
+  const canAssignAdmin =
+    currentMember !== null &&
+    (accountOwner?.userId === session.userId ||
+      memberHasPermission(currentMember.functions, Permission.MANAGE_ORG));
 
   return (
     <div className="p-8">
@@ -245,7 +259,7 @@ export default async function TeamPage(): Promise<React.ReactElement> {
         accountOwner={accountOwner}
         currentMember={currentMember}
         currentUserId={session.userId}
-        canAssignAdmin={session.role === "landlord"}
+        canAssignAdmin={canAssignAdmin}
         inviteAuthority={canManageTeam}
         canManageTeam={canManageTeam}
       />

@@ -48,7 +48,8 @@ export async function createProperty(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.MANAGE_PROPERTIES,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return {

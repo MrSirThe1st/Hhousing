@@ -158,7 +158,8 @@ export async function createTenantInvitation(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.MANAGE_TENANTS,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: mapErrorCodeToHttpStatus(permissionResult.code), body: permissionResult };

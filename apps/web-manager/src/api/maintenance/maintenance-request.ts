@@ -44,7 +44,8 @@ export async function createMaintenanceRequest(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.MANAGE_MAINTENANCE,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: 403, body: permissionResult };
@@ -116,7 +117,8 @@ export async function updateMaintenanceRequest(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.UPDATE_MAINTENANCE_STATUS,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: 403, body: permissionResult };

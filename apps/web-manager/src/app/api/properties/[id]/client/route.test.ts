@@ -63,7 +63,13 @@ describe("/api/properties/[id]/client", () => {
       success: true,
       data: {
         organizationId: "org_1",
-        role: "property_manager"
+        role: "property_manager",
+        memberships: [
+          {
+            id: "mem_1",
+            organizationId: "org_1"
+          }
+        ]
       }
     });
     getScopedPortfolioDataMock.mockResolvedValue({
@@ -101,7 +107,13 @@ describe("/api/properties/[id]/client", () => {
       success: true,
       data: {
         organizationId: "org_1",
-        role: "property_manager"
+        role: "property_manager",
+        memberships: [
+          {
+            id: "mem_1",
+            organizationId: "org_1"
+          }
+        ]
       }
     });
     parseJsonBodyMock.mockResolvedValue({ clientId: "ocl_2" });
@@ -140,7 +152,13 @@ describe("/api/properties/[id]/client", () => {
       success: true,
       data: {
         organizationId: "org_1",
-        role: "property_manager"
+        role: "property_manager",
+        memberships: [
+          {
+            id: "mem_1",
+            organizationId: "org_1"
+          }
+        ]
       }
     });
     parseJsonBodyMock.mockResolvedValue({ clientId: "ocl_2" });

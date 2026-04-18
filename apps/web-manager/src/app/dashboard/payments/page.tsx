@@ -8,11 +8,12 @@ import {
   getScopedPortfolioData
 } from "../../../lib/operator-scope-portfolio";
 import { createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import PaymentManagementPanel from "../../../components/payment-management-panel";
 
 export default async function PaymentsPage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("finances");
+  const { session, access } = await requireDashboardSectionAccess("finances");
 
   const paymentRepo = createPaymentRepo();
   const leaseRepo = createTenantLeaseRepo();
@@ -41,11 +42,14 @@ export default async function PaymentsPage(): Promise<React.ReactElement> {
     : [];
 
   return (
-    <PaymentManagementPanel
-      organizationId={session.organizationId ?? ""}
-      payments={payments}
-      leases={leases}
-    />
+    <>
+      {!access.financesWritable && <ReadOnlyBanner />}
+      <PaymentManagementPanel
+        organizationId={session.organizationId ?? ""}
+        payments={payments}
+        leases={leases}
+      />
+    </>
   );
 }
 

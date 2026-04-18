@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Permission } from "@hhousing/api-contracts";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { filterDocumentsByScope, getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
-import { createDocumentRepo, createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
+import { createDocumentRepo, createPaymentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
 import { getDashboardOperatorSession } from "../../detail-page-access";
 import LeaseDetailClient from "./lease-detail-client";
 
@@ -22,6 +22,7 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
   const tenantLeaseRepo = createTenantLeaseRepo();
   const paymentRepo = createPaymentRepo();
   const documentRepo = createDocumentRepo();
+  const propertyRepoResult = createRepositoryFromEnv();
 
   const [lease, scoped] = await Promise.all([
     tenantLeaseRepo.getLeaseById(id, session.organizationId),
@@ -39,10 +40,18 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
     );
   }
 
-  const [payments, documents] = await Promise.all([
+  const [payments, documents, tenant, unit] = await Promise.all([
     paymentRepo.listPayments({ organizationId: session.organizationId, leaseId: id }),
-    documentRepo.listDocuments({ organizationId: session.organizationId })
+    documentRepo.listDocuments({ organizationId: session.organizationId }),
+    tenantLeaseRepo.getTenantById(lease.tenantId, session.organizationId),
+    propertyRepoResult.success
+      ? propertyRepoResult.data.getUnitById(lease.unitId, session.organizationId)
+      : Promise.resolve(null)
   ]);
+
+  const property = propertyRepoResult.success && unit
+    ? await propertyRepoResult.data.getPropertyById(unit.propertyId, session.organizationId)
+    : null;
 
   const availableDocuments = filterDocumentsByScope(documents, scoped);
 
@@ -52,6 +61,9 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
       initialLease={lease}
       initialPayments={payments}
       initialAvailableDocuments={availableDocuments}
+      tenant={tenant}
+      unit={unit}
+      property={property}
     />
   );
 }

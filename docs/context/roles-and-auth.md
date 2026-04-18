@@ -65,7 +65,7 @@ organization_memberships (
 - The landlord keeps full organization access by base role.
 - The founding property manager keeps bootstrap invite authority.
 - Property managers with the `MANAGE_TEAM` permission can manage invitations and member access in phase 2.
-- Only the landlord can assign the `ADMIN` application role.
+- Only the account owner or a member with organization-admin authority can assign the `ADMIN` application role.
 - Invitation onboarding remains separate from application-role assignment: team members activate first, then receive their platform access profile.
 - Team-member invitations are staff-only: invited team members do not receive owner/hybrid ownership capability through this flow.
 

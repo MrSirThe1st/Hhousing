@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import { listProperties } from "../../../api";
 import { createRepositoryFromEnv, createTeamFunctionsRepo } from "../../api/shared";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import PropertyManagementPanel from "../../../components/property-management-panel";
 
 export default async function PropertiesPage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("operations");
+  const { session, access } = await requireDashboardSectionAccess("operations");
 
   const repoResult = createRepositoryFromEnv();
   if (!repoResult.success) {
@@ -29,10 +30,13 @@ export default async function PropertiesPage(): Promise<React.ReactElement> {
   const items: PropertyWithUnitsView[] = result.body.success ? result.body.data.items : [];
 
   return (
-    <PropertyManagementPanel
-      organizationId={session.organizationId ?? ""}
-      items={items}
-    />
+    <>
+      {!access.operationsWritable && <ReadOnlyBanner />}
+      <PropertyManagementPanel
+        organizationId={session.organizationId ?? ""}
+        items={items}
+      />
+    </>
   );
 }
 

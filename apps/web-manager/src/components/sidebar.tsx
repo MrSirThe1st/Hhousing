@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Organization } from "@hhousing/domain";
+import { useAuth } from "../contexts/auth-context";
 
 const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed";
+const SIDEBAR_SET_COLLAPSED_EVENT = "hhousing.sidebar.setCollapsed";
 
 type IconName =
   | "dashboard"
@@ -209,6 +211,7 @@ function getOrganizationInitials(name?: string): string {
 
 export default function Sidebar({ currentRoleLabel, access }: SidebarProps): React.ReactElement {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [badgeCounts, setBadgeCounts] = useState<SidebarBadgeCounts>(createEmptyBadgeCounts);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -294,6 +297,19 @@ export default function Sidebar({ currentRoleLabel, access }: SidebarProps): Rea
     if (storedState === "1") {
       setIsCollapsed(true);
     }
+
+    function handleSetCollapsed(event: Event): void {
+      const customEvent = event as CustomEvent<{ isCollapsed?: boolean }>;
+      if (typeof customEvent.detail?.isCollapsed === "boolean") {
+        setIsCollapsed(customEvent.detail.isCollapsed);
+      }
+    }
+
+    window.addEventListener(SIDEBAR_SET_COLLAPSED_EVENT, handleSetCollapsed as EventListener);
+
+    return () => {
+      window.removeEventListener(SIDEBAR_SET_COLLAPSED_EVENT, handleSetCollapsed as EventListener);
+    };
   }, []);
 
   useEffect(() => {
@@ -355,28 +371,75 @@ export default function Sidebar({ currentRoleLabel, access }: SidebarProps): Rea
   const organizationSubtitle = organization?.contactEmail ?? organization?.contactPhone ?? currentRoleLabel;
   const shellWidthClassName = isCollapsed ? "w-[5.25rem]" : "w-[17.75rem]";
 
+  const userDisplayName = (() => {
+    if (!user) return "Profile";
+    const meta = user.user_metadata;
+    if (meta && typeof meta === "object") {
+      const fullName = "full_name" in meta ? meta.full_name : undefined;
+      if (typeof fullName === "string" && fullName.trim()) return fullName.trim();
+      const name = "name" in meta ? meta.name : undefined;
+      if (typeof name === "string" && name.trim()) return name.trim();
+    }
+    return user.email?.split("@")[0] ?? "Profile";
+  })();
+
+  const userAvatarUrl = (() => {
+    if (!user?.user_metadata || typeof user.user_metadata !== "object") return null;
+    const avatar = "avatar_url" in user.user_metadata ? user.user_metadata.avatar_url : undefined;
+    return typeof avatar === "string" && avatar.trim() ? avatar : null;
+  })();
+
+  const userInitials = userDisplayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p: string) => p[0]?.toUpperCase() ?? "")
+    .join("") || "OP";
+
   return (
     <aside
       className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[#010a19] transition-[width] duration-300 ${shellWidthClassName}`}
     >
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
-        <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white p-1.5">
-            <img src="/brand/haraka-pay-logo.svg" alt="Haraka Pay" className="h-full w-full object-contain" />
+      {/* Top: organisation block */}
+      <div className="border-b border-slate-200 px-3 py-3">
+        {access.manageOrganization ? (
+          <Link
+            href="/dashboard/organization"
+            className={`flex min-w-0 flex-1 items-center rounded-lg transition hover:bg-slate-50 ${isCollapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5"}`}
+            aria-label="Organisation"
+            title={isCollapsed ? "Organisation" : undefined}
+          >
+            {organization?.logoUrl ? (
+              <img src={organization.logoUrl} alt={organization.name} className="h-9 w-9 shrink-0 rounded-md object-contain bg-white p-1 ring-1 ring-slate-200" />
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
+                {getOrganizationInitials(organization?.name)}
+              </div>
+            )}
+            {!isCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-[#10213d]">{organization?.name ?? "Organisation"}</p>
+                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
+              </div>
+            ) : null}
+          </Link>
+        ) : (
+          <div className={`flex min-w-0 flex-1 items-center ${isCollapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5"}`}>
+            {organization?.logoUrl ? (
+              <img src={organization.logoUrl} alt={organization.name} className="h-9 w-9 shrink-0 rounded-md object-contain bg-white p-1 ring-1 ring-slate-200" />
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
+                {getOrganizationInitials(organization?.name)}
+              </div>
+            )}
+            {!isCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-[#10213d]">{organization?.name ?? "Organisation"}</p>
+                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
+              </div>
+            ) : null}
           </div>
- 
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsCollapsed((currentState) => !currentState)}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-[#010a19]"
-          aria-label={isCollapsed ? "Développer la barre latérale" : "Réduire la barre latérale"}
-        >
-          <svg viewBox="0 0 24 24" fill="none" className={`h-4 w-4 transition-transform ${isCollapsed ? "rotate-180" : ""}`} aria-hidden="true">
-            <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        )}
       </div>
 
 
@@ -440,45 +503,28 @@ export default function Sidebar({ currentRoleLabel, access }: SidebarProps): Rea
         </div>
       </nav>
 
-      <div className="border-t border-slate-200 px-4 py-4">
-        {access.manageOrganization ? (
-          <Link
-            href="/dashboard/organization"
-            className={`flex items-center rounded-xl border border-slate-200 bg-slate-50/70 transition hover:bg-slate-100 ${isCollapsed ? "justify-center px-2 py-3" : "gap-3 px-3 py-3"}`}
-            aria-label="Organisation"
-            title={isCollapsed ? "Organisation" : undefined}
-          >
-            {organization?.logoUrl ? (
-              <img src={organization.logoUrl} alt={organization.name} className="h-10 w-10 rounded-md object-contain bg-white p-1" />
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
-                {getOrganizationInitials(organization?.name)}
-              </div>
-            )}
-            {!isCollapsed ? (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[#10213d]">{organization?.name ?? "Organisation"}</p>
-                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
-              </div>
-            ) : null}
-          </Link>
-        ) : (
-          <div className={`flex items-center rounded-xl border border-slate-200 bg-slate-50/70 ${isCollapsed ? "justify-center px-2 py-3" : "gap-3 px-3 py-3"}`}>
-            {organization?.logoUrl ? (
-              <img src={organization.logoUrl} alt={organization.name} className="h-10 w-10 rounded-md object-contain bg-white p-1" />
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
-                {getOrganizationInitials(organization?.name)}
-              </div>
-            )}
-            {!isCollapsed ? (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[#10213d]">{organization?.name ?? "Organisation"}</p>
-                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
-              </div>
-            ) : null}
-          </div>
-        )}
+      {/* Bottom: user profile */}
+      <div className="border-t border-slate-200 px-3 py-3">
+        <Link
+          href="/dashboard/profile"
+          className={`flex items-center rounded-lg transition hover:bg-slate-50 ${isCollapsed ? "justify-center px-1 py-2" : "gap-3 px-2 py-2"}`}
+          aria-label="My profile"
+          title={isCollapsed ? userDisplayName : undefined}
+        >
+          {userAvatarUrl ? (
+            <img src={userAvatarUrl} alt={userDisplayName} className="h-8 w-8 shrink-0 rounded-full border border-slate-200 object-cover" />
+          ) : (
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0063fe] text-xs font-semibold uppercase text-white">
+              {userInitials}
+            </span>
+          )}
+          {!isCollapsed ? (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-[#10213d]">{userDisplayName}</p>
+              <p className="truncate text-xs text-slate-500">{currentRoleLabel}</p>
+            </div>
+          ) : null}
+        </Link>
       </div>
     </aside>
   );

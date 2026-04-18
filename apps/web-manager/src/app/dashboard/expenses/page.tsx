@@ -11,6 +11,7 @@ import {
   normalizeFinanceFilters
 } from "../../../lib/finance-reporting";
 import FinanceSummaryCards from "../../../components/finance-summary-cards";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 type ExpensesPageProps = {
@@ -18,7 +19,7 @@ type ExpensesPageProps = {
 };
 
 export default async function ExpensesPage({ searchParams }: ExpensesPageProps): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("finances");
+  const { session, access } = await requireDashboardSectionAccess("finances");
 
   const params = await searchParams;
   const filters = normalizeFinanceFilters(params);
@@ -30,7 +31,9 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
   const baseHref = baseQuery.length > 0 ? `/dashboard/expenses?${baseQuery}` : "/dashboard/expenses";
 
   return (
-    <div className="space-y-6 p-8">
+    <>
+      {!access.financesWritable && <ReadOnlyBanner />}
+      <div className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Dépenses</h1>
@@ -190,5 +193,6 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
         )}
       </section>
     </div>
+    </>
   );
 }

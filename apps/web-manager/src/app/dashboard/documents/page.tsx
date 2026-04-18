@@ -4,11 +4,12 @@ import type { Document, Organization, Tenant } from "@hhousing/domain";
 import { listDocuments, listTenants } from "../../../api";
 import { filterDocumentsByScope, filterTenantsByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createDocumentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
+import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import DocumentsWorkspacePanel from "../../../components/documents-workspace-panel";
 
 export default async function DocumentsPage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("services");
+  const { session, access } = await requireDashboardSectionAccess("services");
 
   const documentRepo = createDocumentRepo();
 
@@ -59,13 +60,16 @@ export default async function DocumentsPage(): Promise<React.ReactElement> {
     : null;
 
   return (
-    <DocumentsWorkspacePanel
-      organizationId={session.organizationId ?? ""}
-      organization={organization}
-      documents={documents}
-      properties={properties}
-      leases={leases}
-      tenants={tenants}
-    />
+    <>
+      {!access.servicesWritable && <ReadOnlyBanner />}
+      <DocumentsWorkspacePanel
+        organizationId={session.organizationId ?? ""}
+        organization={organization}
+        documents={documents}
+        properties={properties}
+        leases={leases}
+        tenants={tenants}
+      />
+    </>
   );
 }

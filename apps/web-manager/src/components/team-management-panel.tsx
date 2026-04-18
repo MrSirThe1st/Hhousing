@@ -10,6 +10,7 @@ import UniversalLoadingState from "./universal-loading-state";
 type TeamDashboardMember = OrganizationMembership & {
   displayName: string;
   email: string | null;
+  avatarUrl: string | null;
   functions: TeamFunction[];
 };
 
@@ -79,6 +80,27 @@ function getMemberSubtitle(member: TeamDashboardMember): string {
   return `Ajoute le ${formatDate(member.createdAtIso)}`;
 }
 
+function MemberAvatar({ member, size = "sm" }: { member: TeamDashboardMember; size?: "sm" | "md" }): React.ReactElement {
+  const dim = size === "md" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
+  const bgColor = member.role === "landlord" ? "bg-[#0063fe]" : "bg-slate-600";
+
+  if (member.avatarUrl) {
+    return (
+      <img
+        src={member.avatarUrl}
+        alt={member.displayName}
+        className={`${dim} shrink-0 rounded-full object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div className={`${dim} flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${bgColor}`}>
+      {getMemberInitials(member.displayName)}
+    </div>
+  );
+}
+
 function getMemberInitials(name: string): string {
   const parts = name
     .split(" ")
@@ -134,15 +156,11 @@ function getFunctionLabel(teamFunction: TeamFunction): string {
 }
 
 function getPrimaryRoleLabel(member: TeamDashboardMember): string {
-  if (member.role === "landlord") {
-    return "Administrateur";
-  }
-
   if (member.functions.some((teamFunction) => isAdminFunction(teamFunction))) {
-    return "Administrateur";
+    return "Administrator";
   }
 
-  return member.functions[0] ? getFunctionLabel(member.functions[0]) : "Aucun role";
+  return member.functions[0] ? getFunctionLabel(member.functions[0]) : "No role";
 }
 
 function matchesMemberSearch(member: TeamDashboardMember, searchTerm: string): boolean {
@@ -211,7 +229,7 @@ export default function TeamManagementPanel({
     matchesInvitationSearch(invitation, searchTerm)
   );
   const assignableMembers = filteredMembers.filter(
-    (member) => member.role !== "landlord" && member.userId !== currentUserId
+    (member) => member.userId !== accountOwner?.userId && member.userId !== currentUserId
   );
   const configuringMember = configuringMemberId
     ? assignableMembers.find((member) => member.id === configuringMemberId) ?? null
@@ -353,50 +371,57 @@ export default function TeamManagementPanel({
           <p className="mt-1 text-sm text-slate-600">Vos informations et la structure de votre equipe.</p>
         </div>
 
-        {currentMember ? (
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-4">
-            <p className="text-sm font-semibold text-slate-900">Mon profil</p>
-            <p className="mt-2 text-base font-semibold text-slate-900">{currentMember.displayName}</p>
-            <p className="text-sm text-slate-500">{getMemberSubtitle(currentMember)}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {currentMember.functions.length > 0 ? currentMember.functions.map((teamFunction) => (
-                <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                  {getFunctionLabel(teamFunction)}
-                </span>
-              )) : (
-                <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                  Aucun preset assigne
-                </span>
-              )}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="space-y-4">
-          {filteredMembers.map((member) => (
-            <div key={member.id} className="rounded-lg border border-slate-200 bg-white px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-base font-semibold text-slate-900">{member.displayName}</p>
-                  <p className="text-sm text-slate-500">{getMemberSubtitle(member)}</p>
-                </div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses(member.status)}`}>
-                  {formatStatus(member.status)}
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {member.functions.length > 0 ? member.functions.map((teamFunction) => (
-                  <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                    {getFunctionLabel(teamFunction)}
-                  </span>
-                )) : (
-                  <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                    Aucun preset assigne
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Nom</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Contact</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Role</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {filteredMembers.map((member) => (
+                <tr key={member.id} className={member.userId === currentUserId ? "bg-blue-50/40" : "hover:bg-slate-50"}>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <MemberAvatar member={member} />
+                      <div>
+                        <p className="font-medium text-slate-900">{member.displayName}</p>
+                        {member.userId === currentUserId ? (
+                          <p className="text-xs text-slate-500">(vous)</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses(member.status)}`}>
+                      {formatStatus(member.status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{member.email || "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {accountOwner?.userId === member.userId ? (
+                        <span className="rounded-md bg-[#0063fe]/10 px-2 py-0.5 text-xs font-medium text-[#0063fe]">
+                          Administrator
+                        </span>
+                      ) : member.functions.length > 0 ? member.functions.map((teamFunction) => (
+                        <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                          {getFunctionLabel(teamFunction)}
+                        </span>
+                      )) : (
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                          No role assigned
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
@@ -497,9 +522,7 @@ export default function TeamManagementPanel({
               <div className="rounded-lg border border-slate-200 bg-white">
                 <div className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0063fe] text-sm font-semibold text-white">
-                      {getMemberInitials(accountOwner.displayName)}
-                    </div>
+                    <MemberAvatar member={accountOwner} size="md" />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-base font-semibold text-slate-900">{accountOwner.displayName}</p>
@@ -512,7 +535,7 @@ export default function TeamManagementPanel({
                   </div>
 
                   <div className="flex flex-col gap-2 lg:items-end">
-                    <span className="text-sm font-semibold text-[#0063fe]">Administrateur</span>
+                    <span className="text-sm font-semibold text-[#0063fe]">Administrator</span>
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -531,67 +554,83 @@ export default function TeamManagementPanel({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 </div>
-                <p className="text-base font-semibold text-slate-900">Aucun membre a configurer</p>
+                <p className="text-base font-semibold text-slate-900">No members to configure</p>
                 <p className="mt-2 max-w-lg text-sm text-slate-600">
                   Invitez un membre d'equipe pour commencer. Une fois son compte active, vous pourrez lui attribuer des roles.
                 </p>
               </div>
             ) : (
-              assignableMembers.map((member) => {
-                return (
-                  <div key={member.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    <div className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-600 text-sm font-semibold text-white">
-                          {getMemberInitials(member.displayName)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-base font-semibold text-slate-900">{member.displayName}</p>
-                            {member.userId === currentUserId ? (
-                              <span className="text-xs font-medium text-slate-600">(vous)</span>
-                            ) : null}
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Nom</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Contact</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Role</th>
+                      {canManageTeam ? (
+                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">Actions</th>
+                      ) : null}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {assignableMembers.map((member) => (
+                      <tr key={member.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <MemberAvatar member={member} />
+                            <div>
+                              <p className="font-medium text-slate-900">{member.displayName}</p>
+                              {member.userId === currentUserId ? (
+                                <p className="text-xs text-slate-500">(vous)</p>
+                              ) : null}
+                            </div>
                           </div>
-                          <p className="truncate text-sm text-slate-500">{getMemberSubtitle(member)}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2 lg:min-w-[320px] lg:items-end">
-                        <div className="flex flex-wrap items-center gap-2">
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
                           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses(member.status)}`}>
                             {formatStatus(member.status)}
                           </span>
-                          <span className={`text-sm font-semibold ${getPrimaryRoleLabel(member) === "Administrateur" ? "text-[#0063fe]" : "text-slate-700"}`}>
-                            {getPrimaryRoleLabel(member)}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 lg:justify-end">
-                          {member.functions.length > 1
-                            ? member.functions.slice(1).map((teamFunction) => (
-                                <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                                  {getFunctionLabel(teamFunction)}
-                                </span>
-                              ))
-                            : null}
-                        </div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{member.email || "—"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${getPrimaryRoleLabel(member) === "Administrator" ? "bg-[#0063fe]/10 text-[#0063fe]" : "bg-slate-100 text-slate-700"}`}>
+                              {getPrimaryRoleLabel(member)}
+                            </span>
+                            {member.functions.length > 1
+                              ? member.functions.slice(1).map((teamFunction) => (
+                                  <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                                    {getFunctionLabel(teamFunction)}
+                                  </span>
+                                ))
+                              : null}
+                          </div>
+                        </td>
                         {canManageTeam ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setConfiguringMemberId(member.id);
-                              setMessage(null);
-                              setError(null);
-                            }}
-                            className="text-sm font-semibold text-[#0063fe] transition hover:text-[#0052d4]"
-                          >
-                            Configurer
-                          </button>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setConfiguringMemberId(member.id);
+                                setMessage(null);
+                                setError(null);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#0063fe] px-3 py-1.5 text-xs font-semibold text-[#0063fe] transition hover:bg-[#0063fe]/5"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              Configurer
+                            </button>
+                          </td>
                         ) : null}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {filteredInvitations.length > 0 ? (
@@ -768,7 +807,7 @@ export default function TeamManagementPanel({
                         <span className="block text-sm font-semibold text-slate-900">{getFunctionLabel(teamFunction)}</span>
                         <span className="mt-0.5 block text-xs text-slate-500">{getRoleSummary(teamFunction)}</span>
                         {isAdminFunction(teamFunction) && !canAssignAdmin ? (
-                          <span className="mt-1 block text-xs text-amber-600">Landlord uniquement</span>
+                          <span className="mt-1 block text-xs text-amber-600">Compte principal ou admin organisation requis</span>
                         ) : null}
                       </span>
                     </label>

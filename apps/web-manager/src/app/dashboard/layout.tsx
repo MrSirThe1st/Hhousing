@@ -2,6 +2,7 @@ import React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Sidebar from "../../components/sidebar";
+import SidebarToggleButton from "../../components/sidebar-toggle-button";
 import { getServerAuthSession } from "../../lib/session";
 import { resolveDashboardAccess } from "../../lib/dashboard-access";
 
@@ -45,8 +46,9 @@ export default async function DashboardLayout({
     <div className="flex h-screen bg-gray-50">
       <Sidebar currentRoleLabel={getRoleLabel(session.role)} access={sidebarAccess} />
       <main className="flex flex-1 flex-col overflow-y-auto">
-        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4">
+          <div className="flex items-center gap-3">
+            <SidebarToggleButton />
             <div>
               <p className="text-sm font-medium text-[#010a19]">Espace opérateur</p>
               <p className="text-sm text-gray-500">

@@ -231,10 +231,10 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
                         {hasContact ? "Contactable" : "Contact à compléter"}
                       </span>
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
-                      <span className="inline-flex items-center gap-2"><MailIcon className="h-4 w-4" />{tenant.email ?? "Aucun e-mail"}</span>
-                      <span className="inline-flex items-center gap-2"><PhoneIcon className="h-4 w-4" />{tenant.phone ?? "Aucun téléphone"}</span>
-                      <span className="inline-flex items-center gap-2"><CalendarIcon className="h-4 w-4" />Ajouté le {createdAtLabel}</span>
+                    <div className="mt-2 grid min-w-0 gap-x-4 gap-y-1 text-sm text-slate-500 sm:grid-cols-2 lg:grid-cols-3">
+                      <span className="inline-flex min-w-0 items-start gap-2 break-all"><MailIcon className="mt-0.5 h-4 w-4 shrink-0" />{tenant.email ?? "Aucun e-mail"}</span>
+                      <span className="inline-flex min-w-0 items-start gap-2 break-all"><PhoneIcon className="mt-0.5 h-4 w-4 shrink-0" />{tenant.phone ?? "Aucun téléphone"}</span>
+                      <span className="inline-flex min-w-0 items-start gap-2"><CalendarIcon className="mt-0.5 h-4 w-4 shrink-0" />Ajouté le {createdAtLabel}</span>
                     </div>
                   </div>
                 </div>
@@ -261,11 +261,11 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
               <div className="mt-3 grid gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><MailIcon className="h-3.5 w-3.5" />E-mail</p>
-                  <p className="mt-1 text-sm font-semibold text-[#010a19]">{tenant.email ?? "À renseigner"}</p>
+                  <p className="mt-1 break-all text-sm font-semibold text-[#010a19]">{tenant.email ?? "À renseigner"}</p>
                 </div>
                 <div>
                   <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><PhoneIcon className="h-3.5 w-3.5" />Téléphone</p>
-                  <p className="mt-1 text-sm font-semibold text-[#010a19]">{tenant.phone ?? "À renseigner"}</p>
+                  <p className="mt-1 break-all text-sm font-semibold text-[#010a19]">{tenant.phone ?? "À renseigner"}</p>
                 </div>
                 <div>
                   <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-slate-500"><UserIcon className="h-3.5 w-3.5" />Âge</p>

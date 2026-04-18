@@ -46,7 +46,8 @@ export async function createExpense(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.RECORD_PAYMENT,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: 403, body: permissionResult };
@@ -209,7 +210,8 @@ export async function updateExpense(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.RECORD_PAYMENT,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: 403, body: permissionResult };
@@ -278,7 +280,8 @@ export async function deleteExpense(
   const permissionResult = await requirePermission(
     sessionResult.data,
     Permission.RECORD_PAYMENT,
-    deps.teamFunctionsRepository
+    deps.teamFunctionsRepository,
+    true
   );
   if (!permissionResult.success) {
     return { status: 403, body: permissionResult };

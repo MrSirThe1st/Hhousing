@@ -2,21 +2,12 @@ import { parseUpdateOrganizationInput } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { logOperatorAuditEvent } from "../../../api/audit-log";
-import { canEditOrganizationDetails } from "../../../lib/operator-context";
-import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
+import { createAuthRepo, createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 
 export async function GET(): Promise<Response> {
   const access = requireOperatorSession(await extractAuthSessionFromCookies());
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
-  }
-
-  if (!canEditOrganizationDetails(access.data)) {
-    return jsonResponse(403, {
-      success: false,
-      code: "FORBIDDEN",
-      error: "Organization details are not editable for this operator"
-    });
   }
 
   const repositoryResult = createRepositoryFromEnv();
@@ -45,11 +36,22 @@ export async function PATCH(request: Request): Promise<Response> {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
-  if (!canEditOrganizationDetails(access.data)) {
+  const currentMembership = access.data.memberships.find(
+    (membership) => membership.organizationId === access.data.organizationId
+  );
+  const operatorMemberships = (await createAuthRepo().listMembershipsByOrganization(access.data.organizationId))
+    .filter((membership) => membership.role === "landlord" || membership.role === "property_manager")
+    .sort(
+      (left, right) =>
+        new Date(left.createdAtIso).getTime() - new Date(right.createdAtIso).getTime()
+    );
+  const accountOwnerMembership = operatorMemberships[0] ?? null;
+
+  if (!currentMembership || accountOwnerMembership?.id !== currentMembership.id) {
     return jsonResponse(403, {
       success: false,
       code: "FORBIDDEN",
-      error: "Organization details are not editable for this operator"
+      error: "Only the account owner can edit organization details"
     });
   }
 

@@ -17,6 +17,9 @@ export interface DashboardAccess {
   audit: boolean;
   manageOrganization: boolean;
   isFoundingManager: boolean;
+  operationsWritable: boolean;
+  financesWritable: boolean;
+  servicesWritable: boolean;
 }
 
 function hasPermission(permissions: string[], permission: Permission): boolean {
@@ -32,48 +35,63 @@ function getEmptyAccess(): DashboardAccess {
     organization: false,
     audit: false,
     manageOrganization: false,
-    isFoundingManager: false
+    isFoundingManager: false,
+    operationsWritable: false,
+    financesWritable: false,
+    servicesWritable: false
   };
 }
 
-function getAccessFromPermissions(permissions: string[], isFoundingManager: boolean): DashboardAccess {
-  const operations =
-    hasPermission(permissions, Permission.VIEW_PROPERTIES) ||
+function getFullOperatorAccess(isAccountOwner: boolean): DashboardAccess {
+  return {
+    dashboard: true,
+    operations: true,
+    finances: true,
+    services: true,
+    organization: true,
+    audit: isAccountOwner,
+    manageOrganization: isAccountOwner,
+    isFoundingManager: isAccountOwner,
+    operationsWritable: true,
+    financesWritable: true,
+    servicesWritable: true
+  };
+}
+
+function getAccessFromPermissions(permissions: string[], isAccountOwner: boolean): DashboardAccess {
+  const isOperator = permissions.length > 0;
+  const manageOrganization =
+    isAccountOwner || hasPermission(permissions, Permission.MANAGE_ORG) || hasPermission(permissions, Permission.MANAGE_TEAM);
+
+  const operationsWritable =
+    isAccountOwner ||
     hasPermission(permissions, Permission.MANAGE_PROPERTIES) ||
-    hasPermission(permissions, Permission.VIEW_LEASE) ||
+    hasPermission(permissions, Permission.MANAGE_TENANTS) ||
     hasPermission(permissions, Permission.CREATE_LEASE) ||
-    hasPermission(permissions, Permission.EDIT_LEASE) ||
-    hasPermission(permissions, Permission.VIEW_TENANTS) ||
-    hasPermission(permissions, Permission.MANAGE_TENANTS);
+    hasPermission(permissions, Permission.EDIT_LEASE);
 
-  const finances =
-    hasPermission(permissions, Permission.VIEW_PAYMENTS) ||
-    hasPermission(permissions, Permission.RECORD_PAYMENT) ||
-    hasPermission(permissions, Permission.EXPORT_PAYMENT_REPORTS) ||
-    hasPermission(permissions, Permission.VIEW_INCOME_REPORTS) ||
-    hasPermission(permissions, Permission.VIEW_REPORTS);
+  const financesWritable =
+    isAccountOwner ||
+    hasPermission(permissions, Permission.RECORD_PAYMENT);
 
-  const services =
-    hasPermission(permissions, Permission.VIEW_MAINTENANCE) ||
+  const servicesWritable =
+    isAccountOwner ||
     hasPermission(permissions, Permission.MANAGE_MAINTENANCE) ||
     hasPermission(permissions, Permission.UPDATE_MAINTENANCE_STATUS) ||
-    hasPermission(permissions, Permission.ASSIGN_VENDORS) ||
-    hasPermission(permissions, Permission.VIEW_DOCUMENTS) ||
     hasPermission(permissions, Permission.UPLOAD_DOCUMENTS);
 
-  const organization = permissions.length > 0;
-  const manageOrganization =
-    isFoundingManager || hasPermission(permissions, Permission.MANAGE_ORG) || hasPermission(permissions, Permission.MANAGE_TEAM);
-
   return {
-    dashboard: operations || finances || services || organization,
-    operations,
-    finances,
-    services,
-    organization,
-    audit: isFoundingManager,
+    dashboard: isOperator,
+    operations: isOperator,
+    finances: isOperator,
+    services: isOperator,
+    organization: isOperator,
+    audit: isAccountOwner,
     manageOrganization,
-    isFoundingManager
+    isFoundingManager: isAccountOwner,
+    operationsWritable,
+    financesWritable,
+    servicesWritable
   };
 }
 
@@ -87,37 +105,15 @@ export async function resolveDashboardAccess(session: AuthSession): Promise<Dash
   const operatorMemberships = organizationMemberships
     .filter((membership) => membership.role === "landlord" || membership.role === "property_manager")
     .sort((left, right) => new Date(left.createdAtIso).getTime() - new Date(right.createdAtIso).getTime());
-  const isFoundingManager = operatorMemberships[0]?.userId === session.userId;
+  const isAccountOwner = operatorMemberships[0]?.userId === session.userId;
 
-  if (session.role === "landlord") {
-    return {
-      dashboard: true,
-      operations: true,
-      finances: true,
-      services: true,
-      organization: true,
-      audit: isFoundingManager,
-      manageOrganization: true,
-      isFoundingManager
-    };
-  }
-
-  if (session.role !== "property_manager") {
+  if (session.role !== "landlord" && session.role !== "property_manager") {
     return getEmptyAccess();
   }
 
   const currentMembership = session.memberships.find((item) => item.organizationId === session.organizationId);
   if (!currentMembership) {
-    return {
-      dashboard: true,
-      operations: true,
-      finances: true,
-      services: true,
-      organization: true,
-      audit: isFoundingManager,
-      manageOrganization: true,
-      isFoundingManager
-    };
+    return isAccountOwner ? getFullOperatorAccess(true) : getEmptyAccess();
   }
 
   const teamFunctionsRepository = createTeamFunctionsRepositoryFromEnv(process.env);
@@ -132,20 +128,11 @@ export async function resolveDashboardAccess(session: AuthSession): Promise<Dash
   }
 
   if (functions.length === 0) {
-    return {
-      dashboard: true,
-      operations: true,
-      finances: true,
-      services: true,
-      organization: true,
-      audit: isFoundingManager,
-      manageOrganization: true,
-      isFoundingManager
-    };
+    return isAccountOwner ? getFullOperatorAccess(true) : getEmptyAccess();
   }
 
   const mergedPermissions = functions.flatMap((teamFunction) => teamFunction.permissions);
-  return getAccessFromPermissions(mergedPermissions, isFoundingManager);
+  return getAccessFromPermissions(mergedPermissions, isAccountOwner);
 }
 
 export async function requireDashboardSectionAccess(section: DashboardSection): Promise<{
