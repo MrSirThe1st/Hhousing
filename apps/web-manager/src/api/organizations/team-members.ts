@@ -123,7 +123,7 @@ async function findSupabaseUserById(
   supabaseServiceRoleKey: string,
   userId: string
 ): Promise<SupabaseAdminUser | null> {
-  const response = await fetch(`${supabaseAdminUrl}/auth/v1/admin/users`, {
+  const response = await fetch(`${supabaseAdminUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
     method: "GET",
     headers: {
       apikey: supabaseServiceRoleKey,
@@ -131,12 +131,23 @@ async function findSupabaseUserById(
     }
   });
 
+  if (response.status === 404) {
+    return null;
+  }
+
   if (!response.ok) {
     throw new Error(`SUPABASE_LOOKUP_FAILED:${response.status}`);
   }
 
-  const payload = (await response.json()) as { users?: SupabaseAdminUser[] };
-  return payload.users?.find((item) => item.id === userId) ?? null;
+  const payload = (await response.json()) as { id?: string; email?: string | null };
+  if (!payload.id || !payload.email) {
+    return null;
+  }
+
+  return {
+    id: payload.id,
+    email: payload.email
+  };
 }
 
 async function hasSupabaseUserWithEmail(
@@ -647,13 +658,16 @@ export async function acceptTeamMemberInvitation(
       request.session.userId
     );
 
-    if (signedInUser === null || signedInUser.email.toLowerCase() !== preview.email.toLowerCase()) {
+    const signedInEmail = signedInUser?.email.trim().toLowerCase() ?? null;
+    const invitationEmail = preview.email.trim().toLowerCase();
+
+    if (signedInEmail === null || signedInEmail !== invitationEmail) {
       return {
         status: 403,
         body: {
           success: false,
           code: "FORBIDDEN",
-          error: "Signed-in account does not match the invitation email"
+          error: "Signed-in account does not match the invitation email. Sign out and use the invited account."
         }
       };
     }
