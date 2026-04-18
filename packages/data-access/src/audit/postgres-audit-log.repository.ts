@@ -49,7 +49,7 @@ export function createPostgresAuditLogRepository(pool: Pool): AuditLogRepository
              metadata,
              created_at
            )
-           values ($1, $2, $3, $4, $5, $6, $7::jsonb, now())
+             values ($1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::jsonb, now())
            returning
              id,
              organization_id,

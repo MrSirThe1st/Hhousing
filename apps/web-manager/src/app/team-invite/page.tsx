@@ -181,8 +181,6 @@ function TeamInvitePageContent(): React.ReactElement {
                 ? "Un compte Hhousing existe deja pour cet email. Connectez-vous avec ce compte pour rejoindre l'organisation."
                 : "Aucun compte Hhousing n'existe encore pour cet email. Creez votre acces puis activez l'invitation."}
             </p>
-
-import UniversalLoadingState from "../../components/universal-loading-state";
             {loading ? <UniversalLoadingState minHeightClassName="min-h-28" size="compact" className="mt-6" /> : null}
 
             {!loading && invitation ? (

@@ -194,7 +194,7 @@ export default function TeamManagementPanel({
   const [busyInvite, setBusyInvite] = useState(false);
   const [busyInvitationId, setBusyInvitationId] = useState<string | null>(null);
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
-  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+  const [configuringMemberId, setConfiguringMemberId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [functionDrafts, setFunctionDrafts] = useState<Record<string, string[]>>(() =>
@@ -205,28 +205,17 @@ export default function TeamManagementPanel({
     setFunctionDrafts(createFunctionDrafts(members));
   }, [members]);
 
-  useEffect(() => {
-    if (expandedMemberId !== null) {
-      return;
-    }
-
-    const firstAssignableMember = members.find(
-      (member) => member.id !== accountOwner?.id && member.role !== "landlord"
-    );
-
-    if (firstAssignableMember) {
-      setExpandedMemberId(firstAssignableMember.id);
-    }
-  }, [accountOwner?.id, expandedMemberId, members]);
-
   const adminFunctionCount = availableFunctions.filter((teamFunction) => isAdminFunction(teamFunction)).length;
   const filteredMembers = members.filter((member) => matchesMemberSearch(member, searchTerm));
   const filteredInvitations = invitations.filter((invitation) =>
     matchesInvitationSearch(invitation, searchTerm)
   );
   const assignableMembers = filteredMembers.filter(
-    (member) => member.id !== accountOwner?.id && member.role !== "landlord"
+    (member) => member.role !== "landlord" && member.userId !== currentUserId
   );
+  const configuringMember = configuringMemberId
+    ? assignableMembers.find((member) => member.id === configuringMemberId) ?? null
+    : null;
   const isActionBusy = busyInvite || busyInvitationId !== null || busyMemberId !== null;
 
   async function handleInvite(event: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -347,18 +336,13 @@ export default function TeamManagementPanel({
       }
 
       setMessage("Roles applicatifs mis a jour.");
+      setConfiguringMemberId(null);
       setBusyMemberId(null);
       router.refresh();
     } catch {
       setError("Erreur lors de la mise a jour des roles applicatifs");
       setBusyMemberId(null);
     }
-  }
-
-  function toggleMemberEditor(memberId: string): void {
-    setExpandedMemberId((current) => (current === memberId ? null : memberId));
-    setMessage(null);
-    setError(null);
   }
 
   if (!canManageTeam) {
@@ -554,10 +538,6 @@ export default function TeamManagementPanel({
               </div>
             ) : (
               assignableMembers.map((member) => {
-                const selectedFunctions = functionDrafts[member.id] ?? [];
-                const memberBusy = busyMemberId === member.id;
-                const isExpanded = expandedMemberId === member.id;
-
                 return (
                   <div key={member.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                     <div className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -597,56 +577,18 @@ export default function TeamManagementPanel({
                         {canManageTeam ? (
                           <button
                             type="button"
-                            onClick={() => toggleMemberEditor(member.id)}
+                            onClick={() => {
+                              setConfiguringMemberId(member.id);
+                              setMessage(null);
+                              setError(null);
+                            }}
                             className="text-sm font-semibold text-[#0063fe] transition hover:text-[#0052d4]"
                           >
-                            {isExpanded ? "Masquer" : "Configurer"}
+                            Configurer
                           </button>
                         ) : null}
                       </div>
                     </div>
-
-                    {isExpanded ? (
-                      <div className="border-t border-slate-200 bg-slate-50 px-4 py-4">
-                        <div className="mb-4 grid gap-2 md:grid-cols-2">
-                          {availableFunctions.map((teamFunction) => {
-                            const disabled = memberBusy || (isAdminFunction(teamFunction) && !canAssignAdmin);
-
-                            return (
-                              <label
-                                key={teamFunction.id}
-                                className={`flex gap-3 rounded-lg border px-3 py-2.5 ${disabled ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-200 bg-white text-slate-700 cursor-pointer hover:border-slate-300"}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedFunctions.includes(teamFunction.functionCode)}
-                                  onChange={() => handleToggleFunction(member.id, teamFunction.functionCode)}
-                                  disabled={disabled}
-                                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0063fe] focus:ring-[#0063fe]"
-                                />
-                                <span className="flex-1">
-                                  <span className="block text-sm font-semibold text-slate-900">{getFunctionLabel(teamFunction)}</span>
-                                  <span className="mt-0.5 block text-xs text-slate-500">{getRoleSummary(teamFunction)}</span>
-                                  {isAdminFunction(teamFunction) && !canAssignAdmin ? (
-                                    <span className="mt-1 block text-xs text-amber-600">Landlord uniquement</span>
-                                  ) : null}
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => handleSaveFunctions(member.id)}
-                            disabled={memberBusy}
-                            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {memberBusy ? "Sauvegarde..." : "Enregistrer"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
                 );
               })
@@ -771,6 +713,87 @@ export default function TeamManagementPanel({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {configuringMember ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          onClick={() => setConfiguringMemberId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Configurer les roles du membre"
+        >
+          <div
+            className="w-full max-w-4xl overflow-hidden rounded-xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Configurer les roles</h2>
+                <p className="mt-1 text-sm text-slate-600">{configuringMember.displayName} - {getMemberSubtitle(configuringMember)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfiguringMemberId(null)}
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Fermer"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4 bg-slate-50 px-6 py-5">
+              <div className="grid gap-2 md:grid-cols-2">
+                {availableFunctions.map((teamFunction) => {
+                  const disabled = busyMemberId === configuringMember.id || (isAdminFunction(teamFunction) && !canAssignAdmin);
+                  const selectedFunctions = functionDrafts[configuringMember.id] ?? [];
+
+                  return (
+                    <label
+                      key={teamFunction.id}
+                      className={`flex gap-3 rounded-lg border px-3 py-2.5 ${disabled ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-200 bg-white text-slate-700 cursor-pointer hover:border-slate-300"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedFunctions.includes(teamFunction.functionCode)}
+                        onChange={() => handleToggleFunction(configuringMember.id, teamFunction.functionCode)}
+                        disabled={disabled}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0063fe] focus:ring-[#0063fe]"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-semibold text-slate-900">{getFunctionLabel(teamFunction)}</span>
+                        <span className="mt-0.5 block text-xs text-slate-500">{getRoleSummary(teamFunction)}</span>
+                        {isAdminFunction(teamFunction) && !canAssignAdmin ? (
+                          <span className="mt-1 block text-xs text-amber-600">Landlord uniquement</span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setConfiguringMemberId(null)}
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveFunctions(configuringMember.id)}
+                  disabled={busyMemberId === configuringMember.id}
+                  className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busyMemberId === configuringMember.id ? "Sauvegarde..." : "Enregistrer"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

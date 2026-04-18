@@ -23,6 +23,60 @@ type MemberIdentity = {
   email: string | null;
 };
 
+function isHigherPriorityMembership(
+  current: TeamDashboardMember,
+  candidate: TeamDashboardMember
+): boolean {
+  if (current.role === "landlord") {
+    return false;
+  }
+
+  if (candidate.role === "landlord") {
+    return true;
+  }
+
+  return new Date(candidate.createdAtIso).getTime() < new Date(current.createdAtIso).getTime();
+}
+
+function mergeMemberFunctions(
+  left: TeamFunction[],
+  right: TeamFunction[]
+): TeamFunction[] {
+  const byCode = new Map<string, TeamFunction>();
+
+  for (const functionItem of [...left, ...right]) {
+    if (!byCode.has(functionItem.functionCode)) {
+      byCode.set(functionItem.functionCode, functionItem);
+    }
+  }
+
+  return Array.from(byCode.values());
+}
+
+function dedupeMembersByUser(members: TeamDashboardMember[]): TeamDashboardMember[] {
+  const byUserId = new Map<string, TeamDashboardMember>();
+
+  for (const member of members) {
+    const current = byUserId.get(member.userId);
+    if (!current) {
+      byUserId.set(member.userId, member);
+      continue;
+    }
+
+    const primary = isHigherPriorityMembership(current, member) ? member : current;
+    const secondary = primary.id === current.id ? member : current;
+
+    byUserId.set(primary.userId, {
+      ...primary,
+      functions: mergeMemberFunctions(primary.functions, secondary.functions)
+    });
+  }
+
+  return Array.from(byUserId.values()).sort(
+    (left, right) => new Date(left.createdAtIso).getTime() - new Date(right.createdAtIso).getTime()
+  );
+}
+
 function memberHasPermission(functions: TeamFunction[], permission: Permission): boolean {
   return functions.some(
     (teamFunction) =>
@@ -142,6 +196,8 @@ export default async function TeamPage(): Promise<React.ReactElement> {
   let availableFunctions: TeamFunction[] = [];
 
   try {
+    await teamFunctionsRepository.ensureDefaultFunctionsForOrganization(session.organizationId);
+
     const [membersWithFunctions, functions] = await Promise.all([
       teamFunctionsRepository.listOrganizationMembersWithFunctions(session.organizationId),
       teamFunctionsRepository.listFunctionsByOrganization(session.organizationId)
@@ -159,14 +215,14 @@ export default async function TeamPage(): Promise<React.ReactElement> {
     }
   }
 
-  const members: TeamDashboardMember[] = memberships.map((membership) => ({
+  const members = dedupeMembersByUser(memberships.map((membership) => ({
     ...membership,
     displayName:
       memberIdentities.get(membership.userId)?.displayName ??
       buildFallbackName(memberIdentities.get(membership.userId)?.email ?? null, membership.role),
     email: memberIdentities.get(membership.userId)?.email ?? null,
     functions: memberFunctionsById.get(membership.id) ?? []
-  }));
+  }))); 
   const accountOwner = members
     .filter((membership) => membership.role === "landlord" || membership.role === "property_manager")
     .sort(

@@ -1006,6 +1006,10 @@ export async function updateMemberFunctions(
   >;
 
   try {
+    await deps.teamFunctionsRepository.ensureDefaultFunctionsForOrganization(
+      sessionResult.data.organizationId
+    );
+
     organizationFunctions = await deps.teamFunctionsRepository.listFunctionsByOrganization(
       sessionResult.data.organizationId
     );

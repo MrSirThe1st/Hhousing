@@ -89,6 +89,40 @@ function mapMemberWithFunctions(row: MemberWithFunctionsRow): MemberWithFunction
 export class TeamFunctionsRepository {
   constructor(private readonly pool: Pool) {}
 
+  async ensureDefaultFunctionsForOrganization(organizationId: string): Promise<void> {
+    await this.pool.query(
+      `insert into team_functions (
+         id,
+         organization_id,
+         function_code,
+         display_name,
+         description,
+         permissions
+       )
+       select
+           concat($1::text, '_func_', lower(defaults.function_code)),
+           $1::text,
+         defaults.function_code,
+         defaults.display_name,
+         defaults.description,
+         defaults.permissions::jsonb
+       from (
+         values
+           ('LEASING_AGENT', 'Property Manager', 'Operations locatives: portefeuille, listings, locataires et baux.', '["view_properties", "manage_properties", "create_lease", "edit_lease", "view_lease", "manage_tenants", "view_tenants", "message_tenants", "view_documents", "upload_documents"]'),
+           ('ACCOUNTANT', 'Accountant', 'Finances: paiements, factures, revenus, depenses et rapports.', '["view_lease", "view_payments", "record_payment", "export_payment_reports", "view_documents", "view_income_reports"]'),
+           ('MAINTENANCE_MANAGER', 'Maintenance Technician', 'Services: maintenance, documents et suivi des interventions.', '["manage_maintenance", "assign_vendors", "view_maintenance", "update_maintenance_status", "view_documents"]'),
+           ('ADMIN', 'Admin', 'Acces complet sur l''espace manager.', '["*"]')
+       ) as defaults(function_code, display_name, description, permissions)
+       where not exists (
+         select 1
+         from team_functions existing
+         where existing.organization_id = $1::text
+           and existing.function_code = defaults.function_code
+       )`,
+      [organizationId]
+    );
+  }
+
   /**
    * Get all functions for an organization
    */
