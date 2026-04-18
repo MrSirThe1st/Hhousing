@@ -164,3 +164,13 @@ export type {
   UpdateListingApplicationStatusRecordInput
 } from "./listings/listing-record.types";
 export { TeamFunctionsRepository, createTeamFunctionsRepositoryFromEnv } from "./auth/team-functions.repository";
+export {
+  createPostgresAuditLogRepository,
+  createAuditLogRepositoryFromEnv
+} from "./audit/postgres-audit-log.repository";
+export type {
+  AuditLogRepository,
+  AuditLogRecord,
+  CreateAuditLogRecordInput,
+  ListAuditLogsByDayInput
+} from "./audit/audit-log-record.types";

@@ -64,7 +64,13 @@ export async function PATCH(
   }
 
   try {
-    await closeLeaseMoveOut(lease, parsed.data, repository, paymentRepository);
+    await closeLeaseMoveOut(
+      lease,
+      parsed.data,
+      access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      repository,
+      paymentRepository
+    );
     const data = await buildLeaseMoveOutView(lease, repository, paymentRepository);
 
     if (!data.moveOut) {

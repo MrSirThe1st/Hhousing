@@ -2,11 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import OwnerClientCreatePanel from "../../../../components/owner-client-create-panel";
 import { createRepositoryFromEnv } from "../../../api/shared";
-import { getServerAuthSession } from "../../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
 export default async function AddOwnerPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const repoResult = createRepositoryFromEnv();
   if (!repoResult.success) {

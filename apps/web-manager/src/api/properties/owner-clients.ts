@@ -6,6 +6,7 @@ import type {
 } from "@hhousing/api-contracts";
 import { parseCreateOwnerInput } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
+import { logOperatorAuditEvent } from "../audit-log";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateOwnerRequest {
@@ -100,6 +101,18 @@ export async function createOwner(
     profilePictureUrl: parsed.data.profilePictureUrl ?? null
   });
 
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.owner.created",
+    entityType: "owner",
+    entityId: owner.id,
+    metadata: {
+      ownerType: owner.ownerType,
+      isCompany: owner.isCompany
+    }
+  });
+
   return {
     status: 201,
     body: {
@@ -173,6 +186,18 @@ export async function updateOwner(
       }
     };
   }
+
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.owner.updated",
+    entityType: "owner",
+    entityId: owner.id,
+    metadata: {
+      ownerType: owner.ownerType,
+      isCompany: owner.isCompany
+    }
+  });
 
   return {
     status: 200,

@@ -14,7 +14,9 @@ import {
   createTaskRepositoryFromEnv,
   createCalendarEventRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv,
+  createAuditLogRepositoryFromEnv,
   type AuthRepository,
+  type AuditLogRepository,
   type CalendarEventRepository,
   type OrganizationPropertyUnitRepository,
   type TenantLeaseRepository,
@@ -101,4 +103,8 @@ export function createCalendarEventRepo(): CalendarEventRepository {
 
 export function createTeamFunctionsRepo(): TeamFunctionsRepository {
   return createTeamFunctionsRepositoryFromEnv(process.env);
+}
+
+export function createAuditLogRepo(): AuditLogRepository {
+  return createAuditLogRepositoryFromEnv(process.env);
 }

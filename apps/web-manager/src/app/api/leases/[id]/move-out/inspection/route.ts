@@ -63,7 +63,13 @@ export async function PATCH(
   }
 
   try {
-    await upsertLeaseMoveOutInspection(lease, parsed.data, repository, createId);
+    await upsertLeaseMoveOutInspection(
+      lease,
+      parsed.data,
+      access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      repository,
+      createId
+    );
     const aggregate = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
 
     if (!aggregate?.inspection) {

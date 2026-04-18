@@ -7,6 +7,7 @@ import { Permission, parseCreatePropertyInput } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import { logOperatorAuditEvent } from "../audit-log";
 
 export interface CreatePropertyRequest {
   body: unknown;
@@ -121,6 +122,19 @@ export async function createProperty(
       amenities: parsed.data.unitTemplate!.amenities ?? [],
       features: parsed.data.unitTemplate!.features ?? []
     }))
+  });
+
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "operations.property.created",
+    entityType: "property",
+    entityId: createResult.property.id,
+    metadata: {
+      ownerId: createResult.property.ownerId,
+      propertyType: createResult.property.propertyType,
+      unitCount: createResult.units.length,
+      city: createResult.property.city
+    }
   });
 
   return {

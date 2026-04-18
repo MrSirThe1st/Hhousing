@@ -4,12 +4,11 @@ import type { Document, Organization, Tenant } from "@hhousing/domain";
 import { listDocuments, listTenants } from "../../../api";
 import { filterDocumentsByScope, filterTenantsByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createDocumentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import DocumentsWorkspacePanel from "../../../components/documents-workspace-panel";
 
 export default async function DocumentsPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("services");
 
   const documentRepo = createDocumentRepo();
 

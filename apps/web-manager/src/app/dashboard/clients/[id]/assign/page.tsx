@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createRepositoryFromEnv } from "../../../../api/shared";
 import ClientAssignmentWorkspace from "../../../../../components/client-assignment-workspace";
 import OwnerInvitationPanel from "../../../../../components/owner-invitation-panel";
-import { getServerAuthSession } from "../../../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../../../lib/dashboard-access";
 
 export default async function ClientAssignmentPage(
   {
@@ -14,8 +14,7 @@ export default async function ClientAssignmentPage(
     searchParams?: Promise<{ inviteEmail?: string }>;
   }
 ): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const { id } = await params;
   const query = await searchParams;

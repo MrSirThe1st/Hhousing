@@ -11,6 +11,7 @@ import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-ac
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { Payment } from "@hhousing/domain";
 import { createHash } from "node:crypto";
+import { logOperatorAuditEvent } from "../audit-log";
 
 function getTodayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -123,6 +124,7 @@ export async function upsertLeaseMoveOut(
   lease: LeaseWithTenantView,
   input: UpsertMoveOutInput,
   initiatedByUserId: string,
+  actorMemberId: string | null,
   repository: TenantLeaseRepository,
   createId: (prefix: string) => string
 ): Promise<void> {
@@ -155,11 +157,25 @@ export async function upsertLeaseMoveOut(
       sourceReferenceId: charge.sourceReferenceId ?? null
     }))
   });
+
+  await logOperatorAuditEvent({
+    organizationId: lease.organizationId,
+    actorMemberId,
+    actionKey: "operations.lease.move_out_upserted",
+    entityType: "move_out",
+    entityId: moveOut.id,
+    metadata: {
+      leaseId: lease.id,
+      status: moveOut.status,
+      chargeCount: input.charges?.length ?? 0
+    }
+  });
 }
 
 export async function upsertLeaseMoveOutInspection(
   lease: LeaseWithTenantView,
   input: UpsertMoveOutInspectionInput,
+  actorMemberId: string | null,
   repository: TenantLeaseRepository,
   createId: (prefix: string) => string
 ): Promise<void> {
@@ -182,11 +198,24 @@ export async function upsertLeaseMoveOutInspection(
     photoDocumentIds: input.photoDocumentIds ?? [],
     inspectedAtIso: input.inspectedAt ?? null
   });
+
+  await logOperatorAuditEvent({
+    organizationId: lease.organizationId,
+    actorMemberId,
+    actionKey: "operations.lease.move_out_inspection_upserted",
+    entityType: "move_out",
+    entityId: existing.moveOut.id,
+    metadata: {
+      leaseId: lease.id,
+      photoCount: input.photoDocumentIds?.length ?? 0
+    }
+  });
 }
 
 export async function closeLeaseMoveOut(
   lease: LeaseWithTenantView,
   input: CloseMoveOutInput,
+  actorMemberId: string | null,
   repository: TenantLeaseRepository,
   paymentRepository: PaymentRepository
 ): Promise<void> {
@@ -246,6 +275,18 @@ export async function closeLeaseMoveOut(
   if (!closed) {
     throw new Error("MOVE_OUT_NOT_CONFIRMED");
   }
+
+  await logOperatorAuditEvent({
+    organizationId: lease.organizationId,
+    actorMemberId,
+    actionKey: "operations.lease.move_out_closed",
+    entityType: "move_out",
+    entityId: existing.moveOut.id,
+    metadata: {
+      leaseId: lease.id,
+      closureLedgerEventId: input.closureLedgerEventId
+    }
+  });
 }
 
 function extractSnapshotSummary(snapshot: unknown): MoveOutSettlementSummary | null {

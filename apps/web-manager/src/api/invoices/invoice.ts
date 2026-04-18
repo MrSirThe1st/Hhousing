@@ -11,6 +11,7 @@ import {
   parseVoidInvoiceInput
 } from "@hhousing/api-contracts";
 import type { InvoiceRepository } from "@hhousing/data-access";
+import { logOperatorAuditEvent } from "../audit-log";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
@@ -176,6 +177,18 @@ export async function voidInvoice(
       body: { success: false, code: "NOT_FOUND", error: "Invoice not found" }
     };
   }
+
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.invoice.voided",
+    entityType: "invoice",
+    entityId: result.invoice.id,
+    metadata: {
+      creditAdjustedAmount: result.creditAdjustedAmount,
+      status: result.invoice.status
+    }
+  });
 
   return {
     status: 200,

@@ -20,7 +20,7 @@ import {
   filterTenantsByScope,
   getScopedPortfolioData
 } from "../../../lib/operator-scope-portfolio";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import MessagingManagementPanel from "../../../components/messaging-management-panel";
 
 interface PropertyOption {
@@ -29,8 +29,7 @@ interface PropertyOption {
 }
 
 export default async function MessagesPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const messageRepo = createMessageRepo();
   const teamFunctionsRepo = createTeamFunctionsRepo();

@@ -1,5 +1,6 @@
 import { Permission, parseFinalizeLeaseInput, type ApiResult } from "@hhousing/api-contracts";
 import { createTenantInvitation } from "../../../../api";
+import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createTenantInvitationEmailSenderFromEnv, sendManagedEmailFromEnv } from "../../../../lib/email/resend";
 import { getBuiltinTemplateByScenario, renderTemplateText } from "../../../../lib/email/template-catalog";
@@ -338,6 +339,17 @@ export async function PATCH(
         return jsonResponse(invitationResult.status, invitationResult.body);
       }
 
+      await logOperatorAuditEvent({
+        organizationId: access.data.organizationId,
+        actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+        actionKey: "operations.tenant_invitation.resent",
+        entityType: "tenant",
+        entityId: lease.tenantId,
+        metadata: {
+          leaseId: lease.id
+        }
+      });
+
       return jsonResponse(200, {
         success: true,
         data: lease
@@ -449,6 +461,18 @@ export async function PATCH(
           mimeType: document.mimeType,
           fileUrl: document.fileUrl
         }))
+      });
+
+      await logOperatorAuditEvent({
+        organizationId: access.data.organizationId,
+        actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+        actionKey: "operations.lease.draft_email_sent",
+        entityType: "lease",
+        entityId: lease.id,
+        metadata: {
+          documentCount: resolvedDocuments.length,
+          tenantId: lease.tenantId
+        }
       });
 
       return jsonResponse(200, {
@@ -569,6 +593,18 @@ export async function PATCH(
         return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Lease not found" });
       }
 
+      await logOperatorAuditEvent({
+        organizationId: access.data.organizationId,
+        actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+        actionKey: "operations.lease.finalized",
+        entityType: "lease",
+        entityId: updatedLease.id,
+        metadata: {
+          status: updatedLease.status,
+          tenantId: updatedLease.tenantId
+        }
+      });
+
       return jsonResponse(200, { success: true, data: updatedLease });
     } catch (error) {
       console.error("Failed to finalize lease", error);
@@ -608,6 +644,17 @@ export async function PATCH(
         error: "Lease not found"
       });
     }
+
+    await logOperatorAuditEvent({
+      organizationId: access.data.organizationId,
+      actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      actionKey: "operations.lease.updated",
+      entityType: "lease",
+      entityId: lease.id,
+      metadata: {
+        status: lease.status
+      }
+    });
 
     return jsonResponse(200, {
       success: true,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
-import { getDashboardOperatorSession } from "../../detail-page-access";
+import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 import UnitDetailClient from "./unit-detail-client";
 
 type PageProps = {
@@ -9,7 +9,7 @@ type PageProps = {
 
 export default async function UnitDetailPage({ params }: PageProps): Promise<React.ReactElement> {
   const { id } = await params;
-  const session = await getDashboardOperatorSession();
+  const { session } = await requireDashboardSectionAccess("operations");
   const scoped = await getScopedPortfolioData(session);
   const propertyRecord = scoped.properties.find((item) => item.units.some((unit) => unit.id === id));
   const unit = propertyRecord?.units.find((entry) => entry.id === id) ?? null;

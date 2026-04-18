@@ -6,12 +6,11 @@ import {
   getScopedPortfolioData
 } from "../../../lib/operator-scope-portfolio";
 import { createMaintenanceRepo, createTeamFunctionsRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import MaintenanceManagementPanel from "../../../components/maintenance-management-panel";
 
 export default async function MaintenancePage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("services");
 
   const maintenanceRepo = createMaintenanceRepo();
   const teamFunctionsRepo = createTeamFunctionsRepo();

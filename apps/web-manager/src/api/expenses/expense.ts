@@ -16,6 +16,7 @@ import type { ExpenseRepository } from "@hhousing/data-access";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
+import { logOperatorAuditEvent } from "../audit-log";
 
 export interface CreateExpenseRequest {
   body: unknown;
@@ -76,6 +77,20 @@ export async function createExpense(
     currencyCode: parsed.data.currencyCode,
     expenseDate: parsed.data.expenseDate,
     note: parsed.data.note
+  });
+
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "finance.expense.created",
+    entityType: "expense",
+    entityId: expense.id,
+    metadata: {
+      propertyId: expense.propertyId,
+      unitId: expense.unitId,
+      amount: expense.amount,
+      currencyCode: expense.currencyCode,
+      category: expense.category
+    }
   });
 
   return { status: 201, body: { success: true, data: expense } };
@@ -234,6 +249,20 @@ export async function updateExpense(
     };
   }
 
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "finance.expense.updated",
+    entityType: "expense",
+    entityId: expense.id,
+    metadata: {
+      propertyId: expense.propertyId,
+      unitId: expense.unitId,
+      amount: expense.amount,
+      currencyCode: expense.currencyCode,
+      category: expense.category
+    }
+  });
+
   return { status: 200, body: { success: true, data: expense } };
 }
 
@@ -262,6 +291,14 @@ export async function deleteExpense(
       body: { success: false, code: "NOT_FOUND", error: "Expense not found" }
     };
   }
+
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "finance.expense.deleted",
+    entityType: "expense",
+    entityId: request.expenseId,
+    metadata: {}
+  });
 
   return { status: 200, body: { success: true, data: { success: true } } };
 }

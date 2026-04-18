@@ -15,8 +15,7 @@ import type {
   ValidateTeamMemberInvitationOutput,
   TeamFunction
 } from "@hhousing/api-contracts";
-import type { AuthRepository } from "@hhousing/data-access";
-import { TeamFunctionsRepository } from "@hhousing/data-access";
+import { createAuditLogRepositoryFromEnv, type AuthRepository, TeamFunctionsRepository } from "@hhousing/data-access";
 import { createHash, randomBytes } from "crypto";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
@@ -36,6 +35,45 @@ function buildExpiryIso(daysFromNow: number): string {
 function buildActivationLink(baseUrl: string, token: string): string {
   const separator = baseUrl.includes("?") ? "&" : "?";
   return `${baseUrl}${separator}token=${encodeURIComponent(token)}`;
+}
+
+function createAuditId(): string {
+  return `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function logTeamAuditEvent(params: {
+  session: AuthSession;
+  repository: AuthRepository;
+  actionKey: string;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    const auditRepository = createAuditLogRepositoryFromEnv(process.env);
+    const currentMembership =
+      params.session.memberships.find((membership) => membership.organizationId === params.session.organizationId) ??
+      await params.repository.getMembershipByUserAndOrg(params.session.userId, params.session.organizationId);
+
+    await auditRepository.createAuditLog({
+      id: createAuditId(),
+      organizationId: params.session.organizationId,
+      actorMemberId: currentMembership?.id ?? null,
+      actionKey: params.actionKey,
+      entityType: params.entityType,
+      entityId: params.entityId ?? null,
+      metadata: params.metadata ?? {}
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode = error instanceof Error ? (error as Error & { code?: string }).code : undefined;
+
+    if (errorCode === "42P01" || errorMessage.includes("DATABASE_URL is required")) {
+      return;
+    }
+
+    console.error("Failed to persist audit log", error);
+  }
 }
 
 function mapPreview(
@@ -487,6 +525,19 @@ export async function invitePropertyManager(
     createdByUserId: sessionResult.data.userId
   });
 
+  await logTeamAuditEvent({
+    session: sessionResult.data,
+    repository: deps.repository,
+    actionKey: "team.invitation.sent",
+    entityType: "team_invitation",
+    entityId: output.invitationId,
+    metadata: {
+      email: output.email,
+      role: output.role,
+      canOwnProperties: output.canOwnProperties
+    }
+  });
+
   return {
     status: 201,
     body: {
@@ -749,6 +800,19 @@ export async function resendTeamMemberInvitation(
     createdByUserId: sessionResult.data.userId
   });
 
+  await logTeamAuditEvent({
+    session: sessionResult.data,
+    repository: deps.repository,
+    actionKey: "team.invitation.resent",
+    entityType: "team_invitation",
+    entityId: output.invitationId,
+    metadata: {
+      previousInvitationId: invitation.id,
+      email: output.email,
+      role: output.role
+    }
+  });
+
   return { status: 200, body: { success: true, data: output } };
 }
 
@@ -807,6 +871,18 @@ export async function revokeTeamMemberInvitation(
     invitation.email,
     sessionResult.data.organizationId
   );
+
+  await logTeamAuditEvent({
+    session: sessionResult.data,
+    repository: deps.repository,
+    actionKey: "team.invitation.revoked",
+    entityType: "team_invitation",
+    entityId: request.invitationId,
+    metadata: {
+      email: invitation.email,
+      role: invitation.role
+    }
+  });
 
   return {
     status: 200,
@@ -957,6 +1033,19 @@ export async function updateMemberFunctions(
     );
     assignedFunctions.push(functionDefinition);
   }
+
+  await logTeamAuditEvent({
+    session: sessionResult.data,
+    repository: deps.repository,
+    actionKey: "team.member.functions_updated",
+    entityType: "organization_membership",
+    entityId: request.memberId,
+    metadata: {
+      memberRole: membership.role,
+      functionCodes: newFunctionCodes,
+      functionLabels: assignedFunctions.map((teamFunction) => teamFunction.displayName)
+    }
+  });
 
   return { status: 200, body: { success: true, data: { functions: assignedFunctions } } };
 }

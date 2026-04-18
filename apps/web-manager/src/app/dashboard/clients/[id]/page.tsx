@@ -4,7 +4,7 @@ import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, crea
 import ActionMenu from "../../../../components/action-menu";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
 import OwnerDocumentsSectionClient from "../../../../components/owner-documents-section-client";
-import { getServerAuthSession } from "../../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
 function formatCurrencySummary(summary: Map<string, number>): string {
   if (summary.size === 0) {
@@ -73,8 +73,7 @@ function formatOwnerLocation(city: string | null, state: string | null, country:
 export default async function ClientDetailPage(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const { id } = await params;
   const repoResult = createRepositoryFromEnv();

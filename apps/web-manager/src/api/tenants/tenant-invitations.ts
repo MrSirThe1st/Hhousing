@@ -10,6 +10,7 @@ import {
 } from "@hhousing/api-contracts";
 import type { AuthRepository, OrganizationPropertyUnitRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { createHash, randomBytes } from "crypto";
+import { logOperatorAuditEvent } from "../audit-log";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
@@ -217,6 +218,19 @@ export async function createTenantInvitation(
       organization
     });
   }
+
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.tenant_invitation.sent",
+    entityType: "tenant_invitation",
+    entityId: invitation.id,
+    metadata: {
+      tenantId: invitation.tenantId,
+      email: invitation.email,
+      expiresAtIso: invitation.expiresAtIso
+    }
+  });
 
   return {
     status: 201,

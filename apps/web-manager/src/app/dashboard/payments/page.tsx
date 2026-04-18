@@ -8,12 +8,11 @@ import {
   getScopedPortfolioData
 } from "../../../lib/operator-scope-portfolio";
 import { createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import PaymentManagementPanel from "../../../components/payment-management-panel";
 
 export default async function PaymentsPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("finances");
 
   const paymentRepo = createPaymentRepo();
   const leaseRepo = createTenantLeaseRepo();

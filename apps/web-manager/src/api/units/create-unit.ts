@@ -6,6 +6,7 @@ import type {
 import { parseCreateUnitInput } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import { logOperatorAuditEvent } from "../audit-log";
 
 export interface CreateUnitRequest {
   body: unknown;
@@ -119,6 +120,19 @@ export async function createUnit(
 
     throw error;
   }
+
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "operations.unit.created",
+    entityType: "unit",
+    entityId: unit.id,
+    metadata: {
+      propertyId: unit.propertyId,
+      unitNumber: unit.unitNumber,
+      monthlyRentAmount: unit.monthlyRentAmount,
+      currencyCode: unit.currencyCode
+    }
+  });
 
   return {
     status: 201,

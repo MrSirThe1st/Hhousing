@@ -1,4 +1,5 @@
 import { parseUpdateTaskInput } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { filterTasksByScope, getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { validateWorkflowEntitySelection } from "../../../../lib/workflow-entity-validation";
@@ -79,6 +80,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Task not found" });
   }
 
+  await logOperatorAuditEvent({
+    organizationId: session.organizationId,
+    actorMemberId: session.memberships.find((membership) => membership.organizationId === session.organizationId)?.id ?? null,
+    actionKey: "operations.task.updated",
+    entityType: "task",
+    entityId: updated.id,
+    metadata: {
+      status: updated.status,
+      priority: updated.priority
+    }
+  });
+
   return jsonResponse(200, { success: true, data: updated });
 }
 
@@ -97,6 +110,15 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!deleted) {
     return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Task not found" });
   }
+
+  await logOperatorAuditEvent({
+    organizationId: session.organizationId,
+    actorMemberId: session.memberships.find((membership) => membership.organizationId === session.organizationId)?.id ?? null,
+    actionKey: "operations.task.deleted",
+    entityType: "task",
+    entityId: id,
+    metadata: {}
+  });
 
   return jsonResponse(200, { success: true, data: { success: true } });
 }

@@ -13,13 +13,14 @@ type TeamDashboardMember = OrganizationMembership & {
   functions: TeamFunction[];
 };
 
-type TeamTab = "roles" | "properties";
+type TeamTab = "roles";
 
 type TeamManagementPanelProps = {
   members: TeamDashboardMember[];
   invitations: TeamMemberInvitation[];
   availableFunctions: TeamFunction[];
   accountOwner: TeamDashboardMember | null;
+  currentMember: TeamDashboardMember | null;
   currentUserId: string;
   canAssignAdmin: boolean;
   inviteAuthority: boolean;
@@ -94,15 +95,15 @@ function getMemberInitials(name: string): string {
 
 function getRoleSummary(teamFunction: TeamFunction): string {
   if (teamFunction.functionCode === TeamFunctionCode.LEASING_AGENT) {
-    return "Biens, baux, locataires et documents.";
+    return "Operations locatives: portefeuille, listings, locataires et baux.";
   }
 
   if (teamFunction.functionCode === TeamFunctionCode.ACCOUNTANT) {
-    return "Paiements, encaissements et reporting.";
+    return "Finances: paiements, factures, revenus, depenses et rapports.";
   }
 
   if (teamFunction.functionCode === TeamFunctionCode.MAINTENANCE_MANAGER) {
-    return "Demandes, suivi terrain et prestataires.";
+    return "Services: maintenance, documents et suivi des interventions.";
   }
 
   if (teamFunction.functionCode === TeamFunctionCode.ADMIN) {
@@ -110,6 +111,26 @@ function getRoleSummary(teamFunction: TeamFunction): string {
   }
 
   return teamFunction.description ?? `${countPermissions(teamFunction)} permissions associees.`;
+}
+
+function getFunctionLabel(teamFunction: TeamFunction): string {
+  if (teamFunction.functionCode === TeamFunctionCode.LEASING_AGENT) {
+    return "Property Manager";
+  }
+
+  if (teamFunction.functionCode === TeamFunctionCode.ACCOUNTANT) {
+    return "Accountant";
+  }
+
+  if (teamFunction.functionCode === TeamFunctionCode.MAINTENANCE_MANAGER) {
+    return "Maintenance Technician";
+  }
+
+  if (teamFunction.functionCode === TeamFunctionCode.ADMIN) {
+    return "Admin";
+  }
+
+  return teamFunction.displayName;
 }
 
 function getPrimaryRoleLabel(member: TeamDashboardMember): string {
@@ -121,13 +142,7 @@ function getPrimaryRoleLabel(member: TeamDashboardMember): string {
     return "Administrateur";
   }
 
-  return member.functions[0]?.displayName ?? "Aucun role";
-}
-
-function getPropertyAccessLabel(canOwnProperties: boolean): string {
-  return canOwnProperties
-    ? "Peut etre rattache a des proprietes"
-    : "Aucun rattachement proprietaire";
+  return member.functions[0] ? getFunctionLabel(member.functions[0]) : "Aucun role";
 }
 
 function matchesMemberSearch(member: TeamDashboardMember, searchTerm: string): boolean {
@@ -165,6 +180,7 @@ export default function TeamManagementPanel({
   invitations,
   availableFunctions,
   accountOwner,
+  currentMember,
   currentUserId,
   canAssignAdmin,
   inviteAuthority,
@@ -175,7 +191,6 @@ export default function TeamManagementPanel({
   const [searchTerm, setSearchTerm] = useState("");
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteCanOwnProperties, setInviteCanOwnProperties] = useState(false);
   const [busyInvite, setBusyInvite] = useState(false);
   const [busyInvitationId, setBusyInvitationId] = useState<string | null>(null);
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
@@ -227,8 +242,7 @@ export default function TeamManagementPanel({
 
     try {
       const result = await postWithAuth<{ invitationId: string }>("/api/organizations/members", {
-        email: inviteEmail.trim(),
-        canOwnProperties: inviteCanOwnProperties
+        email: inviteEmail.trim()
       });
 
       if (!result.success) {
@@ -239,7 +253,6 @@ export default function TeamManagementPanel({
 
       setMessage("Invitation envoyee.");
       setInviteEmail("");
-      setInviteCanOwnProperties(false);
       setInviteModalOpen(false);
       setBusyInvite(false);
       router.refresh();
@@ -348,6 +361,63 @@ export default function TeamManagementPanel({
     setError(null);
   }
 
+  if (!canManageTeam) {
+    return (
+      <div className="space-y-6">
+        <div className="border-b border-slate-200 pb-4">
+          <h1 className="text-2xl font-semibold text-slate-900">Equipe</h1>
+          <p className="mt-1 text-sm text-slate-600">Vos informations et la structure de votre equipe.</p>
+        </div>
+
+        {currentMember ? (
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-4">
+            <p className="text-sm font-semibold text-slate-900">Mon profil</p>
+            <p className="mt-2 text-base font-semibold text-slate-900">{currentMember.displayName}</p>
+            <p className="text-sm text-slate-500">{getMemberSubtitle(currentMember)}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {currentMember.functions.length > 0 ? currentMember.functions.map((teamFunction) => (
+                <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                  {getFunctionLabel(teamFunction)}
+                </span>
+              )) : (
+                <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                  Aucun preset assigne
+                </span>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="space-y-4">
+          {filteredMembers.map((member) => (
+            <div key={member.id} className="rounded-lg border border-slate-200 bg-white px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-slate-900">{member.displayName}</p>
+                  <p className="text-sm text-slate-500">{getMemberSubtitle(member)}</p>
+                </div>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses(member.status)}`}>
+                  {formatStatus(member.status)}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {member.functions.length > 0 ? member.functions.map((teamFunction) => (
+                  <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                    {getFunctionLabel(teamFunction)}
+                  </span>
+                )) : (
+                  <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                    Aucun preset assigne
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -388,8 +458,7 @@ export default function TeamManagementPanel({
       <div className="border-b border-slate-200">
         <div className="flex gap-6">
           {[
-            { id: "roles" as const, label: "Roles et permissions" },
-            { id: "properties" as const, label: "Permissions par propriete" }
+            { id: "roles" as const, label: "Roles et permissions" }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -472,7 +541,7 @@ export default function TeamManagementPanel({
             ) : null}
 
             {assignableMembers.length === 0 ? (
-              <div className="flex min-h-[240px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+              <div className="flex min-h-60 flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-white px-6 py-12 text-center">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -520,7 +589,7 @@ export default function TeamManagementPanel({
                           {member.functions.length > 1
                             ? member.functions.slice(1).map((teamFunction) => (
                                 <span key={teamFunction.id} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                                  {teamFunction.displayName}
+                                  {getFunctionLabel(teamFunction)}
                                 </span>
                               ))
                             : null}
@@ -556,7 +625,7 @@ export default function TeamManagementPanel({
                                   className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0063fe] focus:ring-[#0063fe]"
                                 />
                                 <span className="flex-1">
-                                  <span className="block text-sm font-semibold text-slate-900">{teamFunction.displayName}</span>
+                                  <span className="block text-sm font-semibold text-slate-900">{getFunctionLabel(teamFunction)}</span>
                                   <span className="mt-0.5 block text-xs text-slate-500">{getRoleSummary(teamFunction)}</span>
                                   {isAdminFunction(teamFunction) && !canAssignAdmin ? (
                                     <span className="mt-1 block text-xs text-amber-600">Landlord uniquement</span>
@@ -630,58 +699,7 @@ export default function TeamManagementPanel({
               </div>
             ) : null}
           </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredMembers.length === 0 ? (
-              <div className="rounded-lg border-2 border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">
-                Aucun membre ne correspond a cette recherche
-              </div>
-            ) : (
-              filteredMembers.map((member) => (
-                <div key={member.id} className="rounded-lg border border-slate-200 bg-white px-4 py-4">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-600 text-sm font-semibold text-white">
-                        {getMemberInitials(member.displayName)}
-                      </div>
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">{member.displayName}</p>
-                        <p className="mt-0.5 text-sm text-slate-500">{getMemberSubtitle(member)}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2 lg:items-end">
-                      <span className="text-sm font-medium text-slate-700">{getPropertyAccessLabel(member.capabilities.canOwnProperties)}</span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                        {member.capabilities.canOwnProperties ? "Acces proprietes active" : "Organisation uniquement"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-
-            {filteredInvitations.length > 0 ? (
-              <div className="rounded-lg border border-slate-200 bg-white">
-                <div className="border-b border-slate-200 px-4 py-3">
-                  <h2 className="text-base font-semibold text-slate-900">Invitations en attente</h2>
-                </div>
-                <div className="divide-y divide-slate-200">
-                  {filteredInvitations.map((invitation) => (
-                    <div key={invitation.id} className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{invitation.email}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{getPropertyAccessLabel(invitation.canOwnProperties)}</p>
-                      </div>
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-100">
-                        En attente
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
+        ) : null}
       </div>
 
       {inviteModalOpen ? (
@@ -717,7 +735,7 @@ export default function TeamManagementPanel({
 
             <form onSubmit={handleInvite} className="space-y-5 px-6 py-5">
               <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
+                <label className="block md:col-span-2">
                   <span className="text-sm font-semibold text-slate-700">Email *</span>
                   <input
                     value={inviteEmail}
@@ -728,19 +746,6 @@ export default function TeamManagementPanel({
                     required
                     disabled={busyInvite || !inviteAuthority}
                   />
-                </label>
-
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">Acces proprietes</span>
-                  <select
-                    value={inviteCanOwnProperties ? "enabled" : "disabled"}
-                    onChange={(event) => setInviteCanOwnProperties(event.target.value === "enabled")}
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
-                    disabled={busyInvite || !inviteAuthority}
-                  >
-                    <option value="disabled">Organisation uniquement</option>
-                    <option value="enabled">Peut etre attache aux proprietes</option>
-                  </select>
                 </label>
               </div>
 

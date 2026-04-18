@@ -1,4 +1,5 @@
 import { Permission, createEmailTemplateInputSchema, type EmailTemplateView } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { requirePermission } from "../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
@@ -94,6 +95,17 @@ export async function POST(request: Request): Promise<Response> {
     body: parsed.data.body,
     createdByUserId: access.data.userId,
     updatedByUserId: access.data.userId
+  });
+
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.email_template.created",
+    entityType: "email_template",
+    entityId: template.id,
+    metadata: {
+      scenario: template.scenario
+    }
   });
 
   return jsonResponse(201, {

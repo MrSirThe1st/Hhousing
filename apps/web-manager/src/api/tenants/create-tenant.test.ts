@@ -108,7 +108,11 @@ describe("createTenant", () => {
       email: "jean@test.com",
       phone: "+243000000",
       dateOfBirth: "1995-04-20",
-      photoUrl: "https://cdn.test/tenant.jpg"
+      photoUrl: "https://cdn.test/tenant.jpg",
+      employmentStatus: null,
+      jobTitle: null,
+      monthlyIncome: null,
+      numberOfOccupants: null
     });
   });
 

@@ -1,4 +1,5 @@
 import { parseUpdateListingApplicationInput } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createListingRepo, jsonResponse, parseJsonBody } from "../../shared";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
@@ -57,6 +58,26 @@ export async function PATCH(
     requestedInfoMessage: parsed.data.requestedInfoMessage ?? null,
     reviewedByUserId: sessionResult.data.userId,
     reviewedAtIso: new Date().toISOString()
+  });
+
+  if (!updated) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Application not found"
+    });
+  }
+
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.application.reviewed",
+    entityType: "application",
+    entityId: updated.id,
+    metadata: {
+      listingId: updated.listingId,
+      status: updated.status
+    }
   });
 
   return jsonResponse(200, {

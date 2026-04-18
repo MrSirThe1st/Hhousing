@@ -1,6 +1,7 @@
 import { parseUpdateOrganizationInput } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
+import { logOperatorAuditEvent } from "../../../api/audit-log";
 import { canEditOrganizationDetails } from "../../../lib/operator-context";
 import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 
@@ -92,6 +93,15 @@ export async function PATCH(request: Request): Promise<Response> {
       error: "Organization not found"
     });
   }
+
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.organization.settings_updated",
+    entityType: "organization",
+    entityId: organization.id,
+    metadata: {}
+  });
 
   return jsonResponse(200, {
     success: true,

@@ -1,4 +1,5 @@
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
+import { logOperatorAuditEvent } from "../../../../../api/audit-log";
 import { createId, createListingRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../../shared";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../api/shared";
 
@@ -94,6 +95,26 @@ export async function POST(
   });
 
   const updatedApplication = await listingRepo.markApplicationConverted(id, organizationId, tenant.id);
+
+  if (!updatedApplication) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Application not found"
+    });
+  }
+
+  await logOperatorAuditEvent({
+    organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.application.converted_to_tenant",
+    entityType: "application",
+    entityId: updatedApplication.id,
+    metadata: {
+      listingId: updatedApplication.listingId,
+      tenantId: tenant.id
+    }
+  });
 
   return jsonResponse(200, {
     success: true,

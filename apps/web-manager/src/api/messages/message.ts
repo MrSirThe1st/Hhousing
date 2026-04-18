@@ -17,6 +17,7 @@ import {
   parseStartManagerConversationInput
 } from "@hhousing/api-contracts";
 import type { MessageRepository } from "@hhousing/data-access";
+import { logOperatorAuditEvent } from "../audit-log";
 import { mapErrorCodeToHttpStatus, requireOperatorSession, requireTenantSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
@@ -200,6 +201,18 @@ export async function startManagerConversation(
     };
   }
 
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.conversation.started",
+    entityType: "conversation",
+    entityId: conversationId,
+    metadata: {
+      tenantId: parsed.data.tenantId,
+      unitId: parsed.data.unitId
+    }
+  });
+
   return {
     status: 201,
     body: {
@@ -270,6 +283,17 @@ export async function sendManagerMessage(
       body: { success: false, code: "NOT_FOUND", error: "Conversation not found" }
     };
   }
+
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.conversation.message_sent",
+    entityType: "message",
+    entityId: message.id,
+    metadata: {
+      conversationId: message.conversationId
+    }
+  });
 
   return {
     status: 201,

@@ -7,6 +7,7 @@ import { Permission, parseCreateTenantInput } from "@hhousing/api-contracts";
 import type { TenantLeaseRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import { logOperatorAuditEvent } from "../audit-log";
 
 export interface CreateTenantRequest {
   body: unknown;
@@ -67,6 +68,17 @@ export async function createTenant(
     jobTitle: parsed.data.jobTitle ?? null,
     monthlyIncome: parsed.data.monthlyIncome ?? null,
     numberOfOccupants: parsed.data.numberOfOccupants ?? null
+  });
+
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "operations.tenant.created",
+    entityType: "tenant",
+    entityId: tenant.id,
+    metadata: {
+      email: tenant.email,
+      phone: tenant.phone
+    }
   });
 
   return { status: 201, body: { success: true, data: tenant } };

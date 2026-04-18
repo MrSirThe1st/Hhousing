@@ -21,7 +21,18 @@ type IconName =
   | "maintenance"
   | "documents"
   | "messages"
-  | "team";
+  | "team"
+  | "audit";
+
+export type SidebarAccess = {
+  dashboard: boolean;
+  operations: boolean;
+  finances: boolean;
+  services: boolean;
+  organization: boolean;
+  audit: boolean;
+  manageOrganization: boolean;
+};
 
 interface NavItem {
   href: string;
@@ -37,6 +48,7 @@ interface NavSection {
 
 interface SidebarProps {
   currentRoleLabel: string;
+  access: SidebarAccess;
 }
 
 interface SidebarBadgeCounts {
@@ -169,6 +181,14 @@ function SidebarIcon({ name, active }: { name: IconName; active: boolean }): Rea
           <path d="M14.5 17c.2-1.6 1.5-2.8 3.1-2.8h.2c1 0 1.8.4 2.4 1.1" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       );
+    case "audit":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+          <path d="M6 4.5h12M6 9h12M6 13.5h6" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="16.5" cy="16.5" r="3.5" className={strokeClassName} strokeWidth="1.8" />
+          <path d="M19 19l2 2" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
   }
 }
 
@@ -187,12 +207,12 @@ function getOrganizationInitials(name?: string): string {
   return letters.toUpperCase();
 }
 
-export default function Sidebar({ currentRoleLabel }: SidebarProps): React.ReactElement {
+export default function Sidebar({ currentRoleLabel, access }: SidebarProps): React.ReactElement {
   const pathname = usePathname();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [badgeCounts, setBadgeCounts] = useState<SidebarBadgeCounts>(createEmptyBadgeCounts);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const navSections: NavSection[] = [
+  const baseNavSections: NavSection[] = [
     {
       title: "Tableau de bord",
       items: [{ href: "/dashboard", label: "Vue d'ensemble", icon: "dashboard" }]
@@ -226,9 +246,48 @@ export default function Sidebar({ currentRoleLabel }: SidebarProps): React.React
     },
     {
       title: "Organisation",
-      items: [{ href: "/dashboard/team", label: "Équipe", icon: "team" }]
+      items: [
+        { href: "/dashboard/team", label: "Équipe", icon: "team" },
+        { href: "/dashboard/audit", label: "Audit", icon: "audit" }
+      ]
     }
   ];
+
+  const navSections: NavSection[] = baseNavSections.map((section) => {
+    if (section.title === "Tableau de bord" && !access.dashboard) {
+      return { ...section, items: [] };
+    }
+
+    if (section.title === "Opérations locatives" && !access.operations) {
+      return { ...section, items: [] };
+    }
+
+    if (section.title === "Finances" && !access.finances) {
+      return { ...section, items: [] };
+    }
+
+    if (section.title === "Services" && !access.services) {
+      return { ...section, items: [] };
+    }
+
+    if (section.title === "Organisation") {
+      const items = section.items.filter((item) => {
+        if (item.href === "/dashboard/team") {
+          return access.organization;
+        }
+
+        if (item.href === "/dashboard/audit") {
+          return access.audit;
+        }
+
+        return true;
+      });
+
+      return { ...section, items };
+    }
+
+    return section;
+  }).filter((section) => section.items.length > 0);
 
   useEffect(() => {
     const storedState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
@@ -382,26 +441,44 @@ export default function Sidebar({ currentRoleLabel }: SidebarProps): React.React
       </nav>
 
       <div className="border-t border-slate-200 px-4 py-4">
-        <Link
-          href="/dashboard/organization"
-          className={`flex items-center rounded-xl border border-slate-200 bg-slate-50/70 transition hover:bg-slate-100 ${isCollapsed ? "justify-center px-2 py-3" : "gap-3 px-3 py-3"}`}
-          aria-label="Organisation"
-          title={isCollapsed ? "Organisation" : undefined}
-        >
-          {organization?.logoUrl ? (
-            <img src={organization.logoUrl} alt={organization.name} className="h-10 w-10 rounded-md object-contain bg-white p-1" />
-          ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
-              {getOrganizationInitials(organization?.name)}
-            </div>
-          )}
-          {!isCollapsed ? (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-[#10213d]">{organization?.name ?? "Organisation"}</p>
-              <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
-            </div>
-          ) : null}
-        </Link>
+        {access.manageOrganization ? (
+          <Link
+            href="/dashboard/organization"
+            className={`flex items-center rounded-xl border border-slate-200 bg-slate-50/70 transition hover:bg-slate-100 ${isCollapsed ? "justify-center px-2 py-3" : "gap-3 px-3 py-3"}`}
+            aria-label="Organisation"
+            title={isCollapsed ? "Organisation" : undefined}
+          >
+            {organization?.logoUrl ? (
+              <img src={organization.logoUrl} alt={organization.name} className="h-10 w-10 rounded-md object-contain bg-white p-1" />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
+                {getOrganizationInitials(organization?.name)}
+              </div>
+            )}
+            {!isCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[#10213d]">{organization?.name ?? "Organisation"}</p>
+                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
+              </div>
+            ) : null}
+          </Link>
+        ) : (
+          <div className={`flex items-center rounded-xl border border-slate-200 bg-slate-50/70 ${isCollapsed ? "justify-center px-2 py-3" : "gap-3 px-3 py-3"}`}>
+            {organization?.logoUrl ? (
+              <img src={organization.logoUrl} alt={organization.name} className="h-10 w-10 rounded-md object-contain bg-white p-1" />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
+                {getOrganizationInitials(organization?.name)}
+              </div>
+            )}
+            {!isCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[#10213d]">{organization?.name ?? "Organisation"}</p>
+                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -3,7 +3,7 @@ import { Permission, type TeamFunction } from "@hhousing/api-contracts";
 import type { OrganizationMembership, TeamMemberInvitation } from "@hhousing/domain";
 import { listOrganizationMembers, listTeamMemberInvitations } from "../../../api";
 import { createAuthRepo, createTeamFunctionsRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import TeamManagementPanel from "../../../components/team-management-panel";
 
 type TeamDashboardMember = OrganizationMembership & {
@@ -102,8 +102,7 @@ async function listMemberIdentities(userIds: string[]): Promise<Map<string, Memb
 }
 
 export default async function TeamPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("organization");
 
   const authRepository = createAuthRepo();
   const teamFunctionsRepository = createTeamFunctionsRepo();
@@ -188,6 +187,7 @@ export default async function TeamPage(): Promise<React.ReactElement> {
         invitations={invitations}
         availableFunctions={availableFunctions}
         accountOwner={accountOwner}
+        currentMember={currentMember}
         currentUserId={session.userId}
         canAssignAdmin={session.role === "landlord"}
         inviteAuthority={canManageTeam}

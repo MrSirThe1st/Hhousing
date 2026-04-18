@@ -15,10 +15,6 @@ function asNonEmptyText(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function asBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === "boolean" ? value : fallback;
-}
-
 function asTeamInviteRole(value: unknown): TeamInviteRole | null {
   if (value === undefined || value === null || value === "property_manager") {
     return "property_manager";
@@ -59,7 +55,7 @@ export function parseInvitePropertyManagerInput(
       organizationId: sessionOrganizationId,
       email: email.toLowerCase(),
       role,
-      canOwnProperties: asBoolean(input.canOwnProperties, false)
+      canOwnProperties: false
     }
   };
 }

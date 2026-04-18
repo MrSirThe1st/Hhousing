@@ -1,4 +1,5 @@
 import { parseCreateTaskInput } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { syncSystemTasks } from "../../../lib/dashboard-workflow";
 import { filterTasksByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
@@ -81,6 +82,19 @@ export async function POST(request: Request): Promise<Response> {
     leaseId: parsed.data.leaseId,
     tenantId: parsed.data.tenantId,
     source: "manual"
+  });
+
+  await logOperatorAuditEvent({
+    organizationId: session.organizationId,
+    actorMemberId: session.memberships.find((membership) => membership.organizationId === session.organizationId)?.id ?? null,
+    actionKey: "operations.task.created",
+    entityType: "task",
+    entityId: created.id,
+    metadata: {
+      relatedEntityType: created.relatedEntityType,
+      relatedEntityId: created.relatedEntityId,
+      priority: created.priority
+    }
   });
 
   return jsonResponse(201, { success: true, data: created });

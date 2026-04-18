@@ -2,12 +2,11 @@ import { redirect } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import { listProperties } from "../../../api";
 import { createRepositoryFromEnv, createTeamFunctionsRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import PropertyManagementPanel from "../../../components/property-management-panel";
 
 export default async function PropertiesPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const repoResult = createRepositoryFromEnv();
   if (!repoResult.success) {

@@ -2,16 +2,12 @@ import { redirect } from "next/navigation";
 import { createRepositoryFromEnv } from "../../api/shared";
 import LogoutButton from "../../../components/logout-button";
 import OrganizationSettingsForm from "../../../components/organization-settings-form";
-import { canEditOrganizationDetails } from "../../../lib/operator-context";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 export default async function OrganizationSettingsPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) {
-    redirect("/login");
-  }
+  const { session, access } = await requireDashboardSectionAccess("organization");
 
-  if (!canEditOrganizationDetails(session)) {
+  if (!access.manageOrganization) {
     redirect("/dashboard");
   }
 

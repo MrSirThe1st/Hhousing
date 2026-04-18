@@ -2,13 +2,12 @@ import { redirect } from "next/navigation";
 import { listTenants } from "../../../api";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import TenantManagementPanel from "../../../components/tenant-management-panel";
 import type { TenantListItem } from "../../../components/tenant-management.types";
 
 export default async function TenantsPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const tenantLeaseRepo = createTenantLeaseRepo();
 

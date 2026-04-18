@@ -7,6 +7,7 @@ import {
   parseCreateOrganizationInput
 } from "@hhousing/api-contracts";
 import type { OrganizationPropertyUnitRepository } from "@hhousing/data-access";
+import { logOperatorAuditEvent } from "../audit-log";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateOrganizationRequest {
@@ -47,6 +48,18 @@ export async function createOrganization(
   const organization = await deps.repository.createOrganization({
     id: deps.createId(),
     name: parsed.data.name
+  });
+
+  await logOperatorAuditEvent({
+    organizationId: organization.id,
+    actorMemberId: null,
+    actionKey: "operations.organization.created",
+    entityType: "organization",
+    entityId: organization.id,
+    metadata: {
+      name: organization.name,
+      creatorUserId: sessionResult.data.userId
+    }
   });
 
   return {

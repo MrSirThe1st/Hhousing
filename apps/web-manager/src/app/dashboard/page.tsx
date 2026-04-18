@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import DashboardTasksPanel from "../../components/dashboard-tasks-panel";
-import { getServerAuthSession } from "../../lib/session";
+import { requireDashboardSectionAccess } from "../../lib/dashboard-access";
 import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
 import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
 import { buildDashboardWorkflowData } from "../../lib/dashboard-workflow";
@@ -476,8 +476,7 @@ function getCollectionRate(metrics: DashboardMetrics): number {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("dashboard");
 
   const params = await searchParams;
   const activeTab = getDashboardTab(params?.tab);

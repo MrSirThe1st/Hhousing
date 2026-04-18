@@ -1,5 +1,6 @@
 import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
@@ -209,6 +210,18 @@ export async function PATCH(
       });
     }
 
+    await logOperatorAuditEvent({
+      organizationId: access.data.organizationId,
+      actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      actionKey: "operations.tenant.updated",
+      entityType: "tenant",
+      entityId: tenant.id,
+      metadata: {
+        hasEmail: Boolean(tenant.email),
+        hasPhone: Boolean(tenant.phone)
+      }
+    });
+
     return jsonResponse(200, {
       success: true,
       data: tenant
@@ -266,6 +279,15 @@ export async function DELETE(
         error: "Tenant not found"
       });
     }
+
+    await logOperatorAuditEvent({
+      organizationId: access.data.organizationId,
+      actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      actionKey: "operations.tenant.deleted",
+      entityType: "tenant",
+      entityId: id,
+      metadata: {}
+    });
 
     return jsonResponse(200, {
       success: true,

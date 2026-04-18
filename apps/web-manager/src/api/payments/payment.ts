@@ -20,6 +20,7 @@ import type { Invoice, Organization } from "@hhousing/domain";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
+import { logOperatorAuditEvent } from "../audit-log";
 
 function formatCurrency(amount: number, currencyCode: string): string {
   return `${amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode}`;
@@ -115,6 +116,20 @@ export async function createPayment(
     isInitialCharge: parsed.data.isInitialCharge ?? false
   });
 
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "finance.payment.created",
+    entityType: "payment",
+    entityId: payment.id,
+    metadata: {
+      leaseId: payment.leaseId,
+      tenantId: payment.tenantId,
+      amount: payment.amount,
+      currencyCode: payment.currencyCode,
+      paymentKind: payment.paymentKind
+    }
+  });
+
   return { status: 201, body: { success: true, data: payment } };
 }
 
@@ -208,6 +223,20 @@ export async function markPaymentPaid(
       }
     }
   }
+
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "finance.payment.mark_paid",
+    entityType: "payment",
+    entityId: payment.id,
+    metadata: {
+      leaseId: payment.leaseId,
+      tenantId: payment.tenantId,
+      amount: payment.amount,
+      currencyCode: payment.currencyCode,
+      paidDate: payment.paidDate
+    }
+  });
 
   return { status: 200, body: { success: true, data: payment } };
 }

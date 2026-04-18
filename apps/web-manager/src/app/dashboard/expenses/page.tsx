@@ -11,15 +11,14 @@ import {
   normalizeFinanceFilters
 } from "../../../lib/finance-reporting";
 import FinanceSummaryCards from "../../../components/finance-summary-cards";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 type ExpensesPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function ExpensesPage({ searchParams }: ExpensesPageProps): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("finances");
 
   const params = await searchParams;
   const filters = normalizeFinanceFilters(params);

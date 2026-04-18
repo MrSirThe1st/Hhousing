@@ -8,7 +8,7 @@ import {
   loadScopedPayments,
   normalizeFinanceFilters
 } from "../../../lib/finance-reporting";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 type RevenuesPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -32,8 +32,7 @@ function formatPaymentKind(paymentKind: PaymentKind): string {
 }
 
 export default async function RevenuesPage({ searchParams }: RevenuesPageProps): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("finances");
 
   const params = await searchParams;
   const filters = normalizeFinanceFilters(params);

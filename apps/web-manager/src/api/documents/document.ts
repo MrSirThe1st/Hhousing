@@ -13,6 +13,7 @@ import {
 } from "@hhousing/api-contracts";
 import type { DocumentRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
+import { logOperatorAuditEvent } from "../audit-log";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 export interface CreateDocumentRequest {
@@ -75,6 +76,19 @@ export async function createDocument(
     attachmentType: parsed.data.attachmentType ?? null,
     attachmentId: parsed.data.attachmentId ?? null,
     uploadedBy: sessionResult.data.userId
+  });
+
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.document.uploaded",
+    entityType: "document",
+    entityId: document.id,
+    metadata: {
+      documentType: document.documentType,
+      attachmentType: document.attachmentType,
+      attachmentId: document.attachmentId
+    }
   });
 
   return { status: 201, body: { success: true, data: document } };
@@ -192,6 +206,15 @@ export async function deleteDocument(
   }
 
   await deps.repository.deleteDocument(parsed.data.documentId, parsed.data.organizationId);
+
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: "operations.document.deleted",
+    entityType: "document",
+    entityId: parsed.data.documentId,
+    metadata: {}
+  });
 
   return { status: 200, body: { success: true, data: { success: true } } };
 }

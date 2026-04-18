@@ -1,4 +1,5 @@
 import type { ApiResult } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
@@ -184,6 +185,18 @@ export async function PATCH(
       });
     }
 
+    await logOperatorAuditEvent({
+      organizationId: access.data.organizationId,
+      actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      actionKey: "operations.unit.updated",
+      entityType: "unit",
+      entityId: unit.id,
+      metadata: {
+        propertyId: unit.propertyId,
+        status: unit.status
+      }
+    });
+
     return jsonResponse(200, {
       success: true,
       data: unit
@@ -243,6 +256,15 @@ export async function DELETE(
         error: "Unit not found"
       });
     }
+
+    await logOperatorAuditEvent({
+      organizationId: access.data.organizationId,
+      actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      actionKey: "operations.unit.deleted",
+      entityType: "unit",
+      entityId: id,
+      metadata: {}
+    });
 
     return jsonResponse(200, {
       success: true,

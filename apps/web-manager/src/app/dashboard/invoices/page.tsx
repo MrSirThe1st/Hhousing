@@ -4,14 +4,11 @@ import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { listInvoices, listLeases } from "../../../api";
 import { createInvoiceRepo, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import InvoiceManagementPanel from "../../../components/invoice-management-panel";
 
 export default async function InvoicesPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) {
-    redirect("/login");
-  }
+  const { session } = await requireDashboardSectionAccess("finances");
 
   const teamFunctionsRepo = createTeamFunctionsRepo();
   const scopedPortfolio = await getScopedPortfolioData(session);

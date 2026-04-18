@@ -1,4 +1,5 @@
 import { Permission, updateEmailTemplateInputSchema } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
@@ -70,6 +71,17 @@ export async function PATCH(
     });
   }
 
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.email_template.updated",
+    entityType: "email_template",
+    entityId: template.id,
+    metadata: {
+      scenario: template.scenario
+    }
+  });
+
   return jsonResponse(200, {
     success: true,
     data: template
@@ -107,6 +119,17 @@ export async function DELETE(
   }
 
   await repository.deleteEmailTemplate(id, access.data.organizationId);
+
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.email_template.deleted",
+    entityType: "email_template",
+    entityId: id,
+    metadata: {
+      scenario: existing.scenario
+    }
+  });
 
   return jsonResponse(200, {
     success: true,

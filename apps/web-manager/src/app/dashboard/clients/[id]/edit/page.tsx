@@ -2,13 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createRepositoryFromEnv } from "../../../../api/shared";
 import OwnerClientEditForm from "../../../../../components/owner-client-edit-form";
-import { getServerAuthSession } from "../../../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../../../lib/dashboard-access";
 
 export default async function ClientEditPage(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const { id } = await params;
   const repoResult = createRepositoryFromEnv();

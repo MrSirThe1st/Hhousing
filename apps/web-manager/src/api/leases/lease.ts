@@ -10,6 +10,7 @@ import { calculateMonthlyProration } from "@hhousing/domain";
 import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import { logOperatorAuditEvent } from "../audit-log";
 
 export interface CreateLeaseRequest {
   body: unknown;
@@ -202,6 +203,21 @@ export async function createLease(
       sourceLeaseChargeTemplateId: charge.sourceLeaseChargeTemplateId,
       isInitialCharge: true
     })));
+
+    await logOperatorAuditEvent({
+      session: sessionResult.data,
+      actionKey: "operations.lease.created",
+      entityType: "lease",
+      entityId: lease.id,
+      metadata: {
+        unitId: lease.unitId,
+        tenantId: lease.tenantId,
+        startDate: lease.startDate,
+        endDate: lease.endDate,
+        monthlyRentAmount: lease.monthlyRentAmount,
+        currencyCode: lease.currencyCode
+      }
+    });
 
     return { status: 201, body: { success: true, data: lease } };
   } catch (error) {

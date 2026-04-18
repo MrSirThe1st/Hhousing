@@ -2,15 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import type { ManagerListingView } from "@hhousing/api-contracts";
 import ListingEditorForm from "../../../../components/listing-editor-form";
 import { createListingRepo } from "../../../api/shared";
-import { getServerAuthSession } from "../../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
 type ListingEditorPageProps = {
   params: Promise<{ unitId: string }>;
 };
 
 export default async function ListingEditorPage({ params }: ListingEditorPageProps): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const { unitId } = await params;
   const listingRepo = createListingRepo();

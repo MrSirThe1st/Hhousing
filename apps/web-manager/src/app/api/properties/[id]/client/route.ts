@@ -1,4 +1,5 @@
 import { Permission, type ApiResult } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../../api/organizations/permissions";
@@ -150,6 +151,18 @@ export async function PATCH(
         error: "Property not found"
       });
     }
+
+    await logOperatorAuditEvent({
+      organizationId: access.data.organizationId,
+      actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      actionKey: "operations.property.owner_reassigned",
+      entityType: "property",
+      entityId: updatedProperty.id,
+      metadata: {
+        ownerId: updatedProperty.ownerId,
+        ownerType: updatedProperty.ownerType
+      }
+    });
 
     return jsonResponse(200, {
       success: true,

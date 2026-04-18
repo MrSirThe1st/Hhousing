@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createRepositoryFromEnv } from "../../../api/shared";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
-import { getDashboardOperatorSession } from "../../detail-page-access";
+import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 import PropertyDetailClient from "./property-detail-client";
 
 type PageProps = {
@@ -10,7 +10,7 @@ type PageProps = {
 
 export default async function PropertyDetailPage({ params }: PageProps): Promise<React.ReactElement> {
   const { id } = await params;
-  const session = await getDashboardOperatorSession();
+  const { session } = await requireDashboardSectionAccess("operations");
   const repositoryResult = createRepositoryFromEnv();
 
   if (!repositoryResult.success) {

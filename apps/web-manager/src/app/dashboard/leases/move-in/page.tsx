@@ -4,7 +4,7 @@ import type { Tenant } from "@hhousing/domain";
 import { listProperties } from "../../../../api";
 import { createListingRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
 import LeaseMoveInForm from "../../../../components/lease-move-in-form";
-import { getServerAuthSession } from "../../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
 type LeaseMoveInPageProps = {
   searchParams?: Promise<{
@@ -16,8 +16,7 @@ type LeaseMoveInPageProps = {
 };
 
 export default async function LeaseMoveInPage({ searchParams }: LeaseMoveInPageProps): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
   const params = await searchParams;
 
   const propertyRepoResult = createRepositoryFromEnv();

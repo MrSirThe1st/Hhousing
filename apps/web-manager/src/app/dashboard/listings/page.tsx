@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { ListingApplicationView, ManagerListingView } from "@hhousing/api-contracts";
 import ListingManagementPanel from "../../../components/listing-management-panel";
 import { createListingRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 type ListingsPageProps = {
   searchParams?: Promise<{ tab?: string }>;
@@ -19,8 +19,7 @@ function getActiveTab(value: string | undefined): ListingsWorkspaceTab {
 }
 
 export default async function ListingsPage({ searchParams }: ListingsPageProps): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const params = await searchParams;
   const activeTab = getActiveTab(params?.tab);

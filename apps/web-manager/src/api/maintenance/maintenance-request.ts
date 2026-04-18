@@ -14,6 +14,7 @@ import type { MaintenanceRequestRepository } from "@hhousing/data-access";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
+import { logOperatorAuditEvent } from "../audit-log";
 
 export interface CreateMaintenanceRequestRequest {
   body: unknown;
@@ -71,6 +72,19 @@ export async function createMaintenanceRequest(
     priority: parsed.data.priority
   });
 
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "services.maintenance.created",
+    entityType: "maintenance_request",
+    entityId: req.id,
+    metadata: {
+      unitId: req.unitId,
+      tenantId: req.tenantId,
+      priority: req.priority,
+      status: req.status
+    }
+  });
+
   return { status: 201, body: { success: true, data: req } };
 }
 
@@ -124,6 +138,19 @@ export async function updateMaintenanceRequest(
       body: { success: false, code: "NOT_FOUND", error: "Maintenance request not found" }
     };
   }
+
+  await logOperatorAuditEvent({
+    session: sessionResult.data,
+    actionKey: "services.maintenance.updated",
+    entityType: "maintenance_request",
+    entityId: updated.id,
+    metadata: {
+      unitId: updated.unitId,
+      tenantId: updated.tenantId,
+      priority: updated.priority,
+      status: updated.status
+    }
+  });
 
   return { status: 200, body: { success: true, data: updated } };
 }

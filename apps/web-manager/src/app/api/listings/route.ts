@@ -1,4 +1,5 @@
 import { parseUpsertListingInput } from "@hhousing/api-contracts";
+import { logOperatorAuditEvent } from "../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { createId, createListingRepo, createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
@@ -91,6 +92,19 @@ export async function POST(request: Request): Promise<Response> {
       : null,
     createdByUserId: existing?.createdByUserId ?? sessionResult.data.userId,
     updatedByUserId: sessionResult.data.userId
+  });
+
+  await logOperatorAuditEvent({
+    organizationId: sessionResult.data.organizationId,
+    actorMemberId: sessionResult.data.memberships.find((membership) => membership.organizationId === sessionResult.data.organizationId)?.id ?? null,
+    actionKey: existing ? "operations.listing.updated" : "operations.listing.created",
+    entityType: "listing",
+    entityId: listing.id,
+    metadata: {
+      propertyId: listing.propertyId,
+      unitId: listing.unitId,
+      status: listing.status
+    }
   });
 
   return jsonResponse(existing ? 200 : 201, {

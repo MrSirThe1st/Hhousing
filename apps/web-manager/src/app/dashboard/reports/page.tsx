@@ -12,15 +12,14 @@ import {
   normalizeFinanceFilters,
   subtractCurrencyTotals
 } from "../../../lib/finance-reporting";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 type ReportsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("finances");
 
   const params = await searchParams;
   const filters = normalizeFinanceFilters(params);

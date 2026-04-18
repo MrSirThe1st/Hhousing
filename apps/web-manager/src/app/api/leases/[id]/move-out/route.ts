@@ -96,7 +96,14 @@ export async function PATCH(
   }
 
   try {
-    await upsertLeaseMoveOut(lease, parsed.data, access.data.userId, repository, createId);
+    await upsertLeaseMoveOut(
+      lease,
+      parsed.data,
+      access.data.userId,
+      access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      repository,
+      createId
+    );
     const data = await buildLeaseMoveOutView(lease, repository, paymentRepository);
 
     return jsonResponse(200, { success: true, data: data.moveOut as UpsertMoveOutOutput });

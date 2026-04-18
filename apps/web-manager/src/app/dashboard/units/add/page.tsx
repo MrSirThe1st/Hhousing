@@ -3,11 +3,10 @@ import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import { listProperties } from "../../../../api";
 import { createRepositoryFromEnv, createTeamFunctionsRepo } from "../../../api/shared";
 import UnitCreateForm from "../../../../components/unit-create-form";
-import { getServerAuthSession } from "../../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
 export default async function AddUnitPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const repoResult = createRepositoryFromEnv();
 

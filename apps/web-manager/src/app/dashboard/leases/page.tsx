@@ -4,11 +4,10 @@ import { listLeases } from "../../../api";
 import LeaseManagementPanel from "../../../components/lease-management-panel";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 export default async function LeasesPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const tenantRepo = createTenantLeaseRepo();
   const teamFunctionsRepo = createTeamFunctionsRepo();

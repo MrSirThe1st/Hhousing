@@ -9,6 +9,7 @@ import type {
   OwnerPortalAccessRepository
 } from "@hhousing/data-access";
 import { createHash, randomBytes } from "crypto";
+import { logOperatorAuditEvent } from "../audit-log";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 
 function hashToken(token: string): string {
@@ -113,6 +114,19 @@ export async function inviteOwner(
       activationLink
     });
   }
+
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.owner_invitation.sent",
+    entityType: "owner_invitation",
+    entityId: invitation.id,
+    metadata: {
+      ownerId: invitation.ownerId,
+      email: invitation.email,
+      expiresAtIso: invitation.expiresAtIso
+    }
+  });
 
   return {
     status: 201,

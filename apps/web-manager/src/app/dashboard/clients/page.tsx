@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Owner } from "@hhousing/domain";
 import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../api/shared";
-import { getServerAuthSession } from "../../../lib/session";
+import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 interface ClientSummary {
   owner: Owner;
@@ -29,8 +29,7 @@ function PlusIcon(): React.ReactElement {
 }
 
 export default async function ClientsPage(): Promise<React.ReactElement> {
-  const session = await getServerAuthSession();
-  if (!session) redirect("/login");
+  const { session } = await requireDashboardSectionAccess("operations");
 
   const repoResult = createRepositoryFromEnv();
 
