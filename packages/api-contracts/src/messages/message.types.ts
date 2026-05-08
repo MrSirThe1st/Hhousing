@@ -1,4 +1,4 @@
-import type { LeaseStatus } from "@hhousing/domain";
+import type { LeaseStatus, MessageSenderSide } from "@hhousing/domain";
 import type { Message } from "@hhousing/domain";
 
 export interface ListManagerConversationsFilter {
@@ -85,6 +85,7 @@ export interface TenantConversationListItem {
   leaseId: string | null;
   lastMessagePreview: string;
   lastMessageAtIso: string;
+  lastMessageSenderSide: MessageSenderSide;
 }
 
 export interface ListTenantConversationsOutput {

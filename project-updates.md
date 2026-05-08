@@ -2,6 +2,72 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-05-08
+- Change type: Mobile + API
+- Description: Updated tenant mobile Accueil header to show tenant name and rented-place address, and overhauled tenant Paiements screen to match the new visual design (due summary card, search/filter row, year/month grouped history, and status badges).
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/index.tsx` and `apps/mobile-tenant/app/(tabs)/payments.tsx`; extended `GET /api/mobile/lease` response in `apps/web-manager/src/app/api/mobile/lease/route.ts` with `rentalAddress`, `propertyName`, and `unitLabel`; adjusted lease route tests.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓, `pnpm -C apps/web-manager exec vitest run src/app/api/mobile/lease/route.test.ts` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Redesigned tenant mobile Profil screen to match the new visual reference (avatar header, lease/rent summary cards, account settings list with icons, logout card, support banner) while preserving sign-out and account navigation flows.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/account/index.tsx`; added explicit account stack registration for `edit-profile` in `apps/mobile-tenant/app/(tabs)/account/_layout.tsx`.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Redesigned tenant account subpages (`Mon bail`, `Documents`, and `Modifier le profil`) to match new mobile references, and fixed account/profile auth glitch by waiting for auth-session bootstrap before protected API fetches.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/account/lease.tsx`, `apps/mobile-tenant/app/(tabs)/account/documents.tsx`, `apps/mobile-tenant/app/(tabs)/account/edit-profile.tsx`, and `apps/mobile-tenant/app/(tabs)/account/index.tsx` (session-readiness guards + clearer expired-session handling).
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Fixed remaining profile-screen false unauthenticated state and removed fake identity fallback values.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/account/index.tsx` so profile API result is source of truth for blocking auth errors while lease-summary fetch is treated as optional, and replaced hardcoded placeholder name/email with real tenant/session-derived display.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Diagnosed profile/edit-profile "Pas de connexion" false-offline state caused by non-JSON API host responses; hardened client-side API error mapping to surface HTTP/config issues clearly instead of generic offline.
+- Impact: Updated `apps/mobile-tenant/src/lib/api-client.ts` to preserve non-JSON HTTP failures (status/content-type/location) as `INTERNAL_ERROR` and only return `NETWORK_ERROR` for true transport failures; aligned local `apps/mobile-tenant/.env` API base URL to non-www host per project docs.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Recovery fix for auth regression and profile endpoint mismatch in hosted environment. Restored canonical mobile API host to avoid cross-host redirect auth-header loss, and made profile/edit-profile screens resilient when `/api/mobile/profile` is unavailable by falling back to lease tenant identity.
+- Impact: Updated `apps/mobile-tenant/src/lib/env.ts`, `apps/mobile-tenant/.env`, `apps/mobile-tenant/.env.example`, `apps/mobile-tenant/README.md`, `apps/mobile-tenant/app/(tabs)/account/index.tsx`, and `apps/mobile-tenant/app/(tabs)/account/edit-profile.tsx`.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Added Haraka Pay brand icon assets for tenant mobile app launcher icon.
+- Impact: Added `apps/mobile-tenant/assets/icon.png` and `apps/mobile-tenant/assets/adaptive-icon.png` generated from `apps/web-manager/public/brand/haraka-pay-logo.svg` (copied to `apps/mobile-tenant/assets/haraka-pay-logo.svg` as source).
+- Tests: not run (asset-only change).
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Renamed mobile app display name to Mon Espace.
+- Impact: Updated Expo app name in `apps/mobile-tenant/app.json` and iOS launcher display name (`CFBundleDisplayName`) in `apps/mobile-tenant/ios/HhousingTenant/Info.plist`.
+- Tests: not run (config metadata change only).
+
+## 2026-05-08
+- Change type: Mobile + API
+- Description: Disabled tenant-side payment validation from mobile app; payment status updates are now reserved for admin web workflows.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/payments.tsx` (removed pay/confirm modal and replaced with manual-processing notice), updated `apps/mobile-tenant/app/(tabs)/index.tsx` CTA copy to avoid pay-action implication, and updated `apps/web-manager/src/app/api/mobile/payments/[id]/pay/route.ts` to always return `403 FORBIDDEN` for authenticated tenant requests.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓, `pnpm -C apps/web-manager exec vitest run 'src/app/api/mobile/payments/[id]/pay/route.test.ts'` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Fixed maintenance photo-picker crash when tapping "Ajouter une photo" on iOS.
+- Impact: Added missing iOS photo-library permission usage description in `apps/mobile-tenant/ios/HhousingTenant/Info.plist`; hardened picker flow in `apps/mobile-tenant/app/(tabs)/maintenance/index.tsx` with explicit permission check, safe asset access, and error handling.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile + API
+- Description: Added compact rented-home photo preview on tenant Accueil page.
+- Impact: Extended `GET /api/mobile/lease` response with `rentalPhotoUrl` in `apps/web-manager/src/app/api/mobile/lease/route.ts`; updated route test in `apps/web-manager/src/app/api/mobile/lease/route.test.ts`; rendered a small house/unit image card in `apps/mobile-tenant/app/(tabs)/index.tsx` when photo is available.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓, `pnpm -C apps/web-manager exec vitest run src/app/api/mobile/lease/route.test.ts` ✓.
+
 ## 2026-04-19 (Late Evening)
 - Change type: DB + Security Hardening (RLS Policy Model Correction)
 - Description: Removed blanket/global deny RLS policies from shared app tables and switched to explicit allow-only model (implicit deny by default). This fixes authenticated user read-path regressions (notably login/account routing that depends on `organization_memberships` reads via Supabase client).

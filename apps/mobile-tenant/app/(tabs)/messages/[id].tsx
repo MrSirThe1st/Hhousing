@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,8 +11,11 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import type { GetTenantConversationDetailOutput, SendTenantMessageOutput } from "@hhousing/api-contracts";
 import type { ApiResult } from "@hhousing/api-contracts";
+import type { Message } from "@hhousing/domain";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
+import { supabase } from "@/lib/supabase";
 import { ScreenShell } from "@/components/screen-shell";
+import { ListSkeleton } from "@/components/skeleton";
 
 export default function ConversationScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -23,6 +26,7 @@ export default function ConversationScreen(): React.ReactElement {
   const [detail, setDetail] = useState<GetTenantConversationDetailOutput | null>(null);
   const [messageBody, setMessageBody] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const load = useCallback(async (): Promise<void> => {
     if (!conversationId) {
@@ -52,6 +56,50 @@ export default function ConversationScreen(): React.ReactElement {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Supabase Realtime: append new messages from manager in real time
+  useEffect(() => {
+    if (!conversationId || isLoading) return;
+
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          const row = payload.new as Record<string, unknown>;
+          const incoming: Message = {
+            id: row.id as string,
+            organizationId: row.organization_id as string,
+            conversationId: row.conversation_id as string,
+            senderSide: row.sender_side as Message["senderSide"],
+            senderUserId: (row.sender_user_id as string | null) ?? null,
+            body: row.body as string,
+            createdAtIso: row.created_at as string
+          };
+
+          setDetail((current) => {
+            if (!current) return current;
+            // Deduplicate — optimistic send already appended our own message
+            if (current.messages.some((m) => m.id === incoming.id)) {
+              return current;
+            }
+            return { ...current, messages: [...current.messages, incoming] };
+          });
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [conversationId, isLoading]);
 
   const handleSend = useCallback(async (): Promise<void> => {
     const body = messageBody.trim();
@@ -97,7 +145,7 @@ export default function ConversationScreen(): React.ReactElement {
       title={detail?.conversation.organizationName ?? "Conversation"}
       subtitle={detail?.conversation.propertyName ?? "Messages avec votre gestion"}
     >
-      {isLoading ? <Text style={styles.info}>Chargement...</Text> : null}
+      {isLoading ? <ListSkeleton rows={5} /> : null}
 
       {!isLoading && error ? (
         <View style={styles.notice}>
@@ -110,7 +158,7 @@ export default function ConversationScreen(): React.ReactElement {
 
       {!isLoading && !error && detail ? (
         <>
-          <ScrollView style={styles.thread} showsVerticalScrollIndicator={false}>
+          <ScrollView ref={scrollViewRef} style={styles.thread} showsVerticalScrollIndicator={false} onContentSizeChange={() => { scrollViewRef.current?.scrollToEnd({ animated: false }); }}>
             {detail.messages.map((message) => {
               const isMine = message.senderSide === "tenant";
 

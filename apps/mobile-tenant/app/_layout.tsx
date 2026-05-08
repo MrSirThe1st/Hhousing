@@ -1,6 +1,8 @@
 import { Redirect, Slot, useSegments } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
+import { InboxProvider } from "@/contexts/inbox-context";
 
 function RootNavigator(): React.ReactElement {
   const { session, isLoading } = useAuth();
@@ -28,9 +30,13 @@ function RootNavigator(): React.ReactElement {
 
 export default function RootLayout(): React.ReactElement {
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <InboxProvider>
+          <RootNavigator />
+        </InboxProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 

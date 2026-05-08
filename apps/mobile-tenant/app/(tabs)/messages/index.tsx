@@ -1,50 +1,69 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ListSkeleton } from "@/components/skeleton";
+import { useRouter, useFocusEffect } from "expo-router";
 import type { ListTenantConversationsOutput } from "@hhousing/api-contracts";
 import type { ApiResult } from "@hhousing/api-contracts";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
+import { useInbox } from "@/contexts/inbox-context";
+import { NetworkError } from "@/components/network-error";
 
 export default function InboxScreen(): React.ReactElement {
   const router = useRouter();
+  const { setConversations: setInboxConversations, markAllRead } = useInbox();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
   const [conversations, setConversations] = useState<ListTenantConversationsOutput["conversations"]>([]);
 
   const load = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
+    setIsOffline(false);
 
     const result: ApiResult<ListTenantConversationsOutput> = await getWithAuth<ListTenantConversationsOutput>(
       "/api/mobile/messages/conversations"
     );
 
     if (!result.success) {
+      if (result.code === "NETWORK_ERROR") setIsOffline(true);
       setError(result.error);
       setConversations([]);
     } else {
       setConversations(result.data.conversations);
+      setInboxConversations(result.data.conversations);
     }
 
     setIsLoading(false);
-  }, []);
+  }, [setInboxConversations]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  // Reset badge when user focuses this screen
+  useFocusEffect(
+    useCallback((): void => {
+      markAllRead();
+    }, [markAllRead])
+  );
+
   return (
     <ScreenShell title="Inbox" subtitle="Messages de votre gestion.">
-      {isLoading ? <Text style={styles.info}>Chargement des messages...</Text> : null}
+      {isLoading ? <ListSkeleton rows={4} /> : null}
 
       {!isLoading && error ? (
-        <View style={styles.notice}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-            <Text style={styles.retryBtnText}>Réessayer</Text>
-          </Pressable>
-        </View>
+        isOffline ? (
+          <NetworkError onRetry={() => { void load(); }} />
+        ) : (
+          <View style={styles.notice}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
+              <Text style={styles.retryBtnText}>Réessayer</Text>
+            </Pressable>
+          </View>
+        )
       ) : null}
 
       {!isLoading && !error && conversations.length === 0 ? (
@@ -55,7 +74,11 @@ export default function InboxScreen(): React.ReactElement {
       ) : null}
 
       {!isLoading && !error && conversations.length > 0 ? (
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.list}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.list}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => { void load(); }} tintColor="#0063FE" />}
+        >
           {conversations.map((conversation) => (
             <Pressable
               key={conversation.conversationId}

@@ -1,17 +1,24 @@
 {
   "expo": {
-    "name": "Hhousing Tenant",
+    "name": "Mon Espace",
     "slug": "hhousing-mobile-tenant",
     "scheme": "hhousing-tenant",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0063FE"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.hhousing.tenant",
+      "buildNumber": "1",
       "associatedDomains": [
         "applinks:harakaproperty.com",
         "applinks:www.harakaproperty.com"
@@ -19,6 +26,11 @@
     },
     "android": {
       "package": "com.hhousing.tenant",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0063FE"
+      },
       "intentFilters": [
         {
           "action": "VIEW",

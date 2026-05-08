@@ -86,6 +86,7 @@ async function request<T>(
   };
 
   const baseUrlsToTry = [normalizeBaseUrl(env.apiBaseUrl), ...getFallbackApiBaseUrls(env.apiBaseUrl)];
+  let lastHttpError: ApiResult<T> | null = null;
 
   for (const baseUrl of baseUrlsToTry) {
     try {
@@ -95,6 +96,13 @@ async function request<T>(
       });
 
       if (!response.ok && !isJsonResponse(response)) {
+        const location = response.headers.get("location");
+        const locationSuffix = location ? `, redirection: ${location}` : "";
+        lastHttpError = {
+          success: false,
+          code: "INTERNAL_ERROR",
+          error: `Réponse API invalide (${response.status}, ${response.headers.get("content-type") ?? "sans content-type"}) depuis ${baseUrl}${path}${locationSuffix}`
+        };
         continue;
       }
 
@@ -102,6 +110,10 @@ async function request<T>(
     } catch {
       continue;
     }
+  }
+
+  if (lastHttpError) {
+    return lastHttpError;
   }
 
   return {
@@ -147,6 +159,17 @@ export async function postWithAuth<T>(path: string, body: unknown): Promise<ApiR
     path,
     {
       method: "POST",
+      body: JSON.stringify(body)
+    },
+    true
+  );
+}
+
+export async function patchWithAuth<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  return request<T>(
+    path,
+    {
+      method: "PATCH",
       body: JSON.stringify(body)
     },
     true

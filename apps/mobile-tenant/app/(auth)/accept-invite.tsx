@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     backgroundColor: "#F4F7FB",
-    paddingHorizontal: 20
+    paddingHorizontal: 24
   },
   card: {
     backgroundColor: "#ffffff",

@@ -686,7 +686,7 @@ export function createPostgresTenantLeaseRepository(
            mo.updated_at,
            t.full_name    as tenant_full_name,
            p.name         as property_name,
-           u.label        as unit_label
+           u.unit_number  as unit_label
          from move_outs mo
          join leases l on l.id = mo.lease_id
          join tenants t on t.id = l.tenant_id

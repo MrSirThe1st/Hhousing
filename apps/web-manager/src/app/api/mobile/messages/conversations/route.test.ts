@@ -84,7 +84,8 @@ describe("GET /api/mobile/messages/conversations", () => {
               unitNumber: "A-12",
               leaseId: "lease-1",
               lastMessagePreview: "Bonjour",
-              lastMessageAtIso: "2026-04-03T10:00:00.000Z"
+              lastMessageAtIso: "2026-04-03T10:00:00.000Z",
+              lastMessageSenderSide: "manager"
             }
           ]
         }

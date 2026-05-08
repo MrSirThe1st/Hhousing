@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
-const hostedApiBaseUrl = "https://harakaproperty.com";
+const hostedApiBaseUrl = "https://www.harakaproperty.com";
 
 function extractHost(value: string): string | null {
   const trimmedValue = value.trim();

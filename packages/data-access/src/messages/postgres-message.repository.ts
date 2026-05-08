@@ -41,6 +41,7 @@ interface TenantConversationListRow extends QueryResultRow {
   lease_id: string | null;
   last_message_preview: string;
   last_message_at: Date | string;
+  last_message_sender_side: MessageSenderSide;
 }
 
 interface MessageRow extends QueryResultRow {
@@ -148,7 +149,8 @@ function mapTenantConversationListRow(row: TenantConversationListRow): TenantCon
     unitNumber: row.unit_number,
     leaseId: row.lease_id,
     lastMessagePreview: row.last_message_preview,
-    lastMessageAtIso: toIso(row.last_message_at)
+    lastMessageAtIso: toIso(row.last_message_at),
+    lastMessageSenderSide: row.last_message_sender_side
   };
 }
 
@@ -339,14 +341,15 @@ export function createPostgresMessageRepository(client: MessageQueryable): Messa
            u.unit_number,
            c.lease_id,
            lm.body as last_message_preview,
-           lm.created_at as last_message_at
+           lm.created_at as last_message_at,
+           lm.sender_side as last_message_sender_side
          from conversations c
          join organizations o on o.id = c.organization_id
          join tenants t on t.id = c.tenant_id and t.organization_id = c.organization_id
          join units u on u.id = c.unit_id and u.organization_id = c.organization_id
          join properties p on p.id = u.property_id and p.organization_id = c.organization_id
          join lateral (
-           select m.body, m.created_at
+           select m.body, m.created_at, m.sender_side
            from messages m
            where m.conversation_id = c.id
            order by m.created_at desc

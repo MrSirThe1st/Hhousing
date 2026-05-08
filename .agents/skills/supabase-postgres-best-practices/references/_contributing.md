@@ -38,7 +38,7 @@ if context is needed.
 ```sql
 -- Include table definition when needed for clarity
 CREATE TABLE users (
-  id bigint PRIMARY KEY,
+  id bigint  KEY,
   email text NOT NULL,
   deleted_at timestamptz
 );
@@ -137,7 +137,7 @@ const posts = await db.query("SELECT * FROM posts WHERE user_id = ANY($1)", [
 
 ## Reference Standards
 
-**Primary Sources:**
+** Sources:**
 
 - Official Postgres documentation
 - Supabase documentation

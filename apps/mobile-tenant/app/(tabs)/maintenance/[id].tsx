@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { CardSkeleton } from "@/components/skeleton";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { MaintenanceRequest, MaintenanceTimelineEvent } from "@hhousing/domain";
 import type { ApiResult } from "@hhousing/api-contracts";
@@ -80,9 +82,8 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <ScreenShell title="Maintenance" subtitle="Détail de la demande">
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#0063FE" />
-        </View>
+        <CardSkeleton />
+        <CardSkeleton />
       </ScreenShell>
     );
   }
@@ -191,6 +192,8 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
   );
 }
 
+type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
+
 function TimelineEvent({
   event,
   isLast
@@ -198,20 +201,20 @@ function TimelineEvent({
   event: MaintenanceTimelineEvent;
   isLast: boolean;
 }): React.ReactElement {
-  const getEventIcon = (type: MaintenanceTimelineEvent["eventType"]): string => {
+  const getEventIcon = (type: MaintenanceTimelineEvent["eventType"]): IoniconName => {
     switch (type) {
       case "created":
-        return "📋";
+        return "clipboard-outline";
       case "status_changed":
-        return "🔄";
+        return "refresh-outline";
       case "assigned":
-        return "👤";
+        return "person-outline";
       case "internal_note_updated":
-        return "📝";
+        return "create-outline";
       case "resolution_note_updated":
-        return "✅";
+        return "checkmark-circle-outline";
       default:
-        return "•";
+        return "ellipse-outline";
     }
   };
 
@@ -242,7 +245,7 @@ function TimelineEvent({
       </View>
       <View style={styles.timelineContent}>
         <View style={styles.eventHeader}>
-          <Text style={styles.eventIcon}>{getEventIcon(event.eventType)}</Text>
+          <Ionicons name={getEventIcon(event.eventType)} size={16} color="#6B7280" style={styles.eventIcon} />
           <View style={{ flex: 1 }}>
             <Text style={styles.eventDescription}>{getEventDescription(event)}</Text>
             <Text style={styles.eventTime}>
@@ -398,7 +401,6 @@ const styles = StyleSheet.create({
     gap: 8
   },
   eventIcon: {
-    fontSize: 16,
     marginTop: 1
   },
   eventDescription: {
