@@ -3,14 +3,17 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GetInvoiceDetailOutput, LeaseWithTenantView } from "@hhousing/api-contracts";
-import type { Invoice, LeaseCreditBalance } from "@hhousing/domain";
+import type { Invoice, LeaseCreditBalance, Organization } from "@hhousing/domain";
 import { getWithAuth, patchWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
+import ActionMenu from "./action-menu";
+import { buildInvoiceDocumentContext, buildInvoiceDocumentHtml } from "../lib/invoices/invoice-document";
 
 type InvoiceManagementPanelProps = {
   invoices: Invoice[];
   leases: LeaseWithTenantView[];
   credits: LeaseCreditBalance[];
+  organization: Organization | null;
 };
 
 const STATUS_STYLES: Record<Invoice["status"], string> = {
@@ -21,10 +24,10 @@ const STATUS_STYLES: Record<Invoice["status"], string> = {
 };
 
 const STATUS_LABELS: Record<Invoice["status"], string> = {
-  issued: "Issued",
-  partial: "Partial",
-  paid: "Paid",
-  void: "Void"
+  issued: "Émise",
+  partial: "Partielle",
+  paid: "Payée",
+  void: "Annulée"
 };
 
 const EMAIL_STYLES: Record<Invoice["emailStatus"], string> = {
@@ -35,16 +38,17 @@ const EMAIL_STYLES: Record<Invoice["emailStatus"], string> = {
 };
 
 const EMAIL_LABELS: Record<Invoice["emailStatus"], string> = {
-  not_sent: "Not sent",
-  queued: "Pending",
-  sent: "Sent",
-  failed: "Failed"
+  not_sent: "Non envoyé",
+  queued: "En attente",
+  sent: "Envoyé",
+  failed: "Échec"
 };
 
 export default function InvoiceManagementPanel({
   invoices,
   leases,
-  credits
+  credits,
+  organization
 }: InvoiceManagementPanelProps): React.ReactElement {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,9 +61,44 @@ export default function InvoiceManagementPanel({
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [detail, setDetail] = useState<GetInvoiceDetailOutput | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [voidReason, setVoidReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function getCompanyName(): string {
+    return organization?.name ?? "Votre organisation";
+  }
+
+  function getTenantName(invoice: Invoice): string {
+    return leaseMap.get(invoice.leaseId)?.tenantFullName ?? "Locataire";
+  }
+
+  function downloadInvoiceDocument(invoice: Invoice): void {
+    const lease = leaseMap.get(invoice.leaseId);
+    const context = buildInvoiceDocumentContext({
+      invoice,
+      lease,
+      organization,
+      formatDate
+    });
+    const documentHtml = buildInvoiceDocumentHtml(context);
+
+    const popup = window.open("", "_blank", "noopener,noreferrer,width=980,height=760");
+    if (!popup) {
+      setError("Impossible d'ouvrir la fenêtre d'impression. Vérifiez le bloqueur de pop-up.");
+      return;
+    }
+    popup.document.open();
+    popup.document.write(documentHtml);
+    popup.document.close();
+    popup.onload = () => {
+      popup.focus();
+      popup.print();
+    };
+  }
 
   const leaseMap = useMemo(
     () => new Map(leases.map((lease) => [lease.id, lease])),
@@ -151,8 +190,8 @@ export default function InvoiceManagementPanel({
     setDetailLoading(false);
   }
 
-  async function handleVoidInvoice(invoiceId: string): Promise<void> {
-    const reason = voidReason.trim();
+  async function handleVoidInvoice(invoiceId: string, reasonInput: string): Promise<void> {
+    const reason = reasonInput.trim();
     if (reason.length < 3) {
       setError("Le motif d'annulation doit contenir au moins 3 caractères.");
       return;
@@ -174,7 +213,6 @@ export default function InvoiceManagementPanel({
     }
 
     setMessage(`Facture annulée. Ajustement crédit: ${result.data.creditAdjustedAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}`);
-    setVoidReason("");
     await loadInvoiceDetail(invoiceId);
     setBusyInvoiceId(null);
     router.refresh();
@@ -290,6 +328,20 @@ export default function InvoiceManagementPanel({
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#010a19]">Journal des factures</h2>
         <p className="mt-1 text-sm text-gray-500">Suivi des statuts de facture et d'email.</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <p className="text-slate-500">Encours</p>
+            <p className="font-semibold text-[#010a19]">{summary.outstanding.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <p className="text-slate-500">Avoirs</p>
+            <p className="font-semibold text-[#010a19]">{summary.creditTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <p className="text-slate-500">Net à encaisser</p>
+            <p className="font-semibold text-[#010a19]">{summary.netDue.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</p>
+          </div>
+        </div>
 
         {filteredInvoices.length === 0 ? (
           <p className="mt-5 text-sm text-gray-500">Aucune facture pour les filtres actifs.</p>
@@ -298,14 +350,14 @@ export default function InvoiceManagementPanel({
             <table className="min-w-full text-sm">
               <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-[0.14em] text-gray-400">
                 <tr>
-                  <th className="pb-3">No</th>
-                  <th className="pb-3">Lease</th>
-                  <th className="pb-3">Period</th>
-                  <th className="pb-3">Due</th>
+                  <th className="pb-3">N°</th>
+                  <th className="pb-3">Locataire</th>
+                  <th className="pb-3">Période</th>
+                  <th className="pb-3">Échéance</th>
                   <th className="pb-3 text-right">Total</th>
-                  <th className="pb-3 text-right">Paid</th>
-                  <th className="pb-3 text-right">Remaining</th>
-                  <th className="pb-3">Status</th>
+                  <th className="pb-3 text-right">Payé</th>
+                  <th className="pb-3 text-right">Solde</th>
+                  <th className="pb-3">Statut</th>
                   <th className="pb-3">Email</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
@@ -316,14 +368,26 @@ export default function InvoiceManagementPanel({
                   const remaining = Math.max(0, invoice.totalAmount - invoice.amountPaid);
 
                   return (
-                    <tr key={invoice.id}>
+                    <tr
+                      key={invoice.id}
+                      className="cursor-pointer hover:bg-gray-50"
+                      tabIndex={0}
+                      onClick={() => {
+                        void loadInvoiceDetail(invoice.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          void loadInvoiceDetail(invoice.id);
+                        }
+                      }}
+                    >
                       <td className="py-3 font-medium text-[#010a19]">{invoice.invoiceNumber}</td>
                       <td className="py-3 text-gray-600">
-                        <div>{lease?.tenantFullName ?? invoice.tenantId}</div>
-                        <div className="text-xs text-gray-400">{lease ? `Lease ${lease.id.slice(0, 8)}` : ""}</div>
+                        <div>{lease?.tenantFullName ?? "—"}</div>
                       </td>
-                      <td className="py-3 text-gray-600">{invoice.period ?? "One-time"}</td>
-                      <td className="py-3 text-gray-600">{invoice.dueDate}</td>
+                      <td className="py-3 text-gray-600">{invoice.period ?? "Ponctuelle"}</td>
+                      <td className="py-3 text-gray-600">{formatDate(invoice.dueDate)}</td>
                       <td className="py-3 text-right font-medium text-[#010a19]">{invoice.totalAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</td>
                       <td className="py-3 text-right text-gray-700">{invoice.amountPaid.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</td>
                       <td className="py-3 text-right text-gray-700">{remaining.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</td>
@@ -334,14 +398,28 @@ export default function InvoiceManagementPanel({
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${EMAIL_STYLES[invoice.emailStatus]}`}>{EMAIL_LABELS[invoice.emailStatus]}</span>
                       </td>
                       <td className="py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void loadInvoiceDetail(invoice.id)}
-                            className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                          >
-                            View
-                          </button>
+                        <div className="flex items-center justify-end" onClick={(event) => event.stopPropagation()}>
+                          <ActionMenu
+                            items={[
+                              {
+                                label: "Télécharger",
+                                onSelect: () => {
+                                  downloadInvoiceDocument(invoice);
+                                }
+                              },
+                              {
+                                label: busyInvoiceId === invoice.id ? "Annulation..." : "Annuler la facture",
+                                tone: "danger",
+                                disabled: invoice.status === "void" || busyInvoiceId === invoice.id,
+                                onSelect: () => {
+                                  const reason = window.prompt("Motif d'annulation");
+                                  if (reason) {
+                                    void handleVoidInvoice(invoice.id, reason);
+                                  }
+                                }
+                              }
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -354,19 +432,18 @@ export default function InvoiceManagementPanel({
       </section>
 
       {selectedInvoiceId ? (
-        <div className="fixed inset-0 z-[60] bg-[#010a19]/45 p-4 md:p-8">
+        <div className="fixed inset-0 z-60 bg-[#010a19]/45 p-4 md:p-8">
           <div className="ml-auto h-full w-full max-w-3xl overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-[#010a19]">Détail facture</h2>
-                <p className="text-sm text-gray-500">Applications de paiements et contrôles de facture.</p>
+                  <p className="text-sm text-gray-500">{leaseMap.get(detail?.invoice.leaseId ?? "")?.tenantFullName ?? ""}</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setSelectedInvoiceId(null);
                   setDetail(null);
-                  setVoidReason("");
                 }}
                 className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
@@ -378,55 +455,134 @@ export default function InvoiceManagementPanel({
               <UniversalLoadingState minHeightClassName="min-h-56" size="compact" />
             ) : detail ? (
               <div className="space-y-6">
-                <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">No:</span> {detail.invoice.invoiceNumber}</p>
-                    <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Period:</span> {detail.invoice.period ?? "One-time"}</p>
-                    <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Total:</span> {detail.invoice.totalAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {detail.invoice.currencyCode}</p>
-                    <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Paid:</span> {detail.invoice.amountPaid.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {detail.invoice.currencyCode}</p>
-                    <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Status:</span> {STATUS_LABELS[detail.invoice.status]}</p>
-                    <p className="text-sm text-gray-600"><span className="font-semibold text-[#010a19]">Email:</span> {EMAIL_LABELS[detail.invoice.emailStatus]}</p>
+                <section className="rounded-xl border border-gray-300 bg-[#f4f5f7] p-4">
+                  <article className="mx-auto w-full max-w-215 border border-gray-300 bg-white p-6">
+                    <div className="mb-6 flex items-start justify-between gap-4">
+                      <h3 className="text-3xl font-semibold tracking-[-0.02em] text-[#121826]">Invoice</h3>
+                      {organization?.logoUrl ? (
+                        <img
+                          src={organization.logoUrl}
+                          alt={organization.name}
+                          className="h-14 w-auto max-w-48 object-contain"
+                        />
+                      ) : (
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-[#3a40f6]">{getCompanyName()}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mb-4 grid grid-cols-1 gap-6 text-xs text-gray-600 md:grid-cols-2">
+                      <div>
+                        <p>{getCompanyName()}</p>
+                        {organization?.address ? <p>{organization.address}</p> : null}
+                        {organization?.contactEmail ? <p>{organization.contactEmail}</p> : null}
+                        {organization?.contactPhone ? <p>{organization.contactPhone}</p> : null}
+                        <p className="mt-3 font-semibold text-[#121826]">Bill To</p>
+                        <p>{getTenantName(detail.invoice)}</p>
+                        {leaseMap.get(detail.invoice.leaseId)?.tenantEmail ? <p>{leaseMap.get(detail.invoice.leaseId)?.tenantEmail}</p> : null}
+                      </div>
+
+                      <div className="space-y-1 text-right">
+                        <p><span className="text-gray-500">Invoice No. :</span> <span className="font-semibold text-[#121826]">{detail.invoice.invoiceNumber}</span></p>
+                        <p><span className="text-gray-500">Issue Date :</span> <span className="font-semibold text-[#121826]">{formatDate(detail.invoice.issueDate)}</span></p>
+                        <p><span className="text-gray-500">Due Date :</span> <span className="font-semibold text-[#121826]">{formatDate(detail.invoice.dueDate)}</span></p>
+                        <p><span className="text-gray-500">Reference :</span> <span className="font-semibold text-[#121826]">{detail.invoice.id.slice(0, 8).toUpperCase()}</span></p>
+                      </div>
+                    </div>
+
+                    <div className="mb-3 grid grid-cols-2 overflow-hidden border border-gray-400 text-xs md:grid-cols-4">
+                      <div className="bg-[#5f5ff6] p-2 text-white">
+                        <p className="text-[10px] uppercase tracking-[0.06em] text-blue-100">Invoice No.</p>
+                        <p className="font-semibold">{detail.invoice.invoiceNumber}</p>
+                      </div>
+                      <div className="bg-[#5f5ff6] p-2 text-white">
+                        <p className="text-[10px] uppercase tracking-[0.06em] text-blue-100">Issue date</p>
+                        <p className="font-semibold">{formatDate(detail.invoice.issueDate)}</p>
+                      </div>
+                      <div className="bg-[#5f5ff6] p-2 text-white">
+                        <p className="text-[10px] uppercase tracking-[0.06em] text-blue-100">Due date</p>
+                        <p className="font-semibold">{formatDate(detail.invoice.dueDate)}</p>
+                      </div>
+                      <div className="bg-[#2b2f38] p-2 text-white">
+                        <p className="text-[10px] uppercase tracking-[0.06em] text-gray-300">Total</p>
+                        <p className="font-semibold">{detail.invoice.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {detail.invoice.currencyCode}</p>
+                      </div>
+                    </div>
+
+                    <table className="w-full border border-gray-400 text-xs">
+                      <thead className="bg-[#2b2f38] text-white">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium">Description</th>
+                          <th className="px-3 py-2 text-left font-medium">Quantity</th>
+                          <th className="px-3 py-2 text-left font-medium">Unit price</th>
+                          <th className="px-3 py-2 text-right font-medium">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-gray-300">
+                          <td className="px-3 py-2">{detail.invoice.period ?? "Facture ponctuelle"}</td>
+                          <td className="px-3 py-2">1</td>
+                          <td className="px-3 py-2">{detail.invoice.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="px-3 py-2 text-right">{detail.invoice.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        {detail.invoice.amountPaid > 0 ? (
+                          <tr className="border-b border-gray-300">
+                            <td className="px-3 py-2">Montant déjà payé</td>
+                            <td className="px-3 py-2">1</td>
+                            <td className="px-3 py-2">- {detail.invoice.amountPaid.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-2 text-right">- {detail.invoice.amountPaid.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          </tr>
+                        ) : null}
+                        <tr>
+                          <td className="px-3 py-2 text-right font-semibold" colSpan={3}>Total ({detail.invoice.currencyCode})</td>
+                          <td className="px-3 py-2 text-right font-semibold">{Math.max(0, detail.invoice.totalAmount - detail.invoice.amountPaid).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                      <p>Statut facture: <span className="font-semibold text-[#121826]">{STATUS_LABELS[detail.invoice.status]}</span></p>
+                      <p>Statut email: <span className="font-semibold text-[#121826]">{EMAIL_LABELS[detail.invoice.emailStatus]}</span></p>
+                      {detail.invoice.paidAt ? <p>Payée le: <span className="font-semibold text-[#121826]">{formatDate(detail.invoice.paidAt)}</span></p> : null}
+                    </div>
+                  </article>
+                  <div className="mt-4 flex justify-end" onClick={(event) => event.stopPropagation()}>
+                    <ActionMenu
+                      items={[
+                        {
+                          label: "Télécharger",
+                          onSelect: () => {
+                            downloadInvoiceDocument(detail.invoice);
+                          }
+                        },
+                        {
+                          label: busyInvoiceId === detail.invoice.id ? "Annulation..." : "Annuler la facture",
+                          tone: "danger",
+                          disabled: detail.invoice.status === "void" || busyInvoiceId === detail.invoice.id,
+                          onSelect: () => {
+                            const reason = window.prompt("Motif d'annulation");
+                            if (reason) {
+                              void handleVoidInvoice(detail.invoice.id, reason);
+                            }
+                          }
+                        }
+                      ]}
+                    />
                   </div>
                 </section>
 
                 <section className="rounded-xl border border-gray-200 bg-white p-4">
-                  <h3 className="text-base font-semibold text-[#010a19]">Void</h3>
-                  <p className="mt-1 text-sm text-gray-600">Payments already applied will be adjusted automatically.</p>
-                  {detail.invoice.status === "void" ? (
-                    <p className="mt-3 text-sm text-gray-500">Facture déjà annulée{detail.invoice.voidReason ? ` · Motif: ${detail.invoice.voidReason}` : ""}.</p>
-                  ) : (
-                    <div className="mt-3 space-y-3">
-                      <textarea
-                        value={voidReason}
-                        onChange={(event) => setVoidReason(event.target.value)}
-                        placeholder="Motif d'annulation"
-                        className="min-h-24 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handleVoidInvoice(detail.invoice.id)}
-                        disabled={busyInvoiceId === detail.invoice.id}
-                        className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
-                      >
-                        Void invoice
-                      </button>
-                    </div>
-                  )}
-                </section>
-
-                <section className="rounded-xl border border-gray-200 bg-white p-4">
-                  <h3 className="text-base font-semibold text-[#010a19]">Applications paiements</h3>
+                  <h3 className="text-base font-semibold text-[#010a19]">Paiements appliqués</h3>
                   {detail.applications.length === 0 ? (
                     <p className="mt-2 text-sm text-gray-500">Aucune application.</p>
                   ) : (
                     <div className="mt-3 space-y-2">
                       {detail.applications.map((application) => (
                         <div key={application.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                          <span className="font-medium text-[#010a19]">{application.paymentId}</span>
+                          <span className="font-medium text-[#010a19]">{application.appliedAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {detail.invoice.currencyCode}</span>
                           {" · "}
-                          {application.appliedAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
-                          {" · "}
-                          {new Date(application.appliedAtIso).toLocaleString("fr-FR")}
+                          {formatDate(application.appliedAtIso)}
                         </div>
                       ))}
                     </div>

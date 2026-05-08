@@ -1,4 +1,5 @@
 import { createPaymentRepo, jsonResponse } from "../../../shared";
+import { getNow } from "../../../../../lib/time";
 
 interface GenerateRecurringChargesOrganizationResult {
   organizationId: string;
@@ -30,7 +31,7 @@ function getBearerToken(headers: Headers): string | null {
 }
 
 function getCurrentUtcPeriod(): string {
-  const now = new Date();
+  const now = getNow();
   const year = now.getUTCFullYear();
   const month = `${now.getUTCMonth() + 1}`.padStart(2, "0");
   return `${year}-${month}`;

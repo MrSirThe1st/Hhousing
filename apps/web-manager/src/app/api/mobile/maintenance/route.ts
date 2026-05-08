@@ -1,9 +1,9 @@
-import { extractAuthSessionFromRequest } from "../../../../auth/session-adapter";
-import { mapErrorCodeToHttpStatus, requireTenantSession } from "../../../../api/shared";
+import { extractTenantSessionFromRequest } from "../../../../auth/session-adapter";
+import { mapErrorCodeToHttpStatus } from "../../../../api/shared";
 import { createId, createMaintenanceRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function GET(request: Request): Promise<Response> {
-  const access = requireTenantSession(await extractAuthSessionFromRequest(request));
+  const access = await extractTenantSessionFromRequest(request);
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
@@ -58,7 +58,7 @@ function parseSubmitBody(
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const access = requireTenantSession(await extractAuthSessionFromRequest(request));
+  const access = await extractTenantSessionFromRequest(request);
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);

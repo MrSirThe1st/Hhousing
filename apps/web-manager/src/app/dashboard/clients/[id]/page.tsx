@@ -5,6 +5,7 @@ import ActionMenu from "../../../../components/action-menu";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
 import OwnerDocumentsSectionClient from "../../../../components/owner-documents-section-client";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
+import { getNow } from "../../../../lib/time";
 
 function formatCurrencySummary(summary: Map<string, number>): string {
   if (summary.size === 0) {
@@ -125,7 +126,7 @@ export default async function ClientDetailPage(
   const clientMaintenanceRequests = maintenanceRequests
     .filter((request) => unitIds.has(request.unitId))
     .sort((left, right) => right.createdAtIso.localeCompare(left.createdAtIso));
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = getNow().toISOString().slice(0, 7);
 
   const monthlyExpected = new Map<string, number>();
   const collectedThisMonth = new Map<string, number>();

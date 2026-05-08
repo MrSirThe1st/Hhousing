@@ -1,5 +1,6 @@
 import { sendTenantMessage } from "../../../../../../../api";
-import { extractAuthSessionFromRequest } from "../../../../../../../auth/session-adapter";
+import { mapErrorCodeToHttpStatus } from "../../../../../../../api/shared";
+import { extractTenantSessionFromRequest } from "../../../../../../../auth/session-adapter";
 import {
   createId,
   createMessageRepo,
@@ -26,9 +27,15 @@ export async function POST(request: Request, { params }: RouteParams): Promise<R
     });
   }
 
+  const access = await extractTenantSessionFromRequest(request);
+
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
   const result = await sendTenantMessage(
     {
-      session: await extractAuthSessionFromRequest(request),
+      session: access.data,
       conversationId: id,
       body
     },

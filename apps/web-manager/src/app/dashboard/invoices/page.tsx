@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
-import type { Invoice, LeaseCreditBalance } from "@hhousing/domain";
+import type { Invoice, LeaseCreditBalance, Organization } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { listInvoices, listLeases } from "../../../api";
-import { createInvoiceRepo, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
+import { createInvoiceRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 import InvoiceManagementPanel from "../../../components/invoice-management-panel";
+import { getNow } from "../../../lib/time";
 
 export default async function InvoicesPage(): Promise<React.ReactElement> {
   const { session, access } = await requireDashboardSectionAccess("finances");
@@ -21,7 +22,7 @@ export default async function InvoicesPage(): Promise<React.ReactElement> {
         leaseId: null,
         status: null,
         emailStatus: null,
-        year: String(new Date().getFullYear()),
+        year: String(getNow().getFullYear()),
         session
       },
       {
@@ -49,11 +50,15 @@ export default async function InvoicesPage(): Promise<React.ReactElement> {
     ? filterLeasesByScope(leasesResult.body.data.leases, scopedPortfolio)
     : [];
   const scopedCredits: LeaseCreditBalance[] = credits.filter((credit) => scopedPortfolio.leaseIds.has(credit.leaseId));
+  const repositoryResult = createRepositoryFromEnv();
+  const organization: Organization | null = repositoryResult.success
+    ? await repositoryResult.data.getOrganizationById(session.organizationId)
+    : null;
 
   return (
     <>
       {!access.financesWritable && <ReadOnlyBanner />}
-      <InvoiceManagementPanel invoices={invoices} leases={leases} credits={scopedCredits} />
+      <InvoiceManagementPanel invoices={invoices} leases={leases} credits={scopedCredits} organization={organization} />
     </>
   );
 }

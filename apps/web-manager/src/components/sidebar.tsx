@@ -16,6 +16,7 @@ type IconName =
   | "listings"
   | "tenants"
   | "leases"
+  | "move-outs"
   | "revenues"
   | "expenses"
   | "reports"
@@ -119,6 +120,14 @@ function SidebarIcon({ name, active }: { name: IconName; active: boolean }): Rea
           <path d="M7 3.5h7l4 4v13H7z" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
           <path d="M14 3.5v4h4" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
           <path d="M9.5 12h5M9.5 15.5h5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "move-outs":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+          <path d="M14 20.5H7V3.5h10v8" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M9.5 9h5M9.5 12.5h3" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M13.5 17.5h7M17.5 14.5l3 3-3 3" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case "revenues":
@@ -227,7 +236,8 @@ export default function Sidebar({ currentRoleLabel, access }: SidebarProps): Rea
         { href: "/dashboard/clients", label: "Propriétaires", icon: "clients" },
         { href: "/dashboard/listings", label: "Listings", icon: "listings", badgeCount: badgeCounts.listings },
         { href: "/dashboard/tenants", label: "Locataires", icon: "tenants" },
-        { href: "/dashboard/leases", label: "Baux", icon: "leases" }
+        { href: "/dashboard/leases", label: "Baux", icon: "leases" },
+        { href: "/dashboard/move-outs", label: "Départs", icon: "move-outs" }
       ]
     },
     {

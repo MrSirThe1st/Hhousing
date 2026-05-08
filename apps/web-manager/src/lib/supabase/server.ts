@@ -14,8 +14,13 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient> {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
+          try {
+            for (const { name, value, options } of cookiesToSet) {
+              cookieStore.set(name, value, options);
+            }
+          } catch {
+            // In Server Components (e.g. layouts/pages), cookie mutation is blocked by Next.js.
+            // Middleware/route handlers should own refresh-cookie writes.
           }
         },
       },

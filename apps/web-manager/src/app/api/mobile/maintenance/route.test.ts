@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  extractAuthSessionFromRequestMock,
+  extractTenantSessionFromRequestMock,
   listMaintenanceRequestsByTenantAuthUserIdMock,
   createMaintenanceRequestMock,
   getCurrentLeaseByTenantAuthUserIdMock
 } = vi.hoisted(() => ({
-  extractAuthSessionFromRequestMock: vi.fn(),
+  extractTenantSessionFromRequestMock: vi.fn(),
   listMaintenanceRequestsByTenantAuthUserIdMock: vi.fn(),
   createMaintenanceRequestMock: vi.fn(),
   getCurrentLeaseByTenantAuthUserIdMock: vi.fn()
 }));
 
 vi.mock("../../../../auth/session-adapter", () => ({
-  extractAuthSessionFromRequest: extractAuthSessionFromRequestMock
+  extractTenantSessionFromRequest: extractTenantSessionFromRequestMock
 }));
 
 vi.mock("../../shared", async () => {
@@ -89,7 +89,11 @@ describe("GET /api/mobile/maintenance", () => {
   });
 
   it("rejects unauthenticated requests", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(null);
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    });
 
     const response = await GET(new Request("http://localhost/api/mobile/maintenance"));
 
@@ -103,7 +107,11 @@ describe("GET /api/mobile/maintenance", () => {
   });
 
   it("rejects non-tenant roles", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(landlordSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "FORBIDDEN",
+      error: "This endpoint is only available to tenants"
+    });
 
     const response = await GET(new Request("http://localhost/api/mobile/maintenance"));
 
@@ -113,7 +121,7 @@ describe("GET /api/mobile/maintenance", () => {
   });
 
   it("returns maintenance requests for authenticated tenant", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(tenantSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({ success: true, data: tenantSession });
     listMaintenanceRequestsByTenantAuthUserIdMock.mockResolvedValue([sampleRequest]);
 
     const response = await GET(new Request("http://localhost/api/mobile/maintenance"));
@@ -133,7 +141,11 @@ describe("POST /api/mobile/maintenance", () => {
   });
 
   it("rejects unauthenticated requests", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(null);
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    });
 
     const response = await POST(
       new Request("http://localhost/api/mobile/maintenance", {
@@ -148,7 +160,7 @@ describe("POST /api/mobile/maintenance", () => {
   });
 
   it("returns 400 when title is missing", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(tenantSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({ success: true, data: tenantSession });
 
     const response = await POST(
       new Request("http://localhost/api/mobile/maintenance", {
@@ -164,7 +176,7 @@ describe("POST /api/mobile/maintenance", () => {
   });
 
   it("returns 422 when tenant has no active lease", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(tenantSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({ success: true, data: tenantSession });
     getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(null);
 
     const response = await POST(
@@ -181,7 +193,7 @@ describe("POST /api/mobile/maintenance", () => {
   });
 
   it("creates maintenance request and returns 201", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(tenantSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({ success: true, data: tenantSession });
     getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(sampleLease);
     createMaintenanceRequestMock.mockResolvedValue(sampleRequest);
 

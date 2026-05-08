@@ -11,6 +11,7 @@ type FormData = {
 
 export default function AccountTypePage(): React.ReactElement {
   const router = useRouter();
+  const enabledAccountType: OperatorAccountType = "mixed_operator";
   const [formData, setFormData] = useState<FormData>({
     accountType: "",
     organizationName: ""
@@ -23,22 +24,26 @@ export default function AccountTypePage(): React.ReactElement {
     {
       type: "self_managed_owner" as const,
       label: "Je gère mes propres locations",
-      description: "Vous êtes propriétaire et gérez vos propres biens en location"
+      description: "Vous êtes propriétaire et gérez vos propres biens en location",
+      enabled: false
     },
     {
       type: "manager_for_others" as const,
       label: "Je gère les locations pour d'autres",
-      description: "Vous êtes gestionnaire professionnel ou agent immobilier"
+      description: "Vous êtes gestionnaire professionnel ou agent immobilier",
+      enabled: false
     },
     {
       type: "mixed_operator" as const,
       label: "Je gère un mélange des deux",
-      description: "Vous possédez des biens ET en gérez pour d'autres"
+      description: "Vous possédez des biens ET en gérez pour d'autres",
+      enabled: true
     },
     {
       type: "tenant" as const,
       label: "Je ne gère pas encore de location",
-      description: "Vous démarrez: création de votre premier bien ou rejoindre une organisation"
+      description: "Vous démarrez: création de votre premier bien ou rejoindre une organisation",
+      enabled: false
     }
   ];
 
@@ -48,6 +53,11 @@ export default function AccountTypePage(): React.ReactElement {
 
     if (!formData.accountType) {
       setError("Veuillez sélectionner un type de compte");
+      return;
+    }
+
+    if (formData.accountType !== enabledAccountType) {
+      setError("Ce parcours n'est pas encore disponible.");
       return;
     }
 
@@ -108,6 +118,9 @@ export default function AccountTypePage(): React.ReactElement {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <h1 className="text-2xl font-semibold text-[#010a19] mb-2">Configurez votre compte</h1>
           <p className="text-gray-600 mb-8">Quel type de gestionnaire êtes-vous ?</p>
+          <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Pour le moment, seul le parcours "Je gère un mélange des deux" est disponible. Les autres options arrivent bientôt.
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Account Type Selection */}
@@ -117,21 +130,33 @@ export default function AccountTypePage(): React.ReactElement {
               </legend>
               <div className="grid grid-cols-1 gap-3">
                 {picker.map((option) => (
-                  <label key={option.type} className="flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition hover:border-[#0063fe] hover:bg-[#0063fe]/5" style={{
-                    borderColor: formData.accountType === option.type ? "#0063fe" : undefined,
-                    backgroundColor: formData.accountType === option.type ? "#0063fe/5" : undefined
-                  }}>
+                  <label
+                    key={option.type}
+                    className={`flex items-start rounded-lg border-2 p-4 transition ${
+                      option.enabled
+                        ? "cursor-pointer border-gray-200 hover:border-[#0063fe] hover:bg-[#0063fe]/5"
+                        : "cursor-not-allowed border-gray-200 bg-gray-50 opacity-60"
+                    }`}
+                    style={{
+                      borderColor: formData.accountType === option.type ? "#0063fe" : undefined,
+                      backgroundColor: formData.accountType === option.type ? "#eff6ff" : undefined
+                    }}
+                  >
                     <input
                       type="radio"
                       name="accountType"
                       value={option.type}
                       checked={formData.accountType === option.type}
+                      disabled={!option.enabled}
                       onChange={(e) => setFormData(prev => ({ ...prev, accountType: e.target.value as OperatorAccountType }))}
                       className="mt-0.5 mr-3"
                       required
                     />
                     <div>
-                      <div className="font-medium text-[#010a19]">{option.label}</div>
+                      <div className="font-medium text-[#010a19]">
+                        {option.label}
+                        {!option.enabled ? <span className="ml-2 text-xs font-medium text-amber-700">Bientot disponible</span> : null}
+                      </div>
                       <div className="text-sm text-gray-600">{option.description}</div>
                     </div>
                   </label>

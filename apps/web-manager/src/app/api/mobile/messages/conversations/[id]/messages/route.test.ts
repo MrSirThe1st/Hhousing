@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  extractAuthSessionFromRequestMock,
+  extractTenantSessionFromRequestMock,
   sendTenantMessageMock
 } = vi.hoisted(() => ({
-  extractAuthSessionFromRequestMock: vi.fn(),
+  extractTenantSessionFromRequestMock: vi.fn(),
   sendTenantMessageMock: vi.fn()
 }));
 
 vi.mock("../../../../../../../auth/session-adapter", () => ({
-  extractAuthSessionFromRequest: extractAuthSessionFromRequestMock
+  extractTenantSessionFromRequest: extractTenantSessionFromRequestMock
 }));
 
 vi.mock("../../../../../shared", async () => {
@@ -60,10 +60,10 @@ describe("POST /api/mobile/messages/conversations/[id]/messages", () => {
   });
 
   it("returns auth failure", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(null);
-    sendTenantMessageMock.mockResolvedValue({
-      status: 401,
-      body: { success: false, code: "UNAUTHORIZED", error: "Authentication required" }
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
     });
 
     const response = await POST(
@@ -80,12 +80,15 @@ describe("POST /api/mobile/messages/conversations/[id]/messages", () => {
   });
 
   it("sends tenant message", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "tenant-auth-1",
-      role: "tenant",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: false },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "tenant-auth-1",
+        role: "tenant",
+        organizationId: "org-1",
+        capabilities: { canOwnProperties: false },
+        memberships: []
+      }
     });
 
     sendTenantMessageMock.mockResolvedValue({

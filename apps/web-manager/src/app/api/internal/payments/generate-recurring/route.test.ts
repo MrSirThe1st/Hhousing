@@ -22,6 +22,12 @@ vi.mock("../../../shared", async () => {
 
 import { GET } from "./route";
 
+function createAuthorizedRequest(): Request {
+  return new Request("http://localhost/api/internal/payments/generate-recurring", {
+    headers: { authorization: "Bearer test-cron-secret" }
+  });
+}
+
 describe("/api/internal/payments/generate-recurring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,9 +59,7 @@ describe("/api/internal/payments/generate-recurring", () => {
   });
 
   it("runs generation for all organizations on scheduled GET", async () => {
-    const response = await GET(new Request("http://localhost/api/internal/payments/generate-recurring", {
-      headers: { authorization: "Bearer test-cron-secret" }
-    }));
+    const response = await GET(createAuthorizedRequest());
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -74,5 +78,51 @@ describe("/api/internal/payments/generate-recurring", () => {
     expect(listOrganizationsWithActiveRecurringChargesMock).toHaveBeenCalledTimes(1);
     expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(1, "org-1", "2026-04");
     expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(2, "org-2", "2026-04");
+  });
+
+  it("uses the May 2026 period when run on May 3", async () => {
+    vi.setSystemTime(new Date("2026-05-03T10:00:00.000Z"));
+
+    const response = await GET(createAuthorizedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      success: true,
+      data: {
+        period: "2026-05",
+        processedOrganizations: 2,
+        totalGenerated: 3,
+        organizations: [
+          { organizationId: "org-1", generated: 2 },
+          { organizationId: "org-2", generated: 1 }
+        ],
+        failures: []
+      }
+    });
+    expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(1, "org-1", "2026-05");
+    expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(2, "org-2", "2026-05");
+  });
+
+  it("uses the July 2026 period when run on July 5", async () => {
+    vi.setSystemTime(new Date("2026-07-05T10:00:00.000Z"));
+
+    const response = await GET(createAuthorizedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      success: true,
+      data: {
+        period: "2026-07",
+        processedOrganizations: 2,
+        totalGenerated: 3,
+        organizations: [
+          { organizationId: "org-1", generated: 2 },
+          { organizationId: "org-2", generated: 1 }
+        ],
+        failures: []
+      }
+    });
+    expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(1, "org-1", "2026-07");
+    expect(generateMonthlyChargesMock).toHaveBeenNthCalledWith(2, "org-2", "2026-07");
   });
 });

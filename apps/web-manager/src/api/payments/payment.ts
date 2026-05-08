@@ -21,6 +21,12 @@ import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
 import { logOperatorAuditEvent } from "../audit-log";
+import {
+  buildInvoiceDocumentContext,
+  buildInvoiceDocumentHtml,
+  buildInvoiceEmailHtml
+} from "../../lib/invoices/invoice-document";
+import type { ManagedEmailAttachmentInput } from "../../lib/email/resend";
 
 function formatCurrency(amount: number, currencyCode: string): string {
   return `${amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode}`;
@@ -37,21 +43,48 @@ async function sendPaidInvoiceEmail(
   organization: Organization | null | undefined,
   sendEmail: NonNullable<MarkPaymentPaidDeps["sendInvoicePaidEmail"]>
 ): Promise<void> {
+  const formatDate = (value: string): string => new Date(value).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+
+  const invoiceDocumentHtml = buildInvoiceDocumentHtml(
+    buildInvoiceDocumentContext({
+      invoice,
+      tenantName,
+      tenantEmail,
+      organization,
+      formatDate
+    })
+  );
+
+  const attachmentContentBase64 = Buffer.from(invoiceDocumentHtml, "utf-8").toString("base64");
+  const attachments: ManagedEmailAttachmentInput[] = [
+    {
+      fileName: `facture-${invoice.invoiceNumber}.html`,
+      mimeType: "text/html",
+      fileUrl: `data:text/html;base64,${attachmentContentBase64}`
+    }
+  ];
+
+  const emailHtml = buildInvoiceEmailHtml({
+    tenantName,
+    organization,
+    invoiceNumber: invoice.invoiceNumber,
+    amountLabel: formatCurrency(invoice.totalAmount, invoice.currencyCode),
+    remainingLabel: formatCurrency(Math.max(0, invoice.totalAmount - invoice.amountPaid), invoice.currencyCode),
+    dueDateLabel: formatDate(invoice.dueDate),
+    issueDateLabel: formatDate(invoice.issueDate),
+    periodLabel: invoice.period ?? "Facture ponctuelle",
+    currencyCode: invoice.currencyCode
+  });
+
   await sendEmail({
     to: tenantEmail,
     subject: `Facture ${invoice.invoiceNumber}`,
-    body: [
-      `Bonjour ${tenantName},`,
-      "",
-      `Votre facture ${invoice.invoiceNumber} est maintenant marquée comme payée.`,
-      `Montant total: ${formatCurrency(invoice.totalAmount, invoice.currencyCode)}`,
-      `Montant payé: ${formatCurrency(invoice.amountPaid, invoice.currencyCode)}`,
-      `Reste à payer: ${formatCurrency(Math.max(0, invoice.totalAmount - invoice.amountPaid), invoice.currencyCode)}`,
-      `Échéance: ${invoice.dueDate}`,
-      "",
-      "Merci."
-    ].join("\n"),
-    organization
+    html: emailHtml,
+    attachments
   });
 }
 
@@ -154,8 +187,8 @@ export interface MarkPaymentPaidDeps {
   sendInvoicePaidEmail?: (input: {
     to: string;
     subject: string;
-    body: string;
-    organization?: Organization | null;
+    html: string;
+    attachments?: ManagedEmailAttachmentInput[];
   }) => Promise<void>;
 }
 

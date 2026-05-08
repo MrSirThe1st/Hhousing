@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  extractAuthSessionFromRequestMock,
+  extractTenantSessionFromRequestMock,
   getCurrentLeaseByTenantAuthUserIdMock,
   listDocumentsMock
 } = vi.hoisted(() => ({
-  extractAuthSessionFromRequestMock: vi.fn(),
+  extractTenantSessionFromRequestMock: vi.fn(),
   getCurrentLeaseByTenantAuthUserIdMock: vi.fn(),
   listDocumentsMock: vi.fn()
 }));
 
 vi.mock("../../../../auth/session-adapter", () => ({
-  extractAuthSessionFromRequest: extractAuthSessionFromRequestMock
+  extractTenantSessionFromRequest: extractTenantSessionFromRequestMock
 }));
 
 vi.mock("../../shared", async () => {
@@ -39,7 +39,11 @@ describe("/api/mobile/documents", () => {
   });
 
   it("rejects unauthenticated requests", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(null);
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    });
 
     const response = await GET(new Request("http://localhost/api/mobile/documents"));
 
@@ -48,12 +52,10 @@ describe("/api/mobile/documents", () => {
   });
 
   it("rejects non-tenant roles", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "user-1",
-      role: "landlord",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: true },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "FORBIDDEN",
+      error: "This endpoint is only available to tenants"
     });
 
     const response = await GET(new Request("http://localhost/api/mobile/documents"));
@@ -63,12 +65,15 @@ describe("/api/mobile/documents", () => {
   });
 
   it("returns an empty list when tenant has no active lease", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "tenant-auth-1",
-      role: "tenant",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: false },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "tenant-auth-1",
+        role: "tenant",
+        organizationId: "org-1",
+        capabilities: { canOwnProperties: false },
+        memberships: []
+      }
     });
     getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(null);
 
@@ -83,12 +88,15 @@ describe("/api/mobile/documents", () => {
   });
 
   it("returns lease and tenant documents for authenticated tenant", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "tenant-auth-1",
-      role: "tenant",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: false },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "tenant-auth-1",
+        role: "tenant",
+        organizationId: "org-1",
+        capabilities: { canOwnProperties: false },
+        memberships: []
+      }
     });
     getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue({
       id: "lease-1",

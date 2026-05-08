@@ -4,7 +4,7 @@ import { requirePermission } from "../../../../api/organizations/permissions";
 import { Permission } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
-import { sendManagedEmailFromEnv } from "../../../../lib/email/resend";
+import { sendRawHtmlEmailFromEnv } from "../../../../lib/email/resend";
 import {
   createInvoiceRepo,
   createPaymentRepo,
@@ -128,7 +128,7 @@ export async function PATCH(
       invoiceRepository: createInvoiceRepo(),
       tenantRepository: createTenantLeaseRepo(),
       organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
-      sendInvoicePaidEmail: sendManagedEmailFromEnv
+      sendInvoicePaidEmail: sendRawHtmlEmailFromEnv
     }
   );
 

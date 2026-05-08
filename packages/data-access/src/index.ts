@@ -51,6 +51,7 @@ export type {
   CreateLeaseRecordInput,
   CreateLeaseChargeRecordInput,
   MoveOutAggregateRecord,
+  MoveOutListItem,
   ReplaceMoveOutChargeRecordInput,
   UpsertMoveOutInspectionRecordInput,
   CloseMoveOutRecordInput,

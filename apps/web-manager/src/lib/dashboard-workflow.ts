@@ -10,9 +10,10 @@ import {
 } from "../app/api/shared";
 import { filterCalendarEventsByScope, filterMaintenanceRequestsByScope, filterPaymentsByScope, filterTasksByScope, filterTenantsByScope, getScopedPortfolioData } from "./operator-scope-portfolio";
 import type { DashboardCalendarEntry } from "./dashboard-workflow.types";
+import { getNow } from "./time";
 
 function getTodayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getNow().toISOString().slice(0, 10);
 }
 
 function createSystemTaskId(): string {

@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  extractAuthSessionFromRequestMock,
+  extractTenantSessionFromRequestMock,
   getMaintenanceRequestByIdMock,
   listMaintenanceRequestsByTenantAuthUserIdMock,
   listMaintenanceRequestTimelineMock
 } = vi.hoisted(() => ({
-  extractAuthSessionFromRequestMock: vi.fn(),
+  extractTenantSessionFromRequestMock: vi.fn(),
   getMaintenanceRequestByIdMock: vi.fn(),
   listMaintenanceRequestsByTenantAuthUserIdMock: vi.fn(),
   listMaintenanceRequestTimelineMock: vi.fn()
 }));
 
 vi.mock("../../../../../auth/session-adapter", () => ({
-  extractAuthSessionFromRequest: extractAuthSessionFromRequestMock
+  extractTenantSessionFromRequest: extractTenantSessionFromRequestMock
 }));
 
 vi.mock("../../../shared", async () => {
@@ -86,7 +86,11 @@ describe("GET /api/mobile/maintenance/[id]", () => {
   });
 
   it("rejects unauthenticated requests", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(null);
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    });
 
     const response = await GET(new Request("http://localhost/api/mobile/maintenance/mnt-1"), {
       params: Promise.resolve({ id: "mnt-1" })
@@ -97,7 +101,7 @@ describe("GET /api/mobile/maintenance/[id]", () => {
   });
 
   it("returns 404 when request not found", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(tenantSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({ success: true, data: tenantSession });
     getMaintenanceRequestByIdMock.mockResolvedValue(null);
 
     const response = await GET(new Request("http://localhost/api/mobile/maintenance/mnt-999"), {
@@ -109,7 +113,7 @@ describe("GET /api/mobile/maintenance/[id]", () => {
   });
 
   it("returns 403 when tenant does not own the request", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(tenantSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({ success: true, data: tenantSession });
     getMaintenanceRequestByIdMock.mockResolvedValue(sampleRequest);
     listMaintenanceRequestsByTenantAuthUserIdMock.mockResolvedValue([]); // Empty list = not owned
 
@@ -122,7 +126,7 @@ describe("GET /api/mobile/maintenance/[id]", () => {
   });
 
   it("returns maintenance request with timeline for owner", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(tenantSession);
+    extractTenantSessionFromRequestMock.mockResolvedValue({ success: true, data: tenantSession });
     getMaintenanceRequestByIdMock.mockResolvedValue(sampleRequest);
     listMaintenanceRequestsByTenantAuthUserIdMock.mockResolvedValue([sampleRequest]);
     listMaintenanceRequestTimelineMock.mockResolvedValue(sampleTimeline);

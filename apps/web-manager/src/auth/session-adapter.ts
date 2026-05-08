@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
-import type { AuthSession, UserRole } from "@hhousing/api-contracts";
+import type { ApiResult, AuthSession, UserRole } from "@hhousing/api-contracts";
 
 const VALID_ROLES: readonly UserRole[] = ["tenant", "landlord", "property_manager", "platform_admin"];
 
@@ -136,6 +136,97 @@ export async function extractAuthSessionFromRequest(request: Request): Promise<A
   } catch (error) {
     console.error("Failed to extract auth session", error);
     return null;
+  }
+}
+
+export async function extractTenantSessionFromRequest(
+  request: Request
+): Promise<ApiResult<AuthSession>> {
+  const token = getBearerToken(request.headers);
+  if (token === null) {
+    return {
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    };
+  }
+
+  const supabaseClient = createSupabaseClientFromEnv();
+  if (supabaseClient === null) {
+    return {
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    };
+  }
+
+  const { data, error } = await supabaseClient.auth.getUser(token);
+  if (error || data.user === null) {
+    return {
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    };
+  }
+
+  const userId = data.user.id;
+
+  try {
+    const authRepo = createAuthRepositoryFromEnv(process.env);
+    const memberships = await authRepo.listMembershipsByUserId(userId);
+
+    if (memberships.length === 0) {
+      return {
+        success: false,
+        code: "FORBIDDEN",
+        error: "Account activated, but this user is not linked to a tenant invitation yet"
+      };
+    }
+
+    const primary = memberships[0];
+    if (!primary) {
+      return {
+        success: false,
+        code: "FORBIDDEN",
+        error: "Account activated, but this user is not linked to a tenant invitation yet"
+      };
+    }
+
+    const session: AuthSession = {
+      userId,
+      role: primary.role,
+      organizationId: primary.organizationId,
+      capabilities: primary.capabilities,
+      memberships
+    };
+
+    if (session.role !== "tenant") {
+      return {
+        success: false,
+        code: "FORBIDDEN",
+        error: "This endpoint is only available to tenants"
+      };
+    }
+
+    if (!session.organizationId) {
+      return {
+        success: false,
+        code: "FORBIDDEN",
+        error: "Organization context is required"
+      };
+    }
+
+    return {
+      success: true,
+      data: session
+    };
+  } catch (caughtError) {
+    console.error("Failed to extract tenant auth session", caughtError);
+    return {
+      success: false,
+      code: "INTERNAL_ERROR",
+      error: "Failed to resolve tenant account access"
+    };
   }
 }
 

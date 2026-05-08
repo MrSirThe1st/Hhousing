@@ -162,6 +162,18 @@ export interface MoveOutAggregateRecord {
   inspection: MoveOutInspection | null;
 }
 
+export interface MoveOutListItem {
+  moveOutId: string;
+  leaseId: string;
+  moveOutDate: string;
+  reason: string | null;
+  status: "draft" | "confirmed" | "closed";
+  tenantFullName: string;
+  propertyName: string | null;
+  unitLabel: string | null;
+  updatedAtIso: string;
+}
+
 export interface TenantLeaseRepository {
   createTenant(input: CreateTenantRecordInput): Promise<Tenant>;
   createLease(input: CreateLeaseRecordInput): Promise<Lease>;
@@ -183,6 +195,8 @@ export interface TenantLeaseRepository {
   listTenantsByOrganization(organizationId: string): Promise<Tenant[]>;
   getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null>;
   getLeaseById(leaseId: string, organizationId: string): Promise<LeaseWithTenantView | null>;
+  listMoveOutsByOrganization(organizationId: string): Promise<MoveOutListItem[]>;
+  getLatestLedgerEventId(organizationId: string): Promise<number | null>;
   getMoveOutByLeaseId(leaseId: string, organizationId: string): Promise<MoveOutAggregateRecord | null>;
   upsertMoveOut(input: UpsertMoveOutRecordInput): Promise<MoveOut>;
   replaceMoveOutCharges(input: ReplaceMoveOutChargeRecordInput): Promise<MoveOutCharge[]>;

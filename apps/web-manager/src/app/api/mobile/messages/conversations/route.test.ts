@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  extractAuthSessionFromRequestMock,
+  extractTenantSessionFromRequestMock,
   listTenantConversationsMock
 } = vi.hoisted(() => ({
-  extractAuthSessionFromRequestMock: vi.fn(),
+  extractTenantSessionFromRequestMock: vi.fn(),
   listTenantConversationsMock: vi.fn()
 }));
 
 vi.mock("../../../../../auth/session-adapter", () => ({
-  extractAuthSessionFromRequest: extractAuthSessionFromRequestMock
+  extractTenantSessionFromRequest: extractTenantSessionFromRequestMock
 }));
 
 vi.mock("../../../shared", async () => {
@@ -45,10 +45,10 @@ describe("GET /api/mobile/messages/conversations", () => {
   });
 
   it("passes through auth failure", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(null);
-    listTenantConversationsMock.mockResolvedValue({
-      status: 401,
-      body: { success: false, code: "UNAUTHORIZED", error: "Authentication required" }
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
     });
 
     const response = await GET(new Request("http://localhost/api/mobile/messages/conversations"));
@@ -58,12 +58,15 @@ describe("GET /api/mobile/messages/conversations", () => {
   });
 
   it("returns tenant conversations", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "tenant-auth-1",
-      role: "tenant",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: false },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "tenant-auth-1",
+        role: "tenant",
+        organizationId: "org-1",
+        capabilities: { canOwnProperties: false },
+        memberships: []
+      }
     });
 
     listTenantConversationsMock.mockResolvedValue({

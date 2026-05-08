@@ -3,6 +3,7 @@ import { listExpenses, listPayments } from "../api";
 import { createExpenseRepo, createPaymentRepo, createTeamFunctionsRepo } from "../app/api/shared";
 import type { Expense, ExpenseCategory, Payment } from "@hhousing/domain";
 import { filterExpensesByScope, filterPaymentsByScope, getScopedPortfolioData, type ScopedPortfolioData } from "./operator-scope-portfolio";
+import { getNow } from "./time";
 import type {
   CurrencyTotal,
   ExpenseDataset,
@@ -25,14 +26,14 @@ function isIsoDate(value: string | undefined): value is string {
 }
 
 function startOfMonthMonthsAgo(monthsAgo: number): string {
-  const today = new Date();
+  const today = getNow();
   return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - monthsAgo, 1))
     .toISOString()
     .slice(0, 10);
 }
 
 function endOfCurrentMonth(): string {
-  const today = new Date();
+  const today = getNow();
   return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
     .toISOString()
     .slice(0, 10);

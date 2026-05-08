@@ -1,6 +1,7 @@
 import type { AuthSession, ListingApplicationView, ManagerConversationListItem } from "@hhousing/api-contracts";
 import type { MaintenanceRequest, Payment } from "@hhousing/domain";
 import { createRepositoryFromEnv, createListingRepo, createMaintenanceRepo, createMessageRepo, createPaymentRepo, createTenantLeaseRepo } from "../app/api/shared";
+import { getNow } from "./time";
 
 export interface SidebarBadgeCounts {
   listings: number;
@@ -59,7 +60,7 @@ export async function getSidebarBadgeCounts(session: AuthSession): Promise<Sideb
         .filter((lease) => unitIds.has(lease.unitId))
         .map((lease) => lease.id)
     );
-    const todayIsoDate = new Date().toISOString().slice(0, 10);
+    const todayIsoDate = getNow().toISOString().slice(0, 10);
 
     const listings = (applicationsResult as ListingApplicationView[]).filter(
       (item) => item.application.status !== "converted"

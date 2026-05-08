@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  extractAuthSessionFromRequestMock,
+  extractTenantSessionFromRequestMock,
   getTenantConversationDetailMock
 } = vi.hoisted(() => ({
-  extractAuthSessionFromRequestMock: vi.fn(),
+  extractTenantSessionFromRequestMock: vi.fn(),
   getTenantConversationDetailMock: vi.fn()
 }));
 
 vi.mock("../../../../../../auth/session-adapter", () => ({
-  extractAuthSessionFromRequest: extractAuthSessionFromRequestMock
+  extractTenantSessionFromRequest: extractTenantSessionFromRequestMock
 }));
 
 vi.mock("../../../../shared", async () => {
@@ -45,12 +45,15 @@ describe("GET /api/mobile/messages/conversations/[id]", () => {
   });
 
   it("returns not found", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "tenant-auth-1",
-      role: "tenant",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: false },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "tenant-auth-1",
+        role: "tenant",
+        organizationId: "org-1",
+        capabilities: { canOwnProperties: false },
+        memberships: []
+      }
     });
 
     getTenantConversationDetailMock.mockResolvedValue({
@@ -68,12 +71,15 @@ describe("GET /api/mobile/messages/conversations/[id]", () => {
   });
 
   it("returns conversation detail", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "tenant-auth-1",
-      role: "tenant",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: false },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "tenant-auth-1",
+        role: "tenant",
+        organizationId: "org-1",
+        capabilities: { canOwnProperties: false },
+        memberships: []
+      }
     });
 
     getTenantConversationDetailMock.mockResolvedValue({

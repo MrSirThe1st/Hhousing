@@ -7,6 +7,7 @@ import type {
   CreateTenantRecordInput,
   CreateLeaseRecordInput,
   MoveOutAggregateRecord,
+  MoveOutListItem,
   ReplaceMoveOutChargeRecordInput,
   CloseMoveOutRecordInput,
   CreateTenantInvitationRecordInput,
@@ -93,6 +94,18 @@ interface TenantInvitationPreviewRow extends QueryResultRow {
   monthly_rent_amount: string | number | null;
   currency_code: string | null;
   expires_at: Date | string;
+}
+
+interface MoveOutListRow extends QueryResultRow {
+  move_out_id: string;
+  lease_id: string;
+  move_out_date: string | Date;
+  reason: string | null;
+  status: "draft" | "confirmed" | "closed";
+  tenant_full_name: string;
+  property_name: string | null;
+  unit_label: string | null;
+  updated_at: Date | string;
 }
 
 interface MoveOutRow extends QueryResultRow {
@@ -649,6 +662,52 @@ export function createPostgresTenantLeaseRepository(
         [leaseId, organizationId]
       );
       return result.rows[0] ? mapLeaseWithTenant(result.rows[0]) : null;
+    },
+
+    async getLatestLedgerEventId(organizationId: string): Promise<number | null> {
+      const result = await client.query<{ max_id: number | null }>(
+        `select max(ledger_event_id) as max_id
+         from finance_ledger_entries
+         where organization_id = $1`,
+        [organizationId]
+      );
+      const value = result.rows[0]?.max_id;
+      return value === null || value === undefined ? null : Number(value);
+    },
+
+    async listMoveOutsByOrganization(organizationId: string): Promise<MoveOutListItem[]> {
+      const result = await client.query<MoveOutListRow>(
+        `select
+           mo.id          as move_out_id,
+           mo.lease_id,
+           mo.move_out_date,
+           mo.reason,
+           mo.status,
+           mo.updated_at,
+           t.full_name    as tenant_full_name,
+           p.name         as property_name,
+           u.label        as unit_label
+         from move_outs mo
+         join leases l on l.id = mo.lease_id
+         join tenants t on t.id = l.tenant_id
+         left join units u on u.id = l.unit_id
+         left join properties p on p.id = u.property_id
+         where mo.organization_id = $1
+         order by mo.updated_at desc`,
+        [organizationId]
+      );
+
+      return result.rows.map((row) => ({
+        moveOutId: row.move_out_id,
+        leaseId: row.lease_id,
+        moveOutDate: toIsoDate(row.move_out_date),
+        reason: row.reason,
+        status: row.status,
+        tenantFullName: row.tenant_full_name,
+        propertyName: row.property_name,
+        unitLabel: row.unit_label,
+        updatedAtIso: toIso(row.updated_at)
+      }));
     },
 
     async getMoveOutByLeaseId(leaseId: string, organizationId: string): Promise<MoveOutAggregateRecord | null> {

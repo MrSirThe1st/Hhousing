@@ -1,5 +1,6 @@
 import { getTenantConversationDetail } from "../../../../../../api";
-import { extractAuthSessionFromRequest } from "../../../../../../auth/session-adapter";
+import { mapErrorCodeToHttpStatus } from "../../../../../../api/shared";
+import { extractTenantSessionFromRequest } from "../../../../../../auth/session-adapter";
 import { createMessageRepo, jsonResponse } from "../../../../shared";
 
 interface RouteParams {
@@ -8,10 +9,15 @@ interface RouteParams {
 
 export async function GET(request: Request, { params }: RouteParams): Promise<Response> {
   const { id } = await params;
+  const access = await extractTenantSessionFromRequest(request);
+
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
 
   const result = await getTenantConversationDetail(
     {
-      session: await extractAuthSessionFromRequest(request),
+      session: access.data,
       conversationId: id
     },
     {

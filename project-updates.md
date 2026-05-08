@@ -2,6 +2,36 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-04-19 (Late Evening)
+- Change type: DB + Security Hardening (RLS Policy Model Correction)
+- Description: Removed blanket/global deny RLS policies from shared app tables and switched to explicit allow-only model (implicit deny by default). This fixes authenticated user read-path regressions (notably login/account routing that depends on `organization_memberships` reads via Supabase client).
+- Impact: Added `db/migrations/0044_drop_global_deny_rls_policies.sql`; dropped all `deny_*` policies created by baseline migration while keeping explicit org-scoped allow policies.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓; Supabase verification query confirms zero `deny%` policies remaining; security advisors now show only 3 expected `rls_enabled_no_policy` infos (`audit_logs`, `finance_ledger_accounts`, `finance_ledger_categories`) + 1 auth warning (`auth_leaked_password_protection`).
+
+## 2026-04-20
+- Change type: Frontend + Invoices UX
+- Description: Refactored manager invoices UI into a more realistic invoice workflow with row-click detail opening, issuer/tenant context, and menu-based row actions (download + void) instead of inline void controls.
+- Impact: Updated `apps/web-manager/src/app/dashboard/invoices/page.tsx` to load organization metadata and pass it to the panel; updated `apps/web-manager/src/components/invoice-management-panel.tsx` with branded invoice header (company + logo), action-menu controls in the Actions column, full-row click behavior, and printable/downloadable invoice output.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-04-20
+- Change type: API + Email + Invoices
+- Description: Added shared invoice document template mirroring real-world invoice structure and reused it for manager downloads plus tenant paid-invoice emails with downloadable attachment.
+- Impact: Added `apps/web-manager/src/lib/invoices/invoice-document.ts`; updated `apps/web-manager/src/components/invoice-management-panel.tsx` to render/download from shared template; updated `apps/web-manager/src/api/payments/payment.ts` to generate invoice HTML email + attach invoice file; updated `apps/web-manager/src/lib/email/resend.ts` with raw-HTML sender; updated `apps/web-manager/src/app/api/payments/[id]/route.ts` to use raw HTML sender for invoice delivery.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager exec vitest run 'src/app/api/payments/[id]/route.test.ts' 'src/api/invoices/invoice.test.ts'` ✓.
+
+## 2026-04-19 (Evening)
+- Change type: DB + Security Hardening (RLS Baseline Policies)
+- Description: Completed 4-phase RLS enablement across all 37 public tables + created comprehensive baseline RLS policies for all 111 table-objects (27 tables × org-scoped policies + 21 complex join-scoped policies + helper function). All 4 phases applied and validated green (25/25 smoke tests pass on org, team, invites, templates routes; typecheck clean; advisors show 0 `rls_disabled_in_public`, 111 `rls_enabled_no_policy`). New baseline policies implement org-scoped READ-only posture for authenticated users + deny-all for writes, with service-role-only bypass (server-side API access unaffected by `rolbypassrls=true` on postgres role). Helper function `user_org_ids()` centralizes org membership check for all policies.
+- Impact: All 4 phases applied (0038-0041), validated passing. Created `db/migrations/0042_baseline_rls_policies_service_role_only.sql` with 111 baseline policies organized by phase grouping + metadata tables.
+- Tests: Phase 1: 25/25 tests pass, typecheck clean. Phase 2: 25/25 tests pass, typecheck clean. Phase 3: 25/25 tests pass, typecheck clean. Phase 4: 25/25 tests pass, typecheck clean. Post-Phase-4 advisors: 0 `rls_disabled_in_public` + 111 `rls_enabled_no_policy`.
+
+## 2026-04-19
+- Change type: DB + Security Hardening
+- Description: Added phased migrations to enable RLS safely across all `public` tables in four rollout waves (support/invites, collaboration/listings, finance/workflows, then core/auth tables).
+- Impact: Added `db/migrations/0038_enable_rls_phase_1_support_and_invites.sql`, `db/migrations/0039_enable_rls_phase_2_collaboration_and_listings.sql`, `db/migrations/0040_enable_rls_phase_3_finance_and_workflows.sql`, and `db/migrations/0041_enable_rls_phase_4_core_entities_and_auth.sql`.
+- Tests: All 4 phases validated passing with 25/25 smoke tests ✓, typecheck clean ✓.
+
 ## 2026-04-18
 - Change type: Web + Team UX
 - Description: Improved team members display from card-based layout to a clean table UI with columns for member name, contact status, email, and role. Added action buttons in the table for managers to configure member roles directly.

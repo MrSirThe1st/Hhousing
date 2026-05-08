@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  extractAuthSessionFromRequestMock,
+  extractTenantSessionFromRequestMock,
   listPaymentsByTenantAuthUserIdMock
 } = vi.hoisted(() => ({
-  extractAuthSessionFromRequestMock: vi.fn(),
+  extractTenantSessionFromRequestMock: vi.fn(),
   listPaymentsByTenantAuthUserIdMock: vi.fn()
 }));
 
 vi.mock("../../../../auth/session-adapter", () => ({
-  extractAuthSessionFromRequest: extractAuthSessionFromRequestMock
+  extractTenantSessionFromRequest: extractTenantSessionFromRequestMock
 }));
 
 vi.mock("../../shared", async () => {
@@ -32,7 +32,11 @@ describe("/api/mobile/payments", () => {
   });
 
   it("rejects unauthenticated requests", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue(null);
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    });
 
     const response = await GET(new Request("http://localhost/api/mobile/payments"));
 
@@ -46,12 +50,10 @@ describe("/api/mobile/payments", () => {
   });
 
   it("rejects non-tenant roles", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "user-1",
-      role: "landlord",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: true },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: false,
+      code: "FORBIDDEN",
+      error: "This endpoint is only available to tenants"
     });
 
     const response = await GET(new Request("http://localhost/api/mobile/payments"));
@@ -66,12 +68,15 @@ describe("/api/mobile/payments", () => {
   });
 
   it("returns payments for authenticated tenant", async () => {
-    extractAuthSessionFromRequestMock.mockResolvedValue({
-      userId: "tenant-auth-1",
-      role: "tenant",
-      organizationId: "org-1",
-      capabilities: { canOwnProperties: false },
-      memberships: []
+    extractTenantSessionFromRequestMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "tenant-auth-1",
+        role: "tenant",
+        organizationId: "org-1",
+        capabilities: { canOwnProperties: false },
+        memberships: []
+      }
     });
 
     listPaymentsByTenantAuthUserIdMock.mockResolvedValue([

@@ -9,6 +9,7 @@ import DashboardCalendar from "../../components/dashboard-calendar";
 import { formatCurrencySummary, loadScopedFinanceData, subtractCurrencyTotals } from "../../lib/finance-reporting";
 import type { AuthSession } from "@hhousing/api-contracts";
 import type { Expense, MaintenanceRequest, Payment } from "@hhousing/domain";
+import { getNow } from "../../lib/time";
 
 type DashboardTab = "overview" | "tasks" | "calendar";
 
@@ -81,7 +82,7 @@ function toCurrencyTotals(summary: Map<string, number>): CurrencyTotal[] {
 }
 
 function getRecentMonthKeys(count: number): string[] {
-  const now = new Date();
+  const now = getNow();
   const monthKeys: string[] = [];
 
   for (let offset = count - 1; offset >= 0; offset -= 1) {
@@ -154,7 +155,7 @@ function parseUtcDate(isoDate: string): Date {
 }
 
 function getTodayUtcDate(): Date {
-  const now = new Date();
+  const now = getNow();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 

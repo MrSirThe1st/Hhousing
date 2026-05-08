@@ -312,3 +312,21 @@ export async function sendManagedEmailFromEnv(input: {
     attachments
   });
 }
+
+export async function sendRawHtmlEmailFromEnv(input: {
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: ManagedEmailAttachmentInput[];
+}): Promise<void> {
+  const attachments = input.attachments
+    ? await Promise.all(input.attachments.map(fetchAttachment))
+    : undefined;
+
+  await sendEmail({
+    to: input.to,
+    subject: input.subject,
+    html: input.html,
+    attachments
+  });
+}
