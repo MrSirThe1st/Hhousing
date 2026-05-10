@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CardSkeleton } from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import type { Lease, Payment, Tenant } from "@hhousing/domain";
+import type { Lease, Payment, Tenant } from "@/lib/domain-types";
 import { getWithAuth } from "@/lib/api-client";
 import { NetworkError } from "@/components/network-error";
 

@@ -14,8 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { CardSkeleton, ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
-import type { Document } from "@hhousing/domain";
-import type { ApiResult, LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { Document } from "@/lib/domain-types";
+import type { ApiResult, LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
 
 type TenantLeaseOutput = {
@@ -256,7 +256,14 @@ export default function LeaseScreen(): React.ReactElement {
               <View style={styles.rentAmountRow}>
                 <Text style={styles.rowLabel}>Montant mensuel</Text>
                 <View style={styles.rentRight}>
-                  <Text style={styles.rentAmount}>{formatAmount(lease.monthlyRentAmount, lease.currencyCode)}</Text>
+                  <Text
+                    style={styles.rentAmount}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.72}
+                  >
+                    {formatAmount(lease.monthlyRentAmount, lease.currencyCode)}
+                  </Text>
                   <Text style={styles.rentSuffix}>/ MOIS</Text>
                 </View>
               </View>
@@ -521,12 +528,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   rentRight: {
-    alignItems: "flex-end"
+    alignItems: "flex-end",
+    flexShrink: 1,
+    maxWidth: "62%"
   },
   rentAmount: {
-    fontSize: 38,
+    fontSize: 32,
     fontWeight: "700",
-    color: "#0063FE"
+    color: "#0063FE",
+    textAlign: "right"
   },
   rentSuffix: {
     fontSize: 12,

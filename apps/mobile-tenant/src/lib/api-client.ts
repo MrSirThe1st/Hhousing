@@ -1,6 +1,10 @@
-import type { ApiResult } from "@hhousing/api-contracts";
 import { env } from "./env";
 import { supabase } from "./supabase";
+
+// ApiResult type definition (inlined to avoid workspace dependency in EAS builds)
+export type ApiResult<T> =
+  | { success: true; data: T }
+  | { success: false; code: string; error: string };
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/$/, "");

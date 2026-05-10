@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -11,11 +10,12 @@ import {
   TextInput,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import type { Tenant } from "@hhousing/domain";
-import type { ApiResult } from "@hhousing/api-contracts";
-import type { LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { Tenant } from "@/lib/domain-types";
+import type { ApiResult } from "@/lib/api-client";
+import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth, patchWithAuth } from "@/lib/api-client";
 import { FormSkeleton } from "@/components/skeleton";
 import { useAuth } from "@/contexts/auth-context";

@@ -9,9 +9,9 @@ import {
   View
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import type { GetTenantConversationDetailOutput, SendTenantMessageOutput } from "@hhousing/api-contracts";
-import type { ApiResult } from "@hhousing/api-contracts";
-import type { Message } from "@hhousing/domain";
+import type { GetTenantConversationDetailOutput, SendTenantMessageOutput } from "@/lib/api-contracts-types";
+import type { ApiResult } from "@/lib/api-client";
+import type { Message } from "@/lib/domain-types";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 import { ScreenShell } from "@/components/screen-shell";

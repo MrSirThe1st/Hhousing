@@ -5,7 +5,7 @@ import type {
   AcceptTenantInvitationOutput,
   TenantInvitationPreview,
   ValidateTenantInvitationOutput
-} from "@hhousing/api-contracts";
+} from "@/lib/api-contracts-types";
 import { useAuth } from "@/contexts/auth-context";
 import { getWithoutAuth, postWithoutAuth } from "@/lib/api-client";
 

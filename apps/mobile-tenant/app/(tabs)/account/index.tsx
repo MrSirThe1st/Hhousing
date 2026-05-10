@@ -11,9 +11,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import type { Lease, Tenant } from "@hhousing/domain";
-import type { ApiResult } from "@hhousing/api-contracts";
-import type { LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { Lease, Tenant } from "@/lib/domain-types";
+import type { ApiResult } from "@/lib/api-client";
+import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 import { NetworkError } from "@/components/network-error";

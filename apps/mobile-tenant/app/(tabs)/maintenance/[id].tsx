@@ -3,8 +3,8 @@ import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "r
 import { CardSkeleton } from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { MaintenanceRequest, MaintenanceTimelineEvent } from "@hhousing/domain";
-import type { ApiResult } from "@hhousing/api-contracts";
+import type { MaintenanceRequest, MaintenanceTimelineEvent } from "@/lib/domain-types";
+import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
 

@@ -11,8 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import type { Payment } from "@hhousing/domain";
-import type { ApiResult } from "@hhousing/api-contracts";
+import type { Payment } from "@/lib/domain-types";
+import type { ApiResult } from "@/lib/api-client";
 import { ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
 import { getWithAuth } from "@/lib/api-client";

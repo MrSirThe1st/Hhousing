@@ -2,14 +2,17 @@ import { useState } from "react";
 import { Stack } from "expo-router";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginScreen(): React.ReactElement {
@@ -42,114 +45,171 @@ export default function LoginScreen(): React.ReactElement {
   return (
     <>
       <Stack.Screen options={{ title: "Connexion", headerShown: false }} />
-      <KeyboardAvoidingView
-        style={styles.root}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={styles.card}>
-          <Text style={styles.title}>Hhousing</Text>
-          <Text style={styles.subtitle}>Connectez-vous pour accéder à votre espace locataire.</Text>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-              placeholder="email@example.com"
+      <SafeAreaView style={styles.safeRoot}>
+        <KeyboardAvoidingView
+          style={styles.root}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.brandBlock}>
+            <Image
+              source={require("../../assets/icon.png")}
+              style={styles.logo}
+              resizeMode="contain"
             />
+            <Text style={styles.brandName}>Mon Espace</Text>
+            <Text style={styles.subtitle}>Gérez votre logement, simplement.</Text>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Mot de passe</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              style={styles.input}
-              placeholder="Votre mot de passe"
-            />
+          <View style={styles.card}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Adresse e-mail</Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="mail-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.input}
+                  placeholder="nom@exemple.com"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <View style={styles.passwordRow}>
+                <Text style={styles.label}>Mot de passe</Text>
+                <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+              </View>
+              <View style={styles.inputWrap}>
+                <Ionicons name="lock-closed-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+            </View>
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <Pressable
+              style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
+              onPress={() => {
+                void handleSignIn();
+              }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.buttonText}>Se connecter</Text>
+              )}
+            </Pressable>
           </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <Pressable
-            style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
-            onPress={() => {
-              void handleSignIn();
-            }}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonText}>Se connecter</Text>
-            )}
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+          <View style={styles.footerWrap}>
+            <Text style={styles.footerText}>Pas encore de compte ?</Text>
+            <Text style={styles.footerLink}>Contactez votre gestionnaire.</Text>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  safeRoot: {
+    flex: 1,
+    backgroundColor: "#F3F4FA"
+  },
   root: {
     flex: 1,
-    backgroundColor: "#F4F7FB",
+    backgroundColor: "#F3F4FA",
     justifyContent: "center",
-    paddingHorizontal: 24
+    paddingHorizontal: 12,
+    gap: 18
   },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 20,
-    gap: 14,
-    shadowColor: "#010A19",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3
+  brandBlock: {
+    alignItems: "center",
+    gap: 8,
+    marginTop: -8
   },
-  title: {
-    color: "#010A19",
+  brandName: {
+    color: "#0063FE",
     fontSize: 28,
     fontWeight: "700"
   },
+  logo: {
+    width: 72,
+    height: 72,
+    marginBottom: 4
+  },
   subtitle: {
-    color: "#4B5563",
-    fontSize: 14,
-    lineHeight: 20
+    color: "#6B7280",
+    fontSize: 18,
+    lineHeight: 24,
+    textAlign: "center"
+  },
+  card: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#C9CFDA",
+    padding: 20,
+    gap: 16
   },
   fieldGroup: {
     gap: 6
   },
   label: {
     fontSize: 13,
-    color: "#1F2937",
+    color: "#6B7280",
     fontWeight: "600"
   },
-  input: {
+  passwordRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  forgotText: {
+    fontSize: 13,
+    color: "#0063FE",
+    fontWeight: "500"
+  },
+  inputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#C9CFDA",
     borderRadius: 10,
+    backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    minHeight: 52
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 0,
     fontSize: 15,
     color: "#010A19",
-    backgroundColor: "#ffffff"
+    backgroundColor: "transparent"
   },
   error: {
     color: "#B91C1C",
-    fontSize: 13
+    fontSize: 14
   },
   button: {
-    marginTop: 6,
+    marginTop: 4,
     borderRadius: 10,
-    paddingVertical: 12,
+    minHeight: 58,
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#0063FE"
   },
   buttonDisabled: {
@@ -157,7 +217,21 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#ffffff",
-    fontSize: 15,
+    fontSize: 22,
     fontWeight: "700"
+  },
+  footerWrap: {
+    alignItems: "center",
+    gap: 2,
+    marginTop: 8
+  },
+  footerText: {
+    color: "#6B7280",
+    fontSize: 14
+  },
+  footerLink: {
+    color: "#0063FE",
+    fontSize: 14,
+    fontWeight: "600"
   }
 });

@@ -60,6 +60,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "32347c53-7cce-49c0-bd8a-f398aca141d3"
+      }
+    },
+    "owner": "marcim"
   }
 }
