@@ -22,7 +22,33 @@ type TenantLeaseOutput = {
   lease: LeaseWithTenantView | null;
 };
 
+type LeaseDocument = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number;
+  createdAtIso: string;
+};
+
 type MobileDocumentsOutput = { documents: Document[] };
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeDocument(document: Document, index: number): LeaseDocument {
+  return {
+    id: asString(document.id, `doc-${index}`),
+    fileName: asString(document.fileName || document.name, `Document ${index + 1}`),
+    fileUrl: asString(document.fileUrl || document.url),
+    fileSize: Math.max(0, asNumber(document.fileSize, 0)),
+    createdAtIso: asString(document.createdAtIso || document.createdAt, new Date().toISOString())
+  };
+}
 
 function formatDateNumeric(value: string): string {
   return new Date(value).toLocaleDateString("fr-FR", {
@@ -64,7 +90,7 @@ export default function LeaseScreen(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [lease, setLease] = useState<LeaseWithTenantView | null>(null);
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<LeaseDocument[]>([]);
 
   const load = useCallback(async (refresh = false): Promise<void> => {
     if (refresh) {
@@ -99,7 +125,7 @@ export default function LeaseScreen(): React.ReactElement {
         }
         setDocuments([]);
       } else {
-        setDocuments(docsResult.data.documents);
+        setDocuments(docsResult.data.documents.map((document, index) => normalizeDocument(document, index)));
       }
 
       setError(nextError);
@@ -118,9 +144,13 @@ export default function LeaseScreen(): React.ReactElement {
 
   const visibleDocuments = useMemo(() => documents.slice(0, 3), [documents]);
 
-  const openDocument = useCallback(async (document: Document): Promise<void> => {
+  const openDocument = useCallback(async (document: LeaseDocument): Promise<void> => {
     setIsOpeningDoc(document.id);
     try {
+      if (!document.fileUrl) {
+        setError("Ce document n'a pas de lien téléchargeable.");
+        return;
+      }
       const canOpen = await Linking.canOpenURL(document.fileUrl);
       if (!canOpen) {
         setError("Impossible d'ouvrir ce document.");
@@ -217,7 +247,7 @@ export default function LeaseScreen(): React.ReactElement {
                 </View>
               </View>
 
-              <Text style={styles.tenantName}>{lease.tenantFullName}</Text>
+              <Text style={styles.tenantName}>{lease.tenantFullName ?? "Locataire"}</Text>
               <Text style={styles.tenantSince}>Locataire depuis {formatDateReadable(lease.startDate)}</Text>
 
               <View style={styles.profileBadges}>
@@ -262,13 +292,13 @@ export default function LeaseScreen(): React.ReactElement {
                     adjustsFontSizeToFit
                     minimumFontScale={0.72}
                   >
-                    {formatAmount(lease.monthlyRentAmount, lease.currencyCode)}
+                    {formatAmount(lease.monthlyRentAmount ?? lease.monthlyRent, lease.currencyCode ?? "USD")}
                   </Text>
                   <Text style={styles.rentSuffix}>/ MOIS</Text>
                 </View>
               </View>
               <Divider />
-              <DetailRow label="Dépôt" value={formatAmount(lease.depositAmount, lease.currencyCode)} />
+              <DetailRow label="Dépôt" value={formatAmount(lease.depositAmount ?? lease.securityDeposit ?? 0, lease.currencyCode ?? "USD")} />
               <Divider />
               <DetailRow
                 label="Fréquence"

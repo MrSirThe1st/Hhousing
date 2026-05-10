@@ -3,11 +3,35 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import type {
   AcceptTenantInvitationOutput,
-  TenantInvitationPreview,
   ValidateTenantInvitationOutput
 } from "@/lib/api-contracts-types";
 import { useAuth } from "@/contexts/auth-context";
 import { getWithoutAuth, postWithoutAuth } from "@/lib/api-client";
+
+type InvitationPreviewView = {
+  tenantFullName: string;
+  organizationName: string;
+  tenantEmail: string;
+  tenantPhone: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function normalizeInvitation(value: unknown): InvitationPreviewView {
+  const raw = isRecord(value) ? value : {};
+  return {
+    tenantFullName: asString(raw.tenantFullName || raw.fullName, "Locataire"),
+    organizationName: asString(raw.organizationName || raw.propertyName, "Organisation"),
+    tenantEmail: asString(raw.tenantEmail, ""),
+    tenantPhone: asString(raw.tenantPhone || raw.phone, "")
+  };
+}
 
 export default function AcceptInviteScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ token?: string }>();
@@ -16,7 +40,7 @@ export default function AcceptInviteScreen(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<TenantInvitationPreview | null>(null);
+  const [preview, setPreview] = useState<InvitationPreviewView | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
@@ -39,8 +63,9 @@ export default function AcceptInviteScreen(): React.ReactElement {
         return;
       }
 
-      setPreview(result.data.invitation);
-      setPhone(result.data.invitation.tenantPhone ?? "");
+      const invitation = normalizeInvitation(result.data.invitation);
+      setPreview(invitation);
+      setPhone(invitation.tenantPhone);
       setIsLoading(false);
     }
 
@@ -76,6 +101,12 @@ export default function AcceptInviteScreen(): React.ReactElement {
 
     if (!result.success) {
       setError(result.error);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!preview.tenantEmail) {
+      setError("Invitation invalide: email du locataire introuvable.");
       setIsSubmitting(false);
       return;
     }

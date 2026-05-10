@@ -15,13 +15,59 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
-import type { Document, DocumentType } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
-type MobileDocumentsOutput = { documents: Document[] };
+type DocumentType = "lease_agreement" | "receipt" | "notice" | "id" | "contract" | "other";
+
+type MobileDocument = {
+  id: string;
+  fileName: string;
+  documentType: DocumentType;
+  fileUrl: string;
+  fileSize: number;
+  createdAtIso: string;
+};
+
+type MobileDocumentsOutput = { documents: unknown[] };
 type DocumentFilter = "all" | DocumentType;
+
+const DOCUMENT_TYPES: DocumentType[] = ["lease_agreement", "receipt", "notice", "id", "contract", "other"];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function asDocumentType(value: unknown): DocumentType {
+  return typeof value === "string" && DOCUMENT_TYPES.includes(value as DocumentType)
+    ? (value as DocumentType)
+    : "other";
+}
+
+function normalizeDocument(value: unknown, index: number): MobileDocument {
+  const raw = isRecord(value) ? value : {};
+  const fileName = asString(raw.fileName || raw.name, `Document ${index + 1}`);
+  const fileUrl = asString(raw.fileUrl || raw.url, "");
+  const createdAtIso = asString(raw.createdAtIso || raw.createdAt, new Date().toISOString());
+
+  return {
+    id: asString(raw.id, `doc-${index}`),
+    fileName,
+    documentType: asDocumentType(raw.documentType || raw.type),
+    fileUrl,
+    fileSize: Math.max(0, asNumber(raw.fileSize, 0)),
+    createdAtIso
+  };
+}
 
 const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
   lease_agreement: "Contrat de bail",
@@ -59,7 +105,7 @@ export default function DocumentsScreen(): React.ReactElement {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<MobileDocument[]>([]);
   const [filter, setFilter] = useState<DocumentFilter>("all");
   const [search, setSearch] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -89,7 +135,7 @@ export default function DocumentsScreen(): React.ReactElement {
       if (result.code === "NETWORK_ERROR") setIsOffline(true);
       setError(result.error);
     } else {
-      setDocuments(result.data.documents);
+      setDocuments(result.data.documents.map((item, index) => normalizeDocument(item, index)));
     }
 
     if (refresh) {
@@ -136,9 +182,13 @@ export default function DocumentsScreen(): React.ReactElement {
     return Math.max(1, Math.min(100, raw));
   }, [documents]);
 
-  const handleOpenDocument = useCallback(async (document: Document): Promise<void> => {
+  const handleOpenDocument = useCallback(async (document: MobileDocument): Promise<void> => {
     setOpeningId(document.id);
     try {
+      if (!document.fileUrl) {
+        setError("Ce document n'a pas de lien téléchargeable.");
+        return;
+      }
       const canOpen = await Linking.canOpenURL(document.fileUrl);
       if (!canOpen) {
         setError("Impossible d'ouvrir ce document.");

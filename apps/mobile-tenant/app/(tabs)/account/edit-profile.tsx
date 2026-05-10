@@ -56,7 +56,7 @@ export default function EditProfileScreen(): React.ReactElement {
     if (profileResult.success) {
       setIsOffline(false);
       setTenant(profileResult.data.tenant);
-      setFullName(profileResult.data.tenant.fullName);
+      setFullName(profileResult.data.tenant.fullName ?? "");
       setPhone(profileResult.data.tenant.phone ?? "");
       setError(null);
     } else {
@@ -67,21 +67,13 @@ export default function EditProfileScreen(): React.ReactElement {
         const derivedTenant: Tenant = {
           id: lease.tenantId,
           organizationId: lease.organizationId,
-          authUserId: session.user.id,
-          fullName: lease.tenantFullName,
-          email: lease.tenantEmail,
-          phone: null,
-          dateOfBirth: null,
-          photoUrl: null,
-          employmentStatus: null,
-          jobTitle: null,
-          monthlyIncome: null,
-          numberOfOccupants: null,
-          createdAtIso: lease.createdAtIso
+          fullName: lease.tenantFullName ?? "",
+          email: lease.tenantEmail ?? session.user.email ?? "",
+          phone: ""
         };
 
         setTenant(derivedTenant);
-        setFullName(derivedTenant.fullName);
+        setFullName(derivedTenant.fullName ?? "");
         setPhone("");
         setError(null);
         setIsOffline(false);

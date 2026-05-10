@@ -9,13 +9,83 @@ import {
   View
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import type { GetTenantConversationDetailOutput, SendTenantMessageOutput } from "@/lib/api-contracts-types";
 import type { ApiResult } from "@/lib/api-client";
-import type { Message } from "@/lib/domain-types";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 import { ScreenShell } from "@/components/screen-shell";
 import { ListSkeleton } from "@/components/skeleton";
+
+type SenderSide = "tenant" | "manager";
+
+type ChatMessage = {
+  id: string;
+  body: string;
+  createdAtIso: string;
+  senderSide: SenderSide;
+};
+
+type ConversationMeta = {
+  organizationName: string;
+  propertyName: string;
+  lastMessagePreview?: string;
+  lastMessageAtIso?: string;
+};
+
+type ConversationDetailView = {
+  conversation: ConversationMeta;
+  messages: ChatMessage[];
+};
+
+type SendMessageView = {
+  message: ChatMessage;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asSenderSide(value: unknown): SenderSide {
+  return value === "tenant" ? "tenant" : "manager";
+}
+
+function normalizeMessage(value: unknown, index = 0): ChatMessage {
+  const raw = isRecord(value) ? value : {};
+  return {
+    id: asString(raw.id, `message-${index}`),
+    body: asString(raw.body || raw.text, ""),
+    createdAtIso: asString(raw.createdAtIso || raw.createdAt, new Date().toISOString()),
+    senderSide: asSenderSide(raw.senderSide || raw.sender_side)
+  };
+}
+
+function normalizeDetail(value: unknown): ConversationDetailView {
+  const raw = isRecord(value) ? value : {};
+  const rawConversation = isRecord(raw.conversation) ? raw.conversation : raw;
+  const rawLastMessage = isRecord(rawConversation.lastMessage) ? rawConversation.lastMessage : {};
+  const rawMessages = Array.isArray(raw.messages) ? raw.messages : [];
+
+  return {
+    conversation: {
+      organizationName: asString(rawConversation.organizationName, "Conversation"),
+      propertyName: asString(rawConversation.propertyName, "Messages avec votre gestion"),
+      lastMessagePreview: asString(rawConversation.lastMessagePreview) || undefined,
+      lastMessageAtIso: asString(rawConversation.lastMessageAtIso || rawLastMessage.createdAt) || undefined
+    },
+    messages: rawMessages.map((item, index) => normalizeMessage(item, index))
+  };
+}
+
+function normalizeSendMessage(value: unknown): SendMessageView {
+  const raw = isRecord(value) ? value : {};
+  const rawMessage = isRecord(raw.message) ? raw.message : raw;
+  return {
+    message: normalizeMessage(rawMessage)
+  };
+}
 
 export default function ConversationScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -23,7 +93,7 @@ export default function ConversationScreen(): React.ReactElement {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [detail, setDetail] = useState<GetTenantConversationDetailOutput | null>(null);
+  const [detail, setDetail] = useState<ConversationDetailView | null>(null);
   const [messageBody, setMessageBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -38,8 +108,8 @@ export default function ConversationScreen(): React.ReactElement {
     setIsLoading(true);
     setError(null);
 
-    const result: ApiResult<GetTenantConversationDetailOutput> =
-      await getWithAuth<GetTenantConversationDetailOutput>(
+    const result: ApiResult<unknown> =
+      await getWithAuth<unknown>(
         `/api/mobile/messages/conversations/${conversationId}`
       );
 
@@ -47,7 +117,7 @@ export default function ConversationScreen(): React.ReactElement {
       setError(result.error);
       setDetail(null);
     } else {
-      setDetail(result.data);
+      setDetail(normalizeDetail(result.data));
     }
 
     setIsLoading(false);
@@ -72,21 +142,12 @@ export default function ConversationScreen(): React.ReactElement {
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
-          const row = payload.new as Record<string, unknown>;
-          const incoming: Message = {
-            id: row.id as string,
-            organizationId: row.organization_id as string,
-            conversationId: row.conversation_id as string,
-            senderSide: row.sender_side as Message["senderSide"],
-            senderUserId: (row.sender_user_id as string | null) ?? null,
-            body: row.body as string,
-            createdAtIso: row.created_at as string
-          };
+          const incoming = normalizeMessage(payload.new);
 
           setDetail((current) => {
             if (!current) return current;
             // Deduplicate — optimistic send already appended our own message
-            if (current.messages.some((m) => m.id === incoming.id)) {
+            if (current.messages.some((m: ChatMessage) => m.id === incoming.id)) {
               return current;
             }
             return { ...current, messages: [...current.messages, incoming] };
@@ -110,7 +171,7 @@ export default function ConversationScreen(): React.ReactElement {
     setIsSending(true);
     setError(null);
 
-    const result: ApiResult<SendTenantMessageOutput> = await postWithAuth<SendTenantMessageOutput>(
+    const result: ApiResult<unknown> = await postWithAuth<unknown>(
       `/api/mobile/messages/conversations/${conversationId}/messages`,
       { body }
     );
@@ -122,6 +183,8 @@ export default function ConversationScreen(): React.ReactElement {
       return;
     }
 
+    const sendPayload = normalizeSendMessage(result.data);
+
     setMessageBody("");
     setDetail((current) => {
       if (!current) {
@@ -132,10 +195,10 @@ export default function ConversationScreen(): React.ReactElement {
         ...current,
         conversation: {
           ...current.conversation,
-          lastMessagePreview: result.data.message.body,
-          lastMessageAtIso: result.data.message.createdAtIso
+          lastMessagePreview: sendPayload.message.body,
+          lastMessageAtIso: sendPayload.message.createdAtIso
         },
-        messages: [...current.messages, result.data.message]
+        messages: [...current.messages, sendPayload.message]
       };
     });
   }, [conversationId, messageBody]);

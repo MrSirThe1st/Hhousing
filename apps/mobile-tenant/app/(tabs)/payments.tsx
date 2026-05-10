@@ -210,7 +210,6 @@ export default function PaymentsScreen(): React.ReactElement {
 
       const haystack = [
         payment.dueDate,
-        payment.chargePeriod ?? "",
         paymentTitle(payment),
         STATUS_LABEL[payment.status]
       ].join(" ").toLowerCase();
@@ -343,7 +342,7 @@ export default function PaymentsScreen(): React.ReactElement {
                         </View>
 
                         <View style={styles.paymentRight}>
-                          <Text style={styles.paymentAmount}>{formatAmount(payment.amount, payment.currencyCode)}</Text>
+                          <Text style={styles.paymentAmount}>{formatAmount(payment.amount, payment.currencyCode ?? "CDF")}</Text>
                           <View style={[styles.badge, { backgroundColor: STATUS_BG[payment.status] }]}>
                             <Text style={[styles.badgeText, { color: STATUS_TEXT[payment.status] }]}>
                               {STATUS_LABEL[payment.status]}

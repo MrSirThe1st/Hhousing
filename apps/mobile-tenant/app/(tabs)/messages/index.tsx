@@ -2,12 +2,44 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ListSkeleton } from "@/components/skeleton";
 import { useRouter, useFocusEffect } from "expo-router";
-import type { ListTenantConversationsOutput } from "@/lib/api-contracts-types";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
 import { useInbox } from "@/contexts/inbox-context";
 import { NetworkError } from "@/components/network-error";
+
+type ConversationItem = {
+  conversationId: string;
+  organizationName: string;
+  propertyName: string;
+  lastMessageAtIso: string;
+  lastMessagePreview: string;
+  lastMessageSenderSide: string;
+};
+
+type ConversationsOutput = { conversations: unknown[] };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function normalizeConversation(value: unknown, index: number): ConversationItem {
+  const raw = isRecord(value) ? value : {};
+  const lastMessage = isRecord(raw.lastMessage) ? raw.lastMessage : {};
+
+  return {
+    conversationId: asString(raw.conversationId || raw.id, `conversation-${index}`),
+    organizationName: asString(raw.organizationName, "Gestion"),
+    propertyName: asString(raw.propertyName, "Propriété"),
+    lastMessageAtIso: asString(raw.lastMessageAtIso || lastMessage.createdAt, new Date().toISOString()),
+    lastMessagePreview: asString(raw.lastMessagePreview || lastMessage.text, ""),
+    lastMessageSenderSide: asString(raw.lastMessageSenderSide || lastMessage.senderSide, "manager")
+  };
+}
 
 export default function InboxScreen(): React.ReactElement {
   const router = useRouter();
@@ -15,14 +47,14 @@ export default function InboxScreen(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
-  const [conversations, setConversations] = useState<ListTenantConversationsOutput["conversations"]>([]);
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
 
   const load = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     setIsOffline(false);
 
-    const result: ApiResult<ListTenantConversationsOutput> = await getWithAuth<ListTenantConversationsOutput>(
+    const result: ApiResult<ConversationsOutput> = await getWithAuth<ConversationsOutput>(
       "/api/mobile/messages/conversations"
     );
 
@@ -31,8 +63,9 @@ export default function InboxScreen(): React.ReactElement {
       setError(result.error);
       setConversations([]);
     } else {
-      setConversations(result.data.conversations);
-      setInboxConversations(result.data.conversations);
+      const normalized = result.data.conversations.map((conversation, index) => normalizeConversation(conversation, index));
+      setConversations(normalized);
+      setInboxConversations(normalized);
     }
 
     setIsLoading(false);

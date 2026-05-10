@@ -10,10 +10,19 @@ export interface LeaseWithTenantView {
   startDate: string;
   endDate?: string;
   monthlyRent: number;
+  monthlyRentAmount?: number;
   securityDeposit?: number;
+  depositAmount?: number;
+  currencyCode?: string;
+  paymentFrequency?: "monthly" | "quarterly" | "yearly";
+  termType?: "fixed" | "month_to_month";
   rentalPhotoUrl?: string;
   tenantFirstName?: string;
   tenantLastName?: string;
+  tenantFullName?: string;
+  tenantEmail?: string;
+  organizationId?: string;
+  createdAtIso?: string;
   propertyAddress?: string;
 }
 

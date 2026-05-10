@@ -159,7 +159,7 @@ export default function AccountScreen(): React.ReactElement {
 
   const initials = useMemo(() => getInitials(name, email), [email, name]);
   const leaseStartLabel = lease ? formatShortDate(lease.startDate) : "-";
-  const rentLabel = lease ? formatAmount(lease.monthlyRentAmount) : "-";
+  const rentLabel = lease ? formatAmount(lease.monthlyRentAmount ?? lease.monthlyRent) : "-";
 
   if (isLoading || isAuthLoading) {
     return (

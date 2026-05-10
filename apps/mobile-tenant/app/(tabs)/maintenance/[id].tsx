@@ -3,44 +3,149 @@ import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "r
 import { CardSkeleton } from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { MaintenanceRequest, MaintenanceTimelineEvent } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
 
+type MaintenanceStatus = "open" | "in_progress" | "resolved" | "cancelled";
+
+type MaintenanceRequestView = {
+  id: string;
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high" | "urgent";
+  status: MaintenanceStatus;
+  createdAtIso: string;
+  assignedToName?: string;
+  resolutionNotes?: string;
+  photoUrls: string[];
+};
+
+type MaintenanceTimelineEventView = {
+  id: string;
+  eventType: "created" | "status_changed" | "assigned" | "internal_note_updated" | "resolution_note_updated";
+  createdAtIso: string;
+  statusFrom?: string;
+  statusTo?: string;
+  assignedToName?: string;
+  note?: string;
+};
+
 interface DetailOutput {
-  request: MaintenanceRequest;
-  timeline: MaintenanceTimelineEvent[];
+  request: MaintenanceRequestView;
+  timeline: MaintenanceTimelineEventView[];
 }
 
-const STATUS_LABEL: Record<MaintenanceRequest["status"], string> = {
+const STATUS_LABEL: Record<MaintenanceStatus, string> = {
   open: "Ouvert",
   in_progress: "En cours",
   resolved: "Résolu",
   cancelled: "Annulé"
 };
 
-const STATUS_COLOR: Record<MaintenanceRequest["status"], string> = {
+const STATUS_COLOR: Record<MaintenanceStatus, string> = {
   open: "#D97706",
   in_progress: "#2563EB",
   resolved: "#16A34A",
   cancelled: "#6B7280"
 };
 
-const PRIORITY_LABEL: Record<MaintenanceRequest["priority"], string> = {
+const PRIORITY_LABEL: Record<MaintenanceRequestView["priority"], string> = {
   low: "Basse",
   medium: "Moyenne",
   high: "Haute",
   urgent: "Urgente"
 };
 
-const EVENT_LABEL: Record<MaintenanceTimelineEvent["eventType"], string> = {
+const EVENT_LABEL: Record<MaintenanceTimelineEventView["eventType"], string> = {
   created: "Créée",
   status_changed: "Statut modifié",
   assigned: "Assignée",
   internal_note_updated: "Note interne ajoutée",
   resolution_note_updated: "Note de résolution"
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeStatus(value: unknown): MaintenanceStatus {
+  switch (value) {
+    case "open":
+    case "in_progress":
+    case "resolved":
+    case "cancelled":
+      return value;
+    default:
+      return "open";
+  }
+}
+
+function normalizePriority(value: unknown): MaintenanceRequestView["priority"] {
+  switch (value) {
+    case "low":
+    case "medium":
+    case "high":
+    case "urgent":
+      return value;
+    default:
+      return "medium";
+  }
+}
+
+function normalizeEventType(value: unknown): MaintenanceTimelineEventView["eventType"] {
+  switch (value) {
+    case "created":
+    case "status_changed":
+    case "assigned":
+    case "internal_note_updated":
+    case "resolution_note_updated":
+      return value;
+    default:
+      return "created";
+  }
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function normalizeRequest(value: unknown): MaintenanceRequestView {
+  const raw = isRecord(value) ? value : {};
+  const rawPhotos = Array.isArray(raw.photoUrls) ? raw.photoUrls : [];
+  const photoUrls = rawPhotos.filter((item): item is string => typeof item === "string" && item.length > 0);
+
+  return {
+    id: asString(raw.id, ""),
+    title: asString(raw.title, "Demande de maintenance"),
+    description: asString(raw.description, ""),
+    priority: normalizePriority(raw.priority),
+    status: normalizeStatus(raw.status),
+    createdAtIso: asString(raw.createdAtIso || raw.createdAt, new Date().toISOString()),
+    assignedToName: asString(raw.assignedToName) || undefined,
+    resolutionNotes: asString(raw.resolutionNotes) || undefined,
+    photoUrls
+  };
+}
+
+function normalizeTimeline(value: unknown): MaintenanceTimelineEventView[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((item, index) => {
+    const raw = isRecord(item) ? item : {};
+    return {
+      id: asString(raw.id, `event-${index}`),
+      eventType: normalizeEventType(raw.eventType || raw.type),
+      createdAtIso: asString(raw.createdAtIso || raw.createdAt, new Date().toISOString()),
+      statusFrom: asString(raw.statusFrom) || undefined,
+      statusTo: asString(raw.statusTo) || undefined,
+      assignedToName: asString(raw.assignedToName) || undefined,
+      note: asString(raw.note || raw.description) || undefined
+    };
+  });
+}
 
 export default function MaintenanceDetailScreen(): React.ReactElement {
   const router = useRouter();
@@ -62,7 +167,10 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
     if (!result.success) {
       setError(result.error);
     } else {
-      setData(result.data);
+      setData({
+        request: normalizeRequest(result.data.request),
+        timeline: normalizeTimeline(result.data.timeline)
+      });
     }
     setIsLoading(false);
   }, [id]);
@@ -154,7 +262,7 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.photosRow}
               >
-                {request.photoUrls.map((url) => (
+                {request.photoUrls.map((url: string) => (
                   <Pressable
                     key={url}
                     onPress={() => { void Linking.openURL(url); }}
@@ -198,10 +306,10 @@ function TimelineEvent({
   event,
   isLast
 }: {
-  event: MaintenanceTimelineEvent;
+  event: MaintenanceTimelineEventView;
   isLast: boolean;
 }): React.ReactElement {
-  const getEventIcon = (type: MaintenanceTimelineEvent["eventType"]): IoniconName => {
+  const getEventIcon = (type: MaintenanceTimelineEventView["eventType"]): IoniconName => {
     switch (type) {
       case "created":
         return "clipboard-outline";
@@ -219,7 +327,7 @@ function TimelineEvent({
   };
 
   const getEventDescription = (
-    event: MaintenanceTimelineEvent
+    event: MaintenanceTimelineEventView
   ): string => {
     switch (event.eventType) {
       case "created":

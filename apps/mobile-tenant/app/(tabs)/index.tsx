@@ -47,7 +47,7 @@ const PAYMENT_STATUS_TEXT: Record<Payment["status"], string> = {
   cancelled: "#6B7280"
 };
 
-const PAYMENT_KIND_LABEL: Record<Payment["paymentKind"], string> = {
+const PAYMENT_KIND_LABEL: Record<NonNullable<Payment["paymentKind"]>, string> = {
   rent: "Loyer Mensuel",
   deposit: "Caution",
   prorated_rent: "Loyer Proratisé",
@@ -139,7 +139,7 @@ export default function HomeScreen(): React.ReactElement {
         .filter((p) => p.status === "paid")
         .slice(0, 3);
 
-      const tenantName = profileRes.success ? profileRes.data.tenant.fullName : "";
+      const tenantName = profileRes.success ? (profileRes.data.tenant.fullName ?? "") : "";
       const unitSuffix = leaseRes.data.unitLabel ? `, Unité ${leaseRes.data.unitLabel}` : "";
       const rentalAddress = leaseRes.data.rentalAddress
         ? `${leaseRes.data.rentalAddress}${unitSuffix}`
@@ -261,7 +261,7 @@ export default function HomeScreen(): React.ReactElement {
             </View>
 
             <Text style={styles.rentAmount}>
-              {formatAmount(data.nextPayment.amount, data.nextPayment.currencyCode)}
+              {formatAmount(data.nextPayment.amount, data.nextPayment.currencyCode ?? "CDF")}
             </Text>
 
             <View style={styles.dueDateRow}>
@@ -282,7 +282,7 @@ export default function HomeScreen(): React.ReactElement {
           <View style={styles.rentCard}>
             <Text style={styles.rentCardTitle}>Votre bail est actif</Text>
             <Text style={styles.rentAmount}>
-              {formatAmount(data.lease.monthlyRentAmount, data.lease.currencyCode)}
+              {formatAmount(data.lease.monthlyRentAmount ?? data.lease.monthlyRent ?? 0, data.lease.currencyCode ?? "CDF")}
             </Text>
             <View style={styles.dueDateRow}>
               <Ionicons name="checkmark-circle-outline" size={16} color="#16A34A" />
@@ -336,12 +336,12 @@ export default function HomeScreen(): React.ReactElement {
                     {formatDueDate(payment.paidDate ?? payment.dueDate)}
                   </Text>
                   <Text style={styles.paymentKind}>
-                    {PAYMENT_KIND_LABEL[payment.paymentKind]}
+                    {PAYMENT_KIND_LABEL[payment.paymentKind ?? "other"]}
                   </Text>
                 </View>
                 <View style={styles.paymentRight}>
                   <Text style={styles.paymentAmount}>
-                    {formatAmount(payment.amount, payment.currencyCode)}
+                    {formatAmount(payment.amount, payment.currencyCode ?? "CDF")}
                   </Text>
                   <View
                     style={[
