@@ -32,9 +32,13 @@ export async function loadOwnerPortfolio(session: OwnerPortalSession): Promise<O
       });
 
       const unitIds = new Set(properties.flatMap((item) => item.units.map((unit) => unit.id)));
-      const leases = (await leaseRepository.listLeasesByOrganization(access.organizationId)).filter((lease) => unitIds.has(lease.unitId));
+      const leases = leaseRepository.listLeasesByOrganizationAndUnitIds
+        ? await leaseRepository.listLeasesByOrganizationAndUnitIds(access.organizationId, [...unitIds])
+        : (await leaseRepository.listLeasesByOrganization(access.organizationId)).filter((lease) => unitIds.has(lease.unitId));
       const leaseIds = new Set(leases.map((lease) => lease.id));
-      const payments = (await paymentRepository.listPayments({ organizationId: access.organizationId })).filter((payment) => leaseIds.has(payment.leaseId));
+      const payments = paymentRepository.listPaymentsByOrganizationAndLeaseIds
+        ? await paymentRepository.listPaymentsByOrganizationAndLeaseIds(access.organizationId, [...leaseIds])
+        : (await paymentRepository.listPayments({ organizationId: access.organizationId })).filter((payment) => leaseIds.has(payment.leaseId));
 
       return {
         owner,

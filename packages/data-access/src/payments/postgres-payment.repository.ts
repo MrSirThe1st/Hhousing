@@ -160,6 +160,30 @@ export function createPostgresPaymentRepository(
       return result.rows.map(mapPayment);
     },
 
+    async listPaymentsByOrganizationAndLeaseIds(
+      organizationId: string,
+      leaseIds: string[]
+    ): Promise<Payment[]> {
+      if (leaseIds.length === 0) {
+        return [];
+      }
+
+      const result = await client.query<PaymentRow>(
+        `select
+           id, organization_id, lease_id, tenant_id,
+           amount, currency_code, due_date, paid_date, status, note,
+           payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge,
+           charge_period, created_at
+         from payments
+         where organization_id = $1
+           and lease_id = any($2::text[])
+         order by due_date desc`,
+        [organizationId, leaseIds]
+      );
+
+      return result.rows.map(mapPayment);
+    },
+
     async listPaymentsByTenantAuthUserId(
       tenantAuthUserId: string,
       organizationId: string

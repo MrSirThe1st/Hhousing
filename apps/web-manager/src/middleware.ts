@@ -31,42 +31,44 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const { pathname } = request.nextUrl;
 
-  // Helper: fetch memberships for user via Supabase client (Edge-compatible)
-  async function getMembershipCount(userId: string): Promise<number> {
+  // Fast existence checks avoid expensive exact-count scans on hot auth paths.
+  async function hasMembership(userId: string): Promise<boolean> {
     try {
-      const { count } = await supabase
+      const { data } = await supabase
         .from   ('organization_memberships')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
-      return count ?? 0;
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
+      return (data?.length ?? 0) > 0;
     } catch {
-      return 0;
+      return false;
     }
   }
 
-  async function getOwnerPortalAccessCount(userId: string): Promise<number> {
+  async function hasOwnerPortalAccess(userId: string): Promise<boolean> {
     try {
-      const { count } = await supabase
+      const { data } = await supabase
         .from('owner_portal_accesses')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .eq('user_id', userId)
-        .eq('status', 'active');
-      return count ?? 0;
+        .eq('status', 'active')
+        .limit(1);
+      return (data?.length ?? 0) > 0;
     } catch {
-      return 0;
+      return false;
     }
   }
 
   // Public pages
   if (pathname === "/login" || pathname === "/signup") {
     if (user !== null) {
-      const membershipCount = await getMembershipCount(user.id);
-      if (membershipCount > 0) {
+      const membershipExists = await hasMembership(user.id);
+      if (membershipExists) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
 
-      const ownerAccessCount = await getOwnerPortalAccessCount(user.id);
-      if (ownerAccessCount > 0) {
+      const ownerAccessExists = await hasOwnerPortalAccess(user.id);
+      if (ownerAccessExists) {
         return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
       }
 
@@ -103,8 +105,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   if (pathname === "/owner-portal/login") {
     if (user !== null) {
-      const ownerAccessCount = await getOwnerPortalAccessCount(user.id);
-      if (ownerAccessCount > 0) {
+      const ownerAccessExists = await hasOwnerPortalAccess(user.id);
+      if (ownerAccessExists) {
         return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
       }
     }
@@ -117,8 +119,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(new URL("/owner-portal/login", request.url));
     }
 
-    const ownerAccessCount = await getOwnerPortalAccessCount(user.id);
-    if (ownerAccessCount === 0) {
+    const ownerAccessExists = await hasOwnerPortalAccess(user.id);
+    if (!ownerAccessExists) {
       return NextResponse.redirect(new URL("/owner-portal/login", request.url));
     }
 

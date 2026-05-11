@@ -597,6 +597,34 @@ export function createPostgresTenantLeaseRepository(
       return result.rows.map(mapLeaseWithTenant);
     },
 
+    async listLeasesByOrganizationAndUnitIds(
+      organizationId: string,
+      unitIds: string[]
+    ): Promise<LeaseWithTenantView[]> {
+      if (unitIds.length === 0) {
+        return [];
+      }
+
+      const result = await client.query<LeaseWithTenantRow>(
+        `select
+           l.id, l.organization_id, l.unit_id, l.tenant_id,
+           l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
+           l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
+           l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
+           l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
+           t.full_name  as tenant_full_name,
+           t.email      as tenant_email
+         from leases l
+         join tenants t on t.id = l.tenant_id
+         where l.organization_id = $1
+           and l.unit_id = any($2::text[])
+         order by l.created_at desc`,
+        [organizationId, unitIds]
+      );
+
+      return result.rows.map(mapLeaseWithTenant);
+    },
+
     async getCurrentLeaseByTenantAuthUserId(
       tenantAuthUserId: string,
       organizationId: string

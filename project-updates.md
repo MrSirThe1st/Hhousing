@@ -2,6 +2,54 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-05-10
+- Change type: Web + Performance
+- Description: Reduced owner-portal login-to-dashboard latency by removing duplicate dashboard portfolio load, replacing middleware exact-count auth checks with existence checks, and adding owner-scoped lease/payment repository queries.
+- Impact: Updated `apps/web-manager/src/app/owner-portal/dashboard/layout.tsx`, `apps/web-manager/src/middleware.ts`, `apps/web-manager/src/lib/owner-portal/server-session.ts`, `apps/web-manager/src/lib/owner-portal/owner-portfolio.ts`, `packages/data-access/src/leases/tenant-lease-record.types.ts`, `packages/data-access/src/leases/postgres-tenant-lease.repository.ts`, `packages/data-access/src/payments/payment-record.types.ts`, and `packages/data-access/src/payments/postgres-payment.repository.ts`.
+- Tests: `pnpm -C apps/web-manager typecheck` ✓.
+
+## 2026-05-10
+- Change type: Mobile + Infra
+- Description: Fixed EAS Android autolinking namespace mismatch by adding explicit React Native CLI dependency for tenant mobile.
+- Impact: Added `@react-native-community/cli` to `apps/mobile-tenant/package.json` devDependencies so autolinking reads full RN config and uses Expo package import metadata (`expo.modules.ExpoModulesPackage`).
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓, `pnpm -C apps/mobile-tenant react-native config` shows `import expo.modules.ExpoModulesPackage;`.
+
+## 2026-05-10
+- Change type: Mobile + Infra
+- Description: Added an Android Gradle post-processing hook to correct generated autolinking import namespace from `expo.core.ExpoModulesPackage` to `expo.modules.ExpoModulesPackage` on EAS.
+- Impact: Updated `apps/mobile-tenant/android/app/build.gradle` to patch `PackageList.java` after `generateAutolinkingPackageList` and before Java compile.
+- Tests: Cloud repro logs confirmed failure location in generated `PackageList.java`; local Java/Gradle execution not available in this environment.
+
+## 2026-05-10
+- Change type: Mobile + Infra
+- Description: Fixed tenant mobile invalid-hook-call crash by deduplicating React resolution across pnpm workspace and metro resolver paths.
+- Impact: Added workspace pnpm overrides for `react` and `react-dom` in `package.json`; added monorepo-safe metro resolver pinning in `apps/mobile-tenant/metro.config.js`.
+- Tests: Verified `react` resolves identically from app and `expo-router` contexts (`19.0.0`); Expo dev server starts after cache clear.
+
+## 2026-05-10
+- Change type: Mobile + Infra
+- Description: Completed APK preflight dependency fixes for Expo SDK 53 and reduced Expo Doctor warnings.
+- Impact: Installed `expo-font` and aligned `@expo/vector-icons` to Expo-compatible range in `apps/mobile-tenant/package.json`; updated `apps/mobile-tenant/metro.config.js` to preserve Expo default `watchFolders`/`nodeModulesPaths` while keeping monorepo React dedupe.
+- Tests: `CI=1 npx expo-doctor` improved from 4 failures to 1 remaining advisory (non-CNG app.json sync warning).
+
+## 2026-05-10
+- Change type: Mobile
+- Description: Fixed TypeScript error set in the top two failing mobile files by normalizing API payload shapes and removing stale field assumptions.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/maintenance/[id].tsx` and `apps/mobile-tenant/app/(tabs)/account/documents.tsx` with strict local view models and safe parsing defaults.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` no longer reports errors from those two files.
+
+## 2026-05-10
+- Change type: Mobile
+- Description: Continued TypeScript cleanup for messaging/auth flow and removed stale contract-shape assumptions.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/messages/[id].tsx` and `apps/mobile-tenant/app/(auth)/accept-invite.tsx` with strict normalized view models for API payloads.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` no longer reports errors from those two files.
+
+## 2026-05-10
+- Change type: Mobile
+- Description: Completed current tenant-mobile TypeScript cleanup wave and removed all remaining compile errors.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/account/index.tsx`, `apps/mobile-tenant/app/(tabs)/index.tsx`, `apps/mobile-tenant/app/(tabs)/messages/index.tsx`, `apps/mobile-tenant/app/(tabs)/payments.tsx`, and extended optional lease fields in `apps/mobile-tenant/src/lib/api-contracts-types.ts`.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓ (no errors).
+
 ## 2026-05-08
 - Change type: Mobile + API
 - Description: Updated tenant mobile Accueil header to show tenant name and rented-place address, and overhauled tenant Paiements screen to match the new visual design (due summary card, search/filter row, year/month grouped history, and status badges).
@@ -68,6 +116,30 @@ Use this file as the first project memory source before searching the codebase.
 - Impact: Extended `GET /api/mobile/lease` response with `rentalPhotoUrl` in `apps/web-manager/src/app/api/mobile/lease/route.ts`; updated route test in `apps/web-manager/src/app/api/mobile/lease/route.test.ts`; rendered a small house/unit image card in `apps/mobile-tenant/app/(tabs)/index.tsx` when photo is available.
 - Tests: `pnpm -C apps/mobile-tenant typecheck` ✓, `pnpm -C apps/web-manager exec vitest run src/app/api/mobile/lease/route.test.ts` ✓.
 
+## 2026-05-08
+- Change type: Mobile
+- Description: Fixed Android top-inset overlap by migrating app safe-area handling to `react-native-safe-area-context`.
+- Impact: Wrapped app root with `SafeAreaProvider` in `apps/mobile-tenant/app/_layout.tsx` and switched `SafeAreaView` imports from `react-native` to `react-native-safe-area-context` in main tenant screens and shared `apps/mobile-tenant/src/components/screen-shell.tsx`.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Fixed lease screen monthly rent amount overflow on larger values.
+- Impact: Updated `apps/mobile-tenant/app/(tabs)/account/lease.tsx` to make the monthly amount text responsive (`numberOfLines`, `adjustsFontSizeToFit`, `minimumFontScale`) and constrained the right-side amount container width/shrink behavior.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Redesigned tenant login screen to match the new visual direction and updated heading text to Mon Espace.
+- Impact: Updated `apps/mobile-tenant/app/(auth)/login.tsx` with refreshed layout, icon-based inputs, improved spacing/typography, and footer copy while preserving existing sign-in behavior.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
+
+## 2026-05-08
+- Change type: Mobile + Infra
+- Description: Added Expo EAS build configuration for Android testing APK generation.
+- Impact: Added `apps/mobile-tenant/eas.json` with `preview` profile (`android.buildType=apk`, internal distribution) and `production` profile (`android.buildType=app-bundle`).
+- Tests: not run (build-config file only).
+
 ## 2026-04-19 (Late Evening)
 - Change type: DB + Security Hardening (RLS Policy Model Correction)
 - Description: Removed blanket/global deny RLS policies from shared app tables and switched to explicit allow-only model (implicit deny by default). This fixes authenticated user read-path regressions (notably login/account routing that depends on `organization_memberships` reads via Supabase client).
@@ -103,6 +175,12 @@ Use this file as the first project memory source before searching the codebase.
 - Description: Improved team members display from card-based layout to a clean table UI with columns for member name, contact status, email, and role. Added action buttons in the table for managers to configure member roles directly.
 - Impact: Updated `apps/web-manager/src/components/team-management-panel.tsx` to render members in a responsive table instead of card layout with status badge, role tags, and inline configure button.
 - Tests: `pnpm -C apps/web-manager typecheck` ✓, `pnpm -C apps/web-manager lint` ✓, `pnpm -C apps/web-manager build` ✓.
+
+## 2026-05-08
+- Change type: Mobile
+- Description: Replaced removed login welcome heading with brand logo in header area.
+- Impact: Updated `apps/mobile-tenant/app/(auth)/login.tsx` to render app logo image above Mon Espace title.
+- Tests: `pnpm -C apps/mobile-tenant typecheck` ✓.
 
 ## 2026-04-18
 - Change type: Web + API + Auth UX

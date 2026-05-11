@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "e7643f59-505d-402c-879d-818bedecc46a"
+      }
+    },
+    "android": {
+      "package": "com.hhousing.tenant"
+    }
+  }
+}

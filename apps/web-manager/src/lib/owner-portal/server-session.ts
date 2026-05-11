@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { createOwnerPortalAccessRepositoryFromEnv, type OwnerPortalAccessRecord } from "@hhousing/data-access";
 
 export interface OwnerPortalSession {
@@ -7,7 +8,7 @@ export interface OwnerPortalSession {
   accesses: OwnerPortalAccessRecord[];
 }
 
-export async function getOwnerPortalSession(): Promise<OwnerPortalSession | null> {
+const getOwnerPortalSessionCached = cache(async (): Promise<OwnerPortalSession | null> => {
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -43,4 +44,8 @@ export async function getOwnerPortalSession(): Promise<OwnerPortalSession | null
     userId: user.id,
     accesses
   };
+});
+
+export async function getOwnerPortalSession(): Promise<OwnerPortalSession | null> {
+  return getOwnerPortalSessionCached();
 }

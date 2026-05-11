@@ -188,6 +188,10 @@ export interface TenantLeaseRepository {
     phone: string | null
   ): Promise<Tenant | null>;
   listLeasesByOrganization(organizationId: string): Promise<LeaseWithTenantView[]>;
+  listLeasesByOrganizationAndUnitIds?(
+    organizationId: string,
+    unitIds: string[]
+  ): Promise<LeaseWithTenantView[]>;
   getCurrentLeaseByTenantAuthUserId(
     tenantAuthUserId: string,
     organizationId: string
