@@ -1,4 +1,8 @@
-import Link from "next/link";
+"use client";
+
+import { useState, use } from "react";
+import { useRouter } from "next/navigation";
+import PlatformLogoLink from "../../components/platform-logo-link";
 
 type FlowType = "self_managed_owner" | "manager_for_others" | "mixed_operator" | "tenant";
 
@@ -13,7 +17,7 @@ function getContent(flow: FlowType): { title: string; subtitle: string; steps: s
   if (flow === "self_managed_owner") {
     return {
       title: "Bienvenue, propriétaire-opérateur",
-      subtitle: "Votre espace est optimisé pour revenus, occupation et rentabilité.",
+      subtitle: "Votre espace est optimisé pour les revenus, l'occupation et la rentabilité.",
       steps: [
         "Ajoutez vos propriétés depuis l'onglet Propriétés",
         "Créez vos unités locatives",
@@ -24,22 +28,22 @@ function getContent(flow: FlowType): { title: string; subtitle: string; steps: s
   if (flow === "manager_for_others") {
     return {
       title: "Bienvenue, property manager",
-      subtitle: "Votre espace met l'accent sur opérations, tâches et communication.",
+      subtitle: "Votre espace met l'accent sur les opérations, les tâches et la communication.",
       steps: [
         "Ajoutez les propriétés que vous gérez",
         "Configurez les unités et tarifs",
-        "Gérez vos locataires et collecte de loyer"
+        "Gérez vos locataires et la collecte de loyer"
       ]
     };
   }
   if (flow === "mixed_operator") {
     return {
-      title: "Bienvenue, opérateur hybride",
-      subtitle: "Vous verrez revenus (owned) et opérations (managed) ensemble.",
+      title: "Bienvenue",
+      subtitle: "",
       steps: [
-        "Ajoutez vos propriétés (owned et managed)",
+        "Ajoutez vos propriétés (propres et gérées)",
         "Configurez vos unités",
-        "Gérez locataires et collecte"
+        "Gérez vos locataires et vos collectes"
       ]
     };
   }
@@ -55,50 +59,107 @@ function getContent(flow: FlowType): { title: string; subtitle: string; steps: s
 }
 
 type OnboardingPageProps = {
-  searchParams?: Promise<{
+  searchParams: Promise<{
     flow?: string;
   }>;
 };
 
-export default async function OnboardingPage({ searchParams }: OnboardingPageProps): Promise<React.ReactElement> {
-  const params = await searchParams;
+export default function OnboardingPage({ searchParams }: OnboardingPageProps): React.ReactElement {
+  const router = useRouter();
+  const params = use(searchParams);
   const flow = getFlowType(params?.flow ?? null);
   const content = getContent(flow);
 
+  const [isNavigating, setIsNavigating] = useState<"dashboard" | "add" | null>(null);
+
+  const handleNavigate = (target: "dashboard" | "add", url: string) => {
+    setIsNavigating(target);
+    router.push(url);
+  };
+
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-10 flex items-center justify-center">
-      <div className="w-full max-w-2xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-semibold text-[#010a19]">{content.title}</h1>
-          <p className="mt-2 text-gray-600">{content.subtitle}</p>
+    <main 
+      className="min-h-screen flex items-center justify-center bg-white px-4 py-12 relative"
+      style={{
+        backgroundImage: "url('/brand/MOTIFS.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      {/* Sharp backdrop overlay matching other auth pages */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-slate-50/30" />
+
+      <div className="relative w-full max-w-xl">
+        {/* Logo / Brand */}
+        <div className="mb-10 text-center">
+          <PlatformLogoLink centered subtitle="Initialisation de votre espace" />
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#010a19] mb-4">Prochaines étapes</h2>
-          <ol className="space-y-3 mb-8">
-            {content.steps.map((step, index) => (
-              <li key={step} className="flex items-start gap-3">
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0063fe] text-sm font-semibold text-white">
-                  {index + 1}
-                </span>
-                <span className="pt-0.5 text-gray-700">{step}</span>
-              </li>
-            ))}
-          </ol>
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-10">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-bold text-slate-900">{content.title}</h1>
+            {content.subtitle ? (
+              <p className="mt-2 text-sm text-slate-600">{content.subtitle}</p>
+            ) : null}
+          </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/dashboard?variant=${encodeURIComponent(flow)}`}
-              className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0052d4]"
-            >
-              Accéder au tableau de bord
-            </Link>
-            <Link
-              href="/dashboard/properties/add"
-              className="rounded-lg border border-[#0063fe] px-4 py-2.5 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
-            >
-              Ajouter un bien
-            </Link>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">Prochaines étapes</h2>
+              <div className="space-y-3">
+                {content.steps.map((step, index) => (
+                  <div 
+                    key={step} 
+                    className="flex items-start gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-sm font-bold text-[#0063fe]">
+                      {index + 1}
+                    </div>
+                    <div className="pt-0.5 text-sm font-medium text-slate-700">
+                      {step}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100">
+              <button
+                onClick={() => handleNavigate("dashboard", `/dashboard?variant=${encodeURIComponent(flow)}`)}
+                disabled={isNavigating !== null}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0063fe] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isNavigating === "dashboard" ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Connexion au tableau...
+                  </>
+                ) : (
+                  "Accéder au tableau de bord"
+                )}
+              </button>
+              <button
+                onClick={() => handleNavigate("add", "/dashboard/properties/add")}
+                disabled={isNavigating !== null}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isNavigating === "add" ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-700" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Chargement...
+                  </>
+                ) : (
+                  "Ajouter un bien"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

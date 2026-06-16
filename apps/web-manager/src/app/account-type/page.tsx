@@ -6,67 +6,22 @@ import type { OperatorAccountType } from "@hhousing/api-contracts";
 import PlatformLogoLink from "../../components/platform-logo-link";
 
 type FormData = {
-  accountType: OperatorAccountType | "";
+  accountType: OperatorAccountType;
   organizationName: string;
 };
 
 export default function AccountTypePage(): React.ReactElement {
   const router = useRouter();
-  const enabledAccountType: OperatorAccountType = "mixed_operator";
   const [formData, setFormData] = useState<FormData>({
-    accountType: "",
+    accountType: "mixed_operator",
     organizationName: ""
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-
-  const picker = [
-    {
-      type: "self_managed_owner" as const,
-      label: "Je gère mes propres locations",
-      description: "Vous êtes propriétaire et gérez vos propres biens en location",
-      enabled: false
-    },
-    {
-      type: "manager_for_others" as const,
-      label: "Je gère les locations pour d'autres",
-      description: "Vous êtes gestionnaire professionnel ou agent immobilier",
-      enabled: false
-    },
-    {
-      type: "mixed_operator" as const,
-      label: "Je gère un mélange des deux",
-      description: "Vous possédez des biens ET en gérez pour d'autres",
-      enabled: true
-    },
-    {
-      type: "tenant" as const,
-      label: "Je ne gère pas encore de location",
-      description: "Vous démarrez: création de votre premier bien ou rejoindre une organisation",
-      enabled: false
-    }
-  ];
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     setError(null);
-
-    if (!formData.accountType) {
-      setError("Veuillez sélectionner un type de compte");
-      return;
-    }
-
-    if (formData.accountType !== enabledAccountType) {
-      setError("Ce parcours n'est pas encore disponible.");
-      return;
-    }
-
-    // Redirect tenant selection to mobile app download page
-    if (formData.accountType === "tenant") {
-      router.push("/mobile-app");
-      return;
-    }
 
     if (!formData.organizationName.trim()) {
       setError("Veuillez entrer un nom d'organisation");
@@ -106,95 +61,86 @@ export default function AccountTypePage(): React.ReactElement {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
-      <div className="w-full max-w-2xl">
+    <main 
+      className="min-h-screen flex items-center justify-center bg-white px-4 py-12 relative"
+      style={{
+        backgroundImage: "url('/brand/MOTIFS.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-slate-50/30" />
+
+      <div className="relative w-full max-w-xl">
         {/* Logo / Brand */}
-        <div className="mb-12 text-center">
+        <div className="mb-10 text-center">
           <PlatformLogoLink centered subtitle="Espace gestionnaire" />
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h1 className="text-2xl font-semibold text-[#010a19] mb-2">Configurez votre compte</h1>
-          <p className="text-gray-600 mb-8">Quel type de gestionnaire êtes-vous ?</p>
-          <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Pour le moment, seul le parcours "Je gère un mélange des deux" est disponible. Les autres options arrivent bientôt.
-          </p>
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-slate-900">Configurez votre compte</h1>
+            <p className="mt-2 text-sm text-slate-600">Initialisez vos paramètres d'exploitation</p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Account Type Selection */}
-            <fieldset>
-              <legend className="text-sm font-medium text-gray-700 mb-3">
-                Qui êtes-vous ?
-              </legend>
-              <div className="grid grid-cols-1 gap-3">
-                {picker.map((option) => (
-                  <label
-                    key={option.type}
-                    className={`flex items-start rounded-lg border-2 p-4 transition ${
-                      option.enabled
-                        ? "cursor-pointer border-gray-200 hover:border-[#0063fe] hover:bg-[#0063fe]/5"
-                        : "cursor-not-allowed border-gray-200 bg-gray-50 opacity-60"
-                    }`}
-                    style={{
-                      borderColor: formData.accountType === option.type ? "#0063fe" : undefined,
-                      backgroundColor: formData.accountType === option.type ? "#eff6ff" : undefined
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="accountType"
-                      value={option.type}
-                      checked={formData.accountType === option.type}
-                      disabled={!option.enabled}
-                      onChange={(e) => setFormData(prev => ({ ...prev, accountType: e.target.value as OperatorAccountType }))}
-                      className="mt-0.5 mr-3"
-                      required
-                    />
-                    <div>
-                      <div className="font-medium text-[#010a19]">
-                        {option.label}
-                        {!option.enabled ? <span className="ml-2 text-xs font-medium text-amber-700">Bientôt disponible</span> : null}
-                      </div>
-                      <div className="text-sm text-gray-600">{option.description}</div>
-                    </div>
-                  </label>
-                ))}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Unified Card for Mixed Operator */}
+            <div className="relative overflow-hidden rounded-2xl border-2 border-[#0063fe] bg-blue-50/20 p-6 shadow-sm">
+              <div className="absolute top-0 right-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-[#0063fe]/5 blur-lg pointer-events-none" />
+              
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-[#0063fe] text-white shadow-md shadow-blue-500/20">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#010a19]">Compte Opérateur Locatif</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                    Ce profil unifié convient aussi bien si vous gérez <strong>vos propres biens</strong> (propriétaire direct) que si vous gérez des biens <strong>pour le compte de tiers</strong> (gestionnaire professionnel, agence).
+                  </p>
+                </div>
               </div>
-            </fieldset>
+            </div>
 
-            {/* Organization Name */}
-            {formData.accountType && (
-              <div>
-                <label
-                  htmlFor="organizationName"
-                  className="block text-sm font-medium text-gray-700 mb-1.5"
-                >
-                  Nom de votre organisation
-                </label>
-                <input
-                  id="organizationName"
-                  type="text"
-                  required
-                  value={formData.organizationName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, organizationName: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] placeholder-gray-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
-                  placeholder="ex. Gestion Immobilière Dupont"
-                />
-              </div>
-            )}
+            {/* Organization Name Input */}
+            <div>
+              <label
+                htmlFor="organizationName"
+                className="block text-sm font-semibold text-slate-700 mb-2"
+              >
+                Nom de votre organisation
+              </label>
+              <input
+                id="organizationName"
+                type="text"
+                required
+                value={formData.organizationName}
+                onChange={(e) => setFormData(prev => ({ ...prev, organizationName: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 shadow-sm"
+                placeholder="Ex: Horizon Immobilier, Résidences Liputa..."
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Ce nom sera affiché sur vos baux, vos factures et les fiches publiques de vos logements.
+              </p>
+            </div>
 
             {error !== null && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
-                {error}
-              </p>
+              <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+                <svg className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
             )}
 
             <button
               type="submit"
-              disabled={loading || !formData.accountType}
-              className="w-full rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={loading}
+              className="w-full rounded-xl bg-[#0063fe] py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Création en cours…" : "Créer le compte"}
+              {loading ? "Configuration de l'espace..." : "Configurer et démarrer"}
             </button>
           </form>
         </div>

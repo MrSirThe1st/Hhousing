@@ -37,10 +37,10 @@ export default async function TenantsPage(): Promise<React.ReactElement> {
     : [];
 
   return (
-    <>
+    <div id="tenants-container">
       {!access.operationsWritable && <ReadOnlyBanner />}
       <TenantManagementPanel organizationId={session.organizationId ?? ""} tenants={tenants} />
-    </>
+    </div>
   );
 }
 

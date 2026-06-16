@@ -25,10 +25,10 @@ export default async function LeasesPage(): Promise<React.ReactElement> {
     : [];
 
   return (
-    <>
+    <div id="leases-container">
       {!access.operationsWritable && <ReadOnlyBanner />}
       <LeaseManagementPanel leases={leases} />
-    </>
+    </div>
   );
 }
 

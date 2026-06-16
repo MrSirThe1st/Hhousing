@@ -5,6 +5,7 @@ import Sidebar from "../../components/sidebar";
 import SidebarToggleButton from "../../components/sidebar-toggle-button";
 import { getServerAuthSession } from "../../lib/session";
 import { resolveDashboardAccess } from "../../lib/dashboard-access";
+import DashboardTour from "../../components/dashboard-tour";
 
 export const metadata: Metadata = {
   title: "hhousing — Tableau de bord",
@@ -47,17 +48,29 @@ export default async function DashboardLayout({
       <Sidebar currentRoleLabel={getRoleLabel(session.role)} access={sidebarAccess} />
       <main className="flex flex-1 flex-col overflow-y-auto">
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4">
-          <div className="flex items-center gap-3">
-            <SidebarToggleButton />
-            <div>
-              <p className="text-sm font-medium text-[#010a19]">Espace opérateur</p>
-              <p className="text-sm text-gray-500">
-                Portefeuille unifié par propriétaire. Utilisez les filtres par propriétaire pour segmenter les données.
-              </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <SidebarToggleButton />
+              <div>
+                <p className="text-sm font-medium text-[#010a19]">Espace opérateur</p>
+                <p className="text-sm text-gray-500">
+                  Portefeuille unifié par propriétaire. Utilisez les filtres par propriétaire pour segmenter les données.
+                </p>
+              </div>
             </div>
+            <button
+              id="start-tour-button"
+              className="flex items-center gap-2 shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-[#0063fe] hover:border-[#0063fe]/30 focus:outline-none"
+            >
+              <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Visite guidée</span>
+            </button>
           </div>
         </div>
         {children}
+        <DashboardTour />
       </main>
     </div>
   );

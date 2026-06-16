@@ -251,7 +251,7 @@ export default async function TeamPage(): Promise<React.ReactElement> {
       memberHasPermission(currentMember.functions, Permission.MANAGE_ORG));
 
   return (
-    <div className="p-8">
+    <div id="team-container" className="p-8">
       <TeamManagementPanel
         members={members}
         invitations={invitations}

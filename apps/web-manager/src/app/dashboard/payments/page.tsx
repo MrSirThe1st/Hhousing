@@ -42,14 +42,14 @@ export default async function PaymentsPage(): Promise<React.ReactElement> {
     : [];
 
   return (
-    <>
+    <div id="payments-container">
       {!access.financesWritable && <ReadOnlyBanner />}
       <PaymentManagementPanel
         organizationId={session.organizationId ?? ""}
         payments={payments}
         leases={leases}
       />
-    </>
+    </div>
   );
 }
 

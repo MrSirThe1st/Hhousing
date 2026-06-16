@@ -36,11 +36,16 @@ export default function LoginPage(): React.ReactElement {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 px-4 py-12">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-br from-blue-100/20 to-transparent rounded-full blur-3xl" />
-        <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr from-slate-100/20 to-transparent rounded-full blur-3xl" />
-      </div>
+    <main 
+      className="min-h-screen flex items-center justify-center bg-white px-4 py-12 relative"
+      style={{
+        backgroundImage: "url('/brand/MOTIFS.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-slate-50/30" />
 
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">

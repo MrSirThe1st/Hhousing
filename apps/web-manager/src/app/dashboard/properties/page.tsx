@@ -30,13 +30,13 @@ export default async function PropertiesPage(): Promise<React.ReactElement> {
   const items: PropertyWithUnitsView[] = result.body.success ? result.body.data.items : [];
 
   return (
-    <>
+    <div id="properties-container">
       {!access.operationsWritable && <ReadOnlyBanner />}
       <PropertyManagementPanel
         organizationId={session.organizationId ?? ""}
         items={items}
       />
-    </>
+    </div>
   );
 }
 

@@ -28,12 +28,12 @@ export default async function MaintenancePage(): Promise<React.ReactElement> {
     : [];
 
   return (
-    <>
+    <div id="maintenance-container">
       {!access.servicesWritable && <ReadOnlyBanner />}
       <MaintenanceManagementPanel
         requests={requests}
       />
-    </>
+    </div>
   );
 }
 

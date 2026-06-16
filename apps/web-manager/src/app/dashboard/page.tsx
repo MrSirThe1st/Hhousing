@@ -563,7 +563,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <div id="dashboard-tabs" className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           {(["overview", "tasks", "calendar"] as DashboardTab[]).map((tabId) => {
             const label = tabId === "overview" ? "Vue d'ensemble" : tabId === "tasks" ? "Tâches" : "Calendrier";
             return (
@@ -635,7 +635,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
           ) : (
             <>
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section id="financial-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
                   <div>
                     <h2 className="text-base font-semibold text-[#010a19]">Pilotage financier</h2>
@@ -716,7 +716,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section id="operational-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
                   <div>
                     <h2 className="text-base font-semibold text-[#010a19]">Vue d'ensemble opérationnelle</h2>
@@ -808,7 +808,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section id="quick-reports" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-base font-semibold text-[#010a19]">Accès rapide rapports</h2>
                 <p className="mt-1 text-xs text-slate-500">Suivi détaillé par module pour action immédiate.</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
