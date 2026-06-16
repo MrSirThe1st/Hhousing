@@ -16,6 +16,7 @@ type DashboardTab = "overview" | "tasks" | "calendar";
 type DashboardPageProps = {
   searchParams?: Promise<{
     tab?: string;
+    currency?: string;
   }>;
 };
 
@@ -81,6 +82,11 @@ function toCurrencyTotals(summary: Map<string, number>): CurrencyTotal[] {
     .sort((left, right) => left.currencyCode.localeCompare(right.currencyCode, "fr"));
 }
 
+function filterCurrencyTotals(totals: CurrencyTotal[], currency: string): CurrencyTotal[] {
+  const match = totals.find((t) => t.currencyCode === currency);
+  return match ? [match] : [{ currencyCode: currency, amount: 0 }];
+}
+
 function getRecentMonthKeys(count: number): string[] {
   const now = getNow();
   const monthKeys: string[] = [];
@@ -104,7 +110,7 @@ function formatTrendMonthLabel(month: string): string {
   }).format(new Date(Date.UTC(year, monthIndex, 1)));
 }
 
-function buildMonthlyTrend(payments: Payment[], expenses: Expense[]): MonthlyFinanceTrend[] {
+function buildMonthlyTrend(payments: Payment[], expenses: Expense[], selectedCurrency: string): MonthlyFinanceTrend[] {
   const monthKeys = getRecentMonthKeys(6);
   const monthKeySet = new Set(monthKeys);
   const revenueByMonth = new Map<string, Map<string, number>>();
@@ -137,15 +143,15 @@ function buildMonthlyTrend(payments: Payment[], expenses: Expense[]): MonthlyFin
   }
 
   return monthKeys.map((month) => {
-    const revenueTotals = toCurrencyTotals(revenueByMonth.get(month) ?? new Map<string, number>());
-    const expenseTotals = toCurrencyTotals(expenseByMonth.get(month) ?? new Map<string, number>());
+    const revenueTotals = filterCurrencyTotals(toCurrencyTotals(revenueByMonth.get(month) ?? new Map<string, number>()), selectedCurrency);
+    const expenseTotals = filterCurrencyTotals(toCurrencyTotals(expenseByMonth.get(month) ?? new Map<string, number>()), selectedCurrency);
 
     return {
       month,
       label: formatTrendMonthLabel(month),
       revenueTotals,
       expenseTotals,
-      netTotals: subtractCurrencyTotals(revenueTotals, expenseTotals)
+      netTotals: filterCurrencyTotals(subtractCurrencyTotals(revenueTotals, expenseTotals), selectedCurrency)
     };
   });
 }
@@ -271,7 +277,8 @@ function getVariantHeader(experience: "self_managed_owner" | "manager_for_others
 }
 
 async function fetchDashboardMetrics(
-  session: AuthSession
+  session: AuthSession,
+  selectedCurrency: string
 ): Promise<DashboardMetrics> {
   const propertyRepo = createRepositoryFromEnv();
   const tenantLeaseRepo = createTenantLeaseRepo();
@@ -314,6 +321,9 @@ async function fetchDashboardMetrics(
       loadScopedFinanceData(session)
     ]);
 
+    const filteredPayments = financeData.payments.filter((payment) => payment.currencyCode === selectedCurrency);
+    const filteredExpenses = financeData.expenses.filter((expense) => expense.currencyCode === selectedCurrency);
+
     const unitCount = properties.reduce((sum, prop) => sum + prop.units.length, 0);
     const unitIds = new Set(properties.flatMap((property) => property.units.map((unit) => unit.id)));
     const occupiedUnitCount = properties.reduce(
@@ -337,7 +347,7 @@ async function fetchDashboardMetrics(
     let overduePaymentCount = 0;
     let pendingPaymentCount = 0;
 
-    for (const payment of financeData.payments) {
+    for (const payment of filteredPayments) {
       if (payment.status === "paid") {
         paidPaymentCount += 1;
         addAmount(paidSummary, payment.currencyCode, payment.amount);
@@ -354,16 +364,16 @@ async function fetchDashboardMetrics(
       }
     }
 
-    for (const expense of financeData.expenses) {
+    for (const expense of filteredExpenses) {
       addAmount(expenseSummary, expense.currencyCode, expense.amount);
     }
 
-    const paidTotals = toCurrencyTotals(paidSummary);
-    const expenseTotals = toCurrencyTotals(expenseSummary);
-    const overdueTotals = toCurrencyTotals(overdueSummary);
-    const pendingTotals = toCurrencyTotals(pendingSummary);
-    const monthlyTrend = buildMonthlyTrend(financeData.payments, financeData.expenses);
-    const overdueRows = buildOverdueRows(financeData.payments, scopedLeases, unitLabelsById);
+    const paidTotals = filterCurrencyTotals(toCurrencyTotals(paidSummary), selectedCurrency);
+    const expenseTotals = filterCurrencyTotals(toCurrencyTotals(expenseSummary), selectedCurrency);
+    const overdueTotals = filterCurrencyTotals(toCurrencyTotals(overdueSummary), selectedCurrency);
+    const pendingTotals = filterCurrencyTotals(toCurrencyTotals(pendingSummary), selectedCurrency);
+    const monthlyTrend = buildMonthlyTrend(filteredPayments, filteredExpenses, selectedCurrency);
+    const overdueRows = buildOverdueRows(filteredPayments, scopedLeases, unitLabelsById);
     const leasesEndingSoon = getLeasesEndingSoon(scopedLeases, 30);
     const urgentMaintenanceCount = getUrgentMaintenanceOpenCount(scopedMaintenance);
     const mostOverdueDays = overdueRows.reduce((maxDays, row) => Math.max(maxDays, row.daysLate), 0);
@@ -379,7 +389,7 @@ async function fetchDashboardMetrics(
       occupiedUnitCount,
       paidTotals,
       expenseTotals,
-      netTotals: subtractCurrencyTotals(paidTotals, expenseTotals),
+      netTotals: filterCurrencyTotals(subtractCurrencyTotals(paidTotals, expenseTotals), selectedCurrency),
       overdueTotals,
       pendingTotals,
       paidPaymentCount,
@@ -477,17 +487,16 @@ function getCollectionRate(metrics: DashboardMetrics): number {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("dashboard");
-
-  const params = await searchParams;
+  const { session } = await requireDashboardSectionAccess("dashboard");  const params = await searchParams;
   const activeTab = getDashboardTab(params?.tab);
+  const selectedCurrency = params?.currency === "CDF" || params?.currency === "FC" ? "CDF" : "USD";
 
   const operatorContext = await getServerOperatorContext(session);
   const scopeLabel = getOperatorScopeLabel();
   const header = getVariantHeader(operatorContext.experience);
 
   const metrics = activeTab === "overview"
-    ? await fetchDashboardMetrics(session)
+    ? await fetchDashboardMetrics(session, selectedCurrency)
     : {
       propertyCount: 0,
       unitCount: 0,
@@ -519,11 +528,30 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const collectionRate = getCollectionRate(metrics);
 
   const hasNoData = metrics.propertyCount === 0;
-  const tabs: Array<{ id: DashboardTab; label: string; href: string }> = [
-    { id: "overview", label: "Vue d'ensemble", href: "/dashboard" },
-    { id: "tasks", label: "Tâches", href: "/dashboard?tab=tasks" },
-    { id: "calendar", label: "Calendrier", href: "/dashboard?tab=calendar" },
-  ];
+
+  const getTabHref = (tabId: DashboardTab) => {
+    const query = new URLSearchParams();
+    if (tabId !== "overview") {
+      query.set("tab", tabId);
+    }
+    if (selectedCurrency !== "USD") {
+      query.set("currency", selectedCurrency);
+    }
+    const queryString = query.toString();
+    return queryString ? `/dashboard?${queryString}` : "/dashboard";
+  };
+
+  const getCurrencyHref = (currencyCode: string) => {
+    const query = new URLSearchParams();
+    if (activeTab !== "overview") {
+      query.set("tab", activeTab);
+    }
+    if (currencyCode !== "USD") {
+      query.set("currency", currencyCode);
+    }
+    const queryString = query.toString();
+    return queryString ? `/dashboard?${queryString}` : "/dashboard";
+  };
 
   return (
     <div className="space-y-6 p-8">
@@ -534,22 +562,52 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         </div>
       </div>
 
-      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            href={tab.href}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-              activeTab === tab.id
-                ? "bg-[#0063fe] text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+          {(["overview", "tasks", "calendar"] as DashboardTab[]).map((tabId) => {
+            const label = tabId === "overview" ? "Vue d'ensemble" : tabId === "tasks" ? "Tâches" : "Calendrier";
+            return (
+              <Link
+                key={tabId}
+                href={getTabHref(tabId)}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  activeTab === tabId
+                    ? "bg-[#0063fe] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
+        {activeTab === "overview" && (
+          <div className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+            <span className="px-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Devise :</span>
+            <Link
+              href={getCurrencyHref("USD")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                selectedCurrency === "USD"
+                  ? "bg-[#0063fe] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              USD
+            </Link>
+            <Link
+              href={getCurrencyHref("CDF")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                selectedCurrency === "CDF"
+                  ? "bg-[#0063fe] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              CDF
+            </Link>
+          </div>
+        )}
+      </div>
       {activeTab === "overview" ? (
         <>
           {hasNoData ? (

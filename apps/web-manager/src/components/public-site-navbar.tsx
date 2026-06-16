@@ -111,7 +111,12 @@ export default function PublicSiteNavbar(): React.ReactElement {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link href="/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+          {/* Route Connexion to correct login page based on current path */}
+          {typeof window !== "undefined" && window.location.pathname.startsWith("/owner-portal") ? (
+            <Link href="/owner-portal/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+          ) : (
+            <Link href="/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+          )}
           <Link href="/signup" className="rounded-full bg-[#0063FE] px-5 py-2.5 text-sm font-semibold text-white">Créer un compte</Link>
         </div>
       </div>

@@ -1,8 +1,11 @@
+
+// DEBUG: Add logging for production routing issues
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
+  const debugLogs: string[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,6 +33,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  debugLogs.push(`[middleware] path=${pathname} user_id=${user?.id ?? "none"}`);
 
   // Fast existence checks avoid expensive exact-count scans on hot auth paths.
   async function hasMembership(userId: string): Promise<boolean> {
@@ -63,17 +67,27 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   if (pathname === "/login" || pathname === "/signup") {
     if (user !== null) {
       const membershipExists = await hasMembership(user.id);
+      debugLogs.push(`[middleware] /login: membershipExists=${membershipExists}`);
       if (membershipExists) {
+        debugLogs.push(`[middleware] /login: redirecting to /dashboard`);
+        logDebug(debugLogs);
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
 
       const ownerAccessExists = await hasOwnerPortalAccess(user.id);
+      debugLogs.push(`[middleware] /login: ownerAccessExists=${ownerAccessExists}`);
       if (ownerAccessExists) {
+        debugLogs.push(`[middleware] /login: redirecting to /owner-portal/dashboard`);
+        logDebug(debugLogs);
         return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
       }
 
+      debugLogs.push(`[middleware] /login: redirecting to /account-type`);
+      logDebug(debugLogs);
       return NextResponse.redirect(new URL("/account-type", request.url));
     }
+    debugLogs.push(`[middleware] /login: unauthenticated, showing login form`);
+    logDebug(debugLogs);
     return response;
   }
 
@@ -106,10 +120,15 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   if (pathname === "/owner-portal/login") {
     if (user !== null) {
       const ownerAccessExists = await hasOwnerPortalAccess(user.id);
+      debugLogs.push(`[middleware] /owner-portal/login: ownerAccessExists=${ownerAccessExists}`);
       if (ownerAccessExists) {
+        debugLogs.push(`[middleware] /owner-portal/login: redirecting to /owner-portal/dashboard`);
+        logDebug(debugLogs);
         return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
       }
     }
+    debugLogs.push(`[middleware] /owner-portal/login: unauthenticated or no access, showing login form`);
+    logDebug(debugLogs);
     return response;
   }
 
@@ -128,6 +147,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   return response;
+}
+
+// Utility: log debug info to server console (only in production)
+function logDebug(logs: string[]): void {
+  if (process.env.NODE_ENV === "production") {
+    // eslint-disable-next-line no-console
+    console.log(logs.join(" | "));
+  }
 }
 
 export const config = {

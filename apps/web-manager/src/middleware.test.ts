@@ -27,7 +27,9 @@ describe("middleware", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ count: 1 })
+              eq: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue({ data: [{ id: "access_1" }] })
+              })
             })
           })
         };
@@ -35,7 +37,9 @@ describe("middleware", () => {
 
       return {
         select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ count: 1 })
+          eq: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue({ data: [{ id: "membership_1" }] })
+          })
         })
       };
     });
@@ -66,7 +70,9 @@ describe("middleware", () => {
       if (table === "organization_memberships") {
         return {
           select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ count: 0 })
+            eq: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({ data: [] })
+            })
           })
         };
       }
@@ -75,7 +81,9 @@ describe("middleware", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ count: 1 })
+              eq: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue({ data: [{ id: "access_1" }] })
+              })
             })
           })
         };
@@ -83,7 +91,9 @@ describe("middleware", () => {
 
       return {
         select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ count: 0 })
+          eq: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue({ data: [] })
+          })
         })
       };
     });
