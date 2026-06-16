@@ -46,7 +46,7 @@ export default function LoginPage(): React.ReactElement {
         <div className="mb-8 text-center">
           <PlatformLogoLink
             centered
-            subtitle="Retour a l'accueil public de la plateforme"
+            subtitle="Retour à l'accueil public de la plateforme"
           />
           <div className="mt-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/50 px-4 py-1.5 text-xs font-semibold text-blue-700">

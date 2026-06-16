@@ -24,7 +24,7 @@ export default function OwnerPortalLoginPage(): React.ReactElement {
     });
 
     if (authError) {
-      setError("Connexion impossible. Verifiez vos identifiants.");
+      setError("Connexion impossible. Vérifiez vos identifiants.");
       setLoading(false);
       return;
     }
@@ -37,16 +37,16 @@ export default function OwnerPortalLoginPage(): React.ReactElement {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(0,99,254,0.10),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef4fb_100%)] px-6 py-12">
       <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-4xl bg-[#03132b] px-8 py-10 text-white shadow-[0_24px_70px_-40px_rgba(3,19,43,0.85)]">
-          <OwnerPortalLogoLink subtitle="Acces lecture seule pour les owners invites" />
-          <h1 className="mt-10 text-4xl font-semibold tracking-tight">Suivez vos actifs sans operer la plateforme.</h1>
+          <OwnerPortalLogoLink subtitle="Accès lecture seule pour les owners invités" />
+          <h1 className="mt-10 text-4xl font-semibold tracking-tight">Suivez vos actifs sans opérer la plateforme.</h1>
           <p className="mt-4 max-w-md text-sm leading-7 text-slate-300">
-            Ce portail est reserve aux owners invites par leur gestionnaire. Vous y consultez vos biens,
-            vos encaissements, vos indicateurs d'occupation et vos rapports, sans acces d'ecriture.
+            Ce portail est réservé aux owners invités par leur gestionnaire. Vous y consultez vos biens,
+            vos encaissements, vos indicateurs d'occupation et vos rapports, sans accès d'écriture.
           </p>
           <div className="mt-10 space-y-4 text-sm text-slate-200">
             <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Portefeuille owner en lecture seule</div>
-            <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Paiements et performance centralises</div>
-            <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Acces par invitation email uniquement</div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Paiements et performance centralisés</div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Accès par invitation email uniquement</div>
           </div>
         </section>
 
@@ -54,8 +54,8 @@ export default function OwnerPortalLoginPage(): React.ReactElement {
           <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Owner portal</p>
           <h2 className="mt-3 text-3xl font-semibold text-slate-950">Connexion</h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Utilisez l'email qui a recu l'invitation owner. Si vous n'avez pas encore active votre acces,
-            ouvrez d'abord le lien d'invitation recu par email.
+            Utilisez l'email qui a reçu l'invitation owner. Si vous n'avez pas encore activé votre accès,
+            ouvrez d'abord le lien d'invitation reçu par email.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">

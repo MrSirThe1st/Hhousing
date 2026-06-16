@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OperatorAccountType } from "@hhousing/api-contracts";
+import PlatformLogoLink from "../../components/platform-logo-link";
 
 type FormData = {
   accountType: OperatorAccountType | "";
@@ -109,10 +110,7 @@ export default function AccountTypePage(): React.ReactElement {
       <div className="w-full max-w-2xl">
         {/* Logo / Brand */}
         <div className="mb-12 text-center">
-          <span className="text-3xl font-semibold tracking-tight text-[#010a19]">
-            hhousing
-          </span>
-          <p className="mt-2 text-sm text-gray-600">Espace gestionnaire</p>
+          <PlatformLogoLink centered subtitle="Espace gestionnaire" />
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -155,7 +153,7 @@ export default function AccountTypePage(): React.ReactElement {
                     <div>
                       <div className="font-medium text-[#010a19]">
                         {option.label}
-                        {!option.enabled ? <span className="ml-2 text-xs font-medium text-amber-700">Bientot disponible</span> : null}
+                        {!option.enabled ? <span className="ml-2 text-xs font-medium text-amber-700">Bientôt disponible</span> : null}
                       </div>
                       <div className="text-sm text-gray-600">{option.description}</div>
                     </div>

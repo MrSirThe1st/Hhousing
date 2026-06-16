@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PublicListingDetailApplicationForm from "../../../components/public-listing-detail-application-form";
@@ -7,6 +8,34 @@ import { createListingRepo } from "../../api/shared";
 type ListingDetailPageProps = {
   params: Promise<{ id: string }>;
 };
+
+export async function generateMetadata({ params }: ListingDetailPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const listingRepo = createListingRepo();
+  const item = await listingRepo.getPublicListingById(id);
+
+  if (!item) {
+    return {
+      title: "Logement non disponible — Haraka Property"
+    };
+  }
+
+  const title = `${item.title} à louer à ${item.locationLabel} — Haraka Property`;
+  const description = item.listing.marketingDescription || `Découvrez ce logement disponible à ${item.locationLabel} pour ${item.priceLabel}. Contactez le gestionnaire en direct sur Haraka Property.`;
+  const coverImageUrl = item.listing.coverImageUrl ?? item.property.photoUrls[0] ?? "";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      locale: "fr_FR",
+      images: coverImageUrl ? [{ url: coverImageUrl, alt: item.title }] : []
+    }
+  };
+}
 
 export default async function ListingDetailPage({ params }: ListingDetailPageProps): Promise<React.ReactElement> {
   const { id } = await params;
@@ -21,8 +50,30 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
     ? item.listing.galleryImageUrls
     : item.property.photoUrls;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Apartment",
+    "name": item.title,
+    "description": item.listing.marketingDescription || undefined,
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": item.locationLabel,
+      "addressCountry": "CD"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": item.unit.depositAmount || undefined,
+      "priceCurrency": item.unit.currencyCode || "USD",
+      "availability": "https://schema.org/InStock"
+    }
+  };
+
   return (
     <main className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="border-b border-slate-100 bg-white">
         <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
           <div className="flex items-center justify-between">

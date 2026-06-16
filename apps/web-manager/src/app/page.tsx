@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createListingRepo } from "./api/shared";
 import PublicListingCard from "../components/public-listing-card";
@@ -11,6 +12,17 @@ import {
   PRICING_TIERS,
   USE_CASES
 } from "./public-site-data";
+
+export const metadata: Metadata = {
+  title: "Haraka Property — Logiciel de gestion immobilière et locative en RDC",
+  description: "Pilotez et centralisez la gestion de vos biens immobiliers en République Démocratique du Congo. Solution professionnelle pour baux, paiements, maintenance, communication et diffusion d'annonces.",
+  openGraph: {
+    title: "Haraka Property — Logiciel de gestion immobilière en RDC",
+    description: "Pilotez et centralisez la gestion de vos biens immobiliers en République Démocratique du Congo. Solution professionnelle pour baux, paiements, maintenance, communication et diffusion d'annonces.",
+    type: "website",
+    locale: "fr_FR"
+  }
+};
 
 export default async function HomePage(): Promise<React.ReactElement> {
   const listingRepo = createListingRepo();

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/owner-portal/dashboard", label: "Vue generale" },
+  { href: "/owner-portal/dashboard", label: "Vue générale" },
   { href: "/owner-portal/dashboard/properties", label: "Biens" },
   { href: "/owner-portal/dashboard/payments", label: "Paiements" },
   { href: "/owner-portal/dashboard/reports", label: "Rapports" }

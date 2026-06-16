@@ -1,15 +1,14 @@
 "use client";
 
+import PlatformLogoLink from "../../components/platform-logo-link";
+
 export default function MobileAppPage(): React.ReactElement {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="mb-10 text-center">
-          <span className="text-3xl font-semibold tracking-tight text-[#010a19]">
-            hhousing
-          </span>
-          <p className="mt-2 text-sm text-gray-600">Espace locataire</p>
+          <PlatformLogoLink centered subtitle="Espace locataire" />
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">

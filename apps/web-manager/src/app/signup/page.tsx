@@ -63,7 +63,7 @@ export default function SignupPage(): React.ReactElement {
         <div className="mb-8 text-center">
           <PlatformLogoLink
             centered
-            subtitle="Retour a l'accueil public de la plateforme"
+            subtitle="Retour à l'accueil public de la plateforme"
           />
           <div className="mt-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/50 px-4 py-1.5 text-xs font-semibold text-emerald-700">

@@ -14,7 +14,7 @@ interface ApiResult<T> {
 function LoadingPanel(): React.ReactElement {
   return (
     <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-500">
-      Verification de l'invitation...
+      Vérification de l'invitation...
     </div>
   );
 }
@@ -134,7 +134,7 @@ function OwnerInviteContent(): React.ReactElement {
     });
 
     if (signInResult.error) {
-      setError("Connexion impossible. Verifiez votre mot de passe.");
+      setError("Connexion impossible. Vérifiez votre mot de passe.");
       setBusy(false);
       return;
     }
@@ -164,17 +164,17 @@ function OwnerInviteContent(): React.ReactElement {
         <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
           <section className="border-b border-slate-200 bg-slate-950 px-6 py-8 text-white lg:border-b-0 lg:border-r">
             <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Invitation owner</p>
-            <h1 className="mt-3 text-3xl font-semibold">Activez votre acces lecture seule</h1>
+            <h1 className="mt-3 text-3xl font-semibold">Activez votre accès lecture seule</h1>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              Votre acces owner reste strictement consultatif. Vous pourrez suivre vos biens,
-              les paiements et les rapports lies a votre portefeuille, sans modifier les donnees.
+              Votre accès owner reste strictement consultatif. Vous pourrez suivre vos biens,
+              les paiements et les rapports liés à votre portefeuille, sans modifier les données.
             </p>
 
             {invitation ? (
               <div className="mt-8 rounded-3xl bg-white/10 p-5 text-sm text-slate-200">
                 <p><strong>Owner:</strong> {invitation.ownerName}</p>
                 <p className="mt-2"><strong>Organisation:</strong> {invitation.organizationName}</p>
-                <p className="mt-2"><strong>Email invite:</strong> {invitation.email}</p>
+                <p className="mt-2"><strong>Email invité:</strong> {invitation.email}</p>
                 <p className="mt-2"><strong>Expiration:</strong> {new Date(invitation.expiresAtIso).toLocaleDateString("fr-FR")}</p>
               </div>
             ) : null}
@@ -185,8 +185,8 @@ function OwnerInviteContent(): React.ReactElement {
             <h2 className="mt-3 text-2xl font-semibold text-slate-950">Finaliser l'invitation</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               {invitation?.accountExists
-                ? "Un compte Hhousing existe deja pour cet email. Connectez-vous avec ce compte, puis activez votre acces owner."
-                : "Aucun compte Hhousing n'existe encore pour cet email. Creez votre mot de passe puis activez votre acces owner."}
+                ? "Un compte Hhousing existe déjà pour cet email. Connectez-vous avec ce compte, puis activez votre accès owner."
+                : "Aucun compte Hhousing n'existe encore pour cet email. Créez votre mot de passe puis activez votre accès owner."}
             </p>
 
             {loading ? <LoadingPanel /> : null}
@@ -200,7 +200,7 @@ function OwnerInviteContent(): React.ReactElement {
                     disabled={invitation.accountExists}
                     className={`rounded-full px-4 py-2 font-medium transition ${mode === "create" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"} ${invitation.accountExists ? "cursor-not-allowed opacity-40" : ""}`}
                   >
-                    Creer un compte
+                    Créer un compte
                   </button>
                   <button
                     type="button"
@@ -259,13 +259,13 @@ function OwnerInviteContent(): React.ReactElement {
                       disabled={busy || invitation.accountExists || fullName.trim().length === 0 || password.length < 8}
                       className="w-full rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
                     >
-                      {busy ? "Activation..." : "Creer mon compte et activer l'acces"}
+                      {busy ? "Activation..." : "Créer mon compte et activer l'accès"}
                     </button>
                   </form>
                 ) : (
                   <form className="space-y-4" onSubmit={handleLoginAndAccept}>
                     <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-                      <p className="font-medium text-slate-900">Connexion avec l'email invite</p>
+                      <p className="font-medium text-slate-900">Connexion avec l'email invité</p>
                       <p className="mt-1">{invitation.email}</p>
                     </div>
 
@@ -290,7 +290,7 @@ function OwnerInviteContent(): React.ReactElement {
                       disabled={busy || existingPassword.length < 8}
                       className="w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
                     >
-                      {busy ? "Connexion..." : "Se connecter et activer mon acces"}
+                      {busy ? "Connexion..." : "Se connecter et activer mon accès"}
                     </button>
                   </form>
                 )}

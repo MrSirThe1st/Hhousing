@@ -6,8 +6,8 @@ export default function ReadOnlyBanner(): React.ReactElement {
         <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
       <p className="text-sm text-amber-700">
-        <span className="font-semibold">Read-only access.</span>{" "}
-        You can view this section but cannot create or modify records. Contact your administrator to request additional permissions.
+        <span className="font-semibold">Accès en lecture seule.</span>{" "}
+        Vous pouvez consulter cette section mais vous ne pouvez pas créer ni modifier de données. Contactez votre administrateur pour demander des autorisations supplémentaires.
       </p>
     </div>
   );

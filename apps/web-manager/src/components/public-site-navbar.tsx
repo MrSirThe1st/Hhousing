@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FEATURE_GROUPS, PRICING_TIERS, USE_CASES } from "../app/public-site-data";
+import { useAuth } from "../contexts/auth-context";
 
 type MenuId = "pricing" | "roles" | "features";
 
@@ -17,6 +18,7 @@ const MENU_ITEMS: Array<{
 ];
 
 export default function PublicSiteNavbar(): React.ReactElement {
+  const { user, loading } = useAuth();
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
@@ -111,13 +113,26 @@ export default function PublicSiteNavbar(): React.ReactElement {
         </nav>
 
         <div className="flex items-center gap-3">
-          {/* Route Connexion to correct login page based on current path */}
-          {typeof window !== "undefined" && window.location.pathname.startsWith("/owner-portal") ? (
-            <Link href="/owner-portal/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+          {loading ? (
+            <div className="h-10 w-24 rounded-full bg-slate-100 animate-pulse" />
+          ) : user !== null ? (
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-[#0063FE] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+            >
+              Mon tableau de bord
+            </Link>
           ) : (
-            <Link href="/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+            <>
+              {/* Route Connexion to correct login page based on current path */}
+              {typeof window !== "undefined" && window.location.pathname.startsWith("/owner-portal") ? (
+                <Link href="/owner-portal/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+              ) : (
+                <Link href="/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+              )}
+              <Link href="/signup" className="rounded-full bg-[#0063FE] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]">Créer un compte</Link>
+            </>
           )}
-          <Link href="/signup" className="rounded-full bg-[#0063FE] px-5 py-2.5 text-sm font-semibold text-white">Créer un compte</Link>
         </div>
       </div>
 

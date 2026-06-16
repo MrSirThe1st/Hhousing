@@ -64,7 +64,7 @@ export default function PublicListingShareActions({
         onClick={copyLink}
         className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-700"
       >
-        {copied ? "Instagram link copied" : "Instagram"}
+        {copied ? "Lien Instagram copié" : "Instagram"}
       </button>
       <a
         href={instagramUrl}
@@ -72,7 +72,7 @@ export default function PublicListingShareActions({
         rel="noreferrer"
         className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600"
       >
-        Open app
+        Ouvrir l'application
       </a>
     </div>
   );

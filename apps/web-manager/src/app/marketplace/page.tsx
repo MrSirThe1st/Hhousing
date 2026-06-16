@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createListingRepo } from "../api/shared";
 import PublicListingCard from "../../components/public-listing-card";
@@ -5,6 +6,17 @@ import PublicMarketplaceSearchForm from "../../components/public-marketplace-sea
 import PublicSiteFooter from "../../components/public-site-footer";
 import PublicSiteNavbar from "../../components/public-site-navbar";
 import { buildPublicListingFilter, type PublicMarketplaceSearchParams } from "../public-site-data";
+
+export const metadata: Metadata = {
+  title: "Annonces Immobilières & Logements à Louer en RDC — Haraka Property",
+  description: "Parcourez et trouvez votre prochain appartement, maison, bureau ou local commercial disponible à la location en République Démocratique du Congo.",
+  openGraph: {
+    title: "Annonces Immobilières & Logements à Louer en RDC — Haraka Property",
+    description: "Parcourez et trouvez votre prochain appartement, maison, bureau ou local commercial disponible à la location en République Démocratique du Congo.",
+    type: "website",
+    locale: "fr_FR"
+  }
+};
 
 type MarketplacePageProps = {
   searchParams?: Promise<PublicMarketplaceSearchParams>;

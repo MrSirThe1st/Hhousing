@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { TeamMemberInvitationPreview } from "@hhousing/api-contracts";
+import Link from "next/link";
+import Image from "next/image";
 import { postPublic } from "../../lib/api-client";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import UniversalLoadingState from "../../components/universal-loading-state";
@@ -119,7 +121,7 @@ function TeamInvitePageContent(): React.ReactElement {
     });
 
     if (signInResult.error) {
-      setError("Connexion impossible. Verifiez votre mot de passe.");
+      setError("Connexion impossible. Vérifiez votre mot de passe.");
       setBusy(false);
       return;
     }
@@ -143,32 +145,41 @@ function TeamInvitePageContent(): React.ReactElement {
       <div className="mx-auto max-w-4xl rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)]">
         <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="border-b border-slate-200 bg-slate-950 px-6 py-8 text-white lg:border-b-0 lg:border-r">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Invitation equipe</p>
-            <h1 className="mt-3 text-3xl font-semibold">Activez votre acces personnel</h1>
+            <div className="mb-6">
+              <Link href="/" className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white shadow-sm transition hover:bg-white/10" aria-label="Retour à la page d'accueil">
+                <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
+                <span className="text-left">
+                  <span className="block text-lg font-semibold tracking-tight text-white">Haraka Property</span>
+                  <span className="block text-xs uppercase tracking-[0.16em] text-slate-400">Opérations locatives</span>
+                </span>
+              </Link>
+            </div>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Invitation équipe</p>
+            <h1 className="mt-3 text-3xl font-semibold">Activez votre accès personnel</h1>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              Chaque membre rejoint l'equipe avec son propre compte. Aucun mot de passe n'est partage avec le gestionnaire qui envoie l'invitation.
+              Chaque membre rejoint l'équipe avec son propre compte. Aucun mot de passe n'est partagé avec le gestionnaire qui envoie l'invitation.
             </p>
 
             {invitation ? (
               <div className="mt-8 rounded-3xl bg-white/10 p-5 text-sm text-slate-200">
                 <p><strong>Organisation:</strong> {invitation.organizationName}</p>
-                <p className="mt-2"><strong>Email invite:</strong> {invitation.email}</p>
+                <p className="mt-2"><strong>Email invité:</strong> {invitation.email}</p>
                 <p className="mt-2"><strong>Expiration:</strong> {new Date(invitation.expiresAtIso).toLocaleDateString("fr-FR")}</p>
               </div>
             ) : null}
 
             <div className="mt-8 space-y-4 text-sm text-slate-300">
               <div className="rounded-3xl border border-white/10 px-4 py-4">
-                <p className="font-semibold text-white">1. Verifiez votre email</p>
-                <p className="mt-1">L'invitation est liee a l'adresse email exacte du membre invite.</p>
+                <p className="font-semibold text-white">1. Vérifiez votre email</p>
+                <p className="mt-1">L'invitation est liée à l'adresse email exacte du membre invité.</p>
               </div>
               <div className="rounded-3xl border border-white/10 px-4 py-4">
-                <p className="font-semibold text-white">2. Creez ou connectez votre compte</p>
-                <p className="mt-1">Nouveau membre: creation de compte. Compte existant: connexion puis rattachement a l'organisation.</p>
+                <p className="font-semibold text-white">2. Créez ou connectez votre compte</p>
+                <p className="mt-1">Nouveau membre: création de compte. Compte existant: connexion puis rattachement à l'organisation.</p>
               </div>
               <div className="rounded-3xl border border-white/10 px-4 py-4">
-                <p className="font-semibold text-white">3. Accedez a la plateforme</p>
-                <p className="mt-1">Votre acces devient individuel, traçable et securise.</p>
+                <p className="font-semibold text-white">3. Accédez à la plateforme</p>
+                <p className="mt-1">Votre accès devient individuel, traçable et sécurisé.</p>
               </div>
             </div>
           </div>
@@ -178,8 +189,8 @@ function TeamInvitePageContent(): React.ReactElement {
             <h2 className="mt-3 text-2xl font-semibold text-slate-950">Finaliser l'invitation</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               {invitation?.accountExists
-                ? "Un compte Hhousing existe deja pour cet email. Connectez-vous avec ce compte pour rejoindre l'organisation."
-                : "Aucun compte Hhousing n'existe encore pour cet email. Creez votre acces puis activez l'invitation."}
+                ? "Un compte Hhousing existe déjà pour cet email. Connectez-vous avec ce compte pour rejoindre l'organisation."
+                : "Aucun compte Hhousing n'existe encore pour cet email. Créez votre accès puis activez l'invitation."}
             </p>
             {loading ? <UniversalLoadingState minHeightClassName="min-h-28" size="compact" className="mt-6" /> : null}
 
@@ -192,7 +203,7 @@ function TeamInvitePageContent(): React.ReactElement {
                     disabled={invitation.accountExists}
                     className={`rounded-full px-4 py-2 font-medium transition ${mode === "create" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"} ${invitation.accountExists ? "cursor-not-allowed opacity-40" : ""}`}
                   >
-                    Creer un compte
+                    Créer un compte
                   </button>
                   <button
                     type="button"
@@ -244,7 +255,7 @@ function TeamInvitePageContent(): React.ReactElement {
 
                     {invitation.accountExists ? (
                       <p className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                        Un compte existe deja pour cet email. Utilisez l'onglet de connexion.
+                        Un compte existe déjà pour cet email. Utilisez l'onglet de connexion.
                       </p>
                     ) : null}
 
@@ -257,13 +268,13 @@ function TeamInvitePageContent(): React.ReactElement {
                       disabled={busy || invitation.accountExists || fullName.trim().length === 0 || password.length < 8}
                       className="w-full rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
                     >
-                      {busy ? "Activation..." : "Creer mon compte et activer l'acces"}
+                      {busy ? "Activation..." : "Créer mon compte et activer l'accès"}
                     </button>
                   </form>
                 ) : (
                   <form className="space-y-4" onSubmit={handleLoginAndAccept}>
                     <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-                      <p className="font-medium text-slate-900">Connexion avec votre email invite</p>
+                      <p className="font-medium text-slate-900">Connexion avec votre email invité</p>
                       <p className="mt-1">{invitation.email}</p>
                     </div>
 
@@ -309,7 +320,7 @@ function TeamInviteFallback(): React.ReactElement {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-950">Activation de votre acces</h1>
+        <h1 className="text-2xl font-semibold text-slate-950">Activation de votre accès</h1>
         <UniversalLoadingState minHeightClassName="min-h-28" size="compact" className="mt-6" />
       </div>
     </main>

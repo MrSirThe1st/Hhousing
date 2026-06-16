@@ -21,12 +21,17 @@ export default function PublicMarketplaceSearchForm({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
         <label className="block min-w-0 flex-1 text-sm font-medium text-slate-700">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Recherche</span>
-          <input
-            name="q"
-            defaultValue={values?.q ?? ""}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Ville, immeuble ou unité"
-          />
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <img src="/brand/haraka-pay-logo.svg" alt="" className="h-5 w-5 opacity-55" />
+            </div>
+            <input
+              name="q"
+              defaultValue={values?.q ?? ""}
+              className="w-full rounded-2xl border border-slate-300 py-3 pl-11 pr-4"
+              placeholder="Ville, immeuble ou unité"
+            />
+          </div>
         </label>
         <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-44">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Ville</span>
