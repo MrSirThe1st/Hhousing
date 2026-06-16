@@ -45,30 +45,44 @@ export async function createOrganization(
     };
   }
 
-  const organization = await deps.repository.createOrganization({
-    id: deps.createId(),
-    name: parsed.data.name
-  });
+  try {
+    const organization = await deps.repository.createOrganization({
+      id: deps.createId(),
+      name: parsed.data.name
+    });
 
-  await logOperatorAuditEvent({
-    organizationId: organization.id,
-    actorMemberId: null,
-    actionKey: "operations.organization.created",
-    entityType: "organization",
-    entityId: organization.id,
-    metadata: {
-      name: organization.name,
-      creatorUserId: sessionResult.data.userId
-    }
-  });
-
-  return {
-    status: 201,
-    body: {
-      success: true,
-      data: {
-        organization
+    await logOperatorAuditEvent({
+      organizationId: organization.id,
+      actorMemberId: null,
+      actionKey: "operations.organization.created",
+      entityType: "organization",
+      entityId: organization.id,
+      metadata: {
+        name: organization.name,
+        creatorUserId: sessionResult.data.userId
       }
+    });
+
+    return {
+      status: 201,
+      body: {
+        success: true,
+        data: {
+          organization
+        }
+      }
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "ORGANIZATION_ALREADY_EXISTS") {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Une organisation avec ce nom existe déjà."
+        }
+      };
     }
-  };
+    throw error;
+  }
 }

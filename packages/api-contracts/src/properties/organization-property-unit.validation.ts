@@ -42,7 +42,14 @@ const updateOrganizationSchema = z.object({
   contactWhatsapp: optionalTrimmedText,
   websiteUrl: optionalUrl,
   address: optionalTrimmedText,
-  emailSignature: optionalTrimmedText
+  emailSignature: optionalTrimmedText,
+  registrationNumber: optionalTrimmedText,
+  vatNumber: optionalTrimmedText,
+  capital: optionalTrimmedText,
+  country: optionalTrimmedText,
+  city: optionalTrimmedText,
+  state: optionalTrimmedText,
+  zipCode: optionalTrimmedText
 });
 
 const createPropertyUnitTemplateSchema = z.object({

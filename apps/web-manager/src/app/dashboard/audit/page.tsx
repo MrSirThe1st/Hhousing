@@ -129,7 +129,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps): Promi
   );
 
   return (
-    <div className="space-y-6 p-8">
+    <div id="audit-container" className="space-y-6 p-8">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Audit</h1>
         <p className="mt-1 text-sm text-slate-600">

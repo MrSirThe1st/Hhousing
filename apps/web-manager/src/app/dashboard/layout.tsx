@@ -70,7 +70,7 @@ export default async function DashboardLayout({
           </div>
         </div>
         {children}
-        <DashboardTour />
+        <DashboardTour access={sidebarAccess} />
       </main>
     </div>
   );

@@ -30,6 +30,13 @@ interface OrganizationRow extends QueryResultRow {
   email_signature: string | null;
   status: "active" | "suspended";
   created_at: Date | string;
+  registration_number: string | null;
+  vat_number: string | null;
+  capital: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
 }
 
 interface PropertyRow extends QueryResultRow {
@@ -286,7 +293,14 @@ function mapOrganization(row: OrganizationRow): Organization {
     address: row.address,
     emailSignature: row.email_signature,
     status: row.status,
-    createdAtIso: toIso(row.created_at)
+    createdAtIso: toIso(row.created_at),
+    registrationNumber: row.registration_number,
+    vatNumber: row.vat_number,
+    capital: row.capital,
+    country: row.country,
+    city: row.city,
+    state: row.state,
+    zipCode: row.zip_code
   };
 }
 
@@ -402,10 +416,18 @@ export function createPostgresOrganizationPropertyUnitRepository(
 
   return {
     async createOrganization(input: CreateOrganizationRecordInput): Promise<Organization> {
+      const checkResult = await client.query<{ count: string }>(
+        `select count(*) as count from organizations where lower(name) = lower($1)`,
+        [input.name]
+      );
+      if (parseInt(checkResult.rows[0].count, 10) > 0) {
+        throw new Error("ORGANIZATION_ALREADY_EXISTS");
+      }
+
       const result = await client.query<OrganizationRow>(
         `insert into organizations (id, name)
          values ($1, $2)
-         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at`,
+         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code`,
         [input.id, input.name]
       );
 
@@ -413,7 +435,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
     },
     async getOrganizationById(organizationId: string): Promise<Organization | null> {
       const result = await client.query<OrganizationRow>(
-        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at
+        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code
          from organizations
          where id = $1`,
         [organizationId]
@@ -421,7 +443,25 @@ export function createPostgresOrganizationPropertyUnitRepository(
 
       return result.rows[0] ? mapOrganization(result.rows[0]) : null;
     },
+    async getOrganizationByName(name: string): Promise<Organization | null> {
+      const result = await client.query<OrganizationRow>(
+        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code
+         from organizations
+         where lower(name) = lower($1)`,
+        [name]
+      );
+
+      return result.rows[0] ? mapOrganization(result.rows[0]) : null;
+    },
     async updateOrganization(input: UpdateOrganizationRecordInput): Promise<Organization | null> {
+      const checkResult = await client.query<{ count: string }>(
+        `select count(*) as count from organizations where lower(name) = lower($1) and id <> $2`,
+        [input.name, input.id]
+      );
+      if (parseInt(checkResult.rows[0].count, 10) > 0) {
+        throw new Error("ORGANIZATION_ALREADY_EXISTS");
+      }
+
       const result = await client.query<OrganizationRow>(
         `update organizations
          set name = $2,
@@ -431,9 +471,16 @@ export function createPostgresOrganizationPropertyUnitRepository(
              contact_whatsapp = $6,
              website_url = $7,
              address = $8,
-             email_signature = $9
+             email_signature = $9,
+             registration_number = $10,
+             vat_number = $11,
+             capital = $12,
+             country = $13,
+             city = $14,
+             state = $15,
+             zip_code = $16
          where id = $1
-         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at`,
+         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code`,
         [
           input.id,
           input.name,
@@ -443,7 +490,14 @@ export function createPostgresOrganizationPropertyUnitRepository(
           input.contactWhatsapp,
           input.websiteUrl,
           input.address,
-          input.emailSignature
+          input.emailSignature,
+          input.registrationNumber,
+          input.vatNumber,
+          input.capital,
+          input.country,
+          input.city,
+          input.state,
+          input.zipCode
         ]
       );
 

@@ -33,7 +33,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
   const pdfHref = `/reports/finance/print${exportQuery.length > 0 ? `?${exportQuery}` : ""}`;
 
   return (
-    <div className="space-y-6 p-8">
+    <div id="reports-container" className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Rapports</h1>

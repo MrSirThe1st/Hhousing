@@ -15,6 +15,13 @@ export interface UpdateOrganizationRecordInput {
   websiteUrl: string | null;
   address: string | null;
   emailSignature: string | null;
+  registrationNumber?: string | null;
+  vatNumber?: string | null;
+  capital?: string | null;
+  country?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
 }
 
 export interface CreatePropertyRecordInput {
@@ -122,6 +129,7 @@ export interface PropertyWithUnitsRecord {
 export interface OrganizationPropertyUnitRepository {
   createOrganization(input: CreateOrganizationRecordInput): Promise<Organization>;
   getOrganizationById(organizationId: string): Promise<Organization | null>;
+  getOrganizationByName(name: string): Promise<Organization | null>;
   updateOrganization(input: UpdateOrganizationRecordInput): Promise<Organization | null>;
   createOwner(input: CreateOwnerRecordInput): Promise<Owner>;
   createOwnerClient(input: CreateOwnerClientRecordInput): Promise<Owner>;

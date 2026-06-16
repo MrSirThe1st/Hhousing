@@ -131,6 +131,16 @@ export async function POST(request: Request): Promise<Response> {
     );
   } catch (error) {
     console.error("Failed to create operator account", error);
+    if (error instanceof Error && error.message === "ORGANIZATION_ALREADY_EXISTS") {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Une organisation avec ce nom existe déjà."
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({
         success: false,

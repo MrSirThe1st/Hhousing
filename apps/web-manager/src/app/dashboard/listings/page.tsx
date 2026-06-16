@@ -31,12 +31,14 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps):
   ]);
 
   return (
-    <ListingManagementPanel
-      organizationId={session.organizationId}
-      currentScopeLabel="Portefeuille unifié"
-      activeTab={activeTab}
-      listings={listings as ManagerListingView[]}
-      applications={applications as ListingApplicationView[]}
-    />
+    <div id="listings-container">
+      <ListingManagementPanel
+        organizationId={session.organizationId}
+        currentScopeLabel="Portefeuille unifié"
+        activeTab={activeTab}
+        listings={listings as ManagerListingView[]}
+        applications={applications as ListingApplicationView[]}
+      />
+    </div>
   );
 }

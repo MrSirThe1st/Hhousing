@@ -12,4 +12,11 @@ export interface Organization {
   emailSignature: string | null;
   status: OrganizationStatus;
   createdAtIso: string;
+  registrationNumber?: string | null;
+  vatNumber?: string | null;
+  capital?: string | null;
+  country?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
 }

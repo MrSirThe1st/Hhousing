@@ -106,7 +106,7 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
   const urgentMaintenanceCount = summaries.reduce((sum, summary) => sum + summary.urgentMaintenanceCount, 0);
 
   return (
-    <div className="space-y-6 p-8">
+    <div id="clients-container" className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">

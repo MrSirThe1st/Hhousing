@@ -62,14 +62,16 @@ export default async function DocumentsPage(): Promise<React.ReactElement> {
   return (
     <>
       {!access.servicesWritable && <ReadOnlyBanner />}
-      <DocumentsWorkspacePanel
-        organizationId={session.organizationId ?? ""}
-        organization={organization}
-        documents={documents}
-        properties={properties}
-        leases={leases}
-        tenants={tenants}
-      />
+      <div id="documents-container">
+        <DocumentsWorkspacePanel
+          organizationId={session.organizationId ?? ""}
+          organization={organization}
+          documents={documents}
+          properties={properties}
+          leases={leases}
+          tenants={tenants}
+        />
+      </div>
     </>
   );
 }

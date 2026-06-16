@@ -26,6 +26,7 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
   return {
     createOrganization: vi.fn(),
     getOrganizationById: vi.fn(),
+    getOrganizationByName: vi.fn(),
     updateOrganization: vi.fn(),
     createOwner: vi.fn(),
     createOwnerClient: vi.fn(),

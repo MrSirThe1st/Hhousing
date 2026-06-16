@@ -17,6 +17,13 @@ export interface UpdateOrganizationInput {
   websiteUrl?: string | null;
   address?: string | null;
   emailSignature?: string | null;
+  registrationNumber?: string | null;
+  vatNumber?: string | null;
+  capital?: string | null;
+  country?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
 }
 
 export interface UpdateOrganizationOutput {

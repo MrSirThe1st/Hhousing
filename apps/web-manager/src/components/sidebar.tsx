@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import type { Organization } from "@hhousing/domain";
 import { useAuth } from "../contexts/auth-context";
 
-const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed";
+const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed_v2";
 const SIDEBAR_SET_COLLAPSED_EVENT = "hhousing.sidebar.setCollapsed";
 
 type IconName =

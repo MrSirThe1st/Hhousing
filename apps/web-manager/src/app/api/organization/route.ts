@@ -76,37 +76,60 @@ export async function PATCH(request: Request): Promise<Response> {
     return jsonResponse(500, repositoryResult);
   }
 
-  const organization = await repositoryResult.data.updateOrganization({
-    id: access.data.organizationId,
-    name: parsed.data.name,
-    logoUrl: parsed.data.logoUrl ?? null,
-    contactEmail: parsed.data.contactEmail ?? null,
-    contactPhone: parsed.data.contactPhone ?? null,
-    contactWhatsapp: parsed.data.contactWhatsapp ?? null,
-    websiteUrl: parsed.data.websiteUrl ?? null,
-    address: parsed.data.address ?? null,
-    emailSignature: parsed.data.emailSignature ?? null
-  });
+  try {
+    const organization = await repositoryResult.data.updateOrganization({
+      id: access.data.organizationId,
+      name: parsed.data.name,
+      logoUrl: parsed.data.logoUrl ?? null,
+      contactEmail: parsed.data.contactEmail ?? null,
+      contactPhone: parsed.data.contactPhone ?? null,
+      contactWhatsapp: parsed.data.contactWhatsapp ?? null,
+      websiteUrl: parsed.data.websiteUrl ?? null,
+      address: parsed.data.address ?? null,
+      emailSignature: parsed.data.emailSignature ?? null,
+      registrationNumber: parsed.data.registrationNumber ?? null,
+      vatNumber: parsed.data.vatNumber ?? null,
+      capital: parsed.data.capital ?? null,
+      country: parsed.data.country ?? null,
+      city: parsed.data.city ?? null,
+      state: parsed.data.state ?? null,
+      zipCode: parsed.data.zipCode ?? null
+    });
 
-  if (!organization) {
-    return jsonResponse(404, {
+    if (!organization) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Organization not found"
+      });
+    }
+
+    await logOperatorAuditEvent({
+      organizationId: access.data.organizationId,
+      actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+      actionKey: "operations.organization.settings_updated",
+      entityType: "organization",
+      entityId: organization.id,
+      metadata: {}
+    });
+
+    return jsonResponse(200, {
+      success: true,
+      data: { organization }
+    });
+  } catch (error) {
+    console.error("Failed to update organization", error);
+    if (error instanceof Error && error.message === "ORGANIZATION_ALREADY_EXISTS") {
+      return jsonResponse(400, {
+        success: false,
+        code: "VALIDATION_ERROR",
+        error: "Une organisation avec ce nom existe déjà."
+      });
+    }
+    return jsonResponse(500, {
       success: false,
-      code: "NOT_FOUND",
-      error: "Organization not found"
+      code: "INTERNAL_ERROR",
+      error: "Failed to update organization"
     });
   }
-
-  await logOperatorAuditEvent({
-    organizationId: access.data.organizationId,
-    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
-    actionKey: "operations.organization.settings_updated",
-    entityType: "organization",
-    entityId: organization.id,
-    metadata: {}
-  });
-
-  return jsonResponse(200, {
-    success: true,
-    data: { organization }
-  });
 }

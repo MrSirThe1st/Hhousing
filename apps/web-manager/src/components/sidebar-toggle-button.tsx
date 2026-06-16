@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed";
+const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed_v2";
 const SIDEBAR_SET_COLLAPSED_EVENT = "hhousing.sidebar.setCollapsed";
 
 export default function SidebarToggleButton(): React.ReactElement {

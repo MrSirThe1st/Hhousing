@@ -17,7 +17,7 @@ export default async function MoveOutsPage(): Promise<React.ReactElement> {
   const moveOuts = await repository.listMoveOutsByOrganization(session.organizationId);
 
   return (
-    <div className="p-8">
+    <div id="move-outs-container" className="p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[#010a19]">Départs locataires</h1>

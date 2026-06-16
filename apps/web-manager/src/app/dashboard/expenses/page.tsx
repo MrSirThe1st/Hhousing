@@ -33,7 +33,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
   return (
     <>
       {!access.financesWritable && <ReadOnlyBanner />}
-      <div className="space-y-6 p-8">
+      <div id="expenses-container" className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Dépenses</h1>

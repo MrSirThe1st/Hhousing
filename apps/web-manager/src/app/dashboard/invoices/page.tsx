@@ -58,7 +58,9 @@ export default async function InvoicesPage(): Promise<React.ReactElement> {
   return (
     <>
       {!access.financesWritable && <ReadOnlyBanner />}
-      <InvoiceManagementPanel invoices={invoices} leases={leases} credits={scopedCredits} organization={organization} />
+      <div id="invoices-container">
+        <InvoiceManagementPanel invoices={invoices} leases={leases} credits={scopedCredits} organization={organization} />
+      </div>
     </>
   );
 }

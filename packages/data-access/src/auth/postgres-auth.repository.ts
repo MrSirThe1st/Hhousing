@@ -23,6 +23,13 @@ interface OrganizationRow extends QueryResultRow {
   email_signature: string | null;
   status: "active" | "suspended";
   created_at: Date | string;
+  registration_number: string | null;
+  vat_number: string | null;
+  capital: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
 }
 
 interface OrganizationMembershipRow extends QueryResultRow {
@@ -77,7 +84,14 @@ function mapOrganization(row: OrganizationRow): Organization {
     address: row.address,
     emailSignature: row.email_signature,
     status: row.status,
-    createdAtIso: toIso(row.created_at)
+    createdAtIso: toIso(row.created_at),
+    registrationNumber: row.registration_number,
+    vatNumber: row.vat_number,
+    capital: row.capital,
+    country: row.country,
+    city: row.city,
+    state: row.state,
+    zipCode: row.zip_code
   };
 }
 
@@ -417,10 +431,19 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
       try {
         await client.query("begin");
 
+        // Check if organization name already exists (case-insensitive)
+        const checkResult = await client.query<{ count: string }>(
+          `select count(*) as count from organizations where lower(name) = lower($1)`,
+          [input.organizationName]
+        );
+        if (parseInt(checkResult.rows[0].count, 10) > 0) {
+          throw new Error("ORGANIZATION_ALREADY_EXISTS");
+        }
+
         const organizationResult = await client.query<OrganizationRow>(
           `insert into organizations (id, name)
            values ($1, $2)
-           returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at`,
+           returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code`,
           [input.organizationId, input.organizationName]
         );
 
