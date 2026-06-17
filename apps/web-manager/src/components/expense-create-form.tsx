@@ -281,13 +281,15 @@ export default function ExpenseCreateForm({
 
         <label className="block text-sm font-medium text-gray-700">
           <span className="mb-1.5 block">Devise</span>
-          <input
+          <select
             value={form.currencyCode}
             onChange={(event) => setForm((current) => ({ ...current, currencyCode: event.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            maxLength={3}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
             required
-          />
+          >
+            <option value="CDF">CDF (Franc Congolais)</option>
+            <option value="USD">USD (Dollar Américain)</option>
+          </select>
         </label>
 
         <label className="block text-sm font-medium text-gray-700 md:col-span-2">

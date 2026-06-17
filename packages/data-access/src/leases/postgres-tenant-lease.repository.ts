@@ -521,6 +521,15 @@ export function createPostgresTenantLeaseRepository(
                and $16 = 'active'
                and exists (select 1 from created_lease)
              returning id
+           ), updated_listing as (
+             update listings
+             set status = 'draft',
+                 published_at = null
+             where unit_id = $3
+               and organization_id = $2
+               and $16 = 'active'
+               and exists (select 1 from created_lease)
+             returning id
            )
            select
              id, organization_id, unit_id, tenant_id,
@@ -937,6 +946,13 @@ export function createPostgresTenantLeaseRepository(
              update units
              set status = 'occupied'
              where id in (select unit_id from updated_lease where status = 'active')
+             returning id
+           ), updated_listing as (
+             update listings
+             set status = 'draft',
+                 published_at = null
+             where unit_id in (select unit_id from updated_lease where status = 'active')
+               and organization_id = $4
              returning id
            )
            select

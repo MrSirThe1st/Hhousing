@@ -352,14 +352,15 @@ export default function UnitCreateForm({
           </label>
           <label className="block text-sm font-medium text-gray-700">
             <UnitFieldLabel icon="currency" label="Devise" />
-            <input
+            <select
               value={unitForm.currencyCode}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, currencyCode: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal uppercase"
-              placeholder="Devise"
-              maxLength={3}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal bg-white"
               required
-            />
+            >
+              <option value="CDF">CDF (Franc Congolais)</option>
+              <option value="USD">USD (Dollar Américain)</option>
+            </select>
           </label>
           <label className="block text-sm font-medium text-gray-700">
             <UnitFieldLabel icon="bed" label="Chambres" />

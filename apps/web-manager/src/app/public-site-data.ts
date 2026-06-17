@@ -10,38 +10,38 @@ export type PublicMarketplaceSearchParams = {
 
 export const FEATURE_GROUPS = [
   {
-    title: "Exploitation",
-    description: "Tout ce qu'il faut pour piloter le quotidien locatif sans changer d'outil.",
-    items: ["Baux et entrées", "Suivi des paiements", "Maintenance", "Documents continus"]
+    title: "Votre quotidien simplifié",
+    description: "Fini la paperasse et les fichiers Excel complexes. Créez vos baux en quelques clics, suivez l'état des loyers en temps réel et gardez tous vos documents importants (contrats, pièces d'identité) sous la main, accessibles à tout moment.",
+    items: ["Création rapide de baux", "Suivi en direct des loyers", "Alertes de maintenance", "Coffre-fort numérique"]
   },
   {
-    title: "Communication",
-    description: "Gardez les échanges publics et opérationnels dans le même circuit.",
-    items: ["Messagerie locataire", "Candidatures publiques", "Invitations d'équipe", "Pages d'annonces partageables"]
+    title: "Des échanges fluides",
+    description: "Restez connecté avec vos locataires sans y passer vos soirées. Discutez en direct via la messagerie, recevez les candidatures complètes en ligne avec justificatifs, et planifiez les visites en toute sérénité.",
+    items: ["Messagerie intégrée", "Dossiers de candidature en ligne", "Gestion d'équipe à plusieurs", "Partage simple d'annonces"]
   },
   {
-    title: "Portefeuille",
-    description: "Vision claire des biens, des unités et des performances du parc.",
-    items: ["Biens et unités", "Visibilité de l'occupation", "Clients propriétaires", "Bascule de périmètre opérateur"]
+    title: "Une vision financière claire",
+    description: "Sachez exactement où vous en êtes financièrement. D'un simple coup d'œil sur votre tableau de bord, identifiez les retards de paiement, visualisez le taux d'occupation de vos biens et générez vos rapports financiers.",
+    items: ["Suivi par bien et unité", "Indicateurs d'occupation", "Espace de collaboration", "Rapports de comptabilité simples"]
   }
 ] as const;
 
 export const USE_CASES = [
   {
-    title: "Gestionnaire immobilier",
-    description: "Pilotez plusieurs immeubles, les candidatures, les loyers, la maintenance et la communication depuis un seul espace." 
+    title: "Propriétaires indépendants",
+    description: "Que vous gériez un petit studio pour arrondir vos fins de mois ou des dizaines d'appartements en ville, suivez vos contrats, encaissez vos loyers et gérez les imprévus sans stress."
   },
   {
-    title: "Propriétaire bailleur",
-    description: "Gérez votre propre parc, vos baux, vos encaissements et vos locataires sans multiplier les fichiers et les outils." 
+    title: "Gestionnaires & Agences",
+    description: "Pilotez des portefeuilles complexes de centaines de biens. Centralisez les demandes de vos clients, suivez les flux financiers et coordonnez les équipes sur le terrain depuis un outil unique."
   },
   {
-    title: "Locataire",
-    description: "Candidatez publiquement puis retrouvez ensuite votre bail, vos paiements, vos documents, vos demandes et vos messages dans l'app mobile." 
+    title: "Recherche résidentielle & commerciale",
+    description: "Trouvez votre futur logement (maison, appartement, studio) ou dénichez les locaux parfaits pour votre activité professionnelle (bureaux, boutiques, entrepôts commerciaux)."
   },
   {
-    title: "Propriétaire investisseur",
-    description: "Préparez une visibilité lecture seule sur l'occupation, les revenus et la performance du portefeuille géré." 
+    title: "Locataires au quotidien",
+    description: "Accédez à toutes vos quittances de loyer au même endroit, signalez instantanément un problème technique (fuite d'eau, panne de chauffage) et communiquez facilement avec votre bailleur."
   }
 ] as const;
 
@@ -64,30 +64,19 @@ export const FAQS = [
   {
     question: "Comment fonctionne la tarification ?",
     answer:
-      "La grille ci-dessous reste indicative pour l'instant. Elle prépare déjà l'ajout futur d'offres, de modules monétisés et de promotion payante sans refaire toute la page."
+      "La grille ci-dessous présente nos offres. Nous proposons un tarif clair et transparent de 5$ par unité et par mois pour les professionnels de la gestion immobilière."
   }
 ] as const;
 
 export const PRICING_TIERS = [
   {
-    name: "Essentiel",
-    price: "Sur devis",
-    description: "Pour démarrer un premier portefeuille avec les flux locatifs de base.",
-    features: ["Biens et unités", "Baux et locataires", "Publication simple des annonces"]
-  },
-  {
-    name: "Équipe",
-    price: "Sur devis",
-    description: "Pour les opérateurs actifs qui coordonnent plusieurs workflows au quotidien.",
-    features: ["Paiements", "Maintenance", "Gestion d'équipe"]
-  },
-  {
-    name: "Portefeuille",
-    price: "Sur devis",
-    description: "Pour les structures qui pilotent plusieurs équipes, plusieurs parcs et plus de reporting.",
-    features: ["Structure multi-opérateurs", "Support renforcé", "Visibilité propriétaire à venir"]
+    name: "Professionnel",
+    price: "5$ / unité / mois",
+    description: "Tarif simple, transparent et sans engagement pour tous les gestionnaires immobiliers et propriétaires bailleurs.",
+    features: ["Unités illimitées", "Suivi automatisé des paiements", "Gestion complète de la maintenance", "Invitations d'équipe"]
   }
 ] as const;
+
 
 export const MARKETPLACE_PREVIEW_LIMIT = 4;
 

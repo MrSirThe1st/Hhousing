@@ -246,3 +246,71 @@ export async function listOwners(
     }
   };
 }
+
+export interface DeleteOwnerRequest {
+  ownerId: string;
+  session: AuthSession | null;
+}
+
+export interface DeleteOwnerResponse {
+  status: number;
+  body: ApiResult<{ deleted: boolean }>;
+}
+
+export async function deleteOwner(
+  request: DeleteOwnerRequest,
+  deps: Pick<OwnersDeps, "repository">
+): Promise<DeleteOwnerResponse> {
+  const access = requireOperatorSession(request.session);
+  if (!access.success) {
+    return {
+      status: mapErrorCodeToHttpStatus(access.code),
+      body: access
+    };
+  }
+
+  const existingOwner = await deps.repository.getOwnerById(request.ownerId, access.data.organizationId);
+  if (!existingOwner || existingOwner.ownerType !== "client") {
+    return {
+      status: 404,
+      body: {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Owner not found"
+      }
+    };
+  }
+
+  const deleted = await deps.repository.deleteOwner(request.ownerId, access.data.organizationId);
+  if (!deleted) {
+    return {
+      status: 404,
+      body: {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Owner not found or could not be deleted"
+      }
+    };
+  }
+
+  await logOperatorAuditEvent({
+    organizationId: access.data.organizationId,
+    actorMemberId: access.data.memberships.find((membership) => membership.organizationId === access.data.organizationId)?.id ?? null,
+    actionKey: "operations.owner.deleted",
+    entityType: "owner",
+    entityId: request.ownerId,
+    metadata: {
+      ownerType: existingOwner.ownerType
+    }
+  });
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      data: {
+        deleted: true
+      }
+    }
+  };
+}

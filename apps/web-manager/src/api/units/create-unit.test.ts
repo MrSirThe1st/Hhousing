@@ -53,6 +53,7 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
     updateUnit: vi.fn(),
     deleteProperty: vi.fn(),
     deleteUnit: vi.fn(),
+    deleteOwner: vi.fn(),
     getOwnerById: vi.fn(),
     getOwnerClientById: vi.fn(),
     getPropertyById: vi.fn().mockResolvedValue({

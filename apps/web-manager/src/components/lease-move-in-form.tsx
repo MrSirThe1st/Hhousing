@@ -325,7 +325,10 @@ export default function LeaseMoveInForm({
             </label>
             <label className="block text-sm font-medium text-gray-700">
               <span className="mb-1.5 block">Devise</span>
-              <input value={currencyCode} onChange={(event) => setCurrencyCode(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase" maxLength={3} placeholder="Devise" required />
+              <select value={currencyCode} onChange={(event) => setCurrencyCode(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white" required>
+                <option value="CDF">CDF (Franc Congolais)</option>
+                <option value="USD">USD (Dollar Américain)</option>
+              </select>
             </label>
           </div>
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
@@ -372,7 +375,10 @@ export default function LeaseMoveInForm({
               </label>
               <label className="block text-sm font-medium text-gray-700">
                 <span className="mb-1.5 block">Devise</span>
-                <input value={row.currencyCode} onChange={(event) => updateChargeRow(setDepositRows, row.id, "currencyCode", event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase" placeholder="Devise" maxLength={3} />
+                <select value={row.currencyCode} onChange={(event) => updateChargeRow(setDepositRows, row.id, "currencyCode", event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+                  <option value="CDF">CDF (Franc Congolais)</option>
+                  <option value="USD">USD (Dollar Américain)</option>
+                </select>
               </label>
               <label className="block text-sm font-medium text-gray-700">
                 <span className="mb-1.5 block">Date d'échéance</span>
@@ -404,7 +410,10 @@ export default function LeaseMoveInForm({
               </label>
               <label className="block text-sm font-medium text-gray-700">
                 <span className="mb-1.5 block">Devise</span>
-                <input value={row.currencyCode} onChange={(event) => updateChargeRow(setOtherCharges, row.id, "currencyCode", event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase" placeholder="Devise" maxLength={3} />
+                <select value={row.currencyCode} onChange={(event) => updateChargeRow(setOtherCharges, row.id, "currencyCode", event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+                  <option value="CDF">CDF (Franc Congolais)</option>
+                  <option value="USD">USD (Dollar Américain)</option>
+                </select>
               </label>
               <label className="block text-sm font-medium text-gray-700">
                 <span className="mb-1.5 block">Fréquence</span>

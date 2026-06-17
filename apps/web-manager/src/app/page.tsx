@@ -33,17 +33,37 @@ export default async function HomePage(): Promise<React.ReactElement> {
     <main className="min-h-screen bg-white text-slate-950">
       <PublicSiteNavbar />
 
+      {/* Search Hero Banner (Centered & Fully Visible) */}
+      <section className="relative overflow-hidden pt-20 pb-12 md:pt-28 md:pb-16 bg-slate-900 border-b border-slate-200/50">
+        {/* Background Image with dark mask */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: "url('/brand/cover.png')",
+          }}
+        />
+        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px]" />
+
+        {/* Glow overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/45" />
+
+        <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-4">
+            Trouver un logement à louer ou gérer vos biens existants
+          </h1>
+          <div className="w-full">
+            <PublicMarketplaceSearchForm action="/marketplace" submitLabel="Rechercher" variant="hero" />
+          </div>
+        </div>
+      </section>
+
       <section className="relative overflow-hidden border-b border-slate-100">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-50/40 via-transparent to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-32">
+        <div className="relative mx-auto max-w-7xl px-6 pt-10 pb-20 lg:px-10 lg:pt-14 lg:pb-32">
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                Plateforme professionnelle
-              </div>
               <h1 className="mt-6 max-w-2xl text-5xl font-bold leading-tight tracking-tight text-slate-900 lg:text-6xl">
-                Gérez votre parc locatif en toute simplicité
+                Gérez vos biens immobiliers en toute simplicité
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
                 Centralisez la gestion de vos biens immobiliers : baux, paiements, maintenance, communication locataires et diffusion d'annonces depuis une seule plateforme moderne.
@@ -123,15 +143,105 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
+      <section id="pricing" className="bg-slate-50 py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-4 py-2 text-xs font-semibold text-violet-700">
+              Tarifs transparents
+            </div>
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Un tarif simple et unique</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              Pas d'abonnement complexe ni de frais cachés. Payez uniquement pour ce que vous gérez.
+            </p>
+          </div>
+          <div className="mt-16 flex justify-center">
+            {PRICING_TIERS.map((tier) => (
+              <article key={tier.name} className="relative max-w-md w-full overflow-hidden rounded-2xl border-2 border-blue-500 bg-white p-8 shadow-lg ring-4 ring-blue-100/50">
+                <div className="absolute right-6 top-6 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold text-white">
+                  Tarif unique
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">{tier.name}</h3>
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="text-5xl font-bold tracking-tight text-slate-900">{tier.price}</span>
+                  </div>
+                  <p className="mt-4 text-sm text-slate-600 leading-relaxed">{tier.description}</p>
+                </div>
+                <ul className="mt-8 space-y-3">
+                  {tier.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-3 text-sm text-slate-600">
+                      <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/signup" className="mt-8 block rounded-lg bg-blue-500 text-white hover:bg-blue-600 px-6 py-3 text-center text-sm font-semibold transition shadow-md shadow-blue-500/10">
+                  Commencer maintenant
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="marketplace" className="py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold text-cyan-700">
+              Annonces disponibles
+            </div>
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Trouvez votre prochain logement</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              Parcourez les annonces publiées par nos gestionnaires partenaires
+            </p>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="mt-12 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-200 text-slate-400">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+              </div>
+              <p className="mt-4 text-sm font-medium text-slate-600">Aucun logement disponible pour le moment</p>
+              <p className="mt-2 text-sm text-slate-500">Revenez bientôt pour découvrir de nouvelles annonces</p>
+            </div>
+          ) : (
+            <>
+              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {previewItems.map((item) => (
+                  <PublicListingCard
+                    key={item.listing.id}
+                    item={item}
+                    compact
+                    showShareActions={false}
+                  />
+                ))}
+              </div>
+              <div className="mt-12 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">Explorez toutes les annonces sur notre marketplace</p>
+                </div>
+                <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4]">
+                  Voir tout
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
       <section id="use-cases" className="bg-slate-50 py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700">
-              Pour tous les acteurs
+              Pour tout le monde
             </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Conçu pour chaque profil</h2>
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Une solution adaptée à chacun</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Une plateforme complète qui répond aux besoins de chaque acteur de l'écosystème locatif
+              Que vous soyez propriétaire, locataire, ou professionnel de l'immobilier, notre plateforme répond à vos besoins.
             </p>
           </div>
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -179,102 +289,6 @@ export default async function HomePage(): Promise<React.ReactElement> {
               </article>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="bg-slate-50 py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-4 py-2 text-xs font-semibold text-violet-700">
-              Tarifs transparents
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Choisissez votre formule</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Des plans adaptés à la taille de votre portefeuille immobilier
-            </p>
-          </div>
-          <div className="mt-16 grid gap-8 lg:grid-cols-3">
-            {PRICING_TIERS.map((tier, i) => (
-              <article key={tier.name} className={`relative overflow-hidden rounded-2xl border-2 bg-white p-8 shadow-lg ${i === 1 ? 'border-blue-500 ring-4 ring-blue-100' : 'border-slate-200'}`}>
-                {i === 1 && (
-                  <div className="absolute right-6 top-6 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold text-white">
-                    Populaire
-                  </div>
-                )}
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{tier.name}</h3>
-                  <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-5xl font-bold tracking-tight text-slate-900">{tier.price}</span>
-                  </div>
-                  <p className="mt-4 text-sm text-slate-600">{tier.description}</p>
-                </div>
-                <ul className="mt-8 space-y-3">
-                  {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-sm text-slate-600">
-                      <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup" className={`mt-8 block rounded-lg px-6 py-3 text-center text-sm font-semibold transition ${i === 1 ? 'bg-blue-500 text-white hover:bg-blue-600' : 'border-2 border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50'}`}>
-                  {i === 1 ? 'Commencer maintenant' : 'Choisir cette formule'}
-                </Link>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="marketplace" className="py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold text-cyan-700">
-              Annonces disponibles
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Trouvez votre prochain logement</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Parcourez les annonces publiées par nos gestionnaires partenaires
-            </p>
-          </div>
-
-          <div className="mt-12">
-            <PublicMarketplaceSearchForm action="/marketplace" submitLabel="Rechercher" compact />
-          </div>
-
-          {items.length === 0 ? (
-            <div className="mt-12 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-200 text-slate-400">
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-              </div>
-              <p className="mt-4 text-sm font-medium text-slate-600">Aucun logement disponible pour le moment</p>
-              <p className="mt-2 text-sm text-slate-500">Revenez bientôt pour découvrir de nouvelles annonces</p>
-            </div>
-          ) : (
-            <>
-              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {previewItems.map((item) => (
-                  <PublicListingCard
-                    key={item.listing.id}
-                    item={item}
-                    compact
-                    showShareActions={false}
-                  />
-                ))}
-              </div>
-              <div className="mt-12 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">Explorez toutes les annonces sur notre marketplace</p>
-                </div>
-                <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4]">
-                  Voir tout
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                </Link>
-              </div>
-            </>
-          )}
         </div>
       </section>
 

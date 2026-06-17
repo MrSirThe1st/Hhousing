@@ -2,18 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   updateOwnerMock,
+  deleteOwnerMock,
   extractAuthSessionFromCookiesMock,
   createRepositoryFromEnvMock,
   parseJsonBodyMock
 } = vi.hoisted(() => ({
   updateOwnerMock: vi.fn(),
+  deleteOwnerMock: vi.fn(),
   extractAuthSessionFromCookiesMock: vi.fn(),
   createRepositoryFromEnvMock: vi.fn(),
   parseJsonBodyMock: vi.fn()
 }));
 
 vi.mock("../../../../api", () => ({
-  updateOwner: updateOwnerMock
+  updateOwner: updateOwnerMock,
+  deleteOwner: deleteOwnerMock
 }));
 
 vi.mock("../../../../auth/session-adapter", () => ({
@@ -32,7 +35,7 @@ vi.mock("../../shared", () => ({
     })
 }));
 
-import { PATCH } from "./route";
+import { PATCH, DELETE } from "./route";
 
 describe("/api/owners/[id]", () => {
   beforeEach(() => {
@@ -142,5 +145,45 @@ describe("/api/owners/[id]", () => {
 
     expect(response.status).toBe(401);
     expect((await response.json()).code).toBe("UNAUTHORIZED");
+  });
+
+  describe("DELETE", () => {
+    it("deletes owner successfully", async () => {
+      deleteOwnerMock.mockResolvedValue({
+        status: 200,
+        body: {
+          success: true,
+          data: { deleted: true }
+        }
+      });
+
+      const response = await DELETE(
+        new Request("http://localhost/api/owners/own_1", { method: "DELETE" }),
+        { params: Promise.resolve({ id: "own_1" }) }
+      );
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).success).toBe(true);
+      expect(deleteOwnerMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns error from service", async () => {
+      deleteOwnerMock.mockResolvedValue({
+        status: 404,
+        body: {
+          success: false,
+          code: "NOT_FOUND",
+          error: "Owner not found"
+        }
+      });
+
+      const response = await DELETE(
+        new Request("http://localhost/api/owners/own_1", { method: "DELETE" }),
+        { params: Promise.resolve({ id: "own_1" }) }
+      );
+
+      expect(response.status).toBe(404);
+      expect((await response.json()).code).toBe("NOT_FOUND");
+    });
   });
 });

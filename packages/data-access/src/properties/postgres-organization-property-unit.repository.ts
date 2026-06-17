@@ -824,15 +824,27 @@ export function createPostgresOrganizationPropertyUnitRepository(
       return result.rows[0] ? mapProperty(result.rows[0]) : null;
     },
     async updateUnit(input: UpdateUnitRecordInput): Promise<Unit | null> {
-      const result = await client.query<UnitRow>(
-        `update units
-         set unit_number = $1, monthly_rent_amount = $2, currency_code = $3, status = $4
-         where id = $5 and organization_id = $6
-         returning *`,
-        [input.unitNumber, input.monthlyRentAmount, input.currencyCode, input.status, input.id, input.organizationId]
-      );
+      return withTransaction(transactionCapableClient, async (queryable) => {
+        const result = await queryable.query<UnitRow>(
+          `update units
+           set unit_number = $1, monthly_rent_amount = $2, currency_code = $3, status = $4
+           where id = $5 and organization_id = $6
+           returning *`,
+          [input.unitNumber, input.monthlyRentAmount, input.currencyCode, input.status, input.id, input.organizationId]
+        );
 
-      return result.rows[0] ? mapUnit(result.rows[0]) : null;
+        if (result.rows[0] && input.status === "occupied") {
+          await queryable.query(
+            `update listings
+             set status = 'draft',
+                 published_at = null
+             where unit_id = $1 and organization_id = $2`,
+            [input.id, input.organizationId]
+          );
+        }
+
+        return result.rows[0] ? mapUnit(result.rows[0]) : null;
+      });
     },
     async deleteProperty(propertyId: string, organizationId: string): Promise<boolean> {
       const result = await client.query(
@@ -846,6 +858,15 @@ export function createPostgresOrganizationPropertyUnitRepository(
       const result = await client.query(
         `delete from units where id = $1 and organization_id = $2`,
         [unitId, organizationId]
+      );
+
+      return (result.rowCount ?? 0) > 0;
+    },
+    async deleteOwner(ownerId: string, organizationId: string): Promise<boolean> {
+      const schema = await getPropertyStorageSchema(client);
+      const result = await client.query(
+        `delete from ${schema.ownersTable} where id = $1 and organization_id = $2`,
+        [ownerId, organizationId]
       );
 
       return (result.rowCount ?? 0) > 0;

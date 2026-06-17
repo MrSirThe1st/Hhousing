@@ -141,6 +141,7 @@ export interface OrganizationPropertyUnitRepository {
   updateUnit(input: UpdateUnitRecordInput): Promise<Unit | null>;
   deleteProperty(propertyId: string, organizationId: string): Promise<boolean>;
   deleteUnit(unitId: string, organizationId: string): Promise<boolean>;
+  deleteOwner(ownerId: string, organizationId: string): Promise<boolean>;
   getOwnerById(ownerId: string, organizationId: string): Promise<Owner | null>;
   getOwnerClientById(ownerId: string, organizationId: string): Promise<Owner | null>;
   getPropertyById(propertyId: string, organizationId: string): Promise<Property | null>;

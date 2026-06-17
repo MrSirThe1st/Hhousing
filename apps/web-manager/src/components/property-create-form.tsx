@@ -500,14 +500,15 @@ export default function PropertyCreateForm({
             </label>
             <label className="block">
               <PropertyFieldLabel icon="currency" label="Devise" />
-              <input
+              <select
                 value={propertyForm.currencyCode}
                 onChange={(event) => setPropertyForm((prev) => ({ ...prev, currencyCode: event.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase"
-                placeholder="Devise"
-                maxLength={3}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
                 required
-              />
+              >
+                <option value="CDF">CDF (Franc Congolais)</option>
+                <option value="USD">USD (Dollar Américain)</option>
+              </select>
             </label>
             <label className="block">
               <PropertyFieldLabel icon="bed" label="Chambres" />

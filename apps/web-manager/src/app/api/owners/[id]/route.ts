@@ -1,4 +1,4 @@
-import { updateOwner } from "../../../../api";
+import { updateOwner, deleteOwner } from "../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../../shared";
 
@@ -28,6 +28,30 @@ export async function PATCH(
     {
       ownerId: id,
       body,
+      session: await extractAuthSessionFromCookies()
+    },
+    {
+      repository: repositoryResult.data
+    }
+  );
+
+  return jsonResponse(result.status, result.body);
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const repositoryResult = createRepositoryFromEnv();
+  if (!repositoryResult.success) {
+    return jsonResponse(500, repositoryResult);
+  }
+
+  const { id } = await params;
+
+  const result = await deleteOwner(
+    {
+      ownerId: id,
       session: await extractAuthSessionFromCookies()
     },
     {

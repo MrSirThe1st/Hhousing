@@ -438,15 +438,16 @@ export default function PaymentManagementPanel({
               required
               disabled={!canCreatePayment}
             />
-            <input
+            <select
               value={paymentForm.currencyCode}
               onChange={(e) => setPaymentForm(prev => ({ ...prev, currencyCode: e.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase"
-              placeholder="Devise"
-              maxLength={3}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
               required
               disabled={!canCreatePayment}
-            />
+            >
+              <option value="CDF">CDF (Franc Congolais)</option>
+              <option value="USD">USD (Dollar Américain)</option>
+            </select>
             <input
               value={paymentForm.note}
               onChange={(e) => setPaymentForm(prev => ({ ...prev, note: e.target.value }))}

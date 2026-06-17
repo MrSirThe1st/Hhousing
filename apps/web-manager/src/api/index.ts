@@ -44,12 +44,15 @@ export {
   createOwner,
   updateOwner,
   listOwners,
+  deleteOwner,
   type CreateOwnerRequest,
   type CreateOwnerResponse,
   type UpdateOwnerRequest,
   type UpdateOwnerResponse,
   type ListOwnersRequest,
   type ListOwnersResponse,
+  type DeleteOwnerRequest,
+  type DeleteOwnerResponse,
   type OwnersDeps
 } from "./properties/owner-clients";
 export {

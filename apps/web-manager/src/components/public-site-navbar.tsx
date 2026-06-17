@@ -75,9 +75,6 @@ export default function PublicSiteNavbar(): React.ReactElement {
         </Link>
 
         <nav className="hidden items-center gap-2 lg:flex">
-          <Link href="/marketplace" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-            Annonces
-          </Link>
 
           {MENU_ITEMS.map((item) => {
             const isOpen = openMenu === item.id;
@@ -138,7 +135,6 @@ export default function PublicSiteNavbar(): React.ReactElement {
 
       <div className="border-t border-slate-200 px-4 py-3 lg:hidden">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto">
-          <Link href="/marketplace" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Annonces</Link>
           <Link href="/#pricing" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Tarification</Link>
           <Link href="/#use-cases" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Cas d'usage</Link>
           <Link href="/#features" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Fonctionnalités</Link>
@@ -150,23 +146,25 @@ export default function PublicSiteNavbar(): React.ReactElement {
 
 function PricingPanel(): React.ReactElement {
   return (
-    <div className="w-[44rem] rounded-4xl border border-slate-200 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.14)]">
+    <div className="w-[24rem] rounded-4xl border border-slate-200 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.14)]">
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tarification</p>
-          <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">Préparez l'offre commerciale sans figer le produit trop tôt</p>
+          <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">Un tarif simple et unique</p>
         </div>
-        <Link href="/#pricing" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Voir la grille</Link>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        {PRICING_TIERS.map((tier) => (
-          <div key={tier.name} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{tier.name}</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950">{tier.price}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{tier.description}</p>
+      {PRICING_TIERS.map((tier) => (
+        <div key={tier.name} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{tier.name}</p>
+          <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0063FE]">{tier.price}</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">{tier.description}</p>
+          <div className="mt-4">
+            <Link href="/#pricing" className="block text-center text-xs font-bold text-white bg-[#0063FE] hover:bg-[#0052d4] px-4 py-2.5 rounded-full transition">
+              Découvrir les fonctionnalités
+            </Link>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
-import ActionMenu from "../../../../components/action-menu";
+import ClientDetailActions from "./ClientDetailActions";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
 import OwnerDocumentsSectionClient from "../../../../components/owner-documents-section-client";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
@@ -200,13 +200,7 @@ export default async function ClientDetailPage(
             </div>
           </div>
           <div className="flex flex-col items-start gap-3 lg:items-end">
-            <ActionMenu
-              triggerLabel="Actions"
-              items={[
-                { label: "Modifier le client", href: `/dashboard/clients/${client.id}/edit` },
-                { label: "Affecter un bien / Inviter", href: `/dashboard/clients/${client.id}/assign` }
-              ]}
-            />
+            <ClientDetailActions clientId={client.id} />
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 lg:max-w-sm">
               Les documents liés à ce propriétaire sont centralisés sur cette fiche et restent séparés de la bibliothèque générale.
             </div>
