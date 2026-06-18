@@ -78,7 +78,7 @@ export const PRICING_TIERS = [
 ] as const;
 
 
-export const MARKETPLACE_PREVIEW_LIMIT = 4;
+export const MARKETPLACE_PREVIEW_LIMIT = 8;
 
 export function parseOptionalNumber(value: string | undefined): number | null {
   if (!value) {

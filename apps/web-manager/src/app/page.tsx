@@ -66,10 +66,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="marketplace" className="pt-8 pb-14 md:pt-12 md:pb-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold text-cyan-700">
-              Annonces disponibles
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Trouvez votre prochain logement</h2>
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Trouvez votre prochain logement</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
               Parcourez les annonces publiées par nos gestionnaires partenaires
             </p>
@@ -221,10 +218,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="pricing" className="bg-slate-50 py-12 md:py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-4 py-2 text-xs font-semibold text-violet-700">
-              Tarifs transparents
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Un tarif simple et unique</h2>
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Un tarif simple et unique</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
               Pas d'abonnement complexe ni de frais cachés. Payez uniquement pour ce que vous gérez.
             </p>
@@ -288,10 +282,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="features" className="py-12 md:py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700">
-              Fonctionnalités complètes
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Tout ce dont vous avez besoin</h2>
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Tout ce dont vous avez besoin</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
               Des outils professionnels pour gérer efficacement votre activité locative
             </p>

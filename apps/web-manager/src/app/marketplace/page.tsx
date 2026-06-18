@@ -112,7 +112,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {items.map((item) => (
-                <PublicListingCard key={item.listing.id} item={item} compact />
+                <PublicListingCard key={item.listing.id} item={item} compact showShareActions={false} />
               ))}
             </div>
           )}

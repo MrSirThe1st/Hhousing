@@ -57,7 +57,7 @@ export default function PublicListingCard({
       </div>
 
       <div className={compact ? "space-y-2.5 p-4" : "space-y-3.5 p-5"}>
-        {/* Price & Availability */}
+        {/* Price */}
         <div className="flex items-baseline justify-between gap-2">
           <div className="flex items-baseline gap-1">
             <span className={`font-black text-slate-900 tracking-tight ${compact ? "text-lg" : "text-xl md:text-2xl"}`}>
@@ -65,9 +65,6 @@ export default function PublicListingCard({
             </span>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">/ mois</span>
           </div>
-          <span className="rounded-md bg-emerald-50 border border-emerald-150 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 shrink-0">
-            Disponible
-          </span>
         </div>
 
         {/* Title */}
