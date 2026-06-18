@@ -10,6 +10,7 @@ import { postWithAuth } from "../lib/api-client";
 import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 import type { PropertyFormState } from "./property-management.types";
 import UniversalLoadingState from "./universal-loading-state";
+import CitySelect from "./city-select";
 
 const INITIAL_PROPERTY_FORM: PropertyFormState = {
   name: "",
@@ -388,16 +389,14 @@ export default function PropertyCreateForm({
                 required
               />
             </label>
-            <label className="block">
-              <PropertyFieldLabel icon="city" label="Ville" />
-              <input
-                value={propertyForm.city}
-                onChange={(event) => setPropertyForm((prev) => ({ ...prev, city: event.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                placeholder="Ville"
-                required
-              />
-            </label>
+             <div className="block">
+               <PropertyFieldLabel icon="city" label="Ville" />
+               <CitySelect
+                 value={propertyForm.city}
+                 onChange={(value) => setPropertyForm((prev) => ({ ...prev, city: value }))}
+                 required
+               />
+             </div>
             <label className="block">
               <PropertyFieldLabel icon="country" label="Code pays" />
               <input

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/auth-context";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import LogoutButton from "./logout-button";
+import UniversalLoadingState from "./universal-loading-state";
 
 import type { Organization } from "@hhousing/domain";
 import type { UpdateOrganizationOutput } from "@hhousing/api-contracts";
@@ -1009,6 +1010,12 @@ export default function OperatorProfilePanel({ role, organization, canEditOrgani
           </div>
         </div>
       )}
+
+      {deleteBusy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   );
 }

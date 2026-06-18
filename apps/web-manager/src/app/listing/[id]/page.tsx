@@ -76,7 +76,7 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
       />
       <div className="border-b border-slate-100 bg-white">
         <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <Link href="/marketplace" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-[#0063fe]">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               Retour au marketplace
@@ -98,14 +98,14 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                   </div>
                 </div>
               </div>
-              <div className="p-8">
-                <h1 className="text-4xl font-bold tracking-tight text-slate-900">{item.title}</h1>
+              <div className="p-5 sm:p-8">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">{item.title}</h1>
                 <div className="mt-4 flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-[#0063fe]">{item.priceLabel}</span>
+                  <span className="text-2xl sm:text-3xl font-bold text-[#0063fe]">{item.priceLabel}</span>
                   <span className="text-sm text-slate-500">/ mois</span>
                 </div>
                 {item.listing.marketingDescription ? (
-                  <p className="mt-6 text-lg leading-relaxed text-slate-600">{item.listing.marketingDescription}</p>
+                  <p className="mt-6 text-base sm:text-lg leading-relaxed text-slate-600">{item.listing.marketingDescription}</p>
                 ) : null}
               </div>
             </div>

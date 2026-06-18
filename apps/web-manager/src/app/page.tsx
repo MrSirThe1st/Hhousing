@@ -25,8 +25,13 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage(): Promise<React.ReactElement> {
-  const listingRepo = createListingRepo();
-  const items = await listingRepo.listPublicListings({ featuredOnly: false });
+  let items: Awaited<ReturnType<ReturnType<typeof createListingRepo>["listPublicListings"]>> = [];
+  try {
+    const listingRepo = createListingRepo();
+    items = await listingRepo.listPublicListings({ featuredOnly: false });
+  } catch (error) {
+    console.error("Failed to fetch public listings on homepage:", error);
+  }
   const previewItems = items.slice(0, MARKETPLACE_PREVIEW_LIMIT);
 
   return (
@@ -48,7 +53,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/45" />
 
         <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-4">
             Trouver un logement à louer ou gérer vos biens existants
           </h1>
           <div className="w-full">
@@ -62,22 +67,22 @@ export default async function HomePage(): Promise<React.ReactElement> {
         <div className="relative mx-auto max-w-7xl px-6 pt-10 pb-20 lg:px-10 lg:pt-14 lg:pb-32">
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
-              <h1 className="mt-6 max-w-2xl text-5xl font-bold leading-tight tracking-tight text-slate-900 lg:text-6xl">
-                Gérez vos biens immobiliers en toute simplicité
+              <h1 className="mt-6 max-w-2xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900 lg:leading-tight">
+                Gerez vos biens immobiliers en toute simplicite
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
+              <p className="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600">
                 Centralisez la gestion de vos biens immobiliers : baux, paiements, maintenance, communication locataires et diffusion d'annonces depuis une seule plateforme moderne.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
-                <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-[#0063FE] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-xl hover:shadow-blue-500/30">
-                  Démarrer gratuitement
+                <Link href="/signup" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-xl hover:shadow-blue-500/30 w-full sm:w-auto">
+                  Demarrer gratuitement
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </Link>
-                <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-8 py-4 text-base font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
+                <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-6 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 w-full sm:w-auto">
                   Explorer les annonces
                 </Link>
               </div>
-              <div className="mt-12 flex items-center gap-8 text-sm text-slate-600">
+              <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-slate-600">
                 <div className="flex items-center gap-2">
                   <svg className="h-5 w-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                   Gratuit pour démarrer
@@ -112,18 +117,18 @@ export default async function HomePage(): Promise<React.ReactElement> {
                       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-lg border border-slate-200 bg-white p-4">
-                      <div className="text-xs text-slate-500">Baux actifs</div>
-                      <div className="mt-1 text-xl font-bold">24</div>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
+                      <div className="text-[10px] sm:text-xs text-slate-500">Baux actifs</div>
+                      <div className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold">24</div>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-white p-4">
-                      <div className="text-xs text-slate-500">Paiements</div>
-                      <div className="mt-1 text-xl font-bold">18</div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
+                      <div className="text-[10px] sm:text-xs text-slate-500">Paiements</div>
+                      <div className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold">18</div>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-white p-4">
-                      <div className="text-xs text-slate-500">En retard</div>
-                      <div className="mt-1 text-xl font-bold text-amber-600">3</div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
+                      <div className="text-[10px] sm:text-xs text-slate-500">En retard</div>
+                      <div className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold text-amber-600">3</div>
                     </div>
                   </div>
                   {[1, 2, 3].map((i) => (
@@ -216,14 +221,14 @@ export default async function HomePage(): Promise<React.ReactElement> {
                   />
                 ))}
               </div>
-              <div className="mt-12 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mt-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
                     {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
                   </p>
                   <p className="mt-1 text-sm text-slate-600">Explorez toutes les annonces sur notre marketplace</p>
                 </div>
-                <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4]">
+                <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] w-full sm:w-auto">
                   Voir tout
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </Link>

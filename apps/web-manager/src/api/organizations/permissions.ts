@@ -21,14 +21,14 @@ function isMissingTeamFunctionsSchema(error: unknown): boolean {
 
 /**
  * Verify user has required permission.
- * Pass writeOnly = true to enforce the permission check (mutations).
- * By default (writeOnly = false) any authenticated operator can read — no permission required.
+ * Pass writeOnly = false to skip the permission check (e.g. read operations where permission is not required).
+ * By default (writeOnly = true) the permission is strictly enforced.
  */
 export async function requirePermission(
   session: AuthSession,
   permission: Permission,
   teamFunctionsRepo: TeamPermissionRepository,
-  writeOnly: boolean = false
+  writeOnly: boolean = true
 ): Promise<ApiResult<AuthSession>> {
   // Only operator roles are eligible.
   if (session.role !== "property_manager" && session.role !== "landlord") {
@@ -44,7 +44,7 @@ export async function requirePermission(
     return { success: true, data: session };
   }
 
-  const membership = session.memberships.find(
+  const membership = session.memberships?.find(
     (item) => item.organizationId === session.organizationId
   );
 

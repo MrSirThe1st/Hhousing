@@ -63,7 +63,7 @@ export default function PublicListingApplicationForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
       <div>
         <h2 className="text-xl font-semibold text-slate-950">Postuler pour ce logement</h2>
         <p className="mt-2 text-sm text-slate-600">
@@ -175,7 +175,7 @@ export default function PublicListingApplicationForm({
       <button
         type="submit"
         disabled={busy}
-        className="rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
       >
         {busy ? "Envoi en cours..." : "Soumettre la candidature"}
       </button>

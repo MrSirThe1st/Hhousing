@@ -6,6 +6,7 @@ import type { CreateOwnerOutput } from "@hhousing/api-contracts";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
+import CitySelect from "./city-select";
 
 interface OwnerClientCreatePanelProps {
   organizationId: string;
@@ -224,15 +225,13 @@ export default function OwnerClientCreatePanel({
             />
           </label>
 
-          <label className="block text-sm font-medium text-gray-700">
+          <div className="block text-sm font-medium text-gray-700">
             <span className="mb-1.5 block">Ville</span>
-            <input
+            <CitySelect
               value={form.city}
-              onChange={(event) => setForm((previous) => ({ ...previous, city: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="Ville"
+              onChange={(value) => setForm((previous) => ({ ...previous, city: value }))}
             />
-          </label>
+          </div>
 
           <label className="block text-sm font-medium text-gray-700">
             <span className="mb-1.5 block">État / Province</span>

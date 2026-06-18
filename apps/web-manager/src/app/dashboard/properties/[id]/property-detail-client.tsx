@@ -7,6 +7,8 @@ import Link from "next/link";
 import type { OwnerClient, Property, Unit } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
 import ActionMenu from "../../../../components/action-menu";
+import CitySelect from "../../../../components/city-select";
+import UniversalLoadingState from "../../../../components/universal-loading-state";
 
 const ContextualDocumentPanel = dynamic(
   () => import("../../../../components/contextual-document-panel"),
@@ -210,16 +212,14 @@ export default function PropertyDetailClient({
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ville</label>
-              <input
-                type="text"
-                required
-                value={formData.city}
-                onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
-              />
-            </div>
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ville</label>
+               <CitySelect
+                 value={formData.city}
+                 onChange={(value) => setFormData((prev) => ({ ...prev, city: value }))}
+                 required
+               />
+             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Contexte de gestion</label>
               <select
@@ -421,6 +421,12 @@ export default function PropertyDetailClient({
               />
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {deleting ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
         </div>
       ) : null}
     </div>

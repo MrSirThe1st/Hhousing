@@ -138,7 +138,14 @@ describe("/api/organization", () => {
       contactWhatsapp: null,
       websiteUrl: null,
       address: null,
-      emailSignature: null
+      emailSignature: null,
+      registrationNumber: null,
+      vatNumber: null,
+      capital: null,
+      country: null,
+      city: null,
+      state: null,
+      zipCode: null
     });
     expect(body.success).toBe(true);
   });

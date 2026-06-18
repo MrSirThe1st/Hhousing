@@ -8,6 +8,7 @@ import type { ReactElement, FormEvent } from "react";
 import type { Property, Unit } from "@hhousing/domain";
 import { deleteWithAuth, patchWithAuth } from "../../../../lib/api-client";
 import ActionMenu from "../../../../components/action-menu";
+import UniversalLoadingState from "../../../../components/universal-loading-state";
 
 const ContextualDocumentPanel = dynamic(
   () => import("../../../../components/contextual-document-panel"),
@@ -196,6 +197,12 @@ export default function UnitDetailClient({ id, initialUnit, initialProperty }: U
       </div>
       <ContextualDocumentPanel attachmentType="unit" attachmentId={id} title="Documents de l'unité" description="Centralisez ici les plans, états des lieux, contrats techniques et tout document propre à cette unité." addButtonLabel="Ajouter un document" showAddButton={true} onAddButtonClick={() => setDocumentModalOpen(true)} refreshSignal={documentRefreshSignal} />
       {documentModalOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/55 p-4" onClick={() => setDocumentModalOpen(false)} role="dialog" aria-modal="true" aria-label="Ajouter un document à l'unité"><div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-between border-b border-slate-200 px-6 py-4"><div><h2 className="text-lg font-semibold text-[#010a19]">Ajouter un document</h2><p className="mt-1 text-sm text-slate-500">Importez un document et rattachez-le directement à cette unité.</p></div><button type="button" onClick={() => setDocumentModalOpen(false)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Fermer</button></div><div className="p-6"><ContextualDocumentUploadForm attachmentType="unit" attachmentId={id} defaultDocumentType="other" onUploaded={() => { setDocumentRefreshSignal((current) => current + 1); }} /></div></div></div> : null}
+
+      {deleting ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+          <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
+        </div>
+      ) : null}
     </div>
   );
 }

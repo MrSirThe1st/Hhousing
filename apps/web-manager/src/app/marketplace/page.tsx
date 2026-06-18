@@ -24,8 +24,13 @@ type MarketplacePageProps = {
 
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps): Promise<React.ReactElement> {
   const params = await searchParams;
-  const listingRepo = createListingRepo();
-  const items = await listingRepo.listPublicListings(buildPublicListingFilter(params));
+  let items: Awaited<ReturnType<ReturnType<typeof createListingRepo>["listPublicListings"]>> = [];
+  try {
+    const listingRepo = createListingRepo();
+    items = await listingRepo.listPublicListings(buildPublicListingFilter(params));
+  } catch (error) {
+    console.error("Failed to fetch public listings on marketplace page:", error);
+  }
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
@@ -39,14 +44,14 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
                 <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                 Annonces disponibles
               </div>
-              <h1 className="mt-6 text-5xl font-bold leading-tight tracking-tight text-slate-900 lg:text-6xl">
+              <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900 lg:leading-tight">
                 Trouvez le logement idéal
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-slate-600">
                 Parcourez {items.length} annonce{items.length > 1 ? "s" : ""} de logements disponibles et trouvez celui qui correspond à vos besoins.
               </p>
             </div>
-            <Link href="/" className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
+            <Link href="/" className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 w-full sm:w-auto">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               Retour à l'accueil
             </Link>

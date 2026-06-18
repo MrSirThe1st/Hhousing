@@ -6,6 +6,7 @@ import type { UpdateOrganizationOutput } from "@hhousing/api-contracts";
 import type { Organization } from "@hhousing/domain";
 import { patchWithAuth } from "../lib/api-client";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
+import CitySelect from "./city-select";
 
 interface OrganizationSettingsFormProps {
   organization: Organization;
@@ -213,10 +214,14 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
           </label>
 
           {/* Localization details */}
-          <label className="block text-sm">
+          <div className="block text-sm">
             <span className="mb-1.5 block font-medium text-slate-700">Ville</span>
-            <input value={form.city} onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="Ex: Paris" />
-          </label>
+            <CitySelect
+              value={form.city}
+              onChange={(value) => setForm((current) => ({ ...current, city: value }))}
+              disabled={!canEdit || busy}
+            />
+          </div>
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium text-slate-700">Province / État</span>
             <input value={form.state} onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="Ex: Île-de-France" />
