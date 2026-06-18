@@ -32,6 +32,7 @@ interface ListingFormState {
   showBedrooms: boolean;
   showBathrooms: boolean;
   showSizeSqm: boolean;
+  showPostedBy: boolean;
 }
 
 interface PendingImageUpload {
@@ -58,7 +59,8 @@ function buildInitialListingForm(item: ManagerListingView): ListingFormState {
     showFeatures: item.listing?.visibility.showFeatures ?? true,
     showBedrooms: item.listing?.visibility.showBedrooms ?? true,
     showBathrooms: item.listing?.visibility.showBathrooms ?? true,
-    showSizeSqm: item.listing?.visibility.showSizeSqm ?? true
+    showSizeSqm: item.listing?.visibility.showSizeSqm ?? true,
+    showPostedBy: item.listing?.visibility.showPostedBy ?? false
   };
 }
 
@@ -327,7 +329,8 @@ export default function ListingEditorForm({
       showFeatures: form.showFeatures,
       showBedrooms: form.showBedrooms,
       showBathrooms: form.showBathrooms,
-      showSizeSqm: form.showSizeSqm
+      showSizeSqm: form.showSizeSqm,
+      showPostedBy: form.showPostedBy
     });
 
     if (!result.success) {
@@ -420,7 +423,8 @@ export default function ListingEditorForm({
       showFeatures: form.showFeatures,
       showBedrooms: form.showBedrooms,
       showBathrooms: form.showBathrooms,
-      showSizeSqm: form.showSizeSqm
+      showSizeSqm: form.showSizeSqm,
+      showPostedBy: form.showPostedBy
     };
 
     try {
@@ -778,7 +782,8 @@ return (
                 ["showFeatures", "Features"],
                 ["showBedrooms", "Bedrooms"],
                 ["showBathrooms", "Bathrooms"],
-                ["showSizeSqm", "Size"]
+                ["showSizeSqm", "Size"],
+                ["showPostedBy", "Afficher l'auteur de l'annonce"]
               ].map(([key, label]) => (
                 <label
                   key={key}
@@ -791,6 +796,7 @@ return (
                     onChange={(e) =>
                       setForm((c) => ({ ...c, [key]: e.target.checked }))
                     }
+                    className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
                   />
                 </label>
               ))}

@@ -9,6 +9,7 @@ export interface ListingVisibility {
   showBedrooms: boolean;
   showBathrooms: boolean;
   showSizeSqm: boolean;
+  showPostedBy: boolean;
 }
 
 export interface Listing {

@@ -124,7 +124,8 @@ export function parseUpsertListingInput(input: unknown): ApiResult<UpsertListing
       showFeatures: asOptionalBoolean(input.showFeatures, true),
       showBedrooms: asOptionalBoolean(input.showBedrooms, true),
       showBathrooms: asOptionalBoolean(input.showBathrooms, true),
-      showSizeSqm: asOptionalBoolean(input.showSizeSqm, true)
+      showSizeSqm: asOptionalBoolean(input.showSizeSqm, true),
+      showPostedBy: asOptionalBoolean(input.showPostedBy, false)
     }
   };
 }

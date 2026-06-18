@@ -103,16 +103,28 @@ export default async function HomePage(): Promise<React.ReactElement> {
                   />
                 ))}
               </div>
-              <div className="mt-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">Explorez toutes les annonces sur notre marketplace</p>
+              <div className="mt-12 flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl border border-slate-100 bg-gradient-to-r from-blue-50/30 to-indigo-50/10 p-6 sm:p-8 shadow-xs">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0063fe] border border-blue-100/60 shadow-xs">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-slate-900">
+                      {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">Explorez toutes les annonces sur notre marketplace.</p>
+                  </div>
                 </div>
-                <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] w-full sm:w-auto">
+                <Link
+                  href="/marketplace"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0063fe] hover:bg-[#0052d4] px-6 py-3 text-sm font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 w-full sm:w-auto shrink-0"
+                >
                   Voir tout
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
                 </Link>
               </div>
             </>

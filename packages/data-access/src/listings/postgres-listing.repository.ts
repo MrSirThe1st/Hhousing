@@ -45,6 +45,7 @@ interface ListingRow extends QueryResultRow {
   show_bedrooms: boolean;
   show_bathrooms: boolean;
   show_size_sqm: boolean;
+  show_posted_by: boolean;
   published_at: Date | string | null;
   created_by_user_id: string;
   updated_by_user_id: string;
@@ -108,6 +109,7 @@ interface ManagerListingRow extends PropertyRow, UnitRow {
   listing_show_bedrooms: boolean | null;
   listing_show_bathrooms: boolean | null;
   listing_show_size_sqm: boolean | null;
+  listing_show_posted_by: boolean | null;
   listing_published_at: Date | string | null;
   listing_created_by_user_id: string | null;
   listing_updated_by_user_id: string | null;
@@ -293,7 +295,8 @@ function mapListing(row: ListingRow): Listing {
       showFeatures: row.show_features,
       showBedrooms: row.show_bedrooms,
       showBathrooms: row.show_bathrooms,
-      showSizeSqm: row.show_size_sqm
+      showSizeSqm: row.show_size_sqm,
+      showPostedBy: row.show_posted_by
     },
     publishedAtIso: row.published_at ? toIso(row.published_at) : null,
     createdByUserId: row.created_by_user_id,
@@ -330,6 +333,7 @@ function mapListingFromJoinedRow(row: ManagerListingRow): Listing | null {
     show_bedrooms: row.listing_show_bedrooms ?? true,
     show_bathrooms: row.listing_show_bathrooms ?? true,
     show_size_sqm: row.listing_show_size_sqm ?? true,
+    show_posted_by: row.listing_show_posted_by ?? false,
     published_at: row.listing_published_at,
     created_by_user_id: row.listing_created_by_user_id,
     updated_by_user_id: row.listing_updated_by_user_id,
@@ -444,6 +448,7 @@ function listingSelectClause(): string {
     l.show_bedrooms as listing_show_bedrooms,
     l.show_bathrooms as listing_show_bathrooms,
     l.show_size_sqm as listing_show_size_sqm,
+    l.show_posted_by as listing_show_posted_by,
     l.published_at as listing_published_at,
     l.created_by_user_id as listing_created_by_user_id,
     l.updated_by_user_id as listing_updated_by_user_id,
@@ -468,14 +473,14 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
           youtube_url, instagram_url, contact_email, contact_phone,
           is_featured, show_address, show_rent, show_deposit,
           show_amenities, show_features, show_bedrooms, show_bathrooms, show_size_sqm,
-          published_at, created_by_user_id, updated_by_user_id
+          published_at, created_by_user_id, updated_by_user_id, show_posted_by
         ) values (
           $1, $2, $3, $4, $5,
           $6, $7, $8,
           $9, $10, $11, $12,
           $13, $14, $15, $16,
           $17, $18, $19, $20, $21,
-          $22, $23, $24
+          $22, $23, $24, $25
         )
         on conflict (unit_id) do update
         set property_id = excluded.property_id,
@@ -496,6 +501,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
             show_bedrooms = excluded.show_bedrooms,
             show_bathrooms = excluded.show_bathrooms,
             show_size_sqm = excluded.show_size_sqm,
+            show_posted_by = excluded.show_posted_by,
             published_at = excluded.published_at,
             updated_by_user_id = excluded.updated_by_user_id,
             updated_at = now()
@@ -505,7 +511,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
           youtube_url, instagram_url, contact_email, contact_phone,
           is_featured, show_address, show_rent, show_deposit,
           show_amenities, show_features, show_bedrooms, show_bathrooms, show_size_sqm,
-          published_at, created_by_user_id, updated_by_user_id, created_at, updated_at`,
+          show_posted_by, published_at, created_by_user_id, updated_by_user_id, created_at, updated_at`,
         [
           input.id,
           input.organizationId,
@@ -530,7 +536,8 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
           input.showSizeSqm,
           input.publishedAtIso,
           input.createdByUserId,
-          input.updatedByUserId
+          input.updatedByUserId,
+          input.showPostedBy
         ]
       );
 
@@ -545,7 +552,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            youtube_url, instagram_url, contact_email, contact_phone,
            is_featured, show_address, show_rent, show_deposit,
            show_amenities, show_features, show_bedrooms, show_bathrooms, show_size_sqm,
-           published_at, created_by_user_id, updated_by_user_id, created_at, updated_at
+           show_posted_by, published_at, created_by_user_id, updated_by_user_id, created_at, updated_at
          from listings
          where id = $1 and organization_id = $2`,
         [listingId, organizationId]
@@ -562,7 +569,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            youtube_url, instagram_url, contact_email, contact_phone,
            is_featured, show_address, show_rent, show_deposit,
            show_amenities, show_features, show_bedrooms, show_bathrooms, show_size_sqm,
-           published_at, created_by_user_id, updated_by_user_id, created_at, updated_at
+           show_posted_by, published_at, created_by_user_id, updated_by_user_id, created_at, updated_at
          from listings
          where unit_id = $1 and organization_id = $2`,
         [unitId, organizationId]

@@ -63,60 +63,57 @@ export default function PublicListingApplicationForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-150 bg-white p-5 shadow-sm">
       <div>
-        <h2 className="text-xl font-semibold text-slate-950">Postuler pour ce logement</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Aucun compte requis. Soumettez vos informations et le gestionnaire immobilier poursuivra la sélection depuis le tableau de bord.
+        <h2 className="text-base font-bold text-slate-900">Postuler pour ce logement</h2>
+        <p className="mt-1 text-xs leading-normal text-slate-500">
+          Aucun compte requis. Soumettez vos informations et le gestionnaire immobilier vous contactera.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Nom complet</span>
+      <div className="grid gap-x-3 gap-y-3.5 grid-cols-2">
+        {/* Nom Complet - Full Width */}
+        <label className="col-span-2 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Nom complet</span>
           <input
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Date de naissance</span>
-          <input
-            type="date"
-            value={dateOfBirth}
-            onChange={(event) => setDateOfBirth(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-          />
-        </label>
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Email</span>
+
+        {/* Email & Phone - Row 2 */}
+        <label className="col-span-1 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Email</span>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Téléphone</span>
+
+        <label className="col-span-1 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Téléphone</span>
           <input
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Statut professionnel</span>
+
+        {/* Statut Pro & Poste - Row 3 */}
+        <label className="col-span-1 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Statut pro</span>
           <select
             value={employmentStatus}
             onChange={(event) => setEmploymentStatus(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal bg-white"
           >
-            <option value="">— Sélectionner —</option>
+            <option value="">Sélectionner</option>
             <option value="employed">Salarié(e)</option>
             <option value="self_employed">Indépendant(e)</option>
             <option value="unemployed">Sans emploi</option>
@@ -124,58 +121,75 @@ export default function PublicListingApplicationForm({
             <option value="retired">Retraité(e)</option>
           </select>
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Poste / Intitulé de fonction</span>
+
+        <label className="col-span-1 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Poste</span>
           <input
             value={jobTitle}
             onChange={(event) => setJobTitle(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Ex. Ingénieur, Enseignant…"
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
+            placeholder="Ex. Ingénieur, Enseignant"
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Revenu mensuel <span className="font-normal text-slate-400">(optionnel)</span></span>
+
+        {/* Date de naissance & Occupants - Row 4 */}
+        <label className="col-span-1 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Date de naissance</span>
           <input
-            inputMode="decimal"
-            value={monthlyIncome}
-            onChange={(event) => setMonthlyIncome(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="0.00"
+            type="date"
+            value={dateOfBirth}
+            onChange={(event) => setDateOfBirth(event.target.value)}
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          <span className="mb-1.5 block">Nombre d'occupants</span>
+
+        <label className="col-span-1 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Occupants</span>
           <input
             type="number"
             min="1"
             value={numberOfOccupants}
             onChange={(event) => setNumberOfOccupants(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
             placeholder="1"
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-          <span className="mb-1.5 block">Notes <span className="font-normal text-slate-400">(optionnel)</span></span>
+
+        {/* Revenu Mensuel - Full Width */}
+        <label className="col-span-2 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Revenu mensuel <span className="font-normal text-slate-400 lowercase">(optionnel)</span></span>
+          <input
+            inputMode="decimal"
+            value={monthlyIncome}
+            onChange={(event) => setMonthlyIncome(event.target.value)}
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
+            placeholder="0.00"
+          />
+        </label>
+
+        {/* Notes - Full Width */}
+        <label className="col-span-2 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="mb-1 block">Notes <span className="font-normal text-slate-400 lowercase">(optionnel)</span></span>
           <input
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
             placeholder="Informations complémentaires…"
           />
         </label>
       </div>
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">{error}</p>
       ) : null}
       {success ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</p>
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">{success}</p>
       ) : null}
 
       <button
         type="submit"
         disabled={busy}
-        className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        className="inline-flex items-center justify-center w-full rounded-xl bg-slate-900 hover:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-60"
       >
         {busy ? "Envoi en cours..." : "Soumettre la candidature"}
       </button>

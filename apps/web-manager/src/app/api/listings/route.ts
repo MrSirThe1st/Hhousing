@@ -87,6 +87,7 @@ export async function POST(request: Request): Promise<Response> {
     showBedrooms: parsed.data.showBedrooms ?? true,
     showBathrooms: parsed.data.showBathrooms ?? true,
     showSizeSqm: parsed.data.showSizeSqm ?? true,
+    showPostedBy: parsed.data.showPostedBy ?? false,
     publishedAtIso: parsed.data.status === "published"
       ? existing?.publishedAtIso ?? nowIso
       : null,

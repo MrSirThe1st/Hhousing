@@ -35,6 +35,7 @@ export interface UpsertListingRecordInput {
   showBedrooms: boolean;
   showBathrooms: boolean;
   showSizeSqm: boolean;
+  showPostedBy: boolean;
   publishedAtIso: string | null;
   createdByUserId: string;
   updatedByUserId: string;
