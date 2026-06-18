@@ -25,6 +25,7 @@ export default async function ListingEditorPage({ params }: ListingEditorPagePro
       organizationId={session.organizationId}
       currentScopeLabel="Portefeuille unifié"
       item={item}
+      allManagerListings={listings as ManagerListingView[]}
     />
   );
 }

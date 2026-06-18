@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { PublicMarketplaceSearchParams } from "../app/public-site-data";
 
 interface PublicMarketplaceSearchFormProps {
@@ -21,6 +22,7 @@ export default function PublicMarketplaceSearchForm({
   compact = false,
   variant = "compact"
 }: PublicMarketplaceSearchFormProps): React.ReactElement {
+  const router = useRouter();
   const actualVariant = compact ? "compact" : variant;
 
   const [q, setQ] = useState(values?.q ?? "");
@@ -62,11 +64,29 @@ export default function PublicMarketplaceSearchForm({
   if (minSize) activeFilterCount++;
   if (maxSize) activeFilterCount++;
   activeFilterCount += selectedAmenities.length;
+  
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
+    if (city.trim()) params.set("city", city.trim());
+    if (propertyType) params.set("propertyType", propertyType);
+    if (minRent) params.set("minRent", minRent);
+    if (maxRent) params.set("maxRent", maxRent);
+    if (bedrooms) params.set("bedrooms", bedrooms);
+    if (bathrooms) params.set("bathrooms", bathrooms);
+    if (minSize) params.set("minSize", minSize);
+    if (maxSize) params.set("maxSize", maxSize);
+    selectedAmenities.forEach(id => {
+      params.set(id, "on");
+    });
+    router.push(`${action}?${params.toString()}`);
+  }
 
   if (actualVariant === "hero") {
     return (
       <div className="w-full max-w-4xl mx-auto px-4">
-        <form action={action} method="get" className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden text-left">
+        <form onSubmit={handleFormSubmit} className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden text-left">
           {/* Hidden inputs for additional filters so they are submitted even when modal is closed */}
           <input type="hidden" name="bedrooms" value={bedrooms} />
           <input type="hidden" name="bathrooms" value={bathrooms} />
@@ -76,121 +96,69 @@ export default function PublicMarketplaceSearchForm({
             <input key={id} type="hidden" name={id} value="on" />
           ))}
 
-          {/* Top Search Input & City Row */}
-          <div className="flex flex-col md:flex-row md:items-center p-3 gap-2">
+          {/* Desktop Search Input Row (Hidden on Mobile) */}
+          <div className="hidden md:flex md:items-center p-3 gap-3">
             {/* Search Input (q) */}
             <div className="flex-1 flex items-center min-w-0">
               <div className="pl-3 pr-2 text-slate-400">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 </svg>
               </div>
               <input
                 type="text"
-                name="q"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Rechercher une ville, un quartier ou une référence"
+                placeholder="Find properties (ex: Gombe, Kinshasa...)"
                 className="w-full bg-transparent border-0 py-3 px-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0 text-base"
               />
             </div>
 
-            {/* Vertical Divider (Hidden on mobile) */}
-            <div className="hidden md:block h-8 w-px bg-slate-200" />
-
-            {/* City Input */}
-            <div className="flex md:w-64 items-center">
-              <div className="pl-3 pr-2 text-slate-400 md:pl-2">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                name="city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Ville (ex: Kinshasa)"
-                className="w-full bg-transparent border-0 py-3 px-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0 text-base"
-              />
+            {/* Loyer Min Dropdown */}
+            <div className="w-36 flex-shrink-0">
+              <label className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Loyer Min</label>
+              <select
+                value={minRent}
+                onChange={(e) => setMinRent(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none cursor-pointer"
+              >
+                <option value="">Indifférent</option>
+                <option value="0">0 $</option>
+                <option value="100">100 $</option>
+                <option value="200">200 $</option>
+                <option value="500">500 $</option>
+                <option value="1000">1000 $</option>
+                <option value="1500">1500 $</option>
+              </select>
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="bg-[#0063FE] hover:bg-[#0052d4] text-white font-bold text-base px-6 py-3 rounded-2xl transition duration-150 cursor-pointer w-full md:w-auto text-center"
-            >
-              {submitLabel}
-            </button>
-          </div>
-
-          {/* Secondary Filters Bar */}
-          <div className="bg-slate-50 border-t border-slate-200/60 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4 flex-1">
-              {/* Property Type Dropdown */}
-              <div className="flex-1 min-w-[150px]">
-                <label className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Type de bien</label>
-                <select
-                  name="propertyType"
-                  value={propertyType}
-                  onChange={(e) => setPropertyType(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="">Tous les types</option>
-                  <option value="single_unit">Unité simple</option>
-                  <option value="multi_unit">Immeuble multi-unités</option>
-                </select>
-              </div>
-
-              {/* Loyer Min Dropdown */}
-              <div className="flex-1 min-w-[120px]">
-                <label className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Loyer Min</label>
-                <select
-                  name="minRent"
-                  value={minRent}
-                  onChange={(e) => setMinRent(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="">Indifférent</option>
-                  <option value="0">0 $</option>
-                  <option value="100">100 $</option>
-                  <option value="200">200 $</option>
-                  <option value="500">500 $</option>
-                  <option value="1000">1000 $</option>
-                  <option value="1500">1500 $</option>
-                </select>
-              </div>
-
-              {/* Loyer Max Dropdown */}
-              <div className="flex-1 min-w-[120px]">
-                <label className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Loyer Max</label>
-                <select
-                  name="maxRent"
-                  value={maxRent}
-                  onChange={(e) => setMaxRent(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="">Indifférent</option>
-                  <option value="500">500 $</option>
-                  <option value="1000">1000 $</option>
-                  <option value="1500">1500 $</option>
-                  <option value="2000">2000 $</option>
-                  <option value="2500">2500 $</option>
-                  <option value="5000">5000 $</option>
-                  <option value="10000">10000 $</option>
-                </select>
-              </div>
+            {/* Loyer Max Dropdown */}
+            <div className="w-36 flex-shrink-0">
+              <label className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Loyer Max</label>
+              <select
+                value={maxRent}
+                onChange={(e) => setMaxRent(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none cursor-pointer"
+              >
+                <option value="">Indifférent</option>
+                <option value="500">500 $</option>
+                <option value="1000">1000 $</option>
+                <option value="1500">1500 $</option>
+                <option value="2000">2000 $</option>
+                <option value="2500">2500 $</option>
+                <option value="5000">5000 $</option>
+                <option value="10000">10000 $</option>
+              </select>
             </div>
 
-            {/* Filter Trigger Button (Opens Pop out modal) */}
+            {/* Filter Trigger Button */}
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className={`border rounded-xl px-4 py-2 text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer self-end h-[38px] min-w-[110px] ${
+              className={`border rounded-xl px-4 py-2 text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer h-[46px] min-w-[110px] self-end ${
                 isModalOpen || activeFilterCount > 0
                   ? "bg-blue-50 border-blue-200 text-[#0063FE]"
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                  : "bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100"
               }`}
             >
               {activeFilterCount > 0 && (
@@ -203,6 +171,64 @@ export default function PublicMarketplaceSearchForm({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
             </button>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="bg-[#0063FE] hover:bg-[#0052d4] text-white font-bold text-base px-6 py-3 rounded-2xl transition duration-150 cursor-pointer h-[46px] flex items-center justify-center min-w-[100px] self-end"
+            >
+              {submitLabel}
+            </button>
+          </div>
+
+          {/* Mobile Search Input Row (Hidden on Desktop) */}
+          <div className="flex flex-col md:hidden p-3 gap-2">
+            {/* Search Input (q) */}
+            <div className="flex items-center min-w-0">
+              <div className="pl-3 pr-2 text-slate-400">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Find properties (ex: Gombe, Kinshasa...)"
+                className="w-full bg-transparent border-0 py-3 px-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0 text-base"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 px-2 pb-2">
+              {/* Filter Trigger Button (Opens Pop out modal) */}
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className={`border rounded-xl px-4 py-2 text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer h-[46px] min-w-[110px] ${
+                  isModalOpen || activeFilterCount > 0
+                    ? "bg-blue-50 border-blue-200 text-[#0063FE]"
+                    : "bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100"
+                }`}
+              >
+                {activeFilterCount > 0 && (
+                  <span className="bg-[#0063FE] text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] font-bold">
+                    {activeFilterCount}
+                  </span>
+                )}
+                <span>Filtres</span>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="bg-[#0063FE] hover:bg-[#0052d4] text-white font-bold text-base px-6 py-3 rounded-2xl transition duration-150 cursor-pointer flex-1 text-center h-[46px] flex items-center justify-center min-w-[100px]"
+              >
+                {submitLabel}
+              </button>
+            </div>
           </div>
 
           {/* Pop out Modal for advanced filters */}
@@ -228,16 +254,57 @@ export default function PublicMarketplaceSearchForm({
 
                 {/* Modal Body */}
                 <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-1">
-                  {/* City option if not set on the bar */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ville de recherche</label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="Ex: Kinshasa"
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                    />
+                  {/* City & Property Type */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ville de recherche</label>
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Ex: Kinshasa"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Type de bien</label>
+                      <select
+                        name="propertyType"
+                        value={propertyType}
+                        onChange={(e) => setPropertyType(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white text-slate-800 cursor-pointer"
+                      >
+                        <option value="">Tous les types</option>
+                        <option value="single_unit">Unité simple</option>
+                        <option value="multi_unit">Immeuble multi-unités</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Rent Range (Loyer Min / Max) */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Loyer Min ($)</label>
+                      <input
+                        type="number"
+                        value={minRent}
+                        onChange={(e) => setMinRent(e.target.value)}
+                        placeholder="0"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-white text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Loyer Max ($)</label>
+                      <input
+                        type="number"
+                        value={maxRent}
+                        onChange={(e) => setMaxRent(e.target.value)}
+                        placeholder="2500"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-white text-slate-800"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

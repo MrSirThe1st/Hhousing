@@ -70,11 +70,11 @@ export default function PublicSiteNavbar(): React.ReactElement {
           <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
           <span>
             <span className="block text-lg font-semibold tracking-tight">Haraka Property</span>
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-slate-500">Opérations locatives</span>
+            <span className="hidden sm:block text-[11px] uppercase tracking-[0.18em] text-slate-500">Opérations locatives</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-2 lg:flex">
+        <nav className="hidden items-center gap-3 lg:flex">
 
           {MENU_ITEMS.map((item) => {
             const isOpen = openMenu === item.id;
@@ -109,13 +109,13 @@ export default function PublicSiteNavbar(): React.ReactElement {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-3 sm:gap-4">
           {loading ? (
             <div className="h-8 w-20 sm:h-10 sm:w-24 rounded-full bg-slate-100 animate-pulse" />
           ) : user !== null ? (
             <Link
               href="/dashboard"
-              className="rounded-full bg-[#0063FE] px-3.5 py-1.5 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+              className="rounded-full bg-[#0063FE] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]"
             >
               Mon tableau de bord
             </Link>
@@ -123,11 +123,11 @@ export default function PublicSiteNavbar(): React.ReactElement {
             <>
               {/* Route Connexion to correct login page based on current path */}
               {typeof window !== "undefined" && window.location.pathname.startsWith("/owner-portal") ? (
-                <Link href="/owner-portal/login" className="rounded-full px-2.5 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+                <Link href="/owner-portal/login" className="hidden sm:inline-block rounded-full px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
               ) : (
-                <Link href="/login" className="rounded-full px-2.5 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
+                <Link href="/login" className="hidden sm:inline-block rounded-full px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
               )}
-              <Link href="/signup" className="rounded-full bg-[#0063FE] px-3.5 py-1.5 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]">Créer un compte</Link>
+              <Link href="/signup" className="rounded-full bg-[#0063FE] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]">Créer un compte</Link>
             </>
           )}
         </div>

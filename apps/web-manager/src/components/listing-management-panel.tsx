@@ -102,6 +102,19 @@ export default function ListingManagementPanel({
   const [listingPropertyFilter, setListingPropertyFilter] = useState<string>("all");
   const [isRoutePending, startRouteTransition] = useTransition();
 
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("toast") === "sibling_updated") {
+        setSuccessMessage("Success: Sibling units updated and published successfully.");
+        const cleanUrl = window.location.pathname + (window.location.search.replace(/[?&]toast=[^&]+/, "").replace(/^&/, "?"));
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    }
+  }, []);
+
   const screeningItems = applications.filter((a) => a.application.status !== "converted");
   const isScreeningActionBusy =
     activeTab === "screening" &&
@@ -198,6 +211,12 @@ export default function ListingManagementPanel({
 
   return (
     <div className="relative space-y-6 p-8">
+      {successMessage && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {successMessage}
+        </div>
+      )}
+
       {isScreeningActionBusy ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 backdrop-blur-[1px]">
           <div className="flex flex-col items-center justify-center gap-4">

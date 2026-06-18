@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Listing } from "@hhousing/domain";
@@ -13,6 +13,7 @@ interface ListingEditorFormProps {
   organizationId: string;
   currentScopeLabel: string;
   item: ManagerListingView;
+  allManagerListings: ManagerListingView[];
 }
 
 interface ListingFormState {
@@ -84,10 +85,22 @@ function isImageFile(file: File): boolean {
 export default function ListingEditorForm({
   organizationId,
   currentScopeLabel,
-  item
+  item,
+  allManagerListings
 }: ListingEditorFormProps): React.ReactElement {
   const router = useRouter();
   const propertyPhotos = item.property.photoUrls;
+
+  const siblingUnits = useMemo(() => {
+    return allManagerListings.filter((entry) => {
+      return (
+        entry.property.id === item.property.id &&
+        entry.unit.id !== item.unit.id &&
+        (!entry.listing || entry.listing.status !== "published")
+      );
+    });
+  }, [allManagerListings, item.property.id, item.unit.id]);
+
   const [form, setForm] = useState<ListingFormState>(() => buildInitialListingForm(item));
   const [coverUpload, setCoverUpload] = useState<PendingImageUpload | null>(null);
   const [galleryUploads, setGalleryUploads] = useState<PendingImageUpload[]>([]);
@@ -96,6 +109,12 @@ export default function ListingEditorForm({
   const [message, setMessage] = useState<string | null>(null);
   const [isRoutePending, startRouteTransition] = useTransition();
   const isSubmitting = busyAction !== null || isRoutePending;
+
+  const [applyToSimilar, setApplyToSimilar] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>(() =>
+    siblingUnits.map((u) => u.unit.id)
+  );
 
   useEffect(() => {
     return () => {
@@ -341,6 +360,119 @@ export default function ListingEditorForm({
     });
   }
 
+  async function saveBatchListings(): Promise<void> {
+    setIsBulkModalOpen(false);
+    setBusyAction("published");
+    setError(null);
+    setMessage(null);
+
+    if (!form.coverImageUrl.trim() && coverUpload === null) {
+      setError("Ajoutez une image de couverture avant d'enregistrer le listing.");
+      setBusyAction(null);
+      setIsBulkModalOpen(false);
+      return;
+    }
+
+    if (form.galleryImageUrls.length + galleryUploads.length < 1) {
+      setError("Ajoutez au moins une image de galerie avant d'enregistrer le listing.");
+      setBusyAction(null);
+      setIsBulkModalOpen(false);
+      return;
+    }
+
+    let coverImageUrl = form.coverImageUrl.trim();
+    let galleryImageUrls = [...form.galleryImageUrls];
+
+    try {
+      if (coverUpload) {
+        coverImageUrl = await uploadImage(coverUpload.file, "cover");
+      }
+
+      if (galleryUploads.length > 0) {
+        const uploadedGalleryUrls = await Promise.all(
+          galleryUploads.map((upload, index) => uploadImage(upload.file, `gallery-${index + 1}`))
+        );
+        galleryImageUrls = [...galleryImageUrls, ...uploadedGalleryUrls];
+      }
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Erreur de telechargement des images.");
+      setBusyAction(null);
+      setIsBulkModalOpen(false);
+      return;
+    }
+
+    const targetUnitIds = [item.unit.id, ...selectedUnitIds];
+    const postPayload = {
+      organizationId,
+      propertyId: item.property.id,
+      status: "published",
+      marketingDescription: form.marketingDescription.trim() || null,
+      coverImageUrl: coverImageUrl || null,
+      galleryImageUrls,
+      youtubeUrl: form.youtubeUrl.trim() || null,
+      instagramUrl: form.instagramUrl.trim() || null,
+      contactEmail: form.contactEmail.trim() || null,
+      contactPhone: form.contactPhone.trim() || null,
+      showAddress: form.showAddress,
+      showRent: form.showRent,
+      showDeposit: form.showDeposit,
+      showAmenities: form.showAmenities,
+      showFeatures: form.showFeatures,
+      showBedrooms: form.showBedrooms,
+      showBathrooms: form.showBathrooms,
+      showSizeSqm: form.showSizeSqm
+    };
+
+    try {
+      const results = await Promise.all(
+        targetUnitIds.map((unitId) =>
+          postWithAuth<Listing>("/api/listings", {
+            ...postPayload,
+            unitId
+          })
+        )
+      );
+
+      const failed = results.find((res) => !res.success);
+      if (failed) {
+        setError(failed.error || "Une erreur est survenue lors de la publication en lot.");
+        setBusyAction(null);
+        setIsBulkModalOpen(false);
+        return;
+      }
+
+      const activeResult = results[0];
+      if (activeResult.success) {
+        setForm((current) => ({
+          ...current,
+          coverImageUrl: activeResult.data.coverImageUrl ?? "",
+          galleryImageUrls: activeResult.data.galleryImageUrls
+        }));
+      }
+
+      setCoverUpload(null);
+      setGalleryUploads([]);
+      setBusyAction(null);
+      setIsBulkModalOpen(false);
+
+      startRouteTransition(() => {
+        router.push("/dashboard/listings?tab=listings&toast=sibling_updated");
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la publication.");
+      setBusyAction(null);
+      setIsBulkModalOpen(false);
+    }
+  }
+
+  function handlePublishClick(): void {
+    if (applyToSimilar && siblingUnits.length > 0) {
+      setIsBulkModalOpen(true);
+    } else {
+      void saveListing("published");
+    }
+  }
+
 return (
   <div className="min-h-screen bg-slate-50">
     <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
@@ -375,27 +507,43 @@ return (
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3">
-        <button
-          type="button"
-          onClick={() => {
-            void saveListing("draft");
-          }}
-          disabled={isSubmitting}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-        >
-          Save edits
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            void saveListing("published");
-          }}
-          disabled={isSubmitting}
-          className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60"
-        >
-          Publish listing
-        </button>
+      <div className="flex flex-wrap items-center justify-end gap-4">
+        {siblingUnits.length > 0 && (
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={applyToSimilar}
+              onChange={(e) => {
+                setApplyToSimilar(e.target.checked);
+                if (e.target.checked) {
+                  setSelectedUnitIds(siblingUnits.map((u) => u.unit.id));
+                }
+              }}
+              className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
+            />
+            Apply these details & photos to similar units
+          </label>
+        )}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              void saveListing("draft");
+            }}
+            disabled={isSubmitting}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          >
+            Save edits
+          </button>
+          <button
+            type="button"
+            onClick={handlePublishClick}
+            disabled={isSubmitting}
+            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60"
+          >
+            Publish listing
+          </button>
+        </div>
       </div>
 
       <fieldset disabled={isSubmitting} className="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
@@ -654,10 +802,88 @@ return (
       </fieldset>
 
       {isSubmitting ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
           <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
         </div>
       ) : null}
+
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 animate-in fade-in-50 zoom-in-95 duration-150 text-left">
+            <h3 className="text-lg font-bold text-slate-900">
+              Apply setup to similar units in {item.property.name}
+            </h3>
+            <p className="text-xs text-slate-500 mt-2">
+              Select which units should inherit these photos, descriptions, and visibility settings. Uncheck units that have unique layouts.
+            </p>
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedUnitIds.length === siblingUnits.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedUnitIds(siblingUnits.map((u) => u.unit.id));
+                    } else {
+                      setSelectedUnitIds([]);
+                    }
+                  }}
+                  className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
+                />
+                Select All
+              </label>
+            </div>
+
+            <div className="mt-3 max-h-60 overflow-y-auto border border-slate-150 rounded-2xl p-4 bg-slate-50/50">
+              <div className="grid grid-cols-2 gap-3">
+                {siblingUnits.map((entry) => {
+                  const isChecked = selectedUnitIds.includes(entry.unit.id);
+                  return (
+                    <label
+                      key={entry.unit.id}
+                      className="flex items-center gap-2.5 text-sm text-slate-700 hover:text-slate-900 cursor-pointer select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setSelectedUnitIds((prev) =>
+                            prev.includes(entry.unit.id)
+                              ? prev.filter((id) => id !== entry.unit.id)
+                              : [...prev, entry.unit.id]
+                          );
+                        }}
+                        className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
+                      />
+                      <span>Unit {entry.unit.unitNumber}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4 mt-6">
+              <button
+                type="button"
+                onClick={() => setIsBulkModalOpen(false)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void saveBatchListings();
+                }}
+                className="rounded-xl bg-[#0063FE] hover:bg-[#0052d4] px-5 py-2 text-sm font-semibold text-white transition cursor-pointer"
+              >
+                Apply & Publish {selectedUnitIds.length + 1} Listings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   </div>
 );

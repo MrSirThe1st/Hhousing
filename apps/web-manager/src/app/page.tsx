@@ -39,7 +39,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <PublicSiteNavbar />
 
       {/* Search Hero Banner (Centered & Fully Visible) */}
-      <section className="relative overflow-hidden pt-20 pb-12 md:pt-28 md:pb-16 bg-slate-900 border-b border-slate-200/50">
+      <section className="relative overflow-hidden py-12 md:py-24 bg-slate-900 border-b border-slate-200/50 flex items-center justify-center min-h-[320px]">
         {/* Background Image with dark mask */}
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -52,8 +52,8 @@ export default async function HomePage(): Promise<React.ReactElement> {
         {/* Glow overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/45" />
 
-        <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-4">
+        <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center w-full">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-6 max-w-3xl leading-tight">
             Trouver un logement à louer ou gérer vos biens existants
           </h1>
           <div className="w-full">
@@ -62,9 +62,67 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
+      {/* Marketplace Section (Listings catalog preview placed right after Hero for higher visibility on mobile) */}
+      <section id="marketplace" className="pt-8 pb-14 md:pt-12 md:pb-16">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold text-cyan-700">
+              Annonces disponibles
+            </div>
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Trouvez votre prochain logement</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              Parcourez les annonces publiées par nos gestionnaires partenaires
+            </p>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="mt-8 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 sm:py-10 text-center max-w-xl mx-auto">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-slate-400">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+              </div>
+              <p className="mt-3 text-sm font-medium text-slate-700">Aucun logement disponible pour le moment</p>
+              <p className="mt-1 text-xs text-slate-500">Nouvelles annonces bientôt disponibles</p>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Link href="/signup" className="rounded-full bg-[#0063FE] px-5 py-2 text-xs font-semibold text-white shadow hover:bg-[#0052d4] transition">
+                  Publier une annonce
+                </Link>
+                <Link href="/signup" className="rounded-full border border-slate-300 bg-white px-5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                  M'alerter des disponibilités
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {previewItems.map((item) => (
+                  <PublicListingCard
+                    key={item.listing.id}
+                    item={item}
+                    compact
+                    showShareActions={false}
+                  />
+                ))}
+              </div>
+              <div className="mt-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">Explorez toutes les annonces sur notre marketplace</p>
+                </div>
+                <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] w-full sm:w-auto">
+                  Voir tout
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
       <section className="relative overflow-hidden border-b border-slate-100">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-50/40 via-transparent to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-6 pt-10 pb-20 lg:px-10 lg:pt-14 lg:pb-32">
+        <div className="relative mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-20">
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
               <h1 className="mt-6 max-w-2xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900 lg:leading-tight">
@@ -148,7 +206,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="pricing" className="bg-slate-50 py-20">
+      <section id="pricing" className="bg-slate-50 py-12 md:py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-4 py-2 text-xs font-semibold text-violet-700">
@@ -189,56 +247,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="marketplace" className="py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold text-cyan-700">
-              Annonces disponibles
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Trouvez votre prochain logement</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Parcourez les annonces publiées par nos gestionnaires partenaires
-            </p>
-          </div>
-
-          {items.length === 0 ? (
-            <div className="mt-12 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-200 text-slate-400">
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-              </div>
-              <p className="mt-4 text-sm font-medium text-slate-600">Aucun logement disponible pour le moment</p>
-              <p className="mt-2 text-sm text-slate-500">Revenez bientôt pour découvrir de nouvelles annonces</p>
-            </div>
-          ) : (
-            <>
-              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {previewItems.map((item) => (
-                  <PublicListingCard
-                    key={item.listing.id}
-                    item={item}
-                    compact
-                    showShareActions={false}
-                  />
-                ))}
-              </div>
-              <div className="mt-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">Explorez toutes les annonces sur notre marketplace</p>
-                </div>
-                <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] w-full sm:w-auto">
-                  Voir tout
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-      </section>
-
-      <section id="use-cases" className="bg-slate-50 py-20">
+      <section id="use-cases" className="bg-slate-50 py-12 md:py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700">
@@ -264,7 +273,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="features" className="py-20">
+      <section id="features" className="py-12 md:py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700">
@@ -297,7 +306,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="faq" className="bg-slate-50 py-20">
+      <section id="faq" className="bg-slate-50 py-12 md:py-20">
         <div className="mx-auto max-w-4xl px-6 lg:px-10">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-slate-200 px-4 py-2 text-xs font-semibold text-slate-700">
