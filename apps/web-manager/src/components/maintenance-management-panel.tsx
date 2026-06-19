@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import ResponsiveTable from "./responsive-table";
 import type { MaintenanceRequest, MaintenanceStatus } from "@hhousing/domain";
 
 const STATUS_LABELS: Record<MaintenanceStatus, string> = {
@@ -39,6 +41,7 @@ type MaintenanceManagementPanelProps = {
 export default function MaintenanceManagementPanel({
   requests
 }: MaintenanceManagementPanelProps): React.ReactElement {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | "all">("all");
   const openCount = useMemo(() => requests.filter((request) => request.status === "open").length, [requests]);
   const inProgressCount = useMemo(() => requests.filter((request) => request.status === "in_progress").length, [requests]);
@@ -137,40 +140,61 @@ export default function MaintenanceManagementPanel({
             </button>
           </div>
 
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left">Titre</th>
-                <th className="px-4 py-3 text-left">Priorité</th>
-                <th className="px-4 py-3 text-left">Statut</th>
-                <th className="px-4 py-3 text-left">Créé le</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredRequests.map((req) => (
-                <tr key={req.id} className="hover:bg-slate-50/80">
-                  <td className="px-4 py-3 font-medium text-[#010a19]">
-                    <Link href={`/dashboard/maintenance/${req.id}`} className="transition hover:text-[#0063fe] hover:underline">
-                      {req.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_STYLES[req.priority] ?? "bg-gray-100 text-gray-500"}`}>
-                      {PRIORITY_LABELS[req.priority] ?? req.priority}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[req.status] ?? "bg-gray-100 text-gray-500"}`}>
-                      {STATUS_LABELS[req.status] ?? req.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
+          <ResponsiveTable<MaintenanceRequest>
+            keyExtractor={(req) => req.id}
+            data={filteredRequests}
+            onRowClick={(req) => router.push(`/dashboard/maintenance/${req.id}`)}
+            columns={[
+              {
+                header: "Titre",
+                render: (req) => (
+                  <span className="font-semibold text-[#10213d] hover:text-[#0063fe] hover:underline">
+                    {req.title}
+                  </span>
+                )
+              },
+              {
+                header: "Priorité",
+                render: (req) => (
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_STYLES[req.priority] ?? "bg-gray-100 text-gray-500"}`}>
+                    {PRIORITY_LABELS[req.priority] ?? req.priority}
+                  </span>
+                )
+              },
+              {
+                header: "Statut",
+                render: (req) => (
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[req.status] ?? "bg-gray-100 text-gray-500"}`}>
+                    {STATUS_LABELS[req.status] ?? req.status}
+                  </span>
+                )
+              },
+              {
+                header: "Créé le",
+                render: (req) => (
+                  <span className="text-slate-500">
                     {new Date(req.createdAtIso).toLocaleDateString("fr-FR")}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                )
+              }
+            ]}
+            renderMobileCard={(req) => (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-[#010a19]">{req.title}</h3>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_STYLES[req.priority] ?? "bg-gray-100 text-gray-500"}`}>
+                    {PRIORITY_LABELS[req.priority] ?? req.priority}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+                  <span>Créé le {new Date(req.createdAtIso).toLocaleDateString("fr-FR")}</span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[req.status] ?? "bg-gray-100 text-gray-500"}`}>
+                    {STATUS_LABELS[req.status] ?? req.status}
+                  </span>
+                </div>
+              </div>
+            )}
+          />
 
           {filteredRequests.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-slate-500">

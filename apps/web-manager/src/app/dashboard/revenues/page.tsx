@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { PaymentKind } from "@hhousing/domain";
 import FinanceFilterForm from "../../../components/finance-filter-form";
 import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
+import ResponsiveTable from "../../../components/responsive-table";
 import {
   buildRevenueDataset,
   formatCurrencySummary,
@@ -117,35 +118,64 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
           {dataset.ledger.length === 0 ? (
             <p className="mt-5 text-sm text-gray-500">Aucun revenu enregistré pour les filtres actifs.</p>
           ) : (
-            <div className="mt-5 overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-[0.14em] text-gray-400">
-                  <tr>
-                    <th className="pb-3">Payé le</th>
-                    <th className="pb-3">Propriété</th>
-                    <th className="pb-3">Locataire</th>
-                    <th className="pb-3">Type</th>
-                    <th className="pb-3 text-right">Montant</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {dataset.ledger.map((entry) => (
-                    <tr key={entry.paymentId}>
-                      <td className="py-3 text-gray-600">{new Date(entry.paidDate).toLocaleDateString("fr-FR")}</td>
-                      <td className="py-3">
-                        <p className="font-medium text-[#010a19]">{entry.propertyName}</p>
-                        <p className="text-xs text-gray-500">Unité {entry.unitNumber}</p>
-                      </td>
-                      <td className="py-3 text-gray-600">{entry.tenantName}</td>
-                      <td className="py-3 text-gray-600">{formatPaymentKind(entry.paymentKind)}</td>
-                      <td className="py-3 text-right font-semibold text-[#010a19]">
-                        {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveTable<any>
+              keyExtractor={(entry) => entry.paymentId}
+              data={dataset.ledger}
+              columns={[
+                {
+                  header: "Payé le",
+                  render: (entry) => <span className="text-gray-600">{new Date(entry.paidDate).toLocaleDateString("fr-FR")}</span>
+                },
+                {
+                  header: "Propriété",
+                  render: (entry) => (
+                    <div>
+                      <p className="font-medium text-[#010a19]">{entry.propertyName}</p>
+                      <p className="text-xs text-gray-500">Unité {entry.unitNumber}</p>
+                    </div>
+                  )
+                },
+                {
+                  header: "Locataire",
+                  render: (entry) => <span className="text-gray-600">{entry.tenantName}</span>
+                },
+                {
+                  header: "Type",
+                  render: (entry) => <span className="text-gray-600">{formatPaymentKind(entry.paymentKind)}</span>
+                },
+                {
+                  header: "Montant",
+                  className: "text-right",
+                  render: (entry) => (
+                    <span className="font-semibold text-[#010a19]">
+                      {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
+                    </span>
+                  )
+                }
+              ]}
+              renderMobileCard={(entry) => (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[#0063fe] bg-blue-50 px-2.5 py-0.5 rounded-full">
+                      {formatPaymentKind(entry.paymentKind)}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(entry.paidDate).toLocaleDateString("fr-FR")}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#010a19]">{entry.propertyName}</p>
+                    <p className="text-xs text-slate-500">Unité {entry.unitNumber} • {entry.tenantName}</p>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                    <span className="text-xs text-slate-400">Montant</span>
+                    <span className="font-bold text-emerald-600">
+                      {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
+                    </span>
+                  </div>
+                </div>
+              )}
+            />
           )}
         </article>
       </section>

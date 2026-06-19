@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import type {
   AcceptTenantInvitationOutput,
   ValidateTenantInvitationOutput
@@ -43,6 +44,8 @@ export default function AcceptInviteScreen(): React.ReactElement {
   const [preview, setPreview] = useState<InvitationPreviewView | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [phone, setPhone] = useState("");
 
   useEffect(() => {
@@ -144,20 +147,38 @@ export default function AcceptInviteScreen(): React.ReactElement {
                 placeholder="Téléphone (optionnel)"
                 style={styles.input}
               />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Mot de passe"
-                secureTextEntry
-                style={styles.input}
-              />
-              <TextInput
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirmer le mot de passe"
-                secureTextEntry
-                style={styles.input}
-              />
+              <View style={styles.passwordInputWrap}>
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Mot de passe"
+                  secureTextEntry={!showPassword}
+                  style={styles.passwordInput}
+                />
+                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#9CA3AF"
+                  />
+                </Pressable>
+              </View>
+              <View style={styles.passwordInputWrap}>
+                <TextInput
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="Confirmer le mot de passe"
+                  secureTextEntry={!showConfirmPassword}
+                  style={styles.passwordInput}
+                />
+                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeBtn}>
+                  <Ionicons
+                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#9CA3AF"
+                  />
+                </Pressable>
+              </View>
               <Pressable
                 style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
                 disabled={isSubmitting}
@@ -232,5 +253,24 @@ const styles = StyleSheet.create({
   error: {
     color: "#B91C1C",
     fontSize: 14
+  },
+  passwordInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    paddingRight: 12
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 15,
+    color: "#010A19"
+  },
+  eyeBtn: {
+    padding: 4
   }
 });

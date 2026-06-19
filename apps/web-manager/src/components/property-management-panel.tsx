@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ResponsiveTable from "./responsive-table";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import type { PropertyManagementPanelProps } from "./property-management.types";
 
@@ -293,77 +294,76 @@ export default function PropertyManagementPanel({
                   Aucun bien ne correspond aux filtres sélectionnés.
                 </div>
               ) : (
-                <div className="rounded-xl border border-slate-200 bg-white">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                      <tr>
-                        <th className="px-5 py-3 text-left">Bien</th>
-                        <th className="px-5 py-3 text-left">Ville</th>
-                        <th className="px-5 py-3 text-left">Type</th>
-                        <th className="px-5 py-3 text-left">Occupation</th>
-                        <th className="px-5 py-3 text-left">Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {filteredProperties.map(({ property, units }) => {
-                        const occupiedUnits = units.filter((unit) => unit.status === "occupied").length;
-                        const vacantUnits = units.filter((unit) => unit.status === "vacant").length;
-
-                        return (
-                          <tr
-                            key={property.id}
-                            className="cursor-pointer hover:bg-slate-50/80"
-                            tabIndex={0}
-                            onClick={(event) => {
-                              if (isInteractiveTarget(event.target)) {
-                                return;
-                              }
-
-                              handlePropertyRowNavigation(property.id);
-                            }}
-                            onKeyDown={(event) => {
-                              if (isInteractiveTarget(event.target)) {
-                                return;
-                              }
-
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                handlePropertyRowNavigation(property.id);
-                              }
-                            }}
-                          >
-                            <td className="px-5 py-4 align-top">
-                              <Link
-                                href={`/dashboard/properties/${property.id}`}
-                                className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline"
-                              >
-                                {property.name}
-                              </Link>
-                              <div className="mt-1 text-sm text-slate-500">{property.address}</div>
-                            </td>
-                            <td className="px-5 py-4 text-slate-600">{property.city}</td>
-                            <td className="px-5 py-4 text-slate-600">{formatPropertyTypeLabel(property.propertyType)}</td>
-                            <td className="px-5 py-4 text-slate-600">
-                              {units.length === 0 ? (
-                                <span>Aucune unité</span>
-                              ) : (
-                                <div>
-                                  <div className="font-medium text-[#10213d]">{occupiedUnits}/{units.length} occupées</div>
-                                  <div className="mt-1 text-xs text-slate-500">{vacantUnits} vacantes</div>
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatPropertyStatusClassName(property.status)}`}>
-                                {formatPropertyStatusLabel(property.status)}
-                              </span>
-                            </td>
-                          </tr>
+                <ResponsiveTable<PropertyWithUnitsView>
+                  keyExtractor={(item) => item.property.id}
+                  data={filteredProperties}
+                  onRowClick={(item) => handlePropertyRowNavigation(item.property.id)}
+                  columns={[
+                    {
+                      header: "Bien",
+                      render: (item) => (
+                        <div>
+                          <span className="font-semibold text-[#10213d] hover:text-[#0063fe] hover:underline">
+                            {item.property.name}
+                          </span>
+                          <div className="mt-1 text-xs text-slate-500">{item.property.address}</div>
+                        </div>
+                      )
+                    },
+                    {
+                      header: "Ville",
+                      render: (item) => <span className="text-slate-600">{item.property.city}</span>
+                    },
+                    {
+                      header: "Type",
+                      render: (item) => <span className="text-slate-600">{formatPropertyTypeLabel(item.property.propertyType)}</span>
+                    },
+                    {
+                      header: "Occupation",
+                      render: (item) => {
+                        const occupiedUnits = item.units.filter((unit) => unit.status === "occupied").length;
+                        return item.units.length === 0 ? (
+                          <span className="text-slate-500">Aucune unité</span>
+                        ) : (
+                          <div>
+                            <div className="font-medium text-[#10213d]">{occupiedUnits}/{item.units.length} occupées</div>
+                            <div className="mt-1 text-xs text-slate-500">{item.units.length - occupiedUnits} vacantes</div>
+                          </div>
                         );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                      }
+                    },
+                    {
+                      header: "Statut",
+                      render: (item) => (
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatPropertyStatusClassName(item.property.status)}`}>
+                          {formatPropertyStatusLabel(item.property.status)}
+                        </span>
+                      )
+                    }
+                  ]}
+                  renderMobileCard={(item) => {
+                    const occupiedUnits = item.units.filter((unit) => unit.status === "occupied").length;
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h3 className="font-semibold text-[#010a19]">{item.property.name}</h3>
+                            <p className="text-xs text-slate-500">{item.property.address}, {item.property.city}</p>
+                          </div>
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatPropertyStatusClassName(item.property.status)}`}>
+                            {formatPropertyStatusLabel(item.property.status)}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 pt-2 border-t border-slate-100">
+                          <div>Type: {formatPropertyTypeLabel(item.property.propertyType)}</div>
+                          <div className="text-right">
+                            {item.units.length === 0 ? "0 unités" : `${occupiedUnits}/${item.units.length} occupées`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
               )}
             </>
           ) : (
@@ -427,69 +427,62 @@ export default function PropertyManagementPanel({
                   Aucune unité ne correspond aux filtres sélectionnés.
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                      <tr>
-                        <th className="px-5 py-3 text-left">Unité</th>
-                        <th className="px-5 py-3 text-left">Bien</th>
-                        <th className="px-5 py-3 text-left">Ville</th>
-                        <th className="px-5 py-3 text-left">Loyer</th>
-                        <th className="px-5 py-3 text-left">Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {filteredUnitRows.map(({ property, unit }) => (
-                        <tr
-                          key={unit.id}
-                          className="cursor-pointer hover:bg-slate-50/80"
-                          tabIndex={0}
-                          onClick={(event) => {
-                            if (isInteractiveTarget(event.target)) {
-                              return;
-                            }
-
-                            handleUnitRowNavigation(unit.id);
-                          }}
-                          onKeyDown={(event) => {
-                            if (isInteractiveTarget(event.target)) {
-                              return;
-                            }
-
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              handleUnitRowNavigation(unit.id);
-                            }
-                          }}
-                        >
-                          <td className="px-5 py-4">
-                            <Link
-                              href={`/dashboard/units/${unit.id}`}
-                              className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline"
-                            >
-                              {unit.unitNumber}
-                            </Link>
-                          </td>
-                          <td className="px-5 py-4 text-slate-600">
-                            <Link
-                              href={`/dashboard/properties/${property.id}`}
-                              className="font-medium text-[#10213d] hover:text-[#0063fe] hover:underline"
-                            >
-                              {property.name}
-                            </Link>
-                          </td>
-                          <td className="px-5 py-4 text-slate-600">{property.city}</td>
-                          <td className="px-5 py-4 text-slate-600">{formatCurrencyAmount(unit.monthlyRentAmount, unit.currencyCode)}</td>
-                          <td className="px-5 py-4">
-                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatUnitStatusClassName(unit.status)}`}>
-                              {formatUnitStatusLabel(unit.status)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <ResponsiveTable<{ property: any; unit: any }>
+                  keyExtractor={(item) => item.unit.id}
+                  data={filteredUnitRows}
+                  onRowClick={(item) => handleUnitRowNavigation(item.unit.id)}
+                  columns={[
+                    {
+                      header: "Unité",
+                      render: (item) => (
+                        <span className="font-semibold text-[#10213d] hover:text-[#0063fe] hover:underline">
+                          {item.unit.unitNumber}
+                        </span>
+                      )
+                    },
+                    {
+                      header: "Bien",
+                      render: (item) => (
+                        <span className="font-medium text-[#10213d] hover:text-[#0063fe] hover:underline">
+                          {item.property.name}
+                        </span>
+                      )
+                    },
+                    {
+                      header: "Ville",
+                      render: (item) => <span className="text-slate-600">{item.property.city}</span>
+                    },
+                    {
+                      header: "Loyer",
+                      render: (item) => <span className="text-slate-600">{formatCurrencyAmount(item.unit.monthlyRentAmount, item.unit.currencyCode)}</span>
+                    },
+                    {
+                      header: "Statut",
+                      render: (item) => (
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatUnitStatusClassName(item.unit.status)}`}>
+                          {formatUnitStatusLabel(item.unit.status)}
+                        </span>
+                      )
+                    }
+                  ]}
+                  renderMobileCard={(item) => (
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-[#010a19]">Unité {item.unit.unitNumber}</h3>
+                          <p className="text-xs text-slate-500">{item.property.name}</p>
+                        </div>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatUnitStatusClassName(item.unit.status)}`}>
+                          {formatUnitStatusLabel(item.unit.status)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 pt-2 border-t border-slate-100">
+                        <div>Loyer: {formatCurrencyAmount(item.unit.monthlyRentAmount, item.unit.currencyCode)}</div>
+                        <div className="text-right">Ville: {item.property.city}</div>
+                      </div>
+                    </div>
+                  )}
+                />
               )}
             </>
           )}

@@ -8,11 +8,21 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://limhbsmlftgiaqxpoxkf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_PmSGTspOd7_mCMHxBa5RWQ_tLPIrslN",
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.harakaproperty.com"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://limhbsmlftgiaqxpoxkf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_PmSGTspOd7_mCMHxBa5RWQ_tLPIrslN",
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.harakaproperty.com"
       }
     }
   }

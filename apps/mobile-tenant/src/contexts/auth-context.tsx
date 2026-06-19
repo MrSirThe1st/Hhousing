@@ -20,13 +20,30 @@ export function AuthProvider({ children }: PropsWithChildren): React.ReactElemen
     let mounted = true;
 
     async function bootstrap(): Promise<void> {
-      const {
-        data: { session: currentSession }
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session: currentSession },
+          error
+        } = await supabase.auth.getSession();
 
-      if (mounted) {
-        setSession(currentSession);
-        setIsLoading(false);
+        if (error) {
+          console.warn("Auth session bootstrap error, clearing storage:", error.message);
+          try {
+            await supabase.auth.signOut();
+          } catch (signOutErr) {
+            console.error("Failed to sign out on bootstrap error:", signOutErr);
+          }
+        }
+
+        if (mounted) {
+          setSession(error ? null : currentSession);
+        }
+      } catch (err) {
+        console.error("Error bootstrapping auth session:", err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     }
 

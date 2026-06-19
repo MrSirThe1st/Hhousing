@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import DashboardTasksPanel from "../../components/dashboard-tasks-panel";
+import ResponsiveTable from "../../components/responsive-table";
 import { requireDashboardSectionAccess } from "../../lib/dashboard-access";
 import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
 import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
@@ -681,37 +682,64 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   {metrics.overdueRows.length === 0 ? (
                     <p className="text-sm text-slate-500">Aucun paiement en retard pour le moment.</p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                            <th className="px-3 py-2">Locataire</th>
-                            <th className="px-3 py-2">Unité</th>
-                            <th className="px-3 py-2 text-right">Montant</th>
-                            <th className="px-3 py-2 text-right">Jours retard</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {metrics.overdueRows.map((row) => (
-                            <tr key={row.paymentId} className="border-b border-slate-100 last:border-b-0">
-                              <td className="px-3 py-2.5">
-                                <p className="font-medium text-[#010a19]">{row.tenantName}</p>
-                                <p className="text-xs text-slate-500">Échéance: {formatIsoDate(row.dueDate)}</p>
-                              </td>
-                              <td className="px-3 py-2.5 text-slate-700">{row.unitLabel}</td>
-                              <td className="px-3 py-2.5 text-right font-medium text-[#010a19]">
-                                {row.amount.toLocaleString("fr-FR")} {row.currencyCode}
-                              </td>
-                              <td className="px-3 py-2.5 text-right">
-                                <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-800">
-                                  {row.daysLate} j
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <ResponsiveTable<OverduePriorityRow>
+                      paginate={false}
+                      keyExtractor={(row) => row.paymentId}
+                      data={metrics.overdueRows}
+                      columns={[
+                        {
+                          header: "Locataire",
+                          render: (row) => (
+                            <div>
+                              <p className="font-medium text-[#010a19]">{row.tenantName}</p>
+                              <p className="text-xs text-slate-500">Échéance: {formatIsoDate(row.dueDate)}</p>
+                            </div>
+                          )
+                        },
+                        {
+                          header: "Unité",
+                          render: (row) => <span className="text-slate-700">{row.unitLabel}</span>
+                        },
+                        {
+                          header: "Montant",
+                          className: "text-right",
+                          render: (row) => (
+                            <span className="font-medium text-[#010a19]">
+                              {row.amount.toLocaleString("fr-FR")} {row.currencyCode}
+                            </span>
+                          )
+                        },
+                        {
+                          header: "Jours retard",
+                          className: "text-right",
+                          render: (row) => (
+                            <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-800">
+                              {row.daysLate} j
+                            </span>
+                          )
+                        }
+                      ]}
+                      renderMobileCard={(row) => (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-[#010a19]">{row.tenantName}</p>
+                            <span className="inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
+                              {row.daysLate} j
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-500 flex justify-between">
+                            <span>Unité: {row.unitLabel}</span>
+                            <span>Échéance: {formatIsoDate(row.dueDate)}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                            <span className="text-xs text-slate-400">Montant</span>
+                            <span className="font-semibold text-rose-600">
+                              {row.amount.toLocaleString("fr-FR")} {row.currencyCode}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    />
                   )}
                 </div>
               </section>

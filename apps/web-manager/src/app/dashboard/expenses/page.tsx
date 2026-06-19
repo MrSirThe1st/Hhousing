@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import ExpenseDeleteButton from "../../../components/expense-delete-button";
 import ExpenseCreateForm from "../../../components/expense-create-form";
+import ResponsiveTable from "../../../components/responsive-table";
 import {
   buildExpenseDataset,
   buildFinanceQueryString,
@@ -147,49 +148,102 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
         {dataset.ledger.length === 0 ? (
           <p className="mt-5 text-sm text-gray-500">Aucune dépense enregistrée pour les filtres actifs.</p>
         ) : (
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-[0.14em] text-gray-400">
-                <tr>
-                  <th className="pb-3">Date</th>
-                  <th className="pb-3">Libellé</th>
-                  <th className="pb-3">Propriété</th>
-                  <th className="pb-3">Unité</th>
-                  <th className="pb-3">Catégorie</th>
-                  <th className="pb-3 text-right">Montant</th>
-                  <th className="pb-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {dataset.ledger.map((entry) => (
-                  <tr key={entry.expenseId}>
-                    <td className="py-3 text-gray-600">{new Date(entry.expenseDate).toLocaleDateString("fr-FR")}</td>
-                    <td className="py-3">
-                      <p className="font-medium text-[#010a19]">{entry.title}</p>
-                      {entry.vendorName ? <p className="text-xs text-gray-500">Fournisseur: {entry.vendorName}</p> : null}
-                      {entry.payeeName ? <p className="text-xs text-gray-500">Payé à: {entry.payeeName}</p> : null}
-                      {entry.note ? <p className="text-xs text-gray-500">{entry.note}</p> : null}
-                    </td>
-                    <td className="py-3 text-gray-600">{entry.propertyName}</td>
-                    <td className="py-3 text-gray-600">{entry.unitLabel ?? "Toute la propriété"}</td>
-                    <td className="py-3 text-gray-600">{formatExpenseCategory(entry.category)}</td>
-                    <td className="py-3 text-right font-semibold text-[#010a19]">{entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}</td>
-                    <td className="py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/dashboard/expenses?${buildFinanceQueryString(filters, { editExpenseId: entry.expenseId })}`}
-                          className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                        >
-                          Modifier
-                        </Link>
-                        <ExpenseDeleteButton expenseId={entry.expenseId} redirectHref={baseHref} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable<any>
+            keyExtractor={(entry) => entry.expenseId}
+            data={dataset.ledger}
+            columns={[
+              {
+                header: "Date",
+                render: (entry) => <span className="text-gray-600">{new Date(entry.expenseDate).toLocaleDateString("fr-FR")}</span>
+              },
+              {
+                header: "Libellé",
+                render: (entry) => (
+                  <div>
+                    <p className="font-medium text-[#010a19]">{entry.title}</p>
+                    {entry.vendorName ? <p className="text-xs text-gray-500">Fournisseur: {entry.vendorName}</p> : null}
+                    {entry.payeeName ? <p className="text-xs text-gray-500">Payé à: {entry.payeeName}</p> : null}
+                    {entry.note ? <p className="text-xs text-gray-500">{entry.note}</p> : null}
+                  </div>
+                )
+              },
+              {
+                header: "Propriété",
+                render: (entry) => <span className="text-gray-600">{entry.propertyName}</span>
+              },
+              {
+                header: "Unité",
+                render: (entry) => <span className="text-gray-600">{entry.unitLabel ?? "Toute la propriété"}</span>
+              },
+              {
+                header: "Catégorie",
+                render: (entry) => <span className="text-gray-600">{formatExpenseCategory(entry.category)}</span>
+              },
+              {
+                header: "Montant",
+                className: "text-right",
+                render: (entry) => (
+                  <span className="font-semibold text-[#010a19]">
+                    {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
+                  </span>
+                )
+              },
+              {
+                header: "Actions",
+                className: "text-right",
+                render: (entry) => (
+                  <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Link
+                      href={`/dashboard/expenses?${buildFinanceQueryString(filters, { editExpenseId: entry.expenseId })}`}
+                      className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    >
+                      Modifier
+                    </Link>
+                    <ExpenseDeleteButton expenseId={entry.expenseId} redirectHref={baseHref} />
+                  </div>
+                )
+              }
+            ]}
+            renderMobileCard={(entry) => (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full">
+                    {formatExpenseCategory(entry.category)}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(entry.expenseDate).toLocaleDateString("fr-FR")}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-semibold text-[#010a19]">{entry.title}</p>
+                  <p className="text-xs text-slate-500">
+                    {entry.propertyName} • {entry.unitLabel ?? "Toute la propriété"}
+                  </p>
+                  {entry.vendorName && <p className="text-xs text-gray-500">Fournisseur: {entry.vendorName}</p>}
+                  {entry.payeeName && <p className="text-xs text-gray-500">Payé à: {entry.payeeName}</p>}
+                </div>
+                {entry.note && (
+                  <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded-md italic">
+                    Note: {entry.note}
+                  </p>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-2 min-h-[44px]" onClick={(e) => e.stopPropagation()}>
+                    <Link
+                      href={`/dashboard/expenses?${buildFinanceQueryString(filters, { editExpenseId: entry.expenseId })}`}
+                      className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    >
+                      Modifier
+                    </Link>
+                    <ExpenseDeleteButton expenseId={entry.expenseId} redirectHref={baseHref} />
+                  </div>
+                  <span className="font-bold text-rose-600">
+                    {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
+                  </span>
+                </div>
+              </div>
+            )}
+          />
         )}
       </section>
     </div>

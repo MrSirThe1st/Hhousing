@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import ResponsiveTable from "../../../components/responsive-table";
 import type { Owner } from "@hhousing/domain";
 import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../api/shared";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
@@ -173,101 +174,156 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
               </p>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 text-left">Propriétaire</th>
-                  <th className="px-5 py-3 text-left">Type</th>
-                  <th className="px-5 py-3 text-left">Localisation</th>
-                  <th className="px-5 py-3 text-left">Portefeuille</th>
-                  <th className="px-5 py-3 text-left">Opérations</th>
-                  <th className="px-5 py-3 text-left">Création</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {summaries.map((summary) => {
+          <ResponsiveTable<ClientSummary>
+            keyExtractor={(summary) => summary.owner.id}
+            data={summaries}
+            onRowClick={(summary) => {
+              window.location.href = `/dashboard/clients/${summary.owner.id}`;
+            }}
+            columns={[
+              {
+                header: "Propriétaire",
+                render: (summary) => (
+                  <div className="flex items-start gap-3">
+                    {summary.owner.profilePictureUrl ? (
+                      <img
+                        src={summary.owner.profilePictureUrl}
+                        alt={summary.owner.name}
+                        className="h-12 w-12 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0063fe]/10 text-sm font-semibold text-[#0063fe]">
+                        {summary.owner.name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <span className="font-semibold text-[#10213d] hover:text-[#0063fe] hover:underline">
+                        {summary.owner.name}
+                      </span>
+                      <div className="mt-1 text-sm text-slate-500">{summary.owner.fullName}</div>
+                      {summary.owner.phoneNumber ? (
+                        <div className="mt-2 text-xs text-slate-500">{summary.owner.phoneNumber}</div>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              },
+              {
+                header: "Type",
+                render: (summary) => (
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    summary.owner.isCompany
+                      ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
+                      : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
+                  }`}>
+                    {summary.owner.isCompany ? "Société" : "Particulier"}
+                  </span>
+                )
+              },
+              {
+                header: "Localisation",
+                render: (summary) => <span>{formatOwnerLocation(summary.owner) ?? "Non renseignée"}</span>
+              },
+              {
+                header: "Portefeuille",
+                render: (summary) => {
                   const ownerOccupancyRate = summary.unitCount > 0
                     ? Math.round((summary.occupiedUnitCount / summary.unitCount) * 100)
                     : 0;
-                  const clientHref = `/dashboard/clients/${summary.owner.id}`;
-
                   return (
-                    <tr key={summary.owner.id} className="cursor-pointer hover:bg-slate-50/80">
-                      <td className="p-0 align-top">
-                        <Link href={clientHref} className="block h-full w-full px-5 py-4">
-                          <div className="flex items-start gap-3">
-                            {summary.owner.profilePictureUrl ? (
-                              <img
-                                src={summary.owner.profilePictureUrl}
-                                alt={summary.owner.name}
-                                className="h-12 w-12 rounded-2xl object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0063fe]/10 text-sm font-semibold text-[#0063fe]">
-                                {summary.owner.name.slice(0, 1).toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <div className="font-semibold text-[#10213d] transition hover:text-[#0063fe] hover:underline">
-                                {summary.owner.name}
-                              </div>
-                              <div className="mt-1 text-sm text-slate-500">{summary.owner.fullName}</div>
-                              {summary.owner.phoneNumber ? (
-                                <div className="mt-2 text-xs text-slate-500">{summary.owner.phoneNumber}</div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="p-0 align-top">
-                        <Link href={clientHref} className="block h-full w-full px-5 py-4">
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            summary.owner.isCompany
-                              ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
-                              : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-                          }`}>
-                            {summary.owner.isCompany ? "Société" : "Particulier"}
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="p-0 align-top text-slate-600">
-                        <Link href={clientHref} className="block h-full w-full px-5 py-4">
-                          {formatOwnerLocation(summary.owner) ?? "Non renseignée"}
-                        </Link>
-                      </td>
-                      <td className="p-0 align-top text-slate-600">
-                        <Link href={clientHref} className="block h-full w-full px-5 py-4">
-                          <div className="font-medium text-[#10213d]">{summary.propertyCount} bien(s)</div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {summary.unitCount} unité(s), {ownerOccupancyRate}% occupées
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="p-0 align-top text-slate-600">
-                        <Link href={clientHref} className="block h-full w-full px-5 py-4">
-                          <div className="font-medium text-[#10213d]">{summary.activeTenantCount} locataire(s) actif(s)</div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {summary.overduePaymentCount} retard(s), {summary.activeMaintenanceCount} maintenance(s) ouverte(s)
-                          </div>
-                          {summary.urgentMaintenanceCount > 0 ? (
-                            <div className="mt-2 inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
-                              {summary.urgentMaintenanceCount} urgence(s)
-                            </div>
-                          ) : null}
-                        </Link>
-                      </td>
-                      <td className="p-0 align-top text-slate-600">
-                        <Link href={clientHref} className="block h-full w-full px-5 py-4">
-                          {new Date(summary.owner.createdAtIso).toLocaleDateString("fr-FR")}
-                        </Link>
-                      </td>
-                    </tr>
+                    <div>
+                      <div className="font-medium text-[#10213d]">{summary.propertyCount} bien(s)</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {summary.unitCount} unité(s), {ownerOccupancyRate}% occupées
+                      </div>
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                }
+              },
+              {
+                header: "Opérations",
+                render: (summary) => (
+                  <div>
+                    <div className="font-medium text-[#10213d]">{summary.activeTenantCount} locataire(s) actif(s)</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {summary.overduePaymentCount} retard(s), {summary.activeMaintenanceCount} maintenance(s) ouverte(s)
+                    </div>
+                    {summary.urgentMaintenanceCount > 0 ? (
+                      <div className="mt-2 inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
+                        {summary.urgentMaintenanceCount} urgence(s)
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              },
+              {
+                header: "Création",
+                render: (summary) => <span>{new Date(summary.owner.createdAtIso).toLocaleDateString("fr-FR")}</span>
+              }
+            ]}
+            renderMobileCard={(summary) => {
+              const ownerOccupancyRate = summary.unitCount > 0
+                ? Math.round((summary.occupiedUnitCount / summary.unitCount) * 100)
+                : 0;
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      {summary.owner.profilePictureUrl ? (
+                        <img
+                          src={summary.owner.profilePictureUrl}
+                          alt={summary.owner.name}
+                          className="h-12 w-12 rounded-2xl object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0063fe]/10 text-sm font-semibold text-[#0063fe]">
+                          {summary.owner.name.slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-semibold text-[#010a19]">{summary.owner.name}</h3>
+                        <p className="text-xs text-slate-500">{summary.owner.fullName}</p>
+                        <p className="text-xs text-slate-500">{formatOwnerLocation(summary.owner) ?? "Non renseignée"}</p>
+                      </div>
+                    </div>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      summary.owner.isCompany
+                        ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
+                        : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
+                    }`}>
+                      {summary.owner.isCompany ? "Société" : "Particulier"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs text-slate-600 border-t border-slate-100 pt-3">
+                    <div>
+                      <p className="font-semibold text-slate-800">Biens gérés</p>
+                      <p className="mt-0.5">{summary.propertyCount} biens ({summary.unitCount} unités)</p>
+                      <p className="mt-0.5 text-slate-400">Taux occupation: {ownerOccupancyRate}%</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">Opérations</p>
+                      <p className="mt-0.5">{summary.activeTenantCount} locataires actifs</p>
+                      <p className="mt-0.5 text-slate-400">
+                        {summary.overduePaymentCount} retards, {summary.activeMaintenanceCount} tickets
+                      </p>
+                    </div>
+                  </div>
+
+                  {summary.urgentMaintenanceCount > 0 && (
+                    <div className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
+                      {summary.urgentMaintenanceCount} urgence(s) de maintenance
+                    </div>
+                  )}
+
+                  <div className="text-xs text-slate-400 border-t border-slate-100 pt-2 flex justify-between">
+                    <span>Créé le {new Date(summary.owner.createdAtIso).toLocaleDateString("fr-FR")}</span>
+                    <span className="font-semibold text-[#0063fe]">Ouvrir le dossier →</span>
+                  </div>
+                </div>
+              );
+            }}
+          />
         </div>
       )}
     </div>

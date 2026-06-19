@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ResponsiveTable from "./responsive-table";
 import type { LeaseStatus } from "@hhousing/domain";
 import type { LeaseManagementPanelProps } from "./tenant-management.types";
 
@@ -124,59 +125,64 @@ export default function LeaseManagementPanel({
             </button>
           </div>
 
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left">Locataire</th>
-                <th className="px-4 py-3 text-left">Début</th>
-                <th className="px-4 py-3 text-left">Fin</th>
-                <th className="px-4 py-3 text-left">Loyer</th>
-                <th className="px-4 py-3 text-left">Statut</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredLeases.map((lease) => (
-                <tr
-                  key={lease.id}
-                  className="cursor-pointer hover:bg-slate-50/80"
-                  onClick={() => {
-                    router.push(`/dashboard/leases/${lease.id}`);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      router.push(`/dashboard/leases/${lease.id}`);
-                    }
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Ouvrir le bail de ${lease.tenantFullName}`}
-                >
-                  <td className="px-4 py-3 font-medium text-[#010a19]">
-                    <Link
-                      href={`/dashboard/leases/${lease.id}`}
-                      className="transition hover:text-[#0063fe] hover:underline"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                      }}
-                    >
-                      {lease.tenantFullName}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{lease.startDate}</td>
-                  <td className="px-4 py-3 text-slate-600">{lease.endDate ?? "Ouvert"}</td>
-                  <td className="px-4 py-3 text-slate-600">
+          <ResponsiveTable<any>
+            keyExtractor={(lease) => lease.id}
+            data={filteredLeases}
+            onRowClick={(lease) => router.push(`/dashboard/leases/${lease.id}`)}
+            columns={[
+              {
+                header: "Locataire",
+                render: (lease) => (
+                  <span className="font-semibold text-[#10213d] hover:text-[#0063fe] hover:underline">
+                    {lease.tenantFullName}
+                  </span>
+                )
+              },
+              {
+                header: "Début",
+                render: (lease) => <span className="text-slate-600">{lease.startDate}</span>
+              },
+              {
+                header: "Fin",
+                render: (lease) => <span className="text-slate-600">{lease.endDate ?? "Ouvert"}</span>
+              },
+              {
+                header: "Loyer",
+                render: (lease) => (
+                  <span className="text-slate-600">
                     {lease.monthlyRentAmount.toLocaleString("fr-FR")} {lease.currencyCode}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[lease.status] ?? "bg-gray-100 text-gray-500"}`}>
-                      {STATUS_LABELS[lease.status] ?? lease.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                )
+              },
+              {
+                header: "Statut",
+                render: (lease) => (
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[lease.status] ?? "bg-gray-100 text-gray-500"}`}>
+                    {STATUS_LABELS[lease.status] ?? lease.status}
+                  </span>
+                )
+              }
+            ]}
+            renderMobileCard={(lease) => (
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-[#010a19]">{lease.tenantFullName}</h3>
+                    <p className="text-xs text-slate-500">Dates: {lease.startDate} à {lease.endDate ?? "Ouvert"}</p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[lease.status] ?? "bg-gray-100 text-gray-500"}`}>
+                    {STATUS_LABELS[lease.status] ?? lease.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+                  <span>Loyer Mensuel</span>
+                  <span className="font-bold text-[#010a19]">
+                    {lease.monthlyRentAmount.toLocaleString("fr-FR")} {lease.currencyCode}
+                  </span>
+                </div>
+              </div>
+            )}
+          />
 
           {filteredLeases.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-slate-500">

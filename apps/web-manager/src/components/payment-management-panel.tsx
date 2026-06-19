@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Payment, PaymentKind, PaymentStatus } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { postWithAuth, patchWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
+import ResponsiveTable from "./responsive-table";
 
 const STATUS_LABELS: Record<PaymentStatus, string> = {
   pending: "En attente",
@@ -68,6 +69,15 @@ export default function PaymentManagementPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("add") === "true") {
+        setShowRecordForm(true);
+      }
+    }
+  }, []);
 
   const leaseMap = useMemo(
     () => new Map(leases.map((lease) => [lease.id, lease])),
@@ -517,34 +527,60 @@ export default function PaymentManagementPanel({
             </button>
             </div>
 
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-3 text-left">Nom</th>
-                  <th className="px-4 py-3 text-left">Derniere echeance</th>
-                  <th className="px-4 py-3 text-left">Solde ouvert</th>
-                  <th className="px-4 py-3 text-left">En retard</th>
-                  <th className="px-4 py-3 text-left">Lignes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {tenantPaymentGroups.map((group) => (
-                  <tr
-                    key={group.tenantId}
-                    className={`cursor-pointer hover:bg-gray-50 ${selectedGroup?.tenantId === group.tenantId ? "bg-blue-50/60" : ""}`}
-                    onClick={() => setSelectedTenantId(group.tenantId)}
-                  >
-                    <td className="px-4 py-3 font-medium text-[#010a19]">{group.tenantName}</td>
-                    <td className="px-4 py-3 text-gray-600">{group.latestDueDate ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">
+            <ResponsiveTable
+              keyExtractor={(group) => group.tenantId}
+              data={tenantPaymentGroups}
+              onRowClick={(group) => setSelectedTenantId(group.tenantId)}
+              rowClassName={(group) => selectedGroup?.tenantId === group.tenantId ? "bg-blue-50/60" : ""}
+              columns={[
+                {
+                  header: "Nom",
+                  render: (group) => <span className="font-semibold text-[#010a19]">{group.tenantName}</span>
+                },
+                {
+                  header: "Derniere echeance",
+                  render: (group) => <span className="text-gray-600">{group.latestDueDate ?? "—"}</span>
+                },
+                {
+                  header: "Solde ouvert",
+                  render: (group) => (
+                    <span className="text-gray-600">
                       {group.outstandingAmount.toLocaleString("fr-FR")} {group.currencyCode}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{group.overdueCount}</td>
-                    <td className="px-4 py-3 text-gray-600">{group.totalRecords}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  )
+                },
+                {
+                  header: "En retard",
+                  render: (group) => <span className="text-gray-600">{group.overdueCount}</span>
+                },
+                {
+                  header: "Lignes",
+                  render: (group) => <span className="text-gray-600">{group.totalRecords}</span>
+                }
+              ]}
+              renderMobileCard={(group) => (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-[#010a19]">{group.tenantName}</h3>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      group.overdueCount > 0 ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-600"
+                    }`}>
+                      {group.overdueCount > 0 ? `${group.overdueCount} en retard` : "À jour"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                    <div>Échéance: {group.latestDueDate ?? "—"}</div>
+                    <div className="text-right">Fiches: {group.totalRecords}</div>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                    <span className="text-xs text-slate-400">Solde ouvert</span>
+                    <span className="font-bold text-[#010a19]">
+                      {group.outstandingAmount.toLocaleString("fr-FR")} {group.currencyCode}
+                    </span>
+                  </div>
+                </div>
+              )}
+            />
 
             {tenantPaymentGroups.length === 0 && (
               <div className="px-4 py-8 text-center text-sm text-gray-400">
@@ -561,24 +597,22 @@ export default function PaymentManagementPanel({
                   Charges affichees chronologiquement pour garder un dossier de paiement lisible.
                 </p>
               </div>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Echeance</th>
-                    <th className="px-4 py-3 text-left">Type</th>
-                    <th className="px-4 py-3 text-left">Periode</th>
-                    <th className="px-4 py-3 text-left">Montant</th>
-                    <th className="px-4 py-3 text-left">Statut</th>
-                    <th className="px-4 py-3 text-left">Note</th>
-                    <th className="px-4 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {selectedPayments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td className="px-4 py-3 text-gray-600">{payment.dueDate}</td>
-                      <td className="px-4 py-3 text-gray-600">{PAYMENT_KIND_LABELS[payment.paymentKind] ?? payment.paymentKind}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
+              <ResponsiveTable<Payment>
+                keyExtractor={(payment) => payment.id}
+                data={selectedPayments}
+                columns={[
+                  {
+                    header: "Echeance",
+                    render: (payment) => <span className="text-gray-600">{payment.dueDate}</span>
+                  },
+                  {
+                    header: "Type",
+                    render: (payment) => <span className="text-gray-600">{PAYMENT_KIND_LABELS[payment.paymentKind] ?? payment.paymentKind}</span>
+                  },
+                  {
+                    header: "Periode",
+                    render: (payment) => (
+                      <span className="text-gray-500 text-xs">
                         {payment.chargePeriod ? (
                           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
                             {payment.chargePeriod}
@@ -586,17 +620,33 @@ export default function PaymentManagementPanel({
                         ) : (
                           <span className="text-gray-400">Manuel</span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-[#010a19]">
+                      </span>
+                    )
+                  },
+                  {
+                    header: "Montant",
+                    render: (payment) => (
+                      <span className="font-semibold text-[#010a19]">
                         {payment.amount.toLocaleString("fr-FR")} {payment.currencyCode}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[payment.status] ?? "bg-gray-100 text-gray-500"}`}>
-                          {STATUS_LABELS[payment.status] ?? payment.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">{payment.note ?? "—"}</td>
-                      <td className="px-4 py-3">
+                      </span>
+                    )
+                  },
+                  {
+                    header: "Statut",
+                    render: (payment) => (
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[payment.status] ?? "bg-gray-100 text-gray-500"}`}>
+                        {STATUS_LABELS[payment.status] ?? payment.status}
+                      </span>
+                    )
+                  },
+                  {
+                    header: "Note",
+                    render: (payment) => <span className="text-gray-500">{payment.note ?? "—"}</span>
+                  },
+                  {
+                    header: "Actions",
+                    render: (payment) => (
+                      <>
                         {(payment.status === "pending" || payment.status === "overdue") && (
                           <button
                             onClick={() => handleMarkPaid(payment.id)}
@@ -606,11 +656,48 @@ export default function PaymentManagementPanel({
                             Marquer payé
                           </button>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </>
+                    )
+                  }
+                ]}
+                renderMobileCard={(payment) => (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#0063fe] bg-blue-50 px-2 py-0.5 rounded-full">
+                        {PAYMENT_KIND_LABELS[payment.paymentKind] ?? payment.paymentKind}
+                      </span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[payment.status] ?? "bg-gray-100 text-gray-500"}`}>
+                        {STATUS_LABELS[payment.status] ?? payment.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                      <div>Échéance: {payment.dueDate}</div>
+                      <div className="text-right">Période: {payment.chargePeriod || "Manuel"}</div>
+                    </div>
+                    {payment.note && (
+                      <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded-md italic">
+                        Note: {payment.note}
+                      </p>
+                    )}
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                      <div className="min-h-[44px] flex items-center">
+                        {(payment.status === "pending" || payment.status === "overdue") && (
+                          <button
+                            onClick={() => handleMarkPaid(payment.id)}
+                            disabled={sideOperationBusy}
+                            className="text-[#0063fe] hover:underline text-sm font-semibold disabled:opacity-60"
+                          >
+                            Marquer payé
+                          </button>
+                        )}
+                      </div>
+                      <span className="font-bold text-[#010a19]">
+                        {payment.amount.toLocaleString("fr-FR")} {payment.currencyCode}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              />
             </div>
           ) : null}
         </div>

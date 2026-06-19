@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   SafeAreaView,
@@ -14,13 +15,22 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth-context";
+import { env } from "@/lib/env";
 
 export default function LoginScreen(): React.ReactElement {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleOpenMarketplace(): void {
+    const url = `${env.apiBaseUrl}/marketplace`;
+    void Linking.openURL(url).catch((err) => {
+      console.error("Failed to open marketplace URL:", err);
+    });
+  }
 
   async function handleSignIn(): Promise<void> {
     if (!email.trim() || !password) {
@@ -88,11 +98,18 @@ export default function LoginScreen(): React.ReactElement {
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   style={styles.input}
                   placeholder="••••••••"
                   placeholderTextColor="#9CA3AF"
                 />
+                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#9CA3AF"
+                  />
+                </Pressable>
               </View>
             </View>
 
@@ -110,6 +127,14 @@ export default function LoginScreen(): React.ReactElement {
               ) : (
                 <Text style={styles.buttonText}>Se connecter</Text>
               )}
+            </Pressable>
+          </View>
+
+          <View style={styles.marketplaceWrap}>
+            <Text style={styles.marketplaceText}>Vous cherchez un logement ?</Text>
+            <Pressable onPress={handleOpenMarketplace} style={styles.marketplacePressable}>
+              <Text style={styles.marketplaceLink}>Explorer les annonces</Text>
+              <Ionicons name="open-outline" size={14} color="#0063FE" />
             </Pressable>
           </View>
 
@@ -233,5 +258,28 @@ const styles = StyleSheet.create({
     color: "#0063FE",
     fontSize: 14,
     fontWeight: "600"
+  },
+  marketplaceWrap: {
+    alignItems: "center",
+    gap: 4,
+    marginTop: 12
+  },
+  marketplaceText: {
+    color: "#6B7280",
+    fontSize: 14
+  },
+  marketplacePressable: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4
+  },
+  marketplaceLink: {
+    color: "#0063FE",
+    fontSize: 14,
+    fontWeight: "600",
+    textDecorationLine: "underline"
+  },
+  eyeBtn: {
+    padding: 4
   }
 });

@@ -408,7 +408,7 @@ export default function Sidebar({ currentRoleLabel, access }: SidebarProps): Rea
 
   return (
     <aside
-      className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[#010a19] transition-[width] duration-300 ${shellWidthClassName}`}
+      className={`hidden md:flex h-full shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[#010a19] transition-[width] duration-300 ${shellWidthClassName}`}
     >
       {/* Top: organisation block */}
       <div className="border-b border-slate-200 px-3 py-3">

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ResponsiveTable from "./responsive-table";
 import type { TenantListItem, TenantManagementPanelProps } from "./tenant-management.types";
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -92,7 +93,7 @@ export default function TenantManagementPanel({
       </div>
 
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="inline-flex w-fit rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <div className="hidden sm:inline-flex w-fit rounded-xl border border-slate-200 bg-slate-50 p-1">
           <button
             type="button"
             onClick={() => setDisplayMode("table")}
@@ -158,103 +159,79 @@ export default function TenantManagementPanel({
           <h2 className="text-base font-semibold text-[#010a19]">Aucun résultat</h2>
           <p className="mt-2 text-sm text-slate-500">Aucun locataire ne correspond au filtre sélectionné. Ajustez le statut de bail pour réélargir la vue.</p>
         </div>
-      ) : displayMode === "table" ? (
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left">Nom</th>
-                <th className="px-4 py-3 text-left">Statut</th>
-                <th className="px-4 py-3 text-left">E-mail</th>
-                <th className="px-4 py-3 text-left">Téléphone</th>
-                <th className="px-4 py-3 text-left">Ajouté le</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredTenants.map((item) => {
-                const { tenant } = item;
-
-                return (
-                  <tr
-                    key={tenant.id}
-                    className="cursor-pointer hover:bg-slate-50/80"
-                    tabIndex={0}
-                    onClick={(event) => {
-                      if (isInteractiveTarget(event.target)) {
-                        return;
-                      }
-
-                      router.push(`/dashboard/tenants/${tenant.id}`);
-                    }}
-                    onKeyDown={(event) => {
-                      if (isInteractiveTarget(event.target)) {
-                        return;
-                      }
-
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        router.push(`/dashboard/tenants/${tenant.id}`);
-                      }
-                    }}
-                  >
-                    <td className="px-4 py-3 font-medium text-[#010a19]">
-                      <div className="flex items-center gap-3">
-                        {tenant.photoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={tenant.photoUrl} alt={tenant.fullName} className="h-9 w-9 rounded-full object-cover" />
-                        ) : (
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-500">
-                            {tenant.fullName.substring(0, 1).toUpperCase()}
-                          </div>
-                        )}
-                        <div>
-                          <Link href={`/dashboard/tenants/${tenant.id}`} className="transition hover:text-[#0063fe] hover:underline">
-                            {tenant.fullName}
-                          </Link>
-                          {tenant.dateOfBirth ? (
-                            <div className="text-xs font-normal text-slate-500">Né le {tenant.dateOfBirth}</div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <LeaseStatusBadge hasLease={item.hasLease} />
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{tenant.email ?? "—"}</td>
-                    <td className="px-4 py-3 text-slate-600">{tenant.phone ?? "—"}</td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredTenants.map((item) => {
+        <ResponsiveTable<TenantListItem>
+          mode={displayMode}
+          keyExtractor={(item) => item.tenant.id}
+          data={filteredTenants}
+          onRowClick={(item) => router.push(`/dashboard/tenants/${item.tenant.id}`)}
+          columns={[
+            {
+              header: "Nom",
+              render: (item) => {
+                const { tenant } = item;
+                return (
+                  <div className="flex items-center gap-3">
+                    {tenant.photoUrl ? (
+                      <img src={tenant.photoUrl} alt={tenant.fullName} className="h-9 w-9 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-500 font-semibold">
+                        {tenant.fullName.substring(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <span className="font-semibold text-[#010a19] transition hover:text-[#0063fe] hover:underline">
+                        {tenant.fullName}
+                      </span>
+                      {tenant.dateOfBirth ? (
+                        <div className="text-xs font-normal text-slate-500">Né le {tenant.dateOfBirth}</div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              }
+            },
+            {
+              header: "Statut",
+              render: (item) => <LeaseStatusBadge hasLease={item.hasLease} />
+            },
+            {
+              header: "E-mail",
+              render: (item) => <span className="text-slate-600">{item.tenant.email ?? "—"}</span>
+            },
+            {
+              header: "Téléphone",
+              render: (item) => <span className="text-slate-600">{item.tenant.phone ?? "—"}</span>
+            },
+            {
+              header: "Ajouté le",
+              render: (item) => (
+                <span className="text-slate-500">
+                  {new Date(item.tenant.createdAtIso).toLocaleDateString("fr-FR")}
+                </span>
+              )
+            }
+          ]}
+          renderMobileCard={(item) => {
             const { tenant } = item;
-
             return (
-              <Link key={tenant.id} href={`/dashboard/tenants/${tenant.id}`} className="rounded-xl border border-slate-200 bg-white p-5 transition hover:border-[#0063fe] hover:bg-[#0063fe]/3">
+              <div className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     {tenant.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={tenant.photoUrl} alt={tenant.fullName} className="h-12 w-12 rounded-2xl object-cover" />
                     ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-sm text-gray-500">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-sm text-gray-500 font-semibold">
                         {tenant.fullName.substring(0, 1).toUpperCase()}
                       </div>
                     )}
                     <div>
                       <h3 className="font-semibold text-[#010a19]">{tenant.fullName}</h3>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-xs text-slate-500">
                         Ajouté le {new Date(tenant.createdAtIso).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
-                  </div> 
+                  </div>
                   <LeaseStatusBadge hasLease={item.hasLease} />
                 </div>
 
@@ -264,13 +241,14 @@ export default function TenantManagementPanel({
                   <p><span className="font-medium text-[#010a19]">Date de naissance:</span> {tenant.dateOfBirth ?? "—"}</p>
                 </div>
 
-                <div className="mt-5 text-sm font-semibold text-[#0063fe]">
-                  Ouvrir le dossier
+                <div className="mt-4 text-sm font-semibold text-[#0063fe] flex items-center justify-between">
+                  <span>Ouvrir le dossier</span>
+                  <span>→</span>
                 </div>
-              </Link>
+              </div>
             );
-          })}
-        </div>
+          }}
+        />
       )}
     </div>
   );
