@@ -205,7 +205,7 @@ export default function BottomNavigation({
 
         {/* Quick actions & Logout at bottom of drawer */}
         <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs text-slate-400">hhousing mobile v1.0</span>
+          <span className="text-xs text-slate-400">haraka property mobile v1.0</span>
           <div className="min-h-[44px] flex items-center">
             <LogoutButton />
           </div>

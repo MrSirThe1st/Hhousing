@@ -10,6 +10,7 @@ import type {
 } from "@hhousing/api-contracts";
 import { patchWithAuth, postWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
+import ResponsiveTable, { type Column } from "./responsive-table";
 
 type ListingsWorkspaceTab = "listings" | "applications" | "screening";
 
@@ -93,6 +94,214 @@ export default function ListingManagementPanel({
   applications
 }: ListingManagementPanelProps): React.ReactElement {
   const router = useRouter();
+
+  const listingColumns = useMemo<Column<ManagerListingView>[]>(() => [
+    {
+      header: "Listing",
+      render: (item) => (
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            {item.property.city}
+          </p>
+          <p className="font-medium text-[#010a19]">
+            {item.property.propertyType === "multi_unit"
+              ? `${item.property.name} · Unit ${item.unit.unitNumber}`
+              : item.property.name}
+          </p>
+        </div>
+      )
+    },
+    {
+      header: "Rent",
+      render: (item) => (
+        <span className="text-slate-600">
+          {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month
+        </span>
+      )
+    },
+    {
+      header: "Status",
+      render: (item) => (
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+            item.listing?.status === "published"
+              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+              : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+          }`}
+        >
+          {item.listing?.status ?? "unpublished"}
+        </span>
+      )
+    },
+    {
+      header: "Applications",
+      render: (item) => <span className="text-slate-600">{item.applicationCount}</span>
+    },
+    {
+      header: "Actions",
+      render: (item) => (
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/dashboard/listings/${item.unit.id}`}
+            className="text-sm font-medium text-[#0063fe] hover:underline"
+          >
+            {item.listing ? "Edit" : "Set up"}
+          </Link>
+          {item.listing?.status === "published" && (
+            <Link
+              href={`/listing/${item.listing.id}`}
+              className="text-sm text-slate-600 hover:text-slate-900"
+            >
+              View
+            </Link>
+          )}
+        </div>
+      )
+    }
+  ], []);
+
+  const renderListingMobileCard = (item: ManagerListingView) => (
+    <div className="space-y-3">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-slate-400">
+            {item.property.city}
+          </p>
+          <p className="font-semibold text-slate-900 mt-0.5">
+            {item.property.propertyType === "multi_unit"
+              ? `${item.property.name} · Unit ${item.unit.unitNumber}`
+              : item.property.name}
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+            item.listing?.status === "published"
+              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+              : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+          }`}
+        >
+          {item.listing?.status ?? "unpublished"}
+        </span>
+      </div>
+      
+      <div className="flex justify-between text-xs text-slate-600 pt-2 border-t border-slate-100">
+        <div>
+          <span className="text-slate-400">Loyer:</span> {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)}/m
+        </div>
+        <div>
+          <span className="text-slate-400">Candidatures:</span> <span className="font-medium text-slate-900">{item.applicationCount}</span>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+        <Link
+          href={`/dashboard/listings/${item.unit.id}`}
+          className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 min-h-[36px]"
+        >
+          {item.listing ? "Modifier" : "Configurer"}
+        </Link>
+        {item.listing?.status === "published" && (
+          <Link
+            href={`/listing/${item.listing.id}`}
+            className="inline-flex items-center justify-center rounded-lg bg-[#0063fe] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0052d4] min-h-[36px]"
+          >
+            Voir public
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+
+  const applicationColumns = useMemo<Column<ListingApplicationView>[]>(() => [
+    {
+      header: "Applicant",
+      render: (item) => (
+        <div>
+          <p className="font-medium text-[#010a19]">
+            {item.application.fullName}
+          </p>
+          <p className="text-slate-500">{item.application.email}</p>
+        </div>
+      )
+    },
+    {
+      header: "Listing",
+      render: (item) => (
+        <span className="text-slate-600">
+          {item.property.name} · Unit {item.unit.unitNumber}
+        </span>
+      )
+    },
+    {
+      header: "Status",
+      render: (item) => (
+        <span
+          className={`text-xs font-medium ${getApplicationBadgeClass(
+            item.application.status
+          )}`}
+        >
+          {formatStatusLabel(item.application.status)}
+        </span>
+      )
+    },
+    {
+      header: "Income",
+      render: (item) => (
+        <span className="text-slate-600">
+          {item.application.monthlyIncome
+            ? formatCurrency(
+                item.application.monthlyIncome,
+                item.unit.currencyCode
+              )
+            : "-"}
+        </span>
+      )
+    },
+    {
+      header: "Date",
+      render: (item) => (
+        <span className="text-slate-500">
+          {new Date(item.application.createdAtIso).toLocaleDateString("fr-FR")}
+        </span>
+      )
+    }
+  ], []);
+
+  const renderApplicationMobileCard = (item: ListingApplicationView) => (
+    <div className="space-y-3">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="font-semibold text-slate-900">
+            {item.application.fullName}
+          </p>
+          <p className="text-xs text-slate-500">{item.application.email}</p>
+        </div>
+        <span
+          className={`text-xs font-semibold ${getApplicationBadgeClass(
+            item.application.status
+          )}`}
+        >
+          {formatStatusLabel(item.application.status)}
+        </span>
+      </div>
+
+      <div className="space-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100">
+        <p>
+          <span className="text-slate-400">Logement:</span> {item.property.name} · Unit {item.unit.unitNumber}
+        </p>
+        <p>
+          <span className="text-slate-400">Revenu:</span>{" "}
+          {item.application.monthlyIncome
+            ? formatCurrency(item.application.monthlyIncome, item.unit.currencyCode)
+            : "-"}
+        </p>
+        <p>
+          <span className="text-slate-400">Soumis le:</span>{" "}
+          {new Date(item.application.createdAtIso).toLocaleDateString("fr-FR")}
+        </p>
+      </div>
+    </div>
+  );
 
   const [applicationBusyState, setApplicationBusyState] = useState<ApplicationBusyState | null>(null);
   const [applicationError, setApplicationError] = useState<string | null>(null);
@@ -362,133 +571,32 @@ export default function ListingManagementPanel({
             </div>
           </div>
 
-          {filteredListings.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
-              No listings match the selected filters.
-            </div>
-          ) : (
-            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 text-left">Listing</th>
-                    <th className="px-5 py-3 text-left">Rent</th>
-                    <th className="px-5 py-3 text-left">Status</th>
-                    <th className="px-5 py-3 text-left">Applications</th>
-                    <th className="px-5 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {filteredListings.map((item) => (
-                    <tr key={item.unit.id} className="hover:bg-slate-50/80">
-                      <td className="px-5 py-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">
-                          {item.property.city}
-                        </p>
-                        <p className="font-medium text-[#010a19]">
-                          {item.property.propertyType === "multi_unit"
-                            ? `${item.property.name} · Unit ${item.unit.unitNumber}`
-                            : item.property.name}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4 text-slate-600">
-                        {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            item.listing?.status === "published"
-                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
-                              : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
-                          }`}
-                        >
-                          {item.listing?.status ?? "unpublished"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-slate-600">{item.applicationCount}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <Link
-                            href={`/dashboard/listings/${item.unit.id}`}
-                            className="text-sm font-medium text-[#0063fe] hover:underline"
-                          >
-                            {item.listing ? "Edit" : "Set up"}
-                          </Link>
-                          {item.listing?.status === "published" && (
-                            <Link
-                              href={`/listing/${item.listing.id}`}
-                              className="text-sm text-slate-600 hover:text-slate-900"
-                            >
-                              View
-                            </Link>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            columns={listingColumns}
+            data={filteredListings}
+            renderMobileCard={renderListingMobileCard}
+            keyExtractor={(item) => item.unit.id}
+            emptyState={
+              <div className="px-6 py-10 text-center text-sm text-slate-500">
+                No listings match the selected filters.
+              </div>
+            }
+          />
         </div>
       )}
 
       {activeTab === "applications" && (
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              <tr>
-                <th className="px-5 py-3 text-left">Applicant</th>
-                <th className="px-5 py-3 text-left">Listing</th>
-                <th className="px-5 py-3 text-left">Status</th>
-                <th className="px-5 py-3 text-left">Income</th>
-                <th className="px-5 py-3 text-left">Date</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-200">
-              {applications.map((item) => (
-                <tr key={item.application.id} className="hover:bg-slate-50/80">
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-[#010a19]">
-                      {item.application.fullName}
-                    </p>
-                    <p className="text-slate-500">{item.application.email}</p>
-                  </td>
-
-                  <td className="px-5 py-4 text-slate-600">
-                    {item.property.name} · Unit {item.unit.unitNumber}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <span
-                      className={`text-xs font-medium ${getApplicationBadgeClass(
-                        item.application.status
-                      )}`}
-                    >
-                      {formatStatusLabel(item.application.status)}
-                    </span>
-                  </td>
-
-                  <td className="px-5 py-4 text-slate-600">
-                    {item.application.monthlyIncome
-                      ? formatCurrency(
-                          item.application.monthlyIncome,
-                          item.unit.currencyCode
-                        )
-                      : "-"}
-                  </td>
-
-                  <td className="px-5 py-4 text-slate-500">
-                    {new Date(
-                      item.application.createdAtIso
-                    ).toLocaleDateString("fr-FR")}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable
+          columns={applicationColumns}
+          data={applications}
+          renderMobileCard={renderApplicationMobileCard}
+          keyExtractor={(item) => item.application.id}
+          emptyState={
+            <div className="px-6 py-10 text-center text-sm text-slate-500">
+              No applications available.
+            </div>
+          }
+        />
       )}
 
       {activeTab === "screening" && (
