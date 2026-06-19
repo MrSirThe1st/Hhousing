@@ -46,9 +46,9 @@ export default async function DashboardLayout({
   const sidebarAccess = await resolveDashboardAccess(session);
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen md:h-screen bg-gray-50 md:overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden w-full max-w-full">
       <Sidebar currentRoleLabel={getRoleLabel(session.role)} access={sidebarAccess} />
-      <main className="flex flex-1 flex-col overflow-y-visible md:overflow-y-auto pb-16 md:pb-0">
+      <main className="flex-1 overflow-y-auto pb-16 md:pb-0 min-w-0 max-w-full overflow-x-hidden">
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">

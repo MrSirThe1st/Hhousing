@@ -104,7 +104,10 @@ export default function BottomNavigation({
   return (
     <>
       {/* Bottom Nav Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg flex md:hidden items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] select-none">
+      <nav 
+        className="fixed bottom-0 inset-x-0 w-full max-w-full z-50 bg-white border-t border-slate-200 flex md:hidden items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] select-none"
+        style={{ transform: "translateZ(0)" }}
+      >
         {navItems.filter(item => item.visible).map((item) => {
           const isActive = item.href === "/dashboard"
             ? pathname === "/dashboard"
@@ -148,16 +151,18 @@ export default function BottomNavigation({
       {isDrawerOpen && (
         <div
           onClick={() => setIsDrawerOpen(false)}
-          className="fixed inset-0 z-45 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300 md:hidden"
+          className="fixed inset-0 z-45 bg-slate-900/40 transition-opacity duration-300 md:hidden"
+          style={{ transform: "translateZ(0)" }}
           aria-hidden="true"
         />
       )}
 
       {/* Slide-up Menu Drawer */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 rounded-t-2xl max-h-[85vh] overflow-y-auto shadow-2xl transition-transform duration-300 ease-out pb-[calc(4rem+env(safe-area-inset-bottom))] md:hidden ${
+        className={`fixed bottom-0 inset-x-0 w-full max-w-full z-50 bg-white border-t border-slate-200 rounded-t-2xl max-h-[85vh] overflow-y-auto shadow-xl transition-transform duration-300 ease-out will-change-transform pb-[calc(4rem+env(safe-area-inset-bottom))] md:hidden ${
           isDrawerOpen ? "translate-y-0" : "translate-y-full"
         }`}
+        style={{ transform: isDrawerOpen ? "translateY(0) translateZ(0)" : "translateY(100%) translateZ(0)" }}
       >
         {/* Safe drag handle indicator */}
         <div className="flex justify-center py-2" onClick={() => setIsDrawerOpen(false)}>
