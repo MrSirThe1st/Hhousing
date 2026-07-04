@@ -108,12 +108,20 @@ export default function LoginPage(): React.ReactElement {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-semibold text-slate-700 mb-1"
-              >
-                Mot de passe
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label
+                  htmlFor="password"
+                  className="block text-xs font-semibold text-slate-700"
+                >
+                  Mot de passe
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-[11px] font-medium text-[#0063fe] hover:text-[#0052d4] transition"
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   id="password"

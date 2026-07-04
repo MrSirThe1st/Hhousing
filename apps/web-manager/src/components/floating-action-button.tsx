@@ -54,7 +54,10 @@ export default function FloatingActionButton({ access }: FloatingActionButtonPro
   ];
 
   return (
-    <div className="fixed bottom-20 right-1 z-40 md:hidden select-none">
+    <div 
+      className="fixed right-4 z-40 md:hidden select-none"
+      style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
+    >
       {/* Backdrop */}
       {isOpen && (
         <div

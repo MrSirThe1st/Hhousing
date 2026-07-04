@@ -13,6 +13,11 @@ export async function GET(request: Request): Promise<NextResponse> {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error) {
+      const next = requestUrl.searchParams.get("next");
+      if (next && next.startsWith("/")) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+
       const {
         data: { user }
       } = await supabase.auth.getUser();

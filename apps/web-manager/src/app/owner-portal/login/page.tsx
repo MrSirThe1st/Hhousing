@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import OwnerPortalLogoLink from "@/components/owner-portal/platform-logo-link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -74,7 +75,15 @@ export default function OwnerPortalLoginPage(): React.ReactElement {
             </label>
 
             <div className="block text-sm text-slate-700">
-              <span>Mot de passe</span>
+              <div className="flex justify-between items-center">
+                <span>Mot de passe</span>
+                <Link
+                  href="/forgot-password?type=owner"
+                  className="text-xs font-medium text-[#0063fe] hover:text-[#0052d4] transition"
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <div className="relative mt-1.5">
                 <input
                   type={showPassword ? "text" : "password"}
