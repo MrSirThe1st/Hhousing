@@ -5,8 +5,10 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { FormEvent, ReactElement } from "react";
+import type { CreateTenantInvitationOutput } from "@hhousing/api-contracts";
 import type { Tenant } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth, postWithAuth } from "../../../../lib/api-client";
+import { formatInvitationDeliveryMessage } from "../../../../lib/notifications/format-delivery-status";
 import ActionMenu from "../../../../components/action-menu";
 
 const ContextualDocumentPanel = dynamic(
@@ -192,7 +194,7 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
     setError(null);
     setSuccessMessage(null);
 
-    const result = await postWithAuth<{ invitationId: string }>(`/api/tenants/${id}/invite`, {});
+    const result = await postWithAuth<CreateTenantInvitationOutput>(`/api/tenants/${id}/invite`, {});
 
     if (!result.success) {
       setError(result.error);
@@ -200,7 +202,7 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
       return;
     }
 
-    setSuccessMessage("Invitation mobile envoyée.");
+    setSuccessMessage(formatInvitationDeliveryMessage(result.data.notifications));
     setInviting(false);
   }
 

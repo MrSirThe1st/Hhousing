@@ -1,9 +1,18 @@
+export type NotificationChannel = "email" | "whatsapp";
+
+export type NotificationChannelDeliveryStatus = {
+  channel: NotificationChannel;
+  status: "sent" | "skipped" | "failed";
+  error?: string;
+};
+
 export interface CreateTenantInvitationOutput {
   invitationId: string;
   tenantId: string;
   email: string;
   expiresAtIso: string;
   activationLink: string;
+  notifications: NotificationChannelDeliveryStatus[];
 }
 
 export interface TenantInvitationPreview {

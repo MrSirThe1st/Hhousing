@@ -31,7 +31,7 @@ export interface CreateLeaseDeps {
   createPaymentId: () => string;
   invitationDeps?: Pick<
     CreateTenantInvitationDeps,
-    "organizationRepository" | "sendInvitationEmail" | "inviteLinkBaseUrl"
+    "organizationRepository" | "sendInvitationEmail" | "sendInvitationWhatsApp" | "notificationChannels" | "inviteLinkBaseUrl"
   > & {
     createInvitationId: () => string;
   };
@@ -266,7 +266,9 @@ export async function createLease(
           createId: deps.invitationDeps.createInvitationId,
           inviteLinkBaseUrl: deps.invitationDeps.inviteLinkBaseUrl,
           organizationRepository: deps.invitationDeps.organizationRepository,
-          sendInvitationEmail: deps.invitationDeps.sendInvitationEmail
+          sendInvitationEmail: deps.invitationDeps.sendInvitationEmail,
+          sendInvitationWhatsApp: deps.invitationDeps.sendInvitationWhatsApp,
+          notificationChannels: deps.invitationDeps.notificationChannels
         }
       );
 

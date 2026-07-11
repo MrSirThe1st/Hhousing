@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   extractAuthSessionFromCookiesMock,
   createTenantInvitationMock,
-  createTenantInvitationEmailSenderFromEnvMock
+  createTenantInvitationNotificationDepsFromEnvMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
   createTenantInvitationMock: vi.fn(),
-  createTenantInvitationEmailSenderFromEnvMock: vi.fn()
+  createTenantInvitationNotificationDepsFromEnvMock: vi.fn()
 }));
 
 vi.mock("../../../../../auth/session-adapter", () => ({
@@ -22,8 +22,8 @@ vi.mock("../../../../../api", async () => {
   };
 });
 
-vi.mock("../../../../../lib/email/resend", () => ({
-  createTenantInvitationEmailSenderFromEnv: createTenantInvitationEmailSenderFromEnvMock
+vi.mock("../../../../../lib/notifications/tenant-invitation-notifiers", () => ({
+  createTenantInvitationNotificationDepsFromEnv: createTenantInvitationNotificationDepsFromEnvMock
 }));
 
 vi.mock("../../../shared", async () => {
@@ -41,7 +41,10 @@ import { POST } from "./route";
 describe("/api/tenants/[id]/invite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    createTenantInvitationEmailSenderFromEnvMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
+    createTenantInvitationNotificationDepsFromEnvMock.mockReturnValue({
+      sendInvitationEmail: vi.fn().mockResolvedValue(undefined),
+      notificationChannels: ["email", "whatsapp"]
+    });
   });
 
   it("forwards auth session and tenant id", async () => {
@@ -61,7 +64,8 @@ describe("/api/tenants/[id]/invite", () => {
           tenantId: "tenant-1",
           email: "tenant@example.com",
           expiresAtIso: "2026-04-09T00:00:00.000Z",
-          activationLink: "hhousing-tenant://accept-invite?token=abc"
+          activationLink: "hhousing-tenant://accept-invite?token=abc",
+          notifications: [{ channel: "email", status: "sent" }]
         }
       }
     });
@@ -79,7 +83,8 @@ describe("/api/tenants/[id]/invite", () => {
         tenantId: "tenant-1",
         email: "tenant@example.com",
         expiresAtIso: "2026-04-09T00:00:00.000Z",
-        activationLink: "hhousing-tenant://accept-invite?token=abc"
+        activationLink: "hhousing-tenant://accept-invite?token=abc",
+        notifications: [{ channel: "email", status: "sent" }]
       }
     });
   });

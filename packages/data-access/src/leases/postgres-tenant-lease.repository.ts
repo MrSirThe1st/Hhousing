@@ -27,6 +27,8 @@ interface TenantRow extends QueryResultRow {
   full_name: string;
   email: string | null;
   phone: string | null;
+  whatsapp_number: string | null;
+  whatsapp_opt_in: boolean;
   date_of_birth: string | Date | null;
   photo_url: string | null;
   employment_status: string | null;
@@ -189,6 +191,8 @@ function mapTenant(row: TenantRow): Tenant {
     fullName: row.full_name,
     email: row.email,
     phone: row.phone,
+    whatsappNumber: row.whatsapp_number,
+    whatsappOptIn: row.whatsapp_opt_in,
     dateOfBirth: row.date_of_birth ? toIsoDate(row.date_of_birth) : null,
     photoUrl: row.photo_url,
     employmentStatus: row.employment_status ?? null,
@@ -378,7 +382,7 @@ export function createPostgresTenantLeaseRepository(
       const result = await client.query<TenantRow>(
         `insert into tenants (id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
         [input.id, input.organizationId, input.authUserId, input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants]
       );
       return mapTenant(result.rows[0]);
@@ -490,7 +494,7 @@ export function createPostgresTenantLeaseRepository(
          set auth_user_id = $1,
              phone = coalesce($2, phone)
          where id = $3 and organization_id = $4 and auth_user_id is null
-         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
         [authUserId, phone, tenantId, organizationId]
       );
 
@@ -698,7 +702,7 @@ export function createPostgresTenantLeaseRepository(
 
     async listTenantsByOrganization(organizationId: string): Promise<Tenant[]> {
       const result = await client.query<TenantRow>(
-        `select id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
+        `select id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
          from tenants
          where organization_id = $1
          order by full_name asc`,
@@ -709,7 +713,7 @@ export function createPostgresTenantLeaseRepository(
 
     async getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null> {
       const result = await client.query<TenantRow>(
-        `select id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
+        `select id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
          from tenants
          where id = $1 and organization_id = $2`,
         [tenantId, organizationId]
@@ -951,7 +955,7 @@ export function createPostgresTenantLeaseRepository(
         `update tenants
          set full_name = $1, email = $2, phone = $3, date_of_birth = $4, photo_url = $5, employment_status = $6, job_title = $7, monthly_income = $8, number_of_occupants = $9
          where id = $10 and organization_id = $11
-         returning id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
         [input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants, input.id, input.organizationId]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;

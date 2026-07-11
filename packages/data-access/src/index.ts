@@ -185,3 +185,13 @@ export type {
   CreateAuditLogRecordInput,
   ListAuditLogsByDayInput
 } from "./audit/audit-log-record.types";
+export {
+  createPostgresWhatsAppMessageRepository,
+  createWhatsAppMessageRepositoryFromEnv
+} from "./whatsapp/postgres-whatsapp-message.repository";
+export type {
+  CreateWhatsAppMessageRecordInput,
+  UpdateWhatsAppMessageStatusInput,
+  WhatsAppMessageRepository
+} from "./whatsapp/whatsapp-message-record.types";
+export type { WhatsAppMessageQueryable } from "./whatsapp/postgres-whatsapp-message.repository";

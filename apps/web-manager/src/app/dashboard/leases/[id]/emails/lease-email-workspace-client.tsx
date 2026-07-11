@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { LeaseWithTenantView, NotificationChannelDeliveryStatus } from "@hhousing/api-contracts";
 import type { Document } from "@hhousing/domain";
 import { patchWithAuth } from "../../../../../lib/api-client";
+import { formatInvitationDeliveryMessage } from "../../../../../lib/notifications/format-delivery-status";
 import UniversalLoadingState from "../../../../../components/universal-loading-state";
 
 type LeaseEmailWorkspaceClientProps = {
@@ -55,6 +56,11 @@ export default function LeaseEmailWorkspaceClient({
   const canSendDraftEmail = lease.status === "pending" && Boolean(lease.tenantEmail);
   const canResendActivationEmail = lease.status === "active" && Boolean(lease.tenantEmail);
 
+  type ResendActivationResponse = {
+    lease: LeaseWithTenantView;
+    notifications: NotificationChannelDeliveryStatus[];
+  };
+
   async function handleSendDraftEmail(): Promise<void> {
     setSendingDraftEmail(true);
     setError(null);
@@ -82,7 +88,7 @@ export default function LeaseEmailWorkspaceClient({
     setDraftEmailMessage(null);
     setActivationEmailMessage(null);
 
-    const result = await patchWithAuth<LeaseWithTenantView>(`/api/leases/${id}`, {
+    const result = await patchWithAuth<ResendActivationResponse>(`/api/leases/${id}`, {
       action: "resend_activation_email"
     });
 
@@ -92,7 +98,7 @@ export default function LeaseEmailWorkspaceClient({
       return;
     }
 
-    setActivationEmailMessage("Email d'activation renvoyé au locataire.");
+    setActivationEmailMessage(formatInvitationDeliveryMessage(result.data.notifications));
     setResendingActivationEmail(false);
   }
 
@@ -208,8 +214,8 @@ export default function LeaseEmailWorkspaceClient({
         </section>
 
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-[#010a19]">Renvoyer l'email d'activation</h2>
-          <p className="mt-1 text-sm text-gray-600">Action disponible après activation du bail.</p>
+          <h2 className="text-base font-semibold text-[#010a19]">Renvoyer l'invitation d'activation</h2>
+          <p className="mt-1 text-sm text-gray-600">Envoie l'email et WhatsApp si le numéro du locataire est renseigné.</p>
 
           {lease.status !== "active" ? (
             <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-700">
@@ -230,7 +236,7 @@ export default function LeaseEmailWorkspaceClient({
               disabled={resendingActivationEmail || !canResendActivationEmail}
               className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60"
             >
-              {resendingActivationEmail ? "Renvoi..." : "Renvoyer l'email d'activation"}
+              {resendingActivationEmail ? "Renvoi..." : "Renvoyer l'invitation"}
             </button>
           </div>
 

@@ -5,6 +5,8 @@ export interface Tenant {
   fullName: string;
   email: string | null;
   phone: string | null;
+  whatsappNumber: string | null;
+  whatsappOptIn: boolean;
   dateOfBirth: string | null;
   photoUrl: string | null;
   employmentStatus: string | null;

@@ -3,16 +3,23 @@ import {
   parseAcceptTenantInvitationInput,
   type AcceptTenantInvitationOutput,
   type CreateTenantInvitationOutput,
+  type NotificationChannel,
+  type NotificationChannelDeliveryStatus,
   type TenantInvitationPreview,
   type ValidateTenantInvitationOutput,
   type ApiResult,
   type AuthSession
 } from "@hhousing/api-contracts";
 import type { AuthRepository, OrganizationPropertyUnitRepository, TenantLeaseRepository } from "@hhousing/data-access";
+import type { Organization } from "@hhousing/domain";
 import { createHash, randomBytes } from "crypto";
 import { logOperatorAuditEvent } from "../audit-log";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import { dispatchDualChannelNotification } from "../../lib/notifications/dispatch";
+import { getDefaultNotificationChannels } from "../../lib/notifications/channels";
+import { resolveTenantWhatsAppRecipient } from "../../lib/whatsapp/phone";
+import type { TenantInvitationWhatsAppSender } from "../../lib/whatsapp/tenant-invitation";
 
 type SupabaseAdminUser = {
   id: string;
@@ -138,12 +145,14 @@ export interface CreateTenantInvitationDeps {
   createToken?: () => string;
   inviteLinkBaseUrl: string;
   organizationRepository?: Pick<OrganizationPropertyUnitRepository, "getOrganizationById">;
+  notificationChannels?: NotificationChannel[];
   sendInvitationEmail?: (input: {
     to: string;
     tenantFullName: string;
     activationLink: string;
-    organization?: Awaited<ReturnType<OrganizationPropertyUnitRepository["getOrganizationById"]>>;
+    organization?: Organization | null;
   }) => Promise<void>;
+  sendInvitationWhatsApp?: TenantInvitationWhatsAppSender;
 }
 
 export async function createTenantInvitation(
@@ -210,15 +219,36 @@ export async function createTenantInvitation(
   const organization = deps.organizationRepository
     ? await deps.organizationRepository.getOrganizationById(sessionResult.data.organizationId)
     : null;
+  const organizationName = organization?.name ?? "Haraka Property";
+  const whatsappRecipient = resolveTenantWhatsAppRecipient(tenant);
 
-  if (deps.sendInvitationEmail) {
-    await deps.sendInvitationEmail({
-      to: invitation.email,
-      tenantFullName: tenant.fullName,
-      activationLink,
-      organization
-    });
-  }
+  const dispatchResult = await dispatchDualChannelNotification({
+    channels: deps.notificationChannels ?? getDefaultNotificationChannels(),
+    sendEmail: deps.sendInvitationEmail
+      ? () =>
+          deps.sendInvitationEmail!({
+            to: invitation.email,
+            tenantFullName: tenant.fullName,
+            activationLink,
+            organization
+          })
+      : undefined,
+    sendWhatsApp:
+      deps.sendInvitationWhatsApp && whatsappRecipient
+        ? () =>
+            deps.sendInvitationWhatsApp!({
+              organizationId: tenant.organizationId,
+              tenantId: tenant.id,
+              to: whatsappRecipient,
+              tenantFullName: tenant.fullName,
+              organizationName,
+              activationLink,
+              createMessageId: deps.createId
+            })
+        : undefined
+  });
+
+  const notifications: NotificationChannelDeliveryStatus[] = dispatchResult.results;
 
   await logOperatorAuditEvent({
     organizationId: sessionResult.data.organizationId,
@@ -229,7 +259,10 @@ export async function createTenantInvitation(
     metadata: {
       tenantId: invitation.tenantId,
       email: invitation.email,
-      expiresAtIso: invitation.expiresAtIso
+      phone: tenant.phone,
+      whatsappRecipient,
+      expiresAtIso: invitation.expiresAtIso,
+      notifications
     }
   });
 
@@ -242,7 +275,8 @@ export async function createTenantInvitation(
         tenantId: invitation.tenantId,
         email: invitation.email,
         expiresAtIso: invitation.expiresAtIso,
-        activationLink
+        activationLink,
+        notifications
       }
     }
   };

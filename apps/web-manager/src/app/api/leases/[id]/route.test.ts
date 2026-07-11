@@ -9,7 +9,7 @@ const {
   listPaymentsMock,
   createTenantInvitationMock,
   sendManagedEmailFromEnvMock,
-  createTenantInvitationEmailSenderFromEnvMock,
+  createTenantInvitationNotificationDepsFromEnvMock,
   updateLeaseMock,
   listMemberFunctionsMock
 } = vi.hoisted(() => ({
@@ -21,7 +21,7 @@ const {
   listPaymentsMock: vi.fn(),
   createTenantInvitationMock: vi.fn(),
   sendManagedEmailFromEnvMock: vi.fn(),
-  createTenantInvitationEmailSenderFromEnvMock: vi.fn(),
+  createTenantInvitationNotificationDepsFromEnvMock: vi.fn(),
   updateLeaseMock: vi.fn(),
   listMemberFunctionsMock: vi.fn()
 }));
@@ -39,8 +39,11 @@ vi.mock("../../../../api", async () => {
 });
 
 vi.mock("../../../../lib/email/resend", () => ({
-  createTenantInvitationEmailSenderFromEnv: createTenantInvitationEmailSenderFromEnvMock,
   sendManagedEmailFromEnv: sendManagedEmailFromEnvMock
+}));
+
+vi.mock("../../../../lib/notifications/tenant-invitation-notifiers", () => ({
+  createTenantInvitationNotificationDepsFromEnv: createTenantInvitationNotificationDepsFromEnvMock
 }));
 
 vi.mock("../../shared", async () => {
@@ -84,7 +87,10 @@ import { GET, PATCH } from "./route";
 describe("/api/leases/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    createTenantInvitationEmailSenderFromEnvMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
+    createTenantInvitationNotificationDepsFromEnvMock.mockReturnValue({
+      sendInvitationEmail: vi.fn().mockResolvedValue(undefined),
+      notificationChannels: ["email", "whatsapp"]
+    });
     sendManagedEmailFromEnvMock.mockResolvedValue(undefined);
     getDocumentByIdMock.mockResolvedValue(null);
     getScopedPortfolioDataMock.mockResolvedValue({
@@ -152,7 +158,8 @@ describe("/api/leases/[id]", () => {
           tenantId: "tenant-1",
           email: "tenant@example.com",
           expiresAtIso: "2026-04-10T00:00:00.000Z",
-          activationLink: "hhousing-tenant://accept-invite?token=abc"
+          activationLink: "hhousing-tenant://accept-invite?token=abc",
+          notifications: [{ channel: "email", status: "sent" }]
         }
       }
     });

@@ -2,7 +2,8 @@ import { Permission, parseFinalizeLeaseInput, type ApiResult } from "@hhousing/a
 import { createTenantInvitation } from "../../../../api";
 import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
-import { createTenantInvitationEmailSenderFromEnv, sendManagedEmailFromEnv } from "../../../../lib/email/resend";
+import { createTenantInvitationNotificationDepsFromEnv } from "../../../../lib/notifications/tenant-invitation-notifiers";
+import { sendManagedEmailFromEnv } from "../../../../lib/email/resend";
 import { getBuiltinTemplateByScenario, renderTemplateText } from "../../../../lib/email/template-catalog";
 import { canEditOrganizationDetails } from "../../../../lib/operator-context";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
@@ -320,6 +321,7 @@ export async function PATCH(
 
       const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
       const organizationRepositoryResult = createRepositoryFromEnv();
+      const notificationDeps = createTenantInvitationNotificationDepsFromEnv();
       const invitationResult = await createTenantInvitation(
         {
           tenantId: lease.tenantId,
@@ -331,7 +333,7 @@ export async function PATCH(
           organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
           createId: () => createId("tin"),
           inviteLinkBaseUrl,
-          sendInvitationEmail: createTenantInvitationEmailSenderFromEnv()
+          ...notificationDeps
         }
       );
 
@@ -346,13 +348,17 @@ export async function PATCH(
         entityType: "tenant",
         entityId: lease.tenantId,
         metadata: {
-          leaseId: lease.id
+          leaseId: lease.id,
+          notifications: invitationResult.body.success ? invitationResult.body.data.notifications : []
         }
       });
 
       return jsonResponse(200, {
         success: true,
-        data: lease
+        data: {
+          lease,
+          notifications: invitationResult.body.success ? invitationResult.body.data.notifications : []
+        }
       });
     } catch (error) {
       console.error("Failed to resend tenant activation email", error);
@@ -561,6 +567,7 @@ export async function PATCH(
 
       const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
       const organizationRepositoryResult = createRepositoryFromEnv();
+      const notificationDeps = createTenantInvitationNotificationDepsFromEnv();
       const invitationResult = await createTenantInvitation(
         {
           tenantId: lease.tenantId,
@@ -572,7 +579,7 @@ export async function PATCH(
           organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
           createId: () => createId("tin"),
           inviteLinkBaseUrl,
-          sendInvitationEmail: createTenantInvitationEmailSenderFromEnv()
+          ...notificationDeps
         }
       );
 

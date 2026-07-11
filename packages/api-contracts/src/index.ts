@@ -20,6 +20,8 @@ export {
 } from "./auth/memberships.validation";
 export type {
   CreateTenantInvitationOutput,
+  NotificationChannel,
+  NotificationChannelDeliveryStatus,
   TenantInvitationPreview,
   ValidateTenantInvitationOutput,
   AcceptTenantInvitationInput,
