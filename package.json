@@ -6,7 +6,8 @@
     "lint": "pnpm -C apps/web-manager lint",
     "typecheck": "pnpm -C apps/web-manager typecheck",
     "test": "pnpm -C apps/web-manager test",
-    "build": "pnpm -C apps/web-manager build"
+    "build": "pnpm -C apps/web-manager build",
+    "mobile:dev": "pnpm -C apps/mobile-tenant dev"
   },
   "dependencies": {
     "@types/pg": "^8.20.0",

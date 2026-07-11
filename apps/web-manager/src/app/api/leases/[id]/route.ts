@@ -525,7 +525,7 @@ export async function PATCH(
         leaseId: id
       })).filter((payment) => payment.isInitialCharge);
 
-      if (initialPayments.length === 0) {
+      if (initialPayments.length === 0 && lease.moveInMode !== "existing_tenant") {
         return jsonResponse(400, {
           success: false,
           code: "VALIDATION_ERROR",

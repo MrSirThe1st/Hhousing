@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { FormEvent, ReactElement } from "react";
 import type { Tenant } from "@hhousing/domain";
-import { patchWithAuth, deleteWithAuth } from "../../../../lib/api-client";
+import { patchWithAuth, deleteWithAuth, postWithAuth } from "../../../../lib/api-client";
 import ActionMenu from "../../../../components/action-menu";
 
 const ContextualDocumentPanel = dynamic(
@@ -34,6 +34,7 @@ type TenantFormData = {
 interface TenantDetailClientProps {
   id: string;
   initialTenant: Tenant;
+  canInviteMobile: boolean;
 }
 
 type IconProps = {
@@ -104,10 +105,11 @@ function CheckCircleIcon({ className = "h-4 w-4" }: IconProps): ReactElement {
   return <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true"><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.6" /><path d="m7.4 10 1.7 1.7 3.5-3.7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export default function TenantDetailClient({ id, initialTenant }: TenantDetailClientProps): React.ReactElement {
+export default function TenantDetailClient({ id, initialTenant, canInviteMobile }: TenantDetailClientProps): React.ReactElement {
   const router = useRouter();
   const [tenant, setTenant] = useState<Tenant>(initialTenant);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [documentRefreshSignal, setDocumentRefreshSignal] = useState(0);
@@ -124,6 +126,7 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   const profileFieldsCompleted = [
     Boolean(tenant.fullName.trim()),
@@ -182,6 +185,23 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
     setTenant(result.data);
     setEditMode(false);
     setSaving(false);
+  }
+
+  async function handleInviteMobile(): Promise<void> {
+    setInviting(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    const result = await postWithAuth<{ invitationId: string }>(`/api/tenants/${id}/invite`, {});
+
+    if (!result.success) {
+      setError(result.error);
+      setInviting(false);
+      return;
+    }
+
+    setSuccessMessage("Invitation mobile envoyée.");
+    setInviting(false);
   }
 
   async function handleDelete(): Promise<void> {
@@ -243,6 +263,13 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
                 <ActionMenu
                   items={[
                     { label: "Modifier le locataire", onSelect: () => setEditMode(true) },
+                    ...(canInviteMobile ? [{
+                      label: inviting ? "Envoi de l'invitation..." : "Inviter l'accès mobile",
+                      onSelect: () => {
+                        void handleInviteMobile();
+                      },
+                      disabled: inviting
+                    }] : []),
                     {
                       label: deleting ? "Suppression..." : "Supprimer le locataire",
                       onSelect: () => {
@@ -303,6 +330,7 @@ export default function TenantDetailClient({ id, initialTenant }: TenantDetailCl
               </dl>
             </div>
 
+            {successMessage ? <p className="mt-6 rounded-lg border border-emerald-100 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700">{successMessage}</p> : null}
             {error ? <p className="mt-6 rounded-lg border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-600">{error}</p> : null}
           </div>
         ) : (

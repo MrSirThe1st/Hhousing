@@ -85,12 +85,15 @@ export function createPostgresPaymentRepository(
 ): PaymentRepository {
   return {
     async createPayment(input: CreatePaymentRecordInput): Promise<Payment> {
+      const status = input.status ?? "pending";
+      const paidDate = input.paidDate ?? null;
       const result = await client.query<PaymentRow>(
         `insert into payments (
           id, organization_id, lease_id, tenant_id,
           amount, currency_code, due_date, note,
-          payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge
-        ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge,
+          status, paid_date
+        ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         returning
           id, organization_id, lease_id, tenant_id,
           amount, currency_code, due_date, paid_date, status, note,
@@ -108,7 +111,9 @@ export function createPostgresPaymentRepository(
           input.paymentKind,
           input.billingFrequency,
           input.sourceLeaseChargeTemplateId,
-          input.isInitialCharge
+          input.isInitialCharge,
+          status,
+          paidDate
         ]
       );
       return mapPayment(result.rows[0]);

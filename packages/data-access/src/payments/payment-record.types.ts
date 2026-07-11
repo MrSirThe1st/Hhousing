@@ -14,6 +14,8 @@ export interface CreatePaymentRecordInput {
   billingFrequency: PaymentBillingFrequency;
   sourceLeaseChargeTemplateId: string | null;
   isInitialCharge: boolean;
+  status?: "pending" | "paid";
+  paidDate?: string | null;
 }
 
 export interface MarkPaymentPaidRecordInput {

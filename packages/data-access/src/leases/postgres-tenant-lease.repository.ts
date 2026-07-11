@@ -1,5 +1,5 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
-import type { Lease, LeaseSigningMethod, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, LeaseMoveInMode, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
@@ -52,6 +52,9 @@ interface LeaseRow extends QueryResultRow {
   payment_start_date: string | Date;
   due_day_of_month: number;
   deposit_amount: string | number;
+  move_in_mode: LeaseMoveInMode;
+  deposit_settled_externally: boolean;
+  deposit_settled_note: string | null;
   status: "active" | "ended" | "pending";
   signed_at: string | Date | null;
   signing_method: LeaseSigningMethod | null;
@@ -213,6 +216,9 @@ function mapLease(row: LeaseRow): Lease {
     paymentStartDate: toIsoDate(row.payment_start_date),
     dueDayOfMonth: row.due_day_of_month,
     depositAmount: toNumber(row.deposit_amount),
+    moveInMode: row.move_in_mode,
+    depositSettledExternally: row.deposit_settled_externally,
+    depositSettledNote: row.deposit_settled_note,
     status: row.status,
     signedAt: row.signed_at ? toIsoDate(row.signed_at) : null,
     signingMethod: row.signing_method,
@@ -500,18 +506,37 @@ export function createPostgresTenantLeaseRepository(
                start_date, end_date, monthly_rent_amount, currency_code,
                term_type, fixed_term_months, auto_renew_to_monthly,
                payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
+               move_in_mode, deposit_settled_externally, deposit_settled_note,
                status, signed_at, signing_method, activated_at
              )
-             select $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, null, null, null
+             select
+               $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+               $17, $18, $19,
+               $16,
+               case when $16 = 'active' then $20 else null end,
+               case when $16 = 'active' then $21 else null end,
+               case when $16 = 'active' then now() else null end
              from units u
              where u.id = $3
                and u.organization_id = $2
-               and u.status = 'vacant'
+               and (
+                 u.status = 'vacant'
+                 or ($17 = 'existing_tenant' and u.status = 'occupied')
+               )
+               and not exists (
+                 select 1
+                 from leases l2
+                 where l2.unit_id = $3
+                   and l2.organization_id = $2
+                   and l2.status = 'active'
+                   and l2.tenant_id != $4
+               )
              returning
                id, organization_id, unit_id, tenant_id,
                start_date, end_date, monthly_rent_amount, currency_code,
                term_type, fixed_term_months, auto_renew_to_monthly,
                payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
+               move_in_mode, deposit_settled_externally, deposit_settled_note,
                status, signed_at, signing_method, activated_at, created_at
            ), updated_unit as (
              update units
@@ -536,6 +561,7 @@ export function createPostgresTenantLeaseRepository(
              start_date, end_date, monthly_rent_amount, currency_code,
              term_type, fixed_term_months, auto_renew_to_monthly,
              payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
+             move_in_mode, deposit_settled_externally, deposit_settled_note,
              status, signed_at, signing_method, activated_at, created_at
            from created_lease`,
           [
@@ -554,7 +580,12 @@ export function createPostgresTenantLeaseRepository(
             input.paymentStartDate,
             input.dueDayOfMonth,
             input.depositAmount,
-            input.status
+            input.status,
+            input.moveInMode,
+            input.depositSettledExternally,
+            input.depositSettledNote,
+            input.signedAt ?? input.startDate,
+            input.signingMethod ?? "physical"
           ]
         );
 
@@ -594,6 +625,7 @@ export function createPostgresTenantLeaseRepository(
             l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
             l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
             l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
+            l.move_in_mode, l.deposit_settled_externally, l.deposit_settled_note,
             l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
            t.full_name  as tenant_full_name,
            t.email      as tenant_email
@@ -620,6 +652,7 @@ export function createPostgresTenantLeaseRepository(
            l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
            l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
            l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
+           l.move_in_mode, l.deposit_settled_externally, l.deposit_settled_note,
            l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
            t.full_name  as tenant_full_name,
            t.email      as tenant_email
@@ -644,6 +677,7 @@ export function createPostgresTenantLeaseRepository(
             l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
             l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
             l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
+            l.move_in_mode, l.deposit_settled_externally, l.deposit_settled_note,
             l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
            t.full_name  as tenant_full_name,
            t.email      as tenant_email
@@ -690,6 +724,7 @@ export function createPostgresTenantLeaseRepository(
            l.start_date, l.end_date, l.monthly_rent_amount, l.currency_code,
            l.term_type, l.fixed_term_months, l.auto_renew_to_monthly,
            l.payment_frequency, l.payment_start_date, l.due_day_of_month, l.deposit_amount,
+           l.move_in_mode, l.deposit_settled_externally, l.deposit_settled_note,
            l.status, l.signed_at, l.signing_method, l.activated_at, l.created_at,
            t.full_name  as tenant_full_name,
            t.email      as tenant_email
@@ -941,6 +976,7 @@ export function createPostgresTenantLeaseRepository(
                start_date, end_date, monthly_rent_amount, currency_code,
                term_type, fixed_term_months, auto_renew_to_monthly,
                payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
+               move_in_mode, deposit_settled_externally, deposit_settled_note,
                status, signed_at, signing_method, activated_at, created_at
            ), updated_unit as (
              update units
@@ -960,6 +996,7 @@ export function createPostgresTenantLeaseRepository(
              start_date, end_date, monthly_rent_amount, currency_code,
              term_type, fixed_term_months, auto_renew_to_monthly,
              payment_frequency, payment_start_date, due_day_of_month, deposit_amount,
+             move_in_mode, deposit_settled_externally, deposit_settled_note,
              status, signed_at, signing_method, activated_at, created_at
            from updated_lease`,
           [input.endDate, input.status, input.id, input.organizationId, input.signedAt ?? null, input.signingMethod ?? null]

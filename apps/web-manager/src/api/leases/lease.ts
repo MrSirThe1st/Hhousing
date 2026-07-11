@@ -6,11 +6,12 @@ import type {
   ListLeasesOutput
 } from "@hhousing/api-contracts";
 import { Permission, parseCreateLeaseInput } from "@hhousing/api-contracts";
-import { calculateMonthlyProration } from "@hhousing/domain";
+import { calculateMonthlyProration, type SkippableInitialChargeType } from "@hhousing/domain";
 import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import { logOperatorAuditEvent } from "../audit-log";
+import { createTenantInvitation, type CreateTenantInvitationDeps } from "../tenants/tenant-invitations";
 
 export interface CreateLeaseRequest {
   body: unknown;
@@ -28,12 +29,19 @@ export interface CreateLeaseDeps {
   teamFunctionsRepository: TeamPermissionRepository;
   createId: () => string;
   createPaymentId: () => string;
+  invitationDeps?: Pick<
+    CreateTenantInvitationDeps,
+    "organizationRepository" | "sendInvitationEmail" | "inviteLinkBaseUrl"
+  > & {
+    createInvitationId: () => string;
+  };
 }
 
 function buildInitialCharges(
   chargeRecords: Array<CreateLeaseChargeInput & { id: string }>,
   startDate: string,
-  monthlyRentAmount: number
+  monthlyRentAmount: number,
+  skipInitialChargeTypes: SkippableInitialChargeType[] = []
 ): Array<{
   label: string;
   amount: number;
@@ -42,6 +50,7 @@ function buildInitialCharges(
   billingFrequency: "one_time" | "monthly" | "quarterly" | "annually";
   sourceLeaseChargeTemplateId: string | null;
 }> {
+  const skip = new Set(skipInitialChargeTypes);
   const initialCharges: Array<{
     label: string;
     amount: number;
@@ -64,6 +73,15 @@ function buildInitialCharges(
             ? "rent"
             : "other";
 
+    if (
+      (paymentKind === "deposit" && skip.has("deposit"))
+      || (paymentKind === "prorated_rent" && skip.has("prorated_rent"))
+      || (paymentKind === "fee" && skip.has("fee"))
+      || (paymentKind === "other" && skip.has("other"))
+    ) {
+      return [];
+    }
+
     return [{
       label: charge.label,
       amount: charge.amount,
@@ -75,7 +93,7 @@ function buildInitialCharges(
   });
 
   const hasProratedRent = initialCharges.some((charge) => charge.paymentKind === "prorated_rent");
-  if (!hasProratedRent) {
+  if (!hasProratedRent && !skip.has("first_rent")) {
     initialCharges.push({
       label: "Premier mois de loyer",
       amount: monthlyRentAmount,
@@ -124,7 +142,8 @@ export async function createLease(
   }
 
   try {
-    const proration = parsed.data.paymentFrequency === "monthly"
+    const isExistingTenant = parsed.data.moveInMode === "existing_tenant";
+    const proration = !isExistingTenant && parsed.data.paymentFrequency === "monthly"
       ? calculateMonthlyProration({
         startDate: parsed.data.startDate,
         monthlyRentAmount: parsed.data.monthlyRentAmount
@@ -164,6 +183,11 @@ export async function createLease(
       ? Number(proration.regularBillingStartDate.substring(8, 10))
       : parsed.data.dueDayOfMonth ?? Number(effectivePaymentStartDate.substring(8, 10));
 
+    const depositFromCharges = parsed.data.charges?.filter((charge) => charge.chargeType === "deposit").reduce((sum, charge) => sum + charge.amount, 0) ?? 0;
+    const externalDepositAmount = parsed.data.externalDepositAmount;
+    const depositAmount = externalDepositAmount ?? depositFromCharges;
+    const leaseStatus = isExistingTenant && parsed.data.activateImmediately ? "active" : "pending";
+
     const lease = await deps.repository.createLease({
       id: deps.createId(),
       organizationId: parsed.data.organizationId,
@@ -179,15 +203,21 @@ export async function createLease(
       paymentFrequency: parsed.data.paymentFrequency ?? "monthly",
       paymentStartDate: effectivePaymentStartDate,
       dueDayOfMonth: effectiveDueDayOfMonth,
-      depositAmount: parsed.data.charges?.filter((charge) => charge.chargeType === "deposit").reduce((sum, charge) => sum + charge.amount, 0) ?? 0,
-      status: "pending",
+      depositAmount,
+      moveInMode: parsed.data.moveInMode ?? "standard",
+      depositSettledExternally: externalDepositAmount !== null && externalDepositAmount !== undefined,
+      depositSettledNote: parsed.data.externalDepositNote ?? null,
+      status: leaseStatus,
+      signedAt: leaseStatus === "active" ? parsed.data.startDate : null,
+      signingMethod: leaseStatus === "active" ? "physical" : null,
       charges: chargeRecords
     });
 
     const initialCharges = buildInitialCharges(
       chargeRecords,
       parsed.data.startDate,
-      parsed.data.monthlyRentAmount
+      parsed.data.monthlyRentAmount,
+      parsed.data.skipInitialChargeTypes ?? []
     );
 
     await Promise.all(initialCharges.map((charge) => deps.paymentRepository.createPayment({
@@ -205,6 +235,46 @@ export async function createLease(
       isInitialCharge: true
     })));
 
+    if (externalDepositAmount !== null && externalDepositAmount !== undefined) {
+      await deps.paymentRepository.createPayment({
+        id: deps.createPaymentId(),
+        organizationId: parsed.data.organizationId,
+        leaseId: lease.id,
+        tenantId: parsed.data.tenantId,
+        amount: externalDepositAmount,
+        currencyCode: parsed.data.currencyCode,
+        dueDate: parsed.data.externalDepositPaidDate ?? parsed.data.startDate,
+        note: parsed.data.externalDepositNote ?? "Paid before onboarding",
+        paymentKind: "deposit",
+        billingFrequency: "one_time",
+        sourceLeaseChargeTemplateId: null,
+        isInitialCharge: false,
+        status: "paid",
+        paidDate: parsed.data.externalDepositPaidDate ?? parsed.data.startDate
+      });
+    }
+
+    if (parsed.data.sendMobileInvite && lease.status === "active" && deps.invitationDeps) {
+      const invitationResult = await createTenantInvitation(
+        {
+          tenantId: parsed.data.tenantId,
+          session: sessionResult.data
+        },
+        {
+          repository: deps.repository,
+          teamFunctionsRepository: deps.teamFunctionsRepository,
+          createId: deps.invitationDeps.createInvitationId,
+          inviteLinkBaseUrl: deps.invitationDeps.inviteLinkBaseUrl,
+          organizationRepository: deps.invitationDeps.organizationRepository,
+          sendInvitationEmail: deps.invitationDeps.sendInvitationEmail
+        }
+      );
+
+      if (!invitationResult.body.success) {
+        return { status: invitationResult.status, body: invitationResult.body };
+      }
+    }
+
     await logOperatorAuditEvent({
       session: sessionResult.data,
       actionKey: "operations.lease.created",
@@ -216,19 +286,27 @@ export async function createLease(
         startDate: lease.startDate,
         endDate: lease.endDate,
         monthlyRentAmount: lease.monthlyRentAmount,
-        currencyCode: lease.currencyCode
+        currencyCode: lease.currencyCode,
+        moveInMode: lease.moveInMode,
+        status: lease.status
       }
     });
 
     return { status: 201, body: { success: true, data: lease } };
   } catch (error) {
     if (error instanceof Error && error.message === "UNIT_NOT_AVAILABLE") {
+      const isExistingTenant = typeof request.body === "object"
+        && request.body !== null
+        && (request.body as Record<string, unknown>).moveInMode === "existing_tenant";
+
       return {
         status: 400,
         body: {
           success: false,
           code: "VALIDATION_ERROR",
-          error: "Unit must exist and be vacant before creating a lease"
+          error: isExistingTenant
+            ? "Unit must exist, be vacant or occupied without another active lease"
+            : "Unit must exist and be vacant before creating a lease"
         }
       };
     }

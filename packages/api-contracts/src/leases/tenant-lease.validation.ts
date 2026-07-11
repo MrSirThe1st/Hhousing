@@ -261,6 +261,76 @@ export function parseCreateLeaseInput(input: unknown): ApiResult<CreateLeaseInpu
     charges.push(parsedCharge.data);
   }
 
+  const moveInMode = input.moveInMode === undefined
+    ? "standard"
+    : input.moveInMode === "standard" || input.moveInMode === "existing_tenant"
+      ? input.moveInMode
+      : null;
+
+  if (moveInMode === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "moveInMode must be standard or existing_tenant" };
+  }
+
+  const activateImmediately = input.activateImmediately === undefined
+    ? moveInMode === "existing_tenant"
+    : asBoolean(input.activateImmediately);
+
+  if (activateImmediately === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "activateImmediately must be a boolean" };
+  }
+
+  if (moveInMode === "standard" && activateImmediately) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "activateImmediately is only allowed for existing_tenant move-ins"
+    };
+  }
+
+  const sendMobileInvite = input.sendMobileInvite === undefined ? false : asBoolean(input.sendMobileInvite);
+  if (sendMobileInvite === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "sendMobileInvite must be a boolean" };
+  }
+
+  const skipInitialChargeTypesRaw = Array.isArray(input.skipInitialChargeTypes) ? input.skipInitialChargeTypes : [];
+  const allowedSkipTypes = new Set(["deposit", "first_rent", "prorated_rent", "fee", "other"]);
+  const skipInitialChargeTypes: Array<"deposit" | "first_rent" | "prorated_rent" | "fee" | "other"> = [];
+  for (const skipType of skipInitialChargeTypesRaw) {
+    if (typeof skipType !== "string" || !allowedSkipTypes.has(skipType)) {
+      return {
+        success: false,
+        code: "VALIDATION_ERROR",
+        error: "skipInitialChargeTypes entries must be deposit, first_rent, prorated_rent, fee, or other"
+      };
+    }
+    skipInitialChargeTypes.push(skipType as "deposit" | "first_rent" | "prorated_rent" | "fee" | "other");
+  }
+
+  const externalDepositAmount = input.externalDepositAmount === undefined || input.externalDepositAmount === null
+    ? null
+    : asPositiveNumber(input.externalDepositAmount);
+
+  if (input.externalDepositAmount !== undefined && input.externalDepositAmount !== null && externalDepositAmount === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "externalDepositAmount must be a positive number" };
+  }
+
+  const externalDepositNote = asOptionalText(input.externalDepositNote);
+  const externalDepositPaidDate = input.externalDepositPaidDate === undefined || input.externalDepositPaidDate === null
+    ? null
+    : asIsoDate(input.externalDepositPaidDate);
+
+  if (input.externalDepositPaidDate !== undefined && input.externalDepositPaidDate !== null && externalDepositPaidDate === null) {
+    return { success: false, code: "VALIDATION_ERROR", error: "externalDepositPaidDate must be YYYY-MM-DD or null" };
+  }
+
+  if (externalDepositAmount !== null && moveInMode !== "existing_tenant") {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "externalDepositAmount is only allowed for existing_tenant move-ins"
+    };
+  }
+
   return {
     success: true,
     data: {
@@ -277,7 +347,14 @@ export function parseCreateLeaseInput(input: unknown): ApiResult<CreateLeaseInpu
       paymentFrequency,
       paymentStartDate,
       dueDayOfMonth: dueDayOfMonth ?? Number(paymentStartDate.substring(8, 10)),
-      charges
+      charges,
+      moveInMode,
+      activateImmediately,
+      skipInitialChargeTypes,
+      externalDepositAmount,
+      externalDepositNote,
+      externalDepositPaidDate,
+      sendMobileInvite
     }
   };
 }

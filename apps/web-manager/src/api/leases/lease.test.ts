@@ -51,6 +51,9 @@ function createPaymentRepositoryMock(): PaymentRepository {
       dueDate: "2026-04-01",
       paidDate: null,
       status: "pending",
+      signedAt: null,
+      signingMethod: null,
+      activatedAtIso: null,
       note: "Caution principale",
       paymentKind: "deposit",
       billingFrequency: "one_time",
@@ -87,7 +90,13 @@ describe("createLease", () => {
         paymentStartDate: "2026-04-01",
         dueDayOfMonth: 1,
         depositAmount: 200,
+        moveInMode: "standard",
+        depositSettledExternally: false,
+        depositSettledNote: null,
         status: "pending",
+        signedAt: null,
+        signingMethod: null,
+        activatedAtIso: null,
         createdAtIso: "2026-03-31T00:00:00.000Z"
       }),
       createTenant: vi.fn(),
@@ -175,6 +184,8 @@ describe("createLease", () => {
     expect(repository.createLease).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "pending",
+        moveInMode: "standard",
+        depositSettledExternally: false,
         depositAmount: 200,
         paymentFrequency: "monthly",
         dueDayOfMonth: 1,
@@ -189,6 +200,105 @@ describe("createLease", () => {
     );
     expect(paymentRepository.createPayment).toHaveBeenCalledTimes(2);
     expect(repository.createTenantInvitation).not.toHaveBeenCalled();
+  });
+
+  it("creates an active existing-tenant lease with external deposit payment", async () => {
+    const repository: TenantLeaseRepository = {
+      createLease: vi.fn().mockResolvedValue({
+        id: "lease-2",
+        organizationId: "org-1",
+        unitId: "unit-1",
+        tenantId: "tenant-1",
+        startDate: "2025-01-01",
+        endDate: null,
+        monthlyRentAmount: 500,
+        currencyCode: "CDF",
+        termType: "month_to_month",
+        fixedTermMonths: null,
+        autoRenewToMonthly: false,
+        paymentFrequency: "monthly",
+        paymentStartDate: "2026-07-01",
+        dueDayOfMonth: 1,
+        depositAmount: 300,
+        moveInMode: "existing_tenant",
+        depositSettledExternally: true,
+        depositSettledNote: "Paid before onboarding",
+        status: "active",
+        signedAt: "2025-01-01",
+        signingMethod: "physical",
+        activatedAtIso: "2026-03-31T00:00:00.000Z",
+        createdAtIso: "2026-03-31T00:00:00.000Z"
+      }),
+      createTenant: vi.fn(),
+      revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
+      createTenantInvitation: vi.fn(),
+      getTenantInvitationPreviewByTokenHash: vi.fn(),
+      markTenantInvitationUsed: vi.fn(),
+      linkTenantAuthUser: vi.fn(),
+      listLeasesByOrganization: vi.fn(),
+      getCurrentLeaseByTenantAuthUserId: vi.fn(),
+      listTenantsByOrganization: vi.fn(),
+      getTenantById: vi.fn(),
+      getLeaseById: vi.fn(),
+      getMoveOutByLeaseId: vi.fn(),
+      listMoveOutsByOrganization: vi.fn(),
+      getLatestLedgerEventId: vi.fn(),
+      upsertMoveOut: vi.fn(),
+      upsertMoveOutInspection: vi.fn(),
+      closeMoveOut: vi.fn(),
+      replaceMoveOutCharges: vi.fn(),
+      updateTenant: vi.fn(),
+      updateLease: vi.fn(),
+      deleteTenant: vi.fn()
+    };
+    const paymentRepository = createPaymentRepositoryMock();
+
+    const response = await createLease(
+      {
+        session: operatorSession,
+        body: {
+          organizationId: "org-1",
+          unitId: "unit-1",
+          tenantId: "tenant-1",
+          startDate: "2025-01-01",
+          endDate: null,
+          monthlyRentAmount: 500,
+          currencyCode: "CDF",
+          paymentStartDate: "2026-07-01",
+          moveInMode: "existing_tenant",
+          activateImmediately: true,
+          skipInitialChargeTypes: ["deposit", "first_rent"],
+          externalDepositAmount: 300,
+          externalDepositNote: "Paid before onboarding"
+        }
+      },
+      {
+        repository,
+        paymentRepository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock(["create_lease"]),
+        createId: () => "lease-2",
+        createPaymentId: () => "pay-ext"
+      }
+    );
+
+    expect(response.status).toBe(201);
+    expect(repository.createLease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "active",
+        moveInMode: "existing_tenant",
+        depositSettledExternally: true,
+        depositAmount: 300
+      })
+    );
+    expect(paymentRepository.createPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 300,
+        paymentKind: "deposit",
+        isInitialCharge: false,
+        status: "paid",
+        note: "Paid before onboarding"
+      })
+    );
   });
 
   it("returns validation error when unit is not vacant", async () => {

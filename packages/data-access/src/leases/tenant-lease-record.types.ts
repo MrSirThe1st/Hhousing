@@ -1,4 +1,4 @@
-import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, LeaseMoveInMode, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 
 export interface CreateTenantInvitationRecordInput {
@@ -82,7 +82,12 @@ export interface CreateLeaseRecordInput {
   paymentStartDate: string;
   dueDayOfMonth: number;
   depositAmount: number;
+  moveInMode: LeaseMoveInMode;
+  depositSettledExternally: boolean;
+  depositSettledNote: string | null;
   status: "active" | "ended" | "pending";
+  signedAt?: string | null;
+  signingMethod?: LeaseSigningMethod | null;
   charges: CreateLeaseChargeRecordInput[];
 }
 

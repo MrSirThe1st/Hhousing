@@ -11,7 +11,7 @@ export type { Listing, ListingStatus, ListingVisibility } from "./entities/listi
 export type { ListingApplication, ListingApplicationStatus } from "./entities/listing-application.types";
 export type { Unit, UnitStatus } from "./entities/unit.types";
 export type { Tenant } from "./entities/tenant.types";
-export type { Lease, LeaseStatus, LeaseTermType, LeasePaymentFrequency, LeaseSigningMethod } from "./entities/lease.types";
+export type { Lease, LeaseStatus, LeaseTermType, LeasePaymentFrequency, LeaseSigningMethod, LeaseMoveInMode, SkippableInitialChargeType } from "./entities/lease.types";
 export type { LeaseChargeTemplate, LeaseChargeType, LeaseChargeFrequency } from "./entities/lease-charge.types";
 export type {
   MoveOut,

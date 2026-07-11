@@ -1,4 +1,4 @@
-import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeasePaymentFrequency, LeaseTermType, LeaseSigningMethod, Tenant } from "@hhousing/domain";
+import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeasePaymentFrequency, LeaseTermType, LeaseSigningMethod, LeaseMoveInMode, SkippableInitialChargeType, Tenant } from "@hhousing/domain";
 
 export interface CreateTenantInput {
   organizationId: string;
@@ -40,6 +40,13 @@ export interface CreateLeaseInput {
   paymentStartDate?: string;
   dueDayOfMonth?: number;
   charges?: CreateLeaseChargeInput[];
+  moveInMode?: LeaseMoveInMode;
+  activateImmediately?: boolean;
+  skipInitialChargeTypes?: SkippableInitialChargeType[];
+  externalDepositAmount?: number | null;
+  externalDepositNote?: string | null;
+  externalDepositPaidDate?: string | null;
+  sendMobileInvite?: boolean;
 }
 
 export interface FinalizeLeaseInput {

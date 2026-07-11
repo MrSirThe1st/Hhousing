@@ -6,6 +6,10 @@ export type LeasePaymentFrequency = "monthly" | "quarterly" | "annually";
 
 export type LeaseSigningMethod = "physical" | "scanned" | "email_confirmation";
 
+export type LeaseMoveInMode = "standard" | "existing_tenant";
+
+export type SkippableInitialChargeType = "deposit" | "first_rent" | "prorated_rent" | "fee" | "other";
+
 export interface Lease {
   id: string;
   organizationId: string;
@@ -22,6 +26,9 @@ export interface Lease {
   paymentStartDate: string;
   dueDayOfMonth: number;
   depositAmount: number;
+  moveInMode: LeaseMoveInMode;
+  depositSettledExternally: boolean;
+  depositSettledNote: string | null;
   status: LeaseStatus;
   signedAt: string | null;
   signingMethod: LeaseSigningMethod | null;

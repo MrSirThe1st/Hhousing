@@ -1,7 +1,8 @@
 import { createLease, listLeases } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
+import { createTenantInvitationEmailSenderFromEnv } from "../../../lib/email/resend";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
-import { createId, createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
+import { createId, createPaymentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
   const session = await extractAuthSessionFromCookies();
@@ -32,6 +33,9 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
+  const organizationRepositoryResult = createRepositoryFromEnv();
+  const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
+
   const result = await createLease(
     {
       body,
@@ -42,7 +46,13 @@ export async function POST(request: Request): Promise<Response> {
       paymentRepository: createPaymentRepo(),
       teamFunctionsRepository: createTeamFunctionsRepo(),
       createId: () => createId("lease"),
-      createPaymentId: () => createId("pay")
+      createPaymentId: () => createId("pay"),
+      invitationDeps: {
+        createInvitationId: () => createId("tin"),
+        inviteLinkBaseUrl,
+        organizationRepository: organizationRepositoryResult.success ? organizationRepositoryResult.data : undefined,
+        sendInvitationEmail: createTenantInvitationEmailSenderFromEnv()
+      }
     }
   );
 

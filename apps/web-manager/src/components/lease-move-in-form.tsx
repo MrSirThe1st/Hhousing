@@ -10,6 +10,7 @@ import UniversalLoadingState from "./universal-loading-state";
 
 type ChargeFrequency = "one_time" | "monthly" | "quarterly" | "annually";
 type ChargeType = "deposit" | "fee" | "other";
+type MoveInMode = "standard" | "existing_tenant";
 
 interface ChargeRowState {
   id: string;
@@ -55,9 +56,10 @@ export default function LeaseMoveInForm({
   initialApplicationId
 }: LeaseMoveInFormProps): React.ReactElement {
   const router = useRouter();
+  const [moveInMode, setMoveInMode] = useState<MoveInMode>("standard");
   const eligibleProperties = useMemo(
-    () => items.filter(({ units }) => units.some((unit) => unit.status === "vacant")),
-    [items]
+    () => items.filter(({ units }) => units.some((unit) => unit.status === "vacant" || (moveInMode === "existing_tenant" && unit.status === "occupied"))),
+    [items, moveInMode]
   );
   const [propertyId, setPropertyId] = useState<string>(initialPropertyId ?? eligibleProperties[0]?.property.id ?? "");
   const [tenantId, setTenantId] = useState<string>(initialTenantId ?? tenants[0]?.id ?? "");
@@ -68,6 +70,13 @@ export default function LeaseMoveInForm({
   const [monthlyRentAmount, setMonthlyRentAmount] = useState("");
   const [paymentFrequency, setPaymentFrequency] = useState<"monthly" | "quarterly" | "annually">("monthly");
   const [paymentStartDate, setPaymentStartDate] = useState(new Date().toISOString().substring(0, 10));
+  const [leaseStartDate, setLeaseStartDate] = useState(new Date().toISOString().substring(0, 10));
+  const [depositAlreadyPaid, setDepositAlreadyPaid] = useState(false);
+  const [externalDepositAmount, setExternalDepositAmount] = useState("");
+  const [externalDepositNote, setExternalDepositNote] = useState("Paid before onboarding");
+  const [skipFirstRent, setSkipFirstRent] = useState(false);
+  const [activateImmediately, setActivateImmediately] = useState(true);
+  const [sendMobileInvite, setSendMobileInvite] = useState(false);
   const [currencyCode, setCurrencyCode] = useState("CDF");
   const [depositRows, setDepositRows] = useState<ChargeRowState[]>([createChargeRow("deposit")]);
   const [otherCharges, setOtherCharges] = useState<ChargeRowState[]>([]);
@@ -79,19 +88,19 @@ export default function LeaseMoveInForm({
     [eligibleProperties, propertyId]
   );
 
-  const vacantUnits = useMemo(
-    () => selectedProperty?.units.filter((unit) => unit.status === "vacant") ?? [],
-    [selectedProperty]
+  const eligibleUnits = useMemo(
+    () => selectedProperty?.units.filter((unit) => unit.status === "vacant" || (moveInMode === "existing_tenant" && unit.status === "occupied")) ?? [],
+    [selectedProperty, moveInMode]
   );
 
-  const [unitId, setUnitId] = useState<string>(initialUnitId ?? vacantUnits[0]?.id ?? "");
+  const [unitId, setUnitId] = useState<string>(initialUnitId ?? eligibleUnits[0]?.id ?? "");
   const selectedTenant = useMemo(
     () => tenants.find((tenant) => tenant.id === tenantId) ?? null,
     [tenantId, tenants]
   );
   const selectedUnit = useMemo(
-    () => vacantUnits.find((unit) => unit.id === unitId) ?? vacantUnits[0] ?? null,
-    [unitId, vacantUnits]
+    () => eligibleUnits.find((unit) => unit.id === unitId) ?? eligibleUnits[0] ?? null,
+    [unitId, eligibleUnits]
   );
 
   useEffect(() => {
@@ -111,8 +120,9 @@ export default function LeaseMoveInForm({
   }, [selectedTenant]);
 
   const rentAmount = Number(monthlyRentAmount);
+  const effectiveLeaseStartDate = moveInMode === "existing_tenant" ? leaseStartDate : paymentStartDate;
   const prorationPreview = useMemo(() => {
-    if (paymentFrequency !== "monthly" || !Number.isFinite(rentAmount) || rentAmount <= 0) {
+    if (moveInMode === "existing_tenant" || paymentFrequency !== "monthly" || !Number.isFinite(rentAmount) || rentAmount <= 0) {
       return null;
     }
 
@@ -120,7 +130,7 @@ export default function LeaseMoveInForm({
       startDate: paymentStartDate,
       monthlyRentAmount: rentAmount
     });
-  }, [paymentFrequency, paymentStartDate, rentAmount]);
+  }, [moveInMode, paymentFrequency, paymentStartDate, rentAmount]);
 
   const recurringStartDate = prorationPreview?.isProrated
     ? prorationPreview.regularBillingStartDate
@@ -150,13 +160,24 @@ export default function LeaseMoveInForm({
     setError(null);
 
     const selectedUnitId = selectedProperty?.property.propertyType === "single_unit"
-      ? vacantUnits[0]?.id ?? ""
+      ? eligibleUnits[0]?.id ?? ""
       : unitId;
 
     if (!selectedUnitId) {
-      setError("Veuillez sélectionner une unité vacante.");
+      setError(moveInMode === "existing_tenant"
+        ? "Veuillez sélectionner une unité."
+        : "Veuillez sélectionner une unité vacante.");
       setBusy(false);
       return;
+    }
+
+    if (moveInMode === "existing_tenant" && depositAlreadyPaid) {
+      const externalAmount = Number(externalDepositAmount);
+      if (!Number.isFinite(externalAmount) || externalAmount <= 0) {
+        setError("Indiquez le montant du dépôt déjà payé.");
+        setBusy(false);
+        return;
+      }
     }
 
     if (!Number.isFinite(rentAmount) || rentAmount <= 0) {
@@ -171,7 +192,10 @@ export default function LeaseMoveInForm({
       return;
     }
 
-    const allCharges = [...depositRows, ...otherCharges]
+    const allCharges = moveInMode === "existing_tenant" && depositAlreadyPaid
+      ? [...otherCharges]
+      : [...depositRows, ...otherCharges];
+    const normalizedCharges = allCharges
       .filter((row) => row.label.trim().length > 0 && row.amount.trim().length > 0)
       .map((row) => ({
         label: row.label.trim(),
@@ -183,18 +207,28 @@ export default function LeaseMoveInForm({
         endDate: row.endDate || null
       }));
 
-    if (allCharges.some((charge) => !Number.isFinite(charge.amount) || charge.amount <= 0)) {
+    if (normalizedCharges.some((charge) => !Number.isFinite(charge.amount) || charge.amount <= 0)) {
       setError("Chaque dépôt ou charge doit avoir un montant positif.");
       setBusy(false);
       return;
+    }
+
+    const skipInitialChargeTypes: Array<"deposit" | "first_rent"> = [];
+    if (moveInMode === "existing_tenant") {
+      if (depositAlreadyPaid) {
+        skipInitialChargeTypes.push("deposit");
+      }
+      if (skipFirstRent) {
+        skipInitialChargeTypes.push("first_rent");
+      }
     }
 
     const result = await postWithAuth<CreateLeaseOutput>("/api/leases", {
       organizationId,
       unitId: selectedUnitId,
       tenantId,
-      startDate: paymentStartDate,
-      endDate: termType === "fixed" ? new Date(new Date(paymentStartDate).setMonth(new Date(paymentStartDate).getMonth() + Number(fixedTermMonths))).toISOString().substring(0, 10) : null,
+      startDate: effectiveLeaseStartDate,
+      endDate: termType === "fixed" ? new Date(new Date(effectiveLeaseStartDate).setMonth(new Date(effectiveLeaseStartDate).getMonth() + Number(fixedTermMonths))).toISOString().substring(0, 10) : null,
       monthlyRentAmount: rentAmount,
       currencyCode: currencyCode.trim().toUpperCase(),
       termType,
@@ -203,7 +237,14 @@ export default function LeaseMoveInForm({
       paymentFrequency,
       paymentStartDate: recurringStartDate,
       dueDayOfMonth,
-      charges: allCharges
+      charges: normalizedCharges,
+      moveInMode,
+      activateImmediately: moveInMode === "existing_tenant" ? activateImmediately : false,
+      skipInitialChargeTypes,
+      externalDepositAmount: moveInMode === "existing_tenant" && depositAlreadyPaid ? Number(externalDepositAmount) : null,
+      externalDepositNote: moveInMode === "existing_tenant" && depositAlreadyPaid ? externalDepositNote.trim() || "Paid before onboarding" : null,
+      externalDepositPaidDate: moveInMode === "existing_tenant" && depositAlreadyPaid ? effectiveLeaseStartDate : null,
+      sendMobileInvite: moveInMode === "existing_tenant" ? sendMobileInvite : false
     });
 
     if (!result.success) {
@@ -230,6 +271,31 @@ export default function LeaseMoveInForm({
 
       <form onSubmit={handleMoveIn} className="space-y-5 lg:max-w-5xl">
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+          <h2 className="text-base font-semibold text-[#010a19]">Type de move-in</h2>
+          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+            <button
+              type="button"
+              onClick={() => setMoveInMode("standard")}
+              className={`rounded-md px-3 py-2 text-sm ${moveInMode === "standard" ? "bg-[#0063fe] text-white" : "text-gray-600"}`}
+            >
+              Nouveau locataire
+            </button>
+            <button
+              type="button"
+              onClick={() => setMoveInMode("existing_tenant")}
+              className={`rounded-md px-3 py-2 text-sm ${moveInMode === "existing_tenant" ? "bg-[#0063fe] text-white" : "text-gray-600"}`}
+            >
+              Locataire déjà en place
+            </button>
+          </div>
+          {moveInMode === "existing_tenant" ? (
+            <p className="text-sm text-gray-600">
+              Pour un locataire déjà installé : pas de dépôt à encaisser via la plateforme, date de début rétroactive possible, activation immédiate du bail.
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
           <h2 className="text-base font-semibold text-[#010a19]">Bien et unité</h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -240,7 +306,7 @@ export default function LeaseMoveInForm({
                   const nextPropertyId = event.target.value;
                   const nextProperty = eligibleProperties.find((item) => item.property.id === nextPropertyId) ?? null;
                   setPropertyId(nextPropertyId);
-                  setUnitId(nextProperty?.units.find((unit) => unit.status === "vacant")?.id ?? "");
+                  setUnitId(nextProperty?.units.find((unit) => unit.status === "vacant" || (moveInMode === "existing_tenant" && unit.status === "occupied"))?.id ?? "");
                 }}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 required
@@ -253,24 +319,26 @@ export default function LeaseMoveInForm({
             </label>
             {selectedProperty?.property.propertyType === "multi_unit" ? (
               <label className="block text-sm font-medium text-gray-700">
-                <span className="mb-1.5 block">Unité vacante</span>
+                <span className="mb-1.5 block">{moveInMode === "existing_tenant" ? "Unité" : "Unité vacante"}</span>
                 <select
                   value={unitId}
                   onChange={(event) => setUnitId(event.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   required
                 >
-                  <option value="">Sélectionner une unité vacante</option>
-                  {vacantUnits.map((unit) => (
-                    <option key={unit.id} value={unit.id}>{unit.unitNumber}</option>
+                  <option value="">{moveInMode === "existing_tenant" ? "Sélectionner une unité" : "Sélectionner une unité vacante"}</option>
+                  {eligibleUnits.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.unitNumber}{unit.status === "occupied" ? " (occupée)" : ""}
+                    </option>
                   ))}
                 </select>
               </label>
             ) : (
               <label className="block text-sm font-medium text-gray-700">
-                <span className="mb-1.5 block">Unité vacante</span>
+                <span className="mb-1.5 block">{moveInMode === "existing_tenant" ? "Unité" : "Unité vacante"}</span>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                  {vacantUnits[0] ? `Unité sélectionnée automatiquement: ${vacantUnits[0].unitNumber}` : "Aucune unité vacante"}
+                  {eligibleUnits[0] ? `Unité sélectionnée automatiquement: ${eligibleUnits[0].unitNumber}` : "Aucune unité disponible"}
                 </div>
               </label>
             )}
@@ -306,6 +374,18 @@ export default function LeaseMoveInForm({
 
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
           <h2 className="text-base font-semibold text-[#010a19]">Rent Payments</h2>
+          {moveInMode === "existing_tenant" ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <label className="block text-sm font-medium text-gray-700">
+                <span className="mb-1.5 block">Date d&apos;emménagement (peut être dans le passé)</span>
+                <input type="date" value={leaseStartDate} onChange={(event) => setLeaseStartDate(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required />
+              </label>
+              <label className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600">
+                <input type="checkbox" checked={skipFirstRent} onChange={(event) => setSkipFirstRent(event.target.checked)} />
+                Le loyer du mois en cours est déjà réglé
+              </label>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <label className="block text-sm font-medium text-gray-700">
               <span className="mb-1.5 block">Loyer de l'unité</span>
@@ -358,6 +438,7 @@ export default function LeaseMoveInForm({
           ) : null}
         </section>
 
+        {moveInMode === "standard" || !depositAlreadyPaid ? (
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-[#010a19]">Deposits</h2>
@@ -388,6 +469,29 @@ export default function LeaseMoveInForm({
             </div>
           ))}
         </section>
+        ) : null}
+
+        {moveInMode === "existing_tenant" ? (
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+            <h2 className="text-base font-semibold text-[#010a19]">Dépôt de garantie</h2>
+            <label className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600">
+              <input type="checkbox" checked={depositAlreadyPaid} onChange={(event) => setDepositAlreadyPaid(event.target.checked)} />
+              Dépôt déjà payé hors plateforme
+            </label>
+            {depositAlreadyPaid ? (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  <span className="mb-1.5 block">Montant du dépôt payé</span>
+                  <input value={externalDepositAmount} onChange={(event) => setExternalDepositAmount(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Montant" inputMode="decimal" required />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">
+                  <span className="mb-1.5 block">Note (optionnel)</span>
+                  <input value={externalDepositNote} onChange={(event) => setExternalDepositNote(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Paid before onboarding" />
+                </label>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -446,18 +550,39 @@ export default function LeaseMoveInForm({
           </label>
           <div className="rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600">
             <div className="font-medium text-[#010a19]">Invitation par email</div>
-            <p className="mt-1">L&apos;adresse e-mail du locataire sélectionné sera utilisée au moment de la finalisation du move in.</p>
+            <p className="mt-1">
+              {moveInMode === "existing_tenant" && activateImmediately
+                ? "Vous pouvez envoyer l'invitation mobile dès l'activation du bail."
+                : "L'adresse e-mail du locataire sélectionné sera utilisée au moment de la finalisation du move in."}
+            </p>
             <label className="mt-3 block text-sm font-medium text-gray-700">
               <span className="mb-1.5 block">Adresse e-mail utilisée pour l'invitation</span>
               <input value={inviteEmail} readOnly className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm" placeholder="Aucune adresse e-mail renseignée" type="email" />
             </label>
+            {moveInMode === "existing_tenant" ? (
+              <div className="mt-4 space-y-2">
+                <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <input type="checkbox" checked={activateImmediately} onChange={(event) => setActivateImmediately(event.target.checked)} />
+                  Activer le bail immédiatement
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={sendMobileInvite}
+                    onChange={(event) => setSendMobileInvite(event.target.checked)}
+                    disabled={!activateImmediately || !inviteEmail}
+                  />
+                  Envoyer l&apos;invitation mobile maintenant
+                </label>
+              </div>
+            ) : null}
           </div>
         </section>
 
         {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
         <button type="submit" disabled={busy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">
-          Enregistrer comme brouillon
+          {moveInMode === "existing_tenant" && activateImmediately ? "Activer le bail" : "Enregistrer comme brouillon"}
         </button>
       </form>
 

@@ -32,10 +32,19 @@ export default async function TenantDetailPage({ params }: PageProps): Promise<R
 
   const scoped = await getScopedPortfolioData(session);
   const organizationLeases = await repository.listLeasesByOrganization(session.organizationId);
+  const tenantLeases = organizationLeases.filter((lease) => lease.tenantId === id);
+  const hasActiveLease = tenantLeases.some((lease) => lease.status === "active");
+  const canInviteMobile = Boolean(tenant.email) && !tenant.authUserId && hasActiveLease;
 
   if (!canAccessTenantInCurrentScope(id, scoped.tenantIds, organizationLeases)) {
     return <div className="p-8"><p className="text-gray-600">Locataire introuvable</p><Link href="/dashboard/tenants" className="mt-4 inline-block text-[#0063fe] hover:underline">Retour aux locataires</Link></div>;
   }
 
-  return <TenantDetailClient id={id} initialTenant={tenant} />;
+  return (
+    <TenantDetailClient
+      id={id}
+      initialTenant={tenant}
+      canInviteMobile={canInviteMobile}
+    />
+  );
 }

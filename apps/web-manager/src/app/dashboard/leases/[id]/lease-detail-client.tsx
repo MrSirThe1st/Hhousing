@@ -335,7 +335,9 @@ export default function LeaseDetailClient({ id, initialLease, initialPayments, i
   const canUseDraftEmailWorkspaceAction = lease.status === "pending" || lease.status === "active";
   const chargePayments = payments.filter((payment) => payment.isInitialCharge);
   const unpaidInitialPayments = chargePayments.filter((payment) => payment.status !== "paid");
-  const canFinalize = lease.status === "pending" && unpaidInitialPayments.length === 0 && chargePayments.length > 0;
+  const canFinalize = lease.status === "pending"
+    && unpaidInitialPayments.length === 0
+    && (lease.moveInMode === "existing_tenant" || chargePayments.length > 0);
 
   return (
     <div className="p-8">
