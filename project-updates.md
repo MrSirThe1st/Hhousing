@@ -2,6 +2,12 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-07-04
+- Change type: Web + Frontend
+- Description: Normalized country inputs to select dropdowns restricted to the DRC, corrected the city select component to show only the 35 official administrative cities, and replaced all province text inputs with a custom dropdown select populated with the 26 official provinces of the DRC.
+- Impact: Created `apps/web-manager/src/components/province-select.tsx`; updated `apps/web-manager/src/components/city-select.tsx`, `property-create-form.tsx`, `owner-client-create-panel.tsx`, `owner-client-edit-form.tsx`, `organization-settings-form.tsx`, and `operator-profile-panel.tsx`.
+- Tests: `pnpm typecheck` ✓, `pnpm lint` ✓, `pnpm test` ✓.
+
 ## 2026-05-10
 - Change type: Web + Performance
 - Description: Reduced owner-portal login-to-dashboard latency by removing duplicate dashboard portfolio load, replacing middleware exact-count auth checks with existence checks, and adding owner-scoped lease/payment repository queries.

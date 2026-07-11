@@ -3,8 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "../contexts/auth-context";
 
 export const metadata: Metadata = {
-  title: "Hhousing — Gestionnaire",
-  description: "Tableau de bord gestionnaire Hhousing",
+  title: "Haraka Property — Gestionnaire",
+  description: "Tableau de bord gestionnaire Haraka Property",
 };
 
 export default function RootLayout({

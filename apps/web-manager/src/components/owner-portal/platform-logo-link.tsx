@@ -16,7 +16,7 @@ export default function OwnerPortalLogoLink({ subtitle, centered = false }: Plat
       >
         <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
         <span className="text-left">
-          <span className="block text-lg font-semibold tracking-tight">Hhousing</span>
+          <span className="block text-lg font-semibold tracking-tight">Haraka Property</span>
           <span className="block text-xs uppercase tracking-[0.16em] text-gray-500">Owner portal</span>
         </span>
       </Link>

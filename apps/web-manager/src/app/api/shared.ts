@@ -4,6 +4,7 @@ import {
   createOrganizationPropertyUnitRepositoryFromEnv,
   createTenantLeaseRepositoryFromEnv,
   createPaymentRepositoryFromEnv,
+  createPawapayTransactionRepositoryFromEnv,
   createInvoiceRepositoryFromEnv,
   createExpenseRepositoryFromEnv,
   createMaintenanceRequestRepositoryFromEnv,
@@ -21,6 +22,7 @@ import {
   type OrganizationPropertyUnitRepository,
   type TenantLeaseRepository,
   type PaymentRepository,
+  type PawapayTransactionRepository,
   type InvoiceRepository,
   type ExpenseRepository,
   type MaintenanceRequestRepository,
@@ -63,6 +65,10 @@ export function createTenantLeaseRepo(): TenantLeaseRepository {
 
 export function createPaymentRepo(): PaymentRepository {
   return createPaymentRepositoryFromEnv(process.env);
+}
+
+export function createPawapayTransactionRepo(): PawapayTransactionRepository {
+  return createPawapayTransactionRepositoryFromEnv(process.env);
 }
 
 export function createInvoiceRepo(): InvoiceRepository {

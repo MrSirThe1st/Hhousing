@@ -73,6 +73,16 @@ export type {
 } from "./payments/payment-record.types";
 export type { PaymentQueryable } from "./payments/postgres-payment.repository";
 export {
+  createPostgresPawapayTransactionRepository,
+  createPawapayTransactionRepositoryFromEnv
+} from "./pawapay/postgres-pawapay-transaction.repository";
+export type {
+  CreatePawapayTransactionInput,
+  PawapayTransactionRepository,
+  UpdatePawapayTransactionStatusInput
+} from "./pawapay/pawapay-transaction-record.types";
+export type { PawapayTransactionQueryable } from "./pawapay/postgres-pawapay-transaction.repository";
+export {
   createPostgresInvoiceRepository,
   createInvoiceRepositoryFromEnv
 } from "./invoices/postgres-invoice.repository";

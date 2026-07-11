@@ -24,6 +24,13 @@ export type {
 export type { EmailTemplate, EmailTemplateScenario } from "./entities/email-template.types";
 export type { Payment, PaymentStatus, PaymentKind, PaymentBillingFrequency } from "./entities/payment.types";
 export type {
+  PawapayOperationType,
+  PawapayProviderCode,
+  PawapayTransaction,
+  PawapayTransactionAllocation,
+  PawapayTransactionStatus
+} from "./entities/pawapay-transaction.types";
+export type {
   Invoice,
   InvoiceType,
   InvoiceStatus,

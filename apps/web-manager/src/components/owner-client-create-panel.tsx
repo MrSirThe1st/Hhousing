@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
 import CitySelect from "./city-select";
+import ProvinceSelect from "./province-select";
 
 interface OwnerClientCreatePanelProps {
   organizationId: string;
@@ -31,7 +32,7 @@ const INITIAL_FORM_STATE: OwnerCreateFormState = {
   address: "",
   isCompany: false,
   companyName: "",
-  country: "",
+  country: "République Démocratique du Congo",
   city: "",
   state: "",
   phoneNumber: ""
@@ -217,12 +218,13 @@ export default function OwnerClientCreatePanel({
 
           <label className="block text-sm font-medium text-gray-700">
             <span className="mb-1.5 block">Pays</span>
-            <input
+            <select
               value={form.country}
               onChange={(event) => setForm((previous) => ({ ...previous, country: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="Pays"
-            />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white outline-none focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            >
+              <option value="République Démocratique du Congo">République Démocratique du Congo</option>
+            </select>
           </label>
 
           <div className="block text-sm font-medium text-gray-700">
@@ -233,15 +235,13 @@ export default function OwnerClientCreatePanel({
             />
           </div>
 
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">État / Province</span>
-            <input
+          <div className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Province</span>
+            <ProvinceSelect
               value={form.state}
-              onChange={(event) => setForm((previous) => ({ ...previous, state: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="Province ou état"
+              onChange={(value) => setForm((previous) => ({ ...previous, state: value }))}
             />
-          </label>
+          </div>
 
           <label className="block text-sm font-medium text-gray-700 md:col-span-2 xl:col-span-1">
             <span className="mb-1.5 block">Téléphone</span>

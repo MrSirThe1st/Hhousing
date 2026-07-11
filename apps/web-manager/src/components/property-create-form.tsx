@@ -398,15 +398,15 @@ export default function PropertyCreateForm({
                />
              </div>
             <label className="block">
-              <PropertyFieldLabel icon="country" label="Code pays" />
-              <input
+              <PropertyFieldLabel icon="country" label="Pays" />
+              <select
                 value={propertyForm.countryCode}
                 onChange={(event) => setPropertyForm((prev) => ({ ...prev, countryCode: event.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase"
-                placeholder="Code pays"
-                maxLength={2}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm bg-white outline-none focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                 required
-              />
+              >
+                <option value="CD">République Démocratique du Congo (RDC)</option>
+              </select>
             </label>
             <label className="block">
               <PropertyFieldLabel icon="year" label="Année de construction" />

@@ -192,8 +192,8 @@ function TeamInvitePageContent(): React.ReactElement {
             <h2 className="mt-3 text-2xl font-semibold text-slate-950">Finaliser l'invitation</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               {invitation?.accountExists
-                ? "Un compte Hhousing existe déjà pour cet email. Connectez-vous avec ce compte pour rejoindre l'organisation."
-                : "Aucun compte Hhousing n'existe encore pour cet email. Créez votre accès puis activez l'invitation."}
+                ? "Un compte Haraka Property existe déjà pour cet email. Connectez-vous avec ce compte pour rejoindre l'organisation."
+                : "Aucun compte Haraka Property n'existe encore pour cet email. Créez votre accès puis activez l'invitation."}
             </p>
             {loading ? <UniversalLoadingState minHeightClassName="min-h-28" size="compact" className="mt-6" /> : null}
 

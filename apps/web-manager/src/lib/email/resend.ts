@@ -108,7 +108,7 @@ function buildHtml(input: SendTenantInvitationEmailInput): string {
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
       ${buildOrganizationHeader(input.organization)}
-      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Bienvenue sur Hhousing</h1>
+      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Bienvenue sur Haraka Property</h1>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">Bonjour ${input.tenantFullName},</p>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
         Votre dossier de location a ete cree. Utilisez le lien ci-dessous pour activer votre acces et consulter les informations qui vous ont ete partagees.
@@ -152,9 +152,9 @@ function buildLeaseDraftHtml(input: SendLeaseDraftEmailInput): string {
 function buildTeamMemberInvitationHtml(input: SendTeamMemberInvitationEmailInput): string {
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
-      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Invitation equipe Hhousing</h1>
+      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Invitation equipe Haraka Property</h1>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
-        Vous avez ete invite a rejoindre l'organisation ${input.organizationName} sur Hhousing.
+        Vous avez ete invite a rejoindre l'organisation ${input.organizationName} sur Haraka Property.
       </p>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
         Utilisez le lien ci-dessous pour activer votre acces avec votre propre compte. Si vous n'avez pas encore de compte, vous pourrez en creer un. Si vous en avez deja un, vous pourrez vous connecter puis rejoindre l'organisation.
@@ -177,9 +177,9 @@ function buildTeamMemberInvitationHtml(input: SendTeamMemberInvitationEmailInput
 function buildOwnerInvitationHtml(input: SendOwnerInvitationEmailInput): string {
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
-      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Invitation owner Hhousing</h1>
+      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;">Invitation owner Haraka Property</h1>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
-        Vous avez été invité à accéder au portail owner de ${input.organizationName} sur Hhousing.
+        Vous avez été invité à accéder au portail owner de ${input.organizationName} sur Haraka Property.
       </p>
       <p style="margin:0 0 12px;color:#334155;font-size:14px;">
         Ce portail est réservé au suivi de votre portefeuille en lecture seule: propriétés, paiements et rapports.
@@ -258,7 +258,7 @@ export function createTenantInvitationEmailSenderFromEnv(): TenantInvitationEmai
   return async (input: SendTenantInvitationEmailInput): Promise<void> => {
     await sendEmail({
       to: input.to,
-      subject: "Votre acces locataire Hhousing",
+      subject: "Votre acces locataire Haraka Property",
       html: buildHtml(input)
     });
   };
@@ -268,7 +268,7 @@ export function createLeaseDraftEmailSenderFromEnv(): LeaseDraftEmailSender {
   return async (input: SendLeaseDraftEmailInput): Promise<void> => {
     await sendEmail({
       to: input.to,
-      subject: "Votre bail Hhousing",
+      subject: "Votre bail Haraka Property",
       html: buildLeaseDraftHtml(input)
     });
   };
@@ -278,7 +278,7 @@ export function createTeamMemberInvitationEmailSenderFromEnv(): TeamMemberInvita
   return async (input: SendTeamMemberInvitationEmailInput): Promise<void> => {
     await sendEmail({
       to: input.to,
-      subject: "Votre invitation equipe Hhousing",
+      subject: "Votre invitation equipe Haraka Property",
       html: buildTeamMemberInvitationHtml(input)
     });
   };
@@ -288,7 +288,7 @@ export function createOwnerInvitationEmailSenderFromEnv(): OwnerInvitationEmailS
   return async (input: SendOwnerInvitationEmailInput): Promise<void> => {
     await sendEmail({
       to: input.to,
-      subject: "Votre invitation owner Hhousing",
+      subject: "Votre invitation owner Haraka Property",
       html: buildOwnerInvitationHtml(input)
     });
   };

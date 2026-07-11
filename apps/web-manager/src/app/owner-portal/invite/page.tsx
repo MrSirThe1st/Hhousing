@@ -188,8 +188,8 @@ function OwnerInviteContent(): React.ReactElement {
             <h2 className="mt-3 text-2xl font-semibold text-slate-950">Finaliser l'invitation</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               {invitation?.accountExists
-                ? "Un compte Hhousing existe déjà pour cet email. Connectez-vous avec ce compte, puis activez votre accès owner."
-                : "Aucun compte Hhousing n'existe encore pour cet email. Créez votre mot de passe puis activez votre accès owner."}
+                ? "Un compte Haraka Property existe déjà pour cet email. Connectez-vous avec ce compte, puis activez votre accès owner."
+                : "Aucun compte Haraka Property n'existe encore pour cet email. Créez votre mot de passe puis activez votre accès owner."}
             </p>
 
             {loading ? <LoadingPanel /> : null}

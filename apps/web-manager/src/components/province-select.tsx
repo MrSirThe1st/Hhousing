@@ -2,46 +2,36 @@
 
 import React, { useState, useRef, useEffect } from "react";
 
-export const DRC_CITIES = [
-  "Bandundu",
-  "Baraka",
-  "Beni",
-  "Boende",
-  "Boma",
-  "Bukavu",
-  "Bunia",
-  "Buta",
-  "Butembo",
-  "Gbadolite",
-  "Gemena",
-  "Goma",
-  "Inongo",
-  "Isiro",
-  "Kabinda",
-  "Kalemie",
-  "Kamina",
-  "Kananga",
-  "Kenge",
-  "Kikwit",
-  "Kindu",
+export const DRC_PROVINCES = [
+  "Bas-Uele",
+  "Équateur",
+  "Haut-Katanga",
+  "Haut-Lomami",
+  "Haut-Uele",
+  "Ituri",
+  "Kasaï",
+  "Kasaï-Central",
+  "Kasaï-Oriental",
   "Kinshasa",
-  "Kisangani",
-  "Kolwezi",
-  "Likasi",
-  "Lisala",
-  "Lubumbashi",
-  "Lumumbaville",
-  "Lusambo",
-  "Matadi",
-  "Mbandaka",
-  "Mbuji-Mayi",
-  "Mwene-Ditu",
-  "Tshikapa",
-  "Uvira",
-  "Zongo"
+  "Kongo-Central",
+  "Kwango",
+  "Kwilu",
+  "Lomami",
+  "Lualaba",
+  "Mai-Ndombe",
+  "Maniema",
+  "Mongala",
+  "Nord-Kivu",
+  "Nord-Ubangi",
+  "Sankuru",
+  "Sud-Kivu",
+  "Sud-Ubangi",
+  "Tanganyika",
+  "Tshopo",
+  "Tshuapa"
 ];
 
-interface CitySelectProps {
+interface ProvinceSelectProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -50,14 +40,14 @@ interface CitySelectProps {
   className?: string;
 }
 
-export default function CitySelect({
+export default function ProvinceSelect({
   value,
   onChange,
   disabled = false,
   required = false,
-  placeholder = "Sélectionner une ville",
+  placeholder = "Sélectionner une province",
   className = ""
-}: CitySelectProps) {
+}: ProvinceSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,8 +75,8 @@ export default function CitySelect({
     }
   }, [isOpen]);
 
-  const filteredCities = DRC_CITIES.filter((city) =>
-    city.toLowerCase().includes(search.toLowerCase())
+  const filteredProvinces = DRC_PROVINCES.filter((province) =>
+    province.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -144,22 +134,22 @@ export default function CitySelect({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher une ville..."
+              placeholder="Rechercher une province..."
               className="w-full rounded-lg border border-slate-200 py-1.5 pl-8 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#0063fe]"
             />
           </div>
 
-          {/* Cities List */}
+          {/* Provinces List */}
           <ul className="max-h-56 overflow-y-auto space-y-0.5">
-            {filteredCities.length > 0 ? (
-              filteredCities.map((city) => {
-                const isSelected = value === city;
+            {filteredProvinces.length > 0 ? (
+              filteredProvinces.map((province) => {
+                const isSelected = value === province;
                 return (
-                  <li key={city}>
+                  <li key={province}>
                     <button
                       type="button"
                       onClick={() => {
-                        onChange(city);
+                        onChange(province);
                         setIsOpen(false);
                       }}
                       className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition ${
@@ -168,7 +158,7 @@ export default function CitySelect({
                           : "text-slate-700 hover:bg-slate-100"
                       }`}
                     >
-                      <span>{city}</span>
+                      <span>{province}</span>
                       {isSelected && (
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
@@ -185,7 +175,7 @@ export default function CitySelect({
               })
             ) : (
               <li className="px-3 py-3 text-center text-xs text-slate-400">
-                Aucune ville trouvée
+                Aucune province trouvée
               </li>
             )}
           </ul>

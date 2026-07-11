@@ -6,6 +6,7 @@ import { useAuth } from "../contexts/auth-context";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import LogoutButton from "./logout-button";
 import UniversalLoadingState from "./universal-loading-state";
+import ProvinceSelect from "./province-select";
 
 import type { Organization } from "@hhousing/domain";
 import type { UpdateOrganizationOutput } from "@hhousing/api-contracts";
@@ -48,7 +49,7 @@ export function resolveOrgInitialState(organization: Organization | null): OrgFo
     registrationNumber: organization?.registrationNumber ?? "",
     vatNumber: organization?.vatNumber ?? "",
     capital: organization?.capital ?? "",
-    country: organization?.country ?? "",
+    country: organization?.country || "République Démocratique du Congo",
     city: organization?.city ?? "",
     state: organization?.state ?? "",
     zipCode: organization?.zipCode ?? ""
@@ -835,29 +836,25 @@ export default function OperatorProfilePanel({ role, organization, canEditOrgani
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="org-state" className="text-xs font-semibold text-slate-700">Province / État</label>
-                    <input
-                      id="org-state"
-                      type="text"
+                    <label htmlFor="org-state" className="text-xs font-semibold text-slate-700">Province</label>
+                    <ProvinceSelect
                       value={orgForm.state}
-                      onChange={(e) => setOrgForm((curr) => ({ ...curr, state: e.target.value }))}
+                      onChange={(value) => setOrgForm((curr) => ({ ...curr, state: value }))}
                       disabled={orgBusy || !canEditOrganization}
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-800 outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
-                      placeholder="Ex: Île-de-France"
                     />
                   </div>
 
                   <div className="space-y-1.5 sm:col-span-2">
                     <label htmlFor="org-country" className="text-xs font-semibold text-slate-700">Pays</label>
-                    <input
+                    <select
                       id="org-country"
-                      type="text"
                       value={orgForm.country}
                       onChange={(e) => setOrgForm((curr) => ({ ...curr, country: e.target.value }))}
                       disabled={orgBusy || !canEditOrganization}
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-800 outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
-                      placeholder="Ex: France"
-                    />
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 bg-white outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
+                    >
+                      <option value="République Démocratique du Congo">République Démocratique du Congo</option>
+                    </select>
                   </div>
 
                   <div className="space-y-1.5 sm:col-span-2">

@@ -7,6 +7,7 @@ import type { Organization } from "@hhousing/domain";
 import { patchWithAuth } from "../lib/api-client";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import CitySelect from "./city-select";
+import ProvinceSelect from "./province-select";
 
 interface OrganizationSettingsFormProps {
   organization: Organization;
@@ -44,7 +45,7 @@ function buildInitialState(organization: Organization): OrganizationFormState {
     registrationNumber: organization.registrationNumber ?? "",
     vatNumber: organization.vatNumber ?? "",
     capital: organization.capital ?? "",
-    country: organization.country ?? "",
+    country: organization.country || "République Démocratique du Congo",
     city: organization.city ?? "",
     state: organization.state ?? "",
     zipCode: organization.zipCode ?? ""
@@ -222,13 +223,24 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
               disabled={!canEdit || busy}
             />
           </div>
-          <label className="block text-sm">
-            <span className="mb-1.5 block font-medium text-slate-700">Province / État</span>
-            <input value={form.state} onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="Ex: Île-de-France" />
-          </label>
+          <div className="block text-sm">
+            <span className="mb-1.5 block font-medium text-slate-700">Province</span>
+            <ProvinceSelect
+              value={form.state}
+              onChange={(value) => setForm((current) => ({ ...current, state: value }))}
+              disabled={!canEdit || busy}
+            />
+          </div>
           <label className="block text-sm md:col-span-2">
             <span className="mb-1.5 block font-medium text-slate-700">Pays</span>
-            <input value={form.country} onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="Ex: France" />
+            <select
+              value={form.country}
+              onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
+              disabled={!canEdit || busy}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none bg-white transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500"
+            >
+              <option value="République Démocratique du Congo">République Démocratique du Congo</option>
+            </select>
           </label>
 
           {/* Address & Signature */}

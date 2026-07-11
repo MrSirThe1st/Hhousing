@@ -8,6 +8,7 @@ import type { Owner } from "@hhousing/domain";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { patchWithAuth } from "../lib/api-client";
 import CitySelect from "./city-select";
+import ProvinceSelect from "./province-select";
 
 interface OwnerClientEditFormProps {
   organizationId: string;
@@ -31,7 +32,7 @@ function getInitialFormState(client: Owner): OwnerEditFormState {
     address: client.address ?? "",
     isCompany: client.isCompany,
     companyName: client.companyName ?? "",
-    country: client.country ?? "",
+    country: client.country || "République Démocratique du Congo",
     city: client.city ?? "",
     state: client.state ?? "",
     phoneNumber: client.phoneNumber ?? ""
@@ -185,12 +186,13 @@ export default function OwnerClientEditForm({ organizationId, client }: OwnerCli
 
           <label className="block text-sm font-medium text-gray-700">
             <span className="mb-1.5 block">Pays</span>
-            <input
+            <select
               value={form.country}
               onChange={(event) => setForm((previous) => ({ ...previous, country: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="Pays"
-            />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white outline-none focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            >
+              <option value="République Démocratique du Congo">République Démocratique du Congo</option>
+            </select>
           </label>
 
           <div className="block text-sm font-medium text-gray-700">
@@ -201,15 +203,13 @@ export default function OwnerClientEditForm({ organizationId, client }: OwnerCli
             />
           </div>
 
-          <label className="block text-sm font-medium text-gray-700">
-            <span className="mb-1.5 block">Etat / Province</span>
-            <input
+          <div className="block text-sm font-medium text-gray-700">
+            <span className="mb-1.5 block">Province</span>
+            <ProvinceSelect
               value={form.state}
-              onChange={(event) => setForm((previous) => ({ ...previous, state: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="Province ou etat"
+              onChange={(value) => setForm((previous) => ({ ...previous, state: value }))}
             />
-          </label>
+          </div>
 
           <label className="block text-sm font-medium text-gray-700 md:col-span-2 xl:col-span-1">
             <span className="mb-1.5 block">Telephone</span>

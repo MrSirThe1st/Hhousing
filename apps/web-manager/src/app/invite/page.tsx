@@ -155,12 +155,12 @@ export default function InvitePage(): React.ReactElement {
           <div className="relative overflow-hidden px-7 py-10 sm:px-10 sm:py-12">
             <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(135deg,rgba(0,99,254,0.12),rgba(1,10,25,0))]" />
             <div className="relative">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#0063FE]">Hhousing Tenant</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#0063FE]">Haraka Tenant</p>
               <h1 className="mt-4 max-w-xl text-4xl font-semibold tracking-[-0.04em] text-[#010A19] sm:text-5xl">
                 Ouvrez votre invitation locataire dans l&apos;application.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                Le lien HTTPS essaie d&apos;ouvrir automatiquement l&apos;app Hhousing Tenant. Si elle n&apos;est pas encore installée, téléchargez-la puis revenez sur ce lien pour finaliser l&apos;activation de votre accès.
+                Le lien HTTPS essaie d&apos;ouvrir automatiquement l&apos;app Haraka Tenant. Si elle n&apos;est pas encore installée, téléchargez-la puis revenez sur ce lien pour finaliser l&apos;activation de votre accès.
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -210,7 +210,7 @@ export default function InvitePage(): React.ReactElement {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-[#010A19]">Télécharger Hhousing Tenant</p>
+                  <p className="text-lg font-semibold text-[#010A19]">Télécharger Haraka Tenant</p>
                   <p className="mt-1 text-sm leading-6 text-slate-600">Disponible sur iPhone et Android.</p>
                 </div>
               </div>

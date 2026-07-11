@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,11 +17,47 @@ import type { Payment } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import { ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
-import { getWithAuth } from "@/lib/api-client";
+import { getWithAuth, postWithAuth } from "@/lib/api-client";
 
 type MobilePaymentsOutput = { payments: Payment[] };
 
+type PayBalanceOutput = {
+  transactionId: string;
+  totalAmount: number;
+  currencyCode: string;
+  provider: string;
+  status: "submitted" | "failed";
+  paymentCount: number;
+  pawapayStatus: string;
+};
+
+type PayBalanceStatusOutput = {
+  transactionId: string;
+  status: "pending" | "submitted" | "completed" | "failed";
+  pawapayStatus: string | null;
+  totalAmount: number;
+  currencyCode: string;
+  provider: string;
+  failureCode: string | null;
+  failureMessage: string | null;
+  paymentCount: number;
+  completedAtIso: string | null;
+};
+
+type ProfileOutput = { tenant: { phone: string | null } };
+
 type PaymentFilter = "all" | "pending" | "paid";
+
+type ProviderOption = {
+  code: "AIRTEL_COD" | "ORANGE_COD" | "VODACOM_MPESA_COD";
+  label: string;
+};
+
+const PROVIDER_OPTIONS: ProviderOption[] = [
+  { code: "AIRTEL_COD", label: "Airtel Money" },
+  { code: "ORANGE_COD", label: "Orange Money" },
+  { code: "VODACOM_MPESA_COD", label: "M-Pesa" }
+];
 
 type PaymentGroup = {
   year: string;
@@ -153,6 +191,13 @@ export default function PaymentsScreen(): React.ReactElement {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<PaymentFilter>("all");
+  const [isPayModalVisible, setIsPayModalVisible] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderOption["code"]>("AIRTEL_COD");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [payError, setPayError] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
+  const [payStatusMessage, setPayStatusMessage] = useState<string | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -178,6 +223,92 @@ export default function PaymentsScreen(): React.ReactElement {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+      }
+    };
+  }, []);
+
+  const stopPolling = useCallback((): void => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  const pollTransactionStatus = useCallback((transactionId: string): void => {
+    stopPolling();
+
+    pollTimerRef.current = setInterval(() => {
+      void (async (): Promise<void> => {
+        const result: ApiResult<PayBalanceStatusOutput> = await getWithAuth<PayBalanceStatusOutput>(
+          `/api/mobile/payments/pay-balance/${transactionId}/status`
+        );
+
+        if (!result.success) {
+          return;
+        }
+
+        if (result.data.status === "completed") {
+          stopPolling();
+          setIsPaying(false);
+          setPayStatusMessage("Paiement confirmé. Merci !");
+          setIsPayModalVisible(false);
+          await load();
+          return;
+        }
+
+        if (result.data.status === "failed") {
+          stopPolling();
+          setIsPaying(false);
+          setPayError(result.data.failureMessage ?? "Le paiement a échoué.");
+          setPayStatusMessage(null);
+        }
+      })();
+    }, 4000);
+  }, [load, stopPolling]);
+
+  const openPayModal = useCallback(async (): Promise<void> => {
+    setPayError(null);
+    setPayStatusMessage(null);
+    setIsPayModalVisible(true);
+
+    const profileResult: ApiResult<ProfileOutput> = await getWithAuth<ProfileOutput>("/api/mobile/profile");
+    if (profileResult.success && profileResult.data.tenant.phone) {
+      setPhoneNumber(profileResult.data.tenant.phone);
+    }
+  }, []);
+
+  const handlePayBalance = useCallback(async (): Promise<void> => {
+    if (!phoneNumber.trim()) {
+      setPayError("Veuillez saisir votre numéro mobile money.");
+      return;
+    }
+
+    setIsPaying(true);
+    setPayError(null);
+    setPayStatusMessage("Confirmez le paiement sur votre téléphone...");
+
+    const result: ApiResult<PayBalanceOutput> = await postWithAuth<PayBalanceOutput>(
+      "/api/mobile/payments/pay-balance",
+      {
+        provider: selectedProvider,
+        phoneNumber: phoneNumber.trim()
+      }
+    );
+
+    if (!result.success) {
+      setIsPaying(false);
+      setPayStatusMessage(null);
+      setPayError(result.error);
+      return;
+    }
+
+    pollTransactionStatus(result.data.transactionId);
+  }, [phoneNumber, pollTransactionStatus, selectedProvider]);
 
   const payablePayment = useMemo(() => {
     const dueList = payments
@@ -279,10 +410,17 @@ export default function PaymentsScreen(): React.ReactElement {
               {formatAmount(totalDue, payablePayment?.currencyCode ?? "CDF")}
             </Text>
             <View style={styles.summaryActions}>
-              <View style={styles.manualNoticeBox}>
-                <Ionicons name="information-circle-outline" size={16} color="#0063FE" />
-                <Text style={styles.manualNoticeText}>Paiement traité manuellement par l'administration.</Text>
-              </View>
+              {totalDue > 0 ? (
+                <Pressable style={styles.payBtn} onPress={() => { void openPayModal(); }}>
+                  <Ionicons name="phone-portrait-outline" size={18} color="#ffffff" />
+                  <Text style={styles.payBtnText}>Payer maintenant</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.manualNoticeBox}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#16A34A" />
+                  <Text style={styles.manualNoticeText}>Aucun paiement en attente.</Text>
+                </View>
+              )}
               <Pressable
                 style={styles.historyBtn}
                 onPress={() => { router.push("/(tabs)/account/documents"); }}
@@ -369,6 +507,95 @@ export default function PaymentsScreen(): React.ReactElement {
         </ScrollView>
       ) : null}
 
+      <Modal
+        visible={isPayModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          if (!isPaying) {
+            setIsPayModalVisible(false);
+          }
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Payer par mobile money</Text>
+            <Text style={styles.modalSubtitle}>
+              Montant total: {formatAmount(totalDue, payablePayment?.currencyCode ?? "CDF")}
+            </Text>
+
+            <Text style={styles.fieldLabel}>Opérateur</Text>
+            <View style={styles.providerRow}>
+              {PROVIDER_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.code}
+                  style={[
+                    styles.providerChip,
+                    selectedProvider === option.code && styles.providerChipActive
+                  ]}
+                  onPress={() => { setSelectedProvider(option.code); }}
+                  disabled={isPaying}
+                >
+                  <Text
+                    style={[
+                      styles.providerChipText,
+                      selectedProvider === option.code && styles.providerChipTextActive
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.fieldLabel}>Numéro mobile money</Text>
+            <TextInput
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="+243..."
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
+              style={styles.phoneInput}
+              editable={!isPaying}
+            />
+
+            {payStatusMessage ? (
+              <View style={styles.statusNotice}>
+                {isPaying ? <ActivityIndicator color="#0063FE" /> : null}
+                <Text style={styles.statusNoticeText}>{payStatusMessage}</Text>
+              </View>
+            ) : null}
+
+            {payError ? <Text style={styles.payErrorText}>{payError}</Text> : null}
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.cancelBtn}
+                disabled={isPaying}
+                onPress={() => {
+                  stopPolling();
+                  setIsPayModalVisible(false);
+                  setIsPaying(false);
+                  setPayStatusMessage(null);
+                  setPayError(null);
+                }}
+              >
+                <Text style={styles.cancelBtnText}>Annuler</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.confirmBtn, isPaying && styles.confirmBtnDisabled]}
+                disabled={isPaying}
+                onPress={() => { void handlePayBalance(); }}
+              >
+                <Text style={styles.confirmBtnText}>
+                  {isPaying ? "En cours..." : "Confirmer"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -413,6 +640,22 @@ const styles = StyleSheet.create({
   summaryActions: {
     flexDirection: "row",
     gap: 8
+  },
+  payBtn: {
+    flex: 1,
+    borderRadius: 10,
+    backgroundColor: "#0063FE",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8
+  },
+  payBtnText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700"
   },
   manualNoticeBox: {
     flex: 1,
@@ -606,5 +849,117 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 13
   },
-  
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(1, 10, 25, 0.45)",
+    justifyContent: "flex-end"
+  },
+  modalCard: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    padding: 18,
+    gap: 12
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#010A19"
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "600"
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151"
+  },
+  providerRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  providerChip: {
+    borderWidth: 1,
+    borderColor: "#D4DAE7",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#ffffff"
+  },
+  providerChipActive: {
+    borderColor: "#0063FE",
+    backgroundColor: "#EFF6FF"
+  },
+  providerChipText: {
+    color: "#374151",
+    fontSize: 13,
+    fontWeight: "600"
+  },
+  providerChipTextActive: {
+    color: "#0063FE"
+  },
+  phoneInput: {
+    borderWidth: 1,
+    borderColor: "#D4DAE7",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: "#010A19"
+  },
+  statusNotice: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#BFD7FF",
+    backgroundColor: "#EFF6FF",
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  statusNoticeText: {
+    flex: 1,
+    color: "#1E3A8A",
+    fontSize: 13,
+    fontWeight: "600"
+  },
+  payErrorText: {
+    color: "#B91C1C",
+    fontSize: 13,
+    fontWeight: "600"
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4
+  },
+  cancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#D4DAE7",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center"
+  },
+  cancelBtnText: {
+    color: "#374151",
+    fontWeight: "700"
+  },
+  confirmBtn: {
+    flex: 1,
+    backgroundColor: "#0063FE",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center"
+  },
+  confirmBtnDisabled: {
+    opacity: 0.7
+  },
+  confirmBtnText: {
+    color: "#ffffff",
+    fontWeight: "700"
+  }
 });
