@@ -30,6 +30,7 @@ interface OrganizationRow extends QueryResultRow {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  platform_experience: "entreprise" | "individual";
 }
 
 interface OrganizationMembershipRow extends QueryResultRow {
@@ -76,6 +77,7 @@ function mapOrganization(row: OrganizationRow): Organization {
   return {
     id: row.id,
     name: row.name,
+    platformExperience: row.platform_experience ?? "entreprise",
     logoUrl: row.logo_url,
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
@@ -441,10 +443,10 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
         }
 
         const organizationResult = await client.query<OrganizationRow>(
-          `insert into organizations (id, name)
-           values ($1, $2)
-           returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code`,
-          [input.organizationId, input.organizationName]
+          `insert into organizations (id, name, platform_experience)
+           values ($1, $2, $3)
+           returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code, platform_experience`,
+          [input.organizationId, input.organizationName, input.platformExperience]
         );
 
         const membership = await createMembership(client, input);

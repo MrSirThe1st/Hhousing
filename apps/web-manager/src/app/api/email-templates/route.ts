@@ -4,6 +4,7 @@ import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { requirePermission } from "../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { BUILTIN_EMAIL_TEMPLATES } from "../../../lib/email/template-catalog";
+import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { createEmailTemplateRepo, createId, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function GET(): Promise<Response> {
@@ -11,6 +12,11 @@ export async function GET(): Promise<Response> {
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(
@@ -47,6 +53,11 @@ export async function POST(request: Request): Promise<Response> {
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(

@@ -3,8 +3,9 @@ import { createTenantInvitation } from "../../../../api";
 import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { createTenantInvitationNotificationDepsFromEnv } from "../../../../lib/notifications/tenant-invitation-notifiers";
-import { sendManagedEmailFromEnv } from "../../../../lib/email/resend";
+import { sendDocumentCommunication } from "../../../../lib/notifications/document-communication";
 import { getBuiltinTemplateByScenario, renderTemplateText } from "../../../../lib/email/template-catalog";
+import { buildLeasePropertyLabel, resolveLeaseDocumentsLink } from "../../../../lib/whatsapp/lease-documents";
 import { canEditOrganizationDetails } from "../../../../lib/operator-context";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../api/organizations/permissions";
@@ -443,31 +444,44 @@ export async function PATCH(
         });
       }
 
-      await sendManagedEmailFromEnv({
-        to: lease.tenantEmail,
-        subject: renderTemplateText(draftTemplate.subject, {
-          organization,
-          property: propertyRecord?.property ?? null,
-          unit: unitRecord,
-          lease,
-          tenant: tenantRecord,
-          today: new Date().toISOString().substring(0, 10)
+      const templateContext = {
+        organization,
+        property: propertyRecord?.property ?? null,
+        unit: unitRecord,
+        lease,
+        tenant: tenantRecord,
+        today: new Date().toISOString().substring(0, 10)
+      };
+      const documentsLink = resolveLeaseDocumentsLink(resolvedDocuments);
+      const notifications = await sendDocumentCommunication({
+        organizationId: access.data.organizationId,
+        tenantId: lease.tenantId,
+        tenantEmail: lease.tenantEmail,
+        tenantPhone: tenantRecord?.phone ?? null,
+        tenantWhatsappNumber: tenantRecord?.whatsappNumber ?? null,
+        tenantWhatsappOptIn: tenantRecord?.whatsappOptIn ?? false,
+        tenantFullName: tenantRecord?.fullName ?? lease.tenantFullName,
+        organizationName: organization?.name ?? "Haraka Property",
+        propertyLabel: buildLeasePropertyLabel({
+          propertyName: propertyRecord?.property.name,
+          unitNumber: unitRecord?.unitNumber
         }),
-        body: renderTemplateText(draftTemplate.body, {
-          organization,
-          property: propertyRecord?.property ?? null,
-          unit: unitRecord,
-          lease,
-          tenant: tenantRecord,
-          today: new Date().toISOString().substring(0, 10)
-        }),
+        documentsLink: documentsLink ?? "",
+        emailSubject: renderTemplateText(draftTemplate.subject, templateContext),
+        emailBody: renderTemplateText(draftTemplate.body, templateContext),
         organization,
         attachments: resolvedDocuments.map((document) => ({
           fileName: document.fileName,
           mimeType: document.mimeType,
           fileUrl: document.fileUrl
-        }))
+        })),
+        createMessageId: createId
       });
+
+      const emailDelivery = notifications.find((notification) => notification.channel === "email");
+      if (emailDelivery?.status === "failed") {
+        throw new Error(emailDelivery.error ?? "EMAIL_SEND_FAILED");
+      }
 
       await logOperatorAuditEvent({
         organizationId: access.data.organizationId,
@@ -477,13 +491,17 @@ export async function PATCH(
         entityId: lease.id,
         metadata: {
           documentCount: resolvedDocuments.length,
-          tenantId: lease.tenantId
+          tenantId: lease.tenantId,
+          notifications
         }
       });
 
       return jsonResponse(200, {
         success: true,
-        data: lease
+        data: {
+          lease,
+          notifications
+        }
       });
     } catch (error) {
       console.error("Failed to send draft lease email", error);

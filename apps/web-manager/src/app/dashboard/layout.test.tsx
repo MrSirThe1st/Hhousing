@@ -79,10 +79,25 @@ describe("DashboardLayout", () => {
       memberships: []
     });
     getServerOperatorContextMock.mockResolvedValue({
-      experience: "manager_for_others",
-      availableScopes: ["managed"],
-      currentScope: "managed",
-      canSwitch: false
+      experience: "entreprise"
+    });
+
+    const element = await DashboardLayout({ children: "content" }) as ReactElement<{ children: unknown }>;
+
+    expect(redirectMock).not.toHaveBeenCalled();
+    expect(element.props.children).toBeDefined();
+  });
+
+  it("renders dashboard shell for individual operators", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      userId: "usr_1",
+      role: "property_manager",
+      organizationId: "org_1",
+      capabilities: { canOwnProperties: true },
+      memberships: []
+    });
+    getServerOperatorContextMock.mockResolvedValue({
+      experience: "individual"
     });
 
     const element = await DashboardLayout({ children: "content" }) as ReactElement<{ children: unknown }>;

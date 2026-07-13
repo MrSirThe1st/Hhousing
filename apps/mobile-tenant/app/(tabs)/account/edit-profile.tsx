@@ -34,6 +34,7 @@ export default function EditProfileScreen(): React.ReactElement {
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,6 +59,7 @@ export default function EditProfileScreen(): React.ReactElement {
       setTenant(profileResult.data.tenant);
       setFullName(profileResult.data.tenant.fullName ?? "");
       setPhone(profileResult.data.tenant.phone ?? "");
+      setWhatsappOptIn(Boolean(profileResult.data.tenant.whatsappOptIn));
       setError(null);
     } else {
       const profileUnavailable = profileResult.code === "NOT_FOUND" || (profileResult.code === "INTERNAL_ERROR" && profileResult.error.includes("404"));
@@ -111,7 +113,8 @@ export default function EditProfileScreen(): React.ReactElement {
     setIsSaving(true);
     const result: ApiResult<ProfileOutput> = await patchWithAuth<ProfileOutput>("/api/mobile/profile", {
       fullName: fullName.trim(),
-      phone: phone.trim() || null
+      phone: phone.trim() || null,
+      whatsappOptIn
     });
     setIsSaving(false);
 
@@ -126,7 +129,7 @@ export default function EditProfileScreen(): React.ReactElement {
       setTenant(result.data.tenant);
       router.back();
     }
-  }, [fullName, phone, router]);
+  }, [fullName, phone, whatsappOptIn, router]);
 
   if (isLoading || isAuthLoading) {
     return (
@@ -216,6 +219,25 @@ export default function EditProfileScreen(): React.ReactElement {
           <View style={[styles.inputWrap, styles.readonlyField]}>
             <Ionicons name="mail-outline" size={16} color="#9CA3AF" />
             <Text style={styles.readonlyValue}>{tenant.email ?? "—"}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.securityTitle}>Notifications</Text>
+        <View style={styles.securityCard}>
+          <View style={styles.securityRow}>
+            <View style={styles.securityLeft}>
+              <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+              <View>
+                <Text style={styles.securityText}>Notifications WhatsApp</Text>
+                <Text style={styles.securityHint}>Invitations, documents et confirmations de paiement</Text>
+              </View>
+            </View>
+            <Switch
+              value={whatsappOptIn}
+              onValueChange={setWhatsappOptIn}
+              trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
+              thumbColor={whatsappOptIn ? "#25D366" : "#F3F4F6"}
+            />
           </View>
         </View>
 
@@ -403,6 +425,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#374151",
     fontWeight: "500"
+  },
+  securityHint: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+    maxWidth: 220
   },
   securityDivider: {
     height: 1,

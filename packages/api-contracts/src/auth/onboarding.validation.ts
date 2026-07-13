@@ -1,12 +1,8 @@
+import type { PlatformExperience } from "@hhousing/domain";
 import type { ApiResult } from "../api-result.types";
-import type { CreateOperatorAccountInput, OperatorAccountType } from "./onboarding.types";
+import type { CreateOperatorAccountInput, UpdatePlatformExperienceInput } from "./onboarding.types";
 
-const VALID_ACCOUNT_TYPES: readonly OperatorAccountType[] = [
-  "self_managed_owner",
-  "manager_for_others",
-  "mixed_operator",
-  "tenant"
-];
+const VALID_PLATFORM_EXPERIENCES: readonly PlatformExperience[] = ["entreprise", "individual"];
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -21,13 +17,13 @@ function asNonEmptyText(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function asAccountType(value: unknown): OperatorAccountType | null {
+function asPlatformExperience(value: unknown): PlatformExperience | null {
   if (typeof value !== "string") {
     return null;
   }
 
-  return VALID_ACCOUNT_TYPES.includes(value as OperatorAccountType)
-    ? (value as OperatorAccountType)
+  return VALID_PLATFORM_EXPERIENCES.includes(value as PlatformExperience)
+    ? (value as PlatformExperience)
     : null;
 }
 
@@ -37,13 +33,13 @@ export function parseCreateOperatorAccountInput(input: unknown): ApiResult<Creat
   }
 
   const organizationName = asNonEmptyText(input.organizationName);
-  const accountType = asAccountType(input.accountType);
+  const platformExperience = asPlatformExperience(input.platformExperience);
 
-  if (organizationName === null || accountType === null) {
+  if (organizationName === null || platformExperience === null) {
     return {
       success: false,
       code: "VALIDATION_ERROR",
-      error: "organizationName and accountType are required"
+      error: "organizationName and platformExperience are required"
     };
   }
 
@@ -51,7 +47,29 @@ export function parseCreateOperatorAccountInput(input: unknown): ApiResult<Creat
     success: true,
     data: {
       organizationName,
-      accountType
+      platformExperience
+    }
+  };
+}
+
+export function parseUpdatePlatformExperienceInput(input: unknown): ApiResult<UpdatePlatformExperienceInput> {
+  if (!isObject(input)) {
+    return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
+  }
+
+  const platformExperience = asPlatformExperience(input.platformExperience);
+  if (platformExperience === null) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "platformExperience is required"
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      platformExperience
     }
   };
 }

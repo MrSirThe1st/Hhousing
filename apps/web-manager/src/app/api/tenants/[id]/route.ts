@@ -1,4 +1,4 @@
-import { Permission, type ApiResult } from "@hhousing/api-contracts";
+import { Permission, type ApiResult, validateTenantPhoneForLease } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
@@ -30,6 +30,10 @@ function canAccessTenantInCurrentScope(
   return !organizationLeases.some((lease) => lease.tenantId === tenantId);
 }
 
+function validateRequiredPhoneForOperator(phone: string | null): ApiResult<string> {
+  return validateTenantPhoneForLease(phone);
+}
+
 function validatePatchTenantBody(input: unknown): ApiResult<PatchTenantBody> {
   if (typeof input !== "object" || input === null) {
     return {
@@ -54,12 +58,17 @@ function validatePatchTenantBody(input: unknown): ApiResult<PatchTenantBody> {
     };
   }
 
+  const phoneResult = validateRequiredPhoneForOperator(phone);
+  if (!phoneResult.success) {
+    return phoneResult;
+  }
+
   return {
     success: true,
     data: {
       fullName,
       email,
-      phone,
+      phone: phoneResult.data,
       dateOfBirth,
       photoUrl,
       employmentStatus: typeof payload.employmentStatus === "string" ? payload.employmentStatus.trim() || null : null,

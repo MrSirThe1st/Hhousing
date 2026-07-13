@@ -91,9 +91,19 @@ interface LeaseDetailClientProps {
   tenant: Tenant | null;
   unit: Unit | null;
   property: Property | null;
+  showMoveOutAction: boolean;
 }
 
-export default function LeaseDetailClient({ id, initialLease, initialPayments, initialAvailableDocuments, tenant, unit, property }: LeaseDetailClientProps): React.ReactElement {
+export default function LeaseDetailClient({
+  id,
+  initialLease,
+  initialPayments,
+  initialAvailableDocuments,
+  tenant,
+  unit,
+  property,
+  showMoveOutAction
+}: LeaseDetailClientProps): React.ReactElement {
   const router = useRouter();
   const [lease] = useState<LeaseWithTenantView>(initialLease);
   const [payments] = useState<Payment[]>(initialPayments);
@@ -330,7 +340,7 @@ export default function LeaseDetailClient({ id, initialLease, initialPayments, i
 
   const canManageMoveOut = lease.status === "active";
   const showInlineMoveOut = false;
-  const canUseMoveOutAction = lease.status === "active";
+  const canUseMoveOutAction = showMoveOutAction && lease.status === "active";
   const canUseAddDocumentAction = true;
   const canUseDraftEmailWorkspaceAction = lease.status === "pending" || lease.status === "active";
   const chargePayments = payments.filter((payment) => payment.isInitialCharge);
@@ -359,13 +369,15 @@ export default function LeaseDetailClient({ id, initialLease, initialPayments, i
             <ActionMenu
               triggerLabel="Actions"
               items={[
+                ...(showMoveOutAction
+                  ? [{
+                      label: "Move out",
+                      href: `/dashboard/leases/${id}/move-out`,
+                      disabled: !canUseMoveOutAction
+                    }]
+                  : []),
                 {
-                  label: "Move out",
-                  href: `/dashboard/leases/${id}/move-out`,
-                  disabled: !canUseMoveOutAction
-                },
-                {
-                  label: "Envoyer l'email du brouillon",
+                  label: "Communications du bail",
                   href: `/dashboard/leases/${id}/emails`,
                   disabled: !canUseDraftEmailWorkspaceAction
                 }

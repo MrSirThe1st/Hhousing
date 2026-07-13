@@ -16,77 +16,12 @@ import type {
   PaymentRepository,
   TenantLeaseRepository
 } from "@hhousing/data-access";
-import type { Invoice, Organization } from "@hhousing/domain";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import type { TeamPermissionRepository } from "../organizations/permissions";
 import { requirePermission } from "../organizations/permissions";
 import { logOperatorAuditEvent } from "../audit-log";
-import {
-  buildInvoiceDocumentContext,
-  buildInvoiceDocumentHtml,
-  buildInvoiceEmailHtml
-} from "../../lib/invoices/invoice-document";
-import type { ManagedEmailAttachmentInput } from "../../lib/email/resend";
-
-function formatCurrency(amount: number, currencyCode: string): string {
-  return `${amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode}`;
-}
-
-function shouldSendPaidInvoiceEmail(invoice: Invoice): boolean {
-  return invoice.status === "paid" && (invoice.emailStatus === "not_sent" || invoice.emailStatus === "failed");
-}
-
-async function sendPaidInvoiceEmail(
-  invoice: Invoice,
-  tenantName: string,
-  tenantEmail: string,
-  organization: Organization | null | undefined,
-  sendEmail: NonNullable<MarkPaymentPaidDeps["sendInvoicePaidEmail"]>
-): Promise<void> {
-  const formatDate = (value: string): string => new Date(value).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric"
-  });
-
-  const invoiceDocumentHtml = buildInvoiceDocumentHtml(
-    buildInvoiceDocumentContext({
-      invoice,
-      tenantName,
-      tenantEmail,
-      organization,
-      formatDate
-    })
-  );
-
-  const attachmentContentBase64 = Buffer.from(invoiceDocumentHtml, "utf-8").toString("base64");
-  const attachments: ManagedEmailAttachmentInput[] = [
-    {
-      fileName: `facture-${invoice.invoiceNumber}.html`,
-      mimeType: "text/html",
-      fileUrl: `data:text/html;base64,${attachmentContentBase64}`
-    }
-  ];
-
-  const emailHtml = buildInvoiceEmailHtml({
-    tenantName,
-    organization,
-    invoiceNumber: invoice.invoiceNumber,
-    amountLabel: formatCurrency(invoice.totalAmount, invoice.currencyCode),
-    remainingLabel: formatCurrency(Math.max(0, invoice.totalAmount - invoice.amountPaid), invoice.currencyCode),
-    dueDateLabel: formatDate(invoice.dueDate),
-    issueDateLabel: formatDate(invoice.issueDate),
-    periodLabel: invoice.period ?? "Facture ponctuelle",
-    currencyCode: invoice.currencyCode
-  });
-
-  await sendEmail({
-    to: tenantEmail,
-    subject: `Facture ${invoice.invoiceNumber}`,
-    html: emailHtml,
-    attachments
-  });
-}
+import { tryNotifyPaidInvoice } from "../../lib/notifications/paid-invoice-notification";
+import type { notifyPaidInvoice } from "../../lib/notifications/paid-invoice-notification";
 
 export interface CreatePaymentRequest {
   body: unknown;
@@ -184,12 +119,7 @@ export interface MarkPaymentPaidDeps {
   invoiceRepository?: InvoiceRepository;
   tenantRepository?: TenantLeaseRepository;
   organizationRepository?: OrganizationPropertyUnitRepository;
-  sendInvoicePaidEmail?: (input: {
-    to: string;
-    subject: string;
-    html: string;
-    attachments?: ManagedEmailAttachmentInput[];
-  }) => Promise<void>;
+  notifyPaidInvoice?: typeof notifyPaidInvoice;
 }
 
 export async function markPaymentPaid(
@@ -228,36 +158,33 @@ export async function markPaymentPaid(
     };
   }
 
-  if (deps.invoiceRepository && payment.status === "paid") {
-    const syncResult = await deps.invoiceRepository.syncInvoiceForPaidPayment({
-      organizationId: payment.organizationId,
-      paymentId: payment.id,
-      leaseId: payment.leaseId,
-      tenantId: payment.tenantId,
-      amount: payment.amount,
-      currencyCode: payment.currencyCode,
-      dueDate: payment.dueDate,
-      paidDate: payment.paidDate ?? parsed.data.paidDate,
-      period: payment.chargePeriod
-    });
+    if (deps.invoiceRepository && payment.status === "paid") {
+      const syncResult = await deps.invoiceRepository.syncInvoiceForPaidPayment({
+        organizationId: payment.organizationId,
+        paymentId: payment.id,
+        leaseId: payment.leaseId,
+        tenantId: payment.tenantId,
+        amount: payment.amount,
+        currencyCode: payment.currencyCode,
+        dueDate: payment.dueDate,
+        paidDate: payment.paidDate ?? parsed.data.paidDate,
+        period: payment.chargePeriod
+      });
 
-    if (deps.sendInvoicePaidEmail && deps.tenantRepository && shouldSendPaidInvoiceEmail(syncResult.invoice)) {
-      const tenant = await deps.tenantRepository.getTenantById(payment.tenantId, payment.organizationId);
-      if (tenant?.email) {
-        const organization = deps.organizationRepository
-          ? await deps.organizationRepository.getOrganizationById(payment.organizationId)
-          : null;
-
-        try {
-          await sendPaidInvoiceEmail(syncResult.invoice, tenant.fullName, tenant.email, organization, deps.sendInvoicePaidEmail);
-          await deps.invoiceRepository.markInvoiceEmailSent(syncResult.invoice.id, payment.organizationId);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
-          await deps.invoiceRepository.markInvoiceEmailFailed(syncResult.invoice.id, payment.organizationId, message);
-        }
+      if (deps.notifyPaidInvoice && deps.tenantRepository) {
+        await tryNotifyPaidInvoice({
+          invoice: syncResult.invoice,
+          paymentId: payment.id,
+          paymentAmount: payment.amount,
+          organizationId: payment.organizationId,
+          tenantId: payment.tenantId,
+          invoiceRepository: deps.invoiceRepository,
+          tenantRepository: deps.tenantRepository,
+          organizationRepository: deps.organizationRepository,
+          notifyPaidInvoice: deps.notifyPaidInvoice
+        });
       }
     }
-  }
 
   await logOperatorAuditEvent({
     session: sessionResult.data,

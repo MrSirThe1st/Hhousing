@@ -16,6 +16,27 @@ function asOptionalText(value: unknown): string | null {
   return asNonEmptyText(value);
 }
 
+function validateRequiredPhone(phone: string | null): ApiResult<string> {
+  if (!phone) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Le numéro de téléphone est requis"
+    };
+  }
+
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 9 || digits.length > 15) {
+    return {
+      success: false,
+      code: "VALIDATION_ERROR",
+      error: "Numéro de téléphone invalide"
+    };
+  }
+
+  return { success: true, data: phone };
+}
+
 function asPositiveNumber(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
   return value;
@@ -127,6 +148,10 @@ export function parseFinalizeLeaseInput(input: unknown): ApiResult<FinalizeLease
   };
 }
 
+export function validateTenantPhoneForLease(phone: string | null | undefined): ApiResult<string> {
+  return validateRequiredPhone(phone ?? null);
+}
+
 export function parseCreateTenantInput(input: unknown): ApiResult<CreateTenantInput> {
   if (!isObject(input)) {
     return { success: false, code: "VALIDATION_ERROR", error: "Body must be an object" };
@@ -143,13 +168,18 @@ export function parseCreateTenantInput(input: unknown): ApiResult<CreateTenantIn
     return { success: false, code: "VALIDATION_ERROR", error: "fullName is required" };
   }
 
+  const phoneResult = validateRequiredPhone(asOptionalText(input.phone));
+  if (!phoneResult.success) {
+    return phoneResult;
+  }
+
   return {
     success: true,
     data: {
       organizationId,
       fullName,
       email: asOptionalText(input.email),
-      phone: asOptionalText(input.phone),
+      phone: phoneResult.data,
       dateOfBirth: input.dateOfBirth === null || input.dateOfBirth === undefined ? null : asIsoDate(input.dateOfBirth),
       photoUrl: asOptionalText(input.photoUrl),
       employmentStatus: asOptionalText(input.employmentStatus),

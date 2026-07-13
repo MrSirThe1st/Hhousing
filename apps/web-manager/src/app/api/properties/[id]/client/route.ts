@@ -1,6 +1,7 @@
 import { Permission, type ApiResult } from "@hhousing/api-contracts";
 import { logOperatorAuditEvent } from "../../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
+import { rejectIfIndividualExperience } from "../../../../../lib/entreprise-experience-guard";
 import { getScopedPortfolioData } from "../../../../../lib/operator-scope-portfolio";
 import { requirePermission } from "../../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../api/shared";
@@ -44,6 +45,11 @@ export async function PATCH(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(

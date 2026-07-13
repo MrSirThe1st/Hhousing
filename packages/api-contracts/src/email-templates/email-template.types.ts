@@ -41,14 +41,19 @@ export interface DeleteEmailTemplateOutput {
   success: boolean;
 }
 
+import type { NotificationChannelDeliveryStatus } from "../auth/tenant-invitations.types";
+
 export interface SendManagedEmailInput {
   organizationId: string;
   to: string;
   subject: string;
   body: string;
   documentIds?: string[];
+  tenantId?: string;
+  leaseId?: string;
 }
 
 export interface SendManagedEmailOutput {
   success: boolean;
+  notifications: NotificationChannelDeliveryStatus[];
 }

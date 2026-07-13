@@ -3,6 +3,7 @@ import type { Organization, OrganizationMembership, TeamMemberInvitation, TeamMe
 export interface CreateOperatorAccountRecordInput {
   organizationId: string;
   organizationName: string;
+  platformExperience: "entreprise" | "individual";
   membershipId: string;
   userId: string;
   role: UserRole;

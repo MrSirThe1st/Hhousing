@@ -4,12 +4,12 @@ const {
   extractTenantSessionFromRequestMock,
   getCurrentLeaseByTenantAuthUserIdMock,
   getTenantByIdMock,
-  updateTenantMock
+  updateTenantMobileProfileMock
 } = vi.hoisted(() => ({
   extractTenantSessionFromRequestMock: vi.fn(),
   getCurrentLeaseByTenantAuthUserIdMock: vi.fn(),
   getTenantByIdMock: vi.fn(),
-  updateTenantMock: vi.fn()
+  updateTenantMobileProfileMock: vi.fn()
 }));
 
 vi.mock("../../../../auth/session-adapter", () => ({
@@ -23,11 +23,11 @@ vi.mock("../../shared", async () => {
     createTenantLeaseRepo: (): {
       getCurrentLeaseByTenantAuthUserId: typeof getCurrentLeaseByTenantAuthUserIdMock;
       getTenantById: typeof getTenantByIdMock;
-      updateTenant: typeof updateTenantMock;
+      updateTenantMobileProfile: typeof updateTenantMobileProfileMock;
     } => ({
       getCurrentLeaseByTenantAuthUserId: getCurrentLeaseByTenantAuthUserIdMock,
       getTenantById: getTenantByIdMock,
-      updateTenant: updateTenantMock
+      updateTenantMobileProfile: updateTenantMobileProfileMock
     })
   };
 });
@@ -60,6 +60,8 @@ const sampleTenant = {
   fullName: "Alice Martin",
   email: "alice@example.com",
   phone: "+243812345678",
+  whatsappNumber: null,
+  whatsappOptIn: false,
   dateOfBirth: null,
   photoUrl: null,
   employmentStatus: null,
@@ -111,7 +113,7 @@ describe("PATCH /api/mobile/profile", () => {
     });
     const res = await PATCH(new Request("http://localhost/api/mobile/profile", {
       method: "PATCH",
-      body: JSON.stringify({ fullName: "Alice", phone: null })
+      body: JSON.stringify({ fullName: "Alice", phone: null, whatsappOptIn: false })
     }));
     expect(res.status).toBe(401);
   });
@@ -120,7 +122,7 @@ describe("PATCH /api/mobile/profile", () => {
     extractTenantSessionFromRequestMock.mockResolvedValue(tenantSession);
     const res = await PATCH(new Request("http://localhost/api/mobile/profile", {
       method: "PATCH",
-      body: JSON.stringify({ fullName: "  ", phone: null })
+      body: JSON.stringify({ fullName: "  ", phone: null, whatsappOptIn: false })
     }));
     expect(res.status).toBe(400);
   });
@@ -130,19 +132,48 @@ describe("PATCH /api/mobile/profile", () => {
     getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(sampleLease);
     getTenantByIdMock.mockResolvedValue(sampleTenant);
     const updatedTenant = { ...sampleTenant, fullName: "Alice Dupont", phone: "+243899999999" };
-    updateTenantMock.mockResolvedValue(updatedTenant);
+    updateTenantMobileProfileMock.mockResolvedValue(updatedTenant);
 
     const res = await PATCH(new Request("http://localhost/api/mobile/profile", {
       method: "PATCH",
-      body: JSON.stringify({ fullName: "Alice Dupont", phone: "+243899999999" })
+      body: JSON.stringify({ fullName: "Alice Dupont", phone: "+243899999999", whatsappOptIn: false })
     }));
 
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data.tenant.fullName).toBe("Alice Dupont");
     expect(json.data.tenant.phone).toBe("+243899999999");
-    expect(updateTenantMock).toHaveBeenCalledWith(
-      expect.objectContaining({ fullName: "Alice Dupont", phone: "+243899999999" })
+    expect(updateTenantMobileProfileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fullName: "Alice Dupont",
+        phone: "+243899999999",
+        whatsappOptIn: false,
+        whatsappNumber: null
+      })
+    );
+  });
+
+  it("stores whatsapp preferences when opted in", async () => {
+    extractTenantSessionFromRequestMock.mockResolvedValue(tenantSession);
+    getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(sampleLease);
+    getTenantByIdMock.mockResolvedValue(sampleTenant);
+    updateTenantMobileProfileMock.mockResolvedValue({
+      ...sampleTenant,
+      whatsappOptIn: true,
+      whatsappNumber: "243899999999"
+    });
+
+    const res = await PATCH(new Request("http://localhost/api/mobile/profile", {
+      method: "PATCH",
+      body: JSON.stringify({ fullName: "Alice Martin", phone: "+243899999999", whatsappOptIn: true })
+    }));
+
+    expect(res.status).toBe(200);
+    expect(updateTenantMobileProfileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        whatsappOptIn: true,
+        whatsappNumber: "243899999999"
+      })
     );
   });
 });

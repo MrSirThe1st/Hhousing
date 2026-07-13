@@ -3,6 +3,7 @@ import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../ap
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { Permission } from "@hhousing/api-contracts";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
+import { rejectIfIndividualExperience } from "../../../../lib/entreprise-experience-guard";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { createMaintenanceRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
@@ -15,6 +16,11 @@ export async function GET(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(
@@ -78,6 +84,11 @@ export async function PATCH(
   const access = requireOperatorSession(session);
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const maintenanceRepository = createMaintenanceRepo();

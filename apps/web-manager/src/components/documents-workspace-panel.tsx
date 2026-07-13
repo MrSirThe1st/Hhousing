@@ -16,9 +16,11 @@ import type {
   EmailTemplateView,
   LeaseWithTenantView,
   PropertyWithUnitsView,
+  SendManagedEmailOutput,
   UpdateEmailTemplateOutput
 } from "@hhousing/api-contracts";
 import { BUILTIN_EMAIL_TEMPLATES, renderTemplateText, type EmailTemplateRenderContext } from "../lib/email/template-catalog";
+import { formatDocumentDeliveryMessage } from "../lib/notifications/format-delivery-status";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
 
@@ -77,6 +79,7 @@ interface DocumentsWorkspacePanelProps {
   properties: PropertyWithUnitsView[];
   leases: LeaseWithTenantView[];
   tenants: Tenant[];
+  showEmailTemplates: boolean;
 }
 
 const INITIAL_TEMPLATE_FORM: TemplateFormState = {
@@ -98,7 +101,8 @@ export default function DocumentsWorkspacePanel({
   documents,
   properties,
   leases,
-  tenants
+  tenants,
+  showEmailTemplates
 }: DocumentsWorkspacePanelProps): React.ReactElement {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("documents");
   const [templates, setTemplates] = useState<EmailTemplateView[]>(BUILTIN_EMAIL_TEMPLATES);
@@ -146,8 +150,14 @@ export default function DocumentsWorkspacePanel({
   }
 
   useEffect(() => {
-    void fetchTemplates();
-  }, []);
+    if (showEmailTemplates) {
+      void fetchTemplates();
+      return;
+    }
+
+    setTemplates(BUILTIN_EMAIL_TEMPLATES);
+    setTemplatesLoading(false);
+  }, [showEmailTemplates]);
 
   const selectedTemplate = useMemo(
     () => templates.find((template) => template.id === selectedTemplateId) ?? null,
@@ -378,12 +388,14 @@ export default function DocumentsWorkspacePanel({
     setError(null);
     setMessage(null);
 
-    const result = await postWithAuth<{ success: boolean }>("/api/emails/send", {
+    const result = await postWithAuth<SendManagedEmailOutput>("/api/emails/send", {
       organizationId,
       to: recipientEmail.trim(),
       subject: emailSubject.trim(),
       body: emailBody.trim(),
-      documentIds: selectedDocumentIds
+      documentIds: selectedDocumentIds,
+      tenantId: selectedTenantId || undefined,
+      leaseId: selectedLeaseId || undefined
     });
 
     if (!result.success) {
@@ -392,7 +404,7 @@ export default function DocumentsWorkspacePanel({
       return;
     }
 
-    setMessage("Email envoyé avec succès.");
+    setMessage(formatDocumentDeliveryMessage(result.data.notifications));
     setSendBusy(false);
   }
 
@@ -400,9 +412,10 @@ export default function DocumentsWorkspacePanel({
     <div className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Documents et envois</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Documents et communications</h1>
           <p className="mt-2 text-sm text-slate-500">
-            {documents.length} document(s), {templates.length} template(s).
+            {documents.length} document(s)
+            {showEmailTemplates ? `, ${templates.length} template(s)` : ""}. Les envois partent par email et WhatsApp lorsque le numéro du locataire est disponible.
           </p>
         </div>
       </div>
@@ -410,8 +423,8 @@ export default function DocumentsWorkspacePanel({
       <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
         {[
           { id: "documents", label: `Documents (${documents.length})` },
-          { id: "templates", label: `Templates (${templates.length})` },
-          { id: "send", label: "Envoi" }
+          ...(showEmailTemplates ? [{ id: "templates", label: `Templates (${templates.length})` }] : []),
+          { id: "send", label: "Communication" }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -668,7 +681,7 @@ export default function DocumentsWorkspacePanel({
             <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
               <div>
                 <h2 className="text-base font-semibold text-[#010a19]">Contexte d'envoi</h2>
-                <p className="mt-1 text-sm text-gray-500">Choisissez le template et le contexte. Les informations seront injectées automatiquement dans le message.</p>
+                <p className="mt-1 text-sm text-gray-500">Choisissez le template et le locataire. Le message part par email (avec pièces jointes) et par WhatsApp (lien sécurisé) si un numéro est enregistré.</p>
               </div>
               <label className="block text-sm font-medium text-gray-700">
                 <span className="mb-1.5 block">Template</span>
@@ -741,8 +754,8 @@ export default function DocumentsWorkspacePanel({
 
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 h-fit">
             <div>
-              <h2 className="text-base font-semibold text-[#010a19]">Contenu de l'email</h2>
-              <p className="mt-1 text-sm text-gray-500">Le contenu est pré-rempli à partir du template, puis reste entièrement modifiable avant envoi.</p>
+              <h2 className="text-base font-semibold text-[#010a19]">Contenu du message</h2>
+              <p className="mt-1 text-sm text-gray-500">Le contenu est pré-rempli à partir du template, puis reste modifiable avant envoi.</p>
             </div>
             <label className="block text-sm font-medium text-gray-700">
               <span className="mb-1.5 block">Sujet</span>
@@ -753,7 +766,7 @@ export default function DocumentsWorkspacePanel({
               <textarea value={emailBody} onChange={(event) => setEmailBody(event.target.value)} className="min-h-80 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required />
             </label>
             <button type="submit" disabled={sendBusy} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60">
-              Envoyer l'email
+              Envoyer
             </button>
           </section>
         </form>

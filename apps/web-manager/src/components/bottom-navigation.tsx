@@ -5,15 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SidebarAccess } from "./sidebar";
 import LogoutButton from "./logout-button";
+import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
 
 interface BottomNavigationProps {
   access: SidebarAccess;
   currentRoleLabel: string;
+  isIndividualExperience: boolean;
 }
 
 export default function BottomNavigation({
   access,
   currentRoleLabel,
+  isIndividualExperience
 }: BottomNavigationProps): React.ReactElement {
   const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -33,6 +36,22 @@ export default function BottomNavigation({
   const handleLinkClick = () => {
     setIsDrawerOpen(false);
   };
+
+  function isItemVisible(href: string, visible: boolean): boolean {
+    if (!visible) {
+      return false;
+    }
+
+    if (isIndividualExperience && isNavHrefHiddenInIndividualExperience(href)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  const financesHref = isIndividualExperience ? "/dashboard/payments" : "/dashboard/revenues";
+  const servicesHref = isIndividualExperience ? "/dashboard/documents" : "/dashboard/maintenance";
+  const servicesLabel = isIndividualExperience ? "Documents" : "Services";
 
   const navItems = [
     {
@@ -60,7 +79,7 @@ export default function BottomNavigation({
       visible: access.operations,
     },
     {
-      href: "/dashboard/revenues",
+      href: financesHref,
       label: "Finances",
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
@@ -72,8 +91,8 @@ export default function BottomNavigation({
       visible: access.finances,
     },
     {
-      href: "/dashboard/maintenance",
-      label: "Services",
+      href: servicesHref,
+      label: servicesLabel,
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
           <path d="M14.5 6.5a3 3 0 0 1 3.9 3.9l-7.8 7.8-4.6 1 1-4.6 7.5-7.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
@@ -97,7 +116,7 @@ export default function BottomNavigation({
     { href: "/dashboard/documents", label: "Documents", icon: "documents", visible: access.services },
     { href: "/dashboard/team", label: "Équipe", icon: "team", visible: access.organization },
     { href: "/dashboard/audit", label: "Audit", icon: "audit", visible: access.audit },
-    { href: "/dashboard/organization", label: "Organisation", icon: "organization", visible: access.manageOrganization },
+    { href: "/dashboard/organization", label: "Organisation", icon: "organization", visible: access.manageOrganization && !isIndividualExperience },
     { href: "/dashboard/profile", label: "Mon Profil", icon: "profile", visible: true },
   ];
 
@@ -108,7 +127,7 @@ export default function BottomNavigation({
         className="fixed bottom-0 inset-x-0 w-full max-w-full z-50 bg-white border-t border-slate-200 flex md:hidden items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] select-none"
         style={{ transform: "translateZ(0)" }}
       >
-        {navItems.filter(item => item.visible).map((item) => {
+        {navItems.filter((item) => isItemVisible(item.href, item.visible)).map((item) => {
           const isActive = item.href === "/dashboard"
             ? pathname === "/dashboard"
             : pathname.startsWith(item.href);
@@ -186,7 +205,7 @@ export default function BottomNavigation({
 
         {/* Grid menu list */}
         <div className="p-4 grid grid-cols-3 gap-3">
-          {menuItems.filter(item => item.visible).map((item) => {
+          {menuItems.filter((item) => isItemVisible(item.href, item.visible)).map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link

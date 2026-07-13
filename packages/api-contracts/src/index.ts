@@ -31,9 +31,11 @@ export { parseAcceptTenantInvitationInput } from "./auth/tenant-invitations.vali
 export type {
   CreateOperatorAccountInput,
   CreateOperatorAccountOutput,
-  OperatorAccountType
+  PlatformExperience,
+  UpdatePlatformExperienceInput,
+  UpdatePlatformExperienceOutput
 } from "./auth/onboarding.types";
-export { parseCreateOperatorAccountInput } from "./auth/onboarding.validation";
+export { parseCreateOperatorAccountInput, parseUpdatePlatformExperienceInput } from "./auth/onboarding.validation";
 export type {
   CreateOwnerInvitationInput,
   CreateOwnerInvitationOutput,
@@ -126,6 +128,7 @@ export type {
 export {
   parseCreateTenantInput,
   parseCreateLeaseInput,
+  validateTenantPhoneForLease,
   parseFinalizeLeaseInput
 } from "./leases/tenant-lease.validation";
 export {

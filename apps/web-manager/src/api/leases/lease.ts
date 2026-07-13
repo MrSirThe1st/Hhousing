@@ -5,7 +5,7 @@ import type {
   CreateLeaseChargeInput,
   ListLeasesOutput
 } from "@hhousing/api-contracts";
-import { Permission, parseCreateLeaseInput } from "@hhousing/api-contracts";
+import { Permission, parseCreateLeaseInput, validateTenantPhoneForLease } from "@hhousing/api-contracts";
 import { calculateMonthlyProration, type SkippableInitialChargeType } from "@hhousing/domain";
 import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import { requirePermission, type TeamPermissionRepository } from "../organizations/permissions";
@@ -142,6 +142,19 @@ export async function createLease(
   }
 
   try {
+    const tenant = await deps.repository.getTenantById(parsed.data.tenantId, parsed.data.organizationId);
+    if (!tenant) {
+      return {
+        status: 404,
+        body: { success: false, code: "NOT_FOUND", error: "Tenant not found" }
+      };
+    }
+
+    const phoneValidation = validateTenantPhoneForLease(tenant.phone);
+    if (!phoneValidation.success) {
+      return { status: mapErrorCodeToHttpStatus(phoneValidation.code), body: phoneValidation };
+    }
+
     const isExistingTenant = parsed.data.moveInMode === "existing_tenant";
     const proration = !isExistingTenant && parsed.data.paymentFrequency === "monthly"
       ? calculateMonthlyProration({

@@ -24,21 +24,7 @@ function mapErrorCodeToHttpStatus(code: string): number {
   return 422;
 }
 
-function accountTypeToRoleAndCapabilities(accountType: string): { role: "landlord" | "property_manager"; canOwnProperties: boolean } {
-  if (accountType === "self_managed_owner") {
-    return { role: "landlord", canOwnProperties: true };
-  }
-  if (accountType === "manager_for_others") {
-    return { role: "property_manager", canOwnProperties: false };
-  }
-  if (accountType === "mixed_operator") {
-    return { role: "property_manager", canOwnProperties: true };
-  }
-  return { role: "property_manager", canOwnProperties: false };
-}
-
 export async function POST(request: Request): Promise<Response> {
-  // Verify user is authenticated via cookies
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,7 +60,6 @@ export async function POST(request: Request): Promise<Response> {
 
   const userId = user.id;
 
-  // Parse input
   let input: unknown;
   try {
     input = await request.json();
@@ -97,29 +82,17 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  // Block tenant from creating operator accounts
-  if (parsed.data.accountType === "tenant") {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        code: "FORBIDDEN",
-        error: "Tenant accounts cannot be created here. Use the mobile app or accept an invite."
-      }),
-      { status: 403, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
   try {
     const authRepo = createAuthRepositoryFromEnv(process.env);
-    const { role, canOwnProperties } = accountTypeToRoleAndCapabilities(parsed.data.accountType);
 
     const result = await authRepo.createOperatorAccount({
       organizationId: randomUUID(),
       organizationName: parsed.data.organizationName,
+      platformExperience: parsed.data.platformExperience,
       membershipId: randomUUID(),
       userId,
-      role,
-      canOwnProperties
+      role: "property_manager",
+      canOwnProperties: true
     });
 
     return new Response(

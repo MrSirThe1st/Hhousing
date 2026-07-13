@@ -20,7 +20,17 @@ export const WHATSAPP_TENANT_INVITATION_TEMPLATE: WhatsAppTemplateDefinition = {
 
 export const WHATSAPP_TEMPLATES = {
   testOrderConfirmation: WHATSAPP_TEST_TEMPLATE,
-  tenantInvitation: WHATSAPP_TENANT_INVITATION_TEMPLATE
+  tenantInvitation: WHATSAPP_TENANT_INVITATION_TEMPLATE,
+  leaseDocuments: {
+    name: "lease_documents_v1",
+    languageCode: "fr" as const,
+    bodyParameterCount: 4
+  },
+  paymentConfirmation: {
+    name: "payment_confirmation_v1",
+    languageCode: "fr" as const,
+    bodyParameterCount: 5
+  }
 } as const;
 
 export type WhatsAppTemplateKey = keyof typeof WHATSAPP_TEMPLATES;
@@ -51,4 +61,36 @@ function normalizeWhatsAppTemplateLanguage(languageCode: string | undefined): Wh
   }
 
   return "fr";
+}
+
+export function getLeaseDocumentsTemplateFromEnv(): WhatsAppTemplateDefinition | null {
+  const templateName = process.env.WHATSAPP_LEASE_DOCUMENTS_TEMPLATE?.trim();
+  if (!templateName) {
+    return null;
+  }
+
+  const configuredLanguage = process.env.WHATSAPP_LEASE_DOCUMENTS_TEMPLATE_LANGUAGE?.trim();
+  const languageCode = normalizeWhatsAppTemplateLanguage(configuredLanguage);
+
+  return {
+    name: templateName,
+    languageCode,
+    bodyParameterCount: 4
+  };
+}
+
+export function getPaymentConfirmationTemplateFromEnv(): WhatsAppTemplateDefinition | null {
+  const templateName = process.env.WHATSAPP_PAYMENT_CONFIRMATION_TEMPLATE?.trim();
+  if (!templateName) {
+    return null;
+  }
+
+  const configuredLanguage = process.env.WHATSAPP_PAYMENT_CONFIRMATION_TEMPLATE_LANGUAGE?.trim();
+  const languageCode = normalizeWhatsAppTemplateLanguage(configuredLanguage);
+
+  return {
+    name: templateName,
+    languageCode,
+    bodyParameterCount: 5
+  };
 }

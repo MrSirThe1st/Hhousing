@@ -1,4 +1,4 @@
-export type { Organization, OrganizationStatus } from "./entities/organization.types";
+export type { Organization, OrganizationStatus, PlatformExperience } from "./entities/organization.types";
 export type {
   MembershipCapabilities,
   MembershipStatus,

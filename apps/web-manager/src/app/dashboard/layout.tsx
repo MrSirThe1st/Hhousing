@@ -7,6 +7,8 @@ import BottomNavigation from "../../components/bottom-navigation";
 import FloatingActionButton from "../../components/floating-action-button";
 import { getServerAuthSession } from "../../lib/session";
 import { resolveDashboardAccess } from "../../lib/dashboard-access";
+import { getServerOperatorContext } from "../../lib/operator-context";
+import { isIndividualExperience } from "../../lib/platform-experience";
 import DashboardTour from "../../components/dashboard-tour";
 
 export const metadata: Metadata = {
@@ -44,10 +46,16 @@ export default async function DashboardLayout({
   }
 
   const sidebarAccess = await resolveDashboardAccess(session);
+  const operatorContext = await getServerOperatorContext(session);
+  const isIndividual = isIndividualExperience(operatorContext.experience);
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden w-full max-w-full">
-      <Sidebar currentRoleLabel={getRoleLabel(session.role)} access={sidebarAccess} />
+      <Sidebar
+        currentRoleLabel={getRoleLabel(session.role)}
+        access={sidebarAccess}
+        isIndividualExperience={isIndividual}
+      />
       <main className="flex-1 overflow-y-auto pb-32 md:pb-0 min-w-0 max-w-full overflow-x-hidden">
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center justify-between gap-4">
@@ -58,7 +66,9 @@ export default async function DashboardLayout({
               <div>
                 <p className="text-sm font-medium text-[#010a19]">Espace opérateur</p>
                 <p className="text-xs md:text-sm text-gray-500 line-clamp-1 md:line-clamp-none">
-                  Portefeuille unifié par propriétaire. Utilisez les filtres par propriétaire pour segmenter les données.
+                  {isIndividual
+                    ? "Gérez vos biens, locataires et paiements depuis un espace simplifié."
+                    : "Portefeuille unifié par propriétaire. Utilisez les filtres par propriétaire pour segmenter les données."}
                 </p>
               </div>
             </div>
@@ -76,7 +86,11 @@ export default async function DashboardLayout({
         {children}
         <DashboardTour access={sidebarAccess} />
       </main>
-      <BottomNavigation access={sidebarAccess} currentRoleLabel={getRoleLabel(session.role)} />
+      <BottomNavigation
+        access={sidebarAccess}
+        currentRoleLabel={getRoleLabel(session.role)}
+        isIndividualExperience={isIndividual}
+      />
       <FloatingActionButton access={sidebarAccess} />
     </div>
   );

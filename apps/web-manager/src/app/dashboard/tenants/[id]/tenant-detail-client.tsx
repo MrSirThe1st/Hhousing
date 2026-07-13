@@ -256,6 +256,9 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
                     <div className="mt-2 grid min-w-0 gap-x-4 gap-y-1 text-sm text-slate-500 sm:grid-cols-2 lg:grid-cols-3">
                       <span className="inline-flex min-w-0 items-start gap-2 break-all"><MailIcon className="mt-0.5 h-4 w-4 shrink-0" />{tenant.email ?? "Aucun e-mail"}</span>
                       <span className="inline-flex min-w-0 items-start gap-2 break-all"><PhoneIcon className="mt-0.5 h-4 w-4 shrink-0" />{tenant.phone ?? "Aucun téléphone"}</span>
+                      <span className="inline-flex min-w-0 items-start gap-2 break-all">
+                        WhatsApp : {tenant.whatsappOptIn ? "activé" : "non activé"}
+                      </span>
                       <span className="inline-flex min-w-0 items-start gap-2"><CalendarIcon className="mt-0.5 h-4 w-4 shrink-0" />Ajouté le {createdAtLabel}</span>
                     </div>
                   </div>
@@ -345,7 +348,7 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Nom complet</label><input type="text" required value={formData.fullName} onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Date de naissance</label><input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData((prev) => ({ ...prev, dateOfBirth: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">E-mail</label><input type="email" value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" required placeholder="+243..." /></div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Statut professionnel</label>
                 <select value={formData.employmentStatus} onChange={(e) => setFormData((prev) => ({ ...prev, employmentStatus: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20">

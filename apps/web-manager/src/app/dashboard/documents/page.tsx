@@ -6,10 +6,14 @@ import { filterDocumentsByScope, filterTenantsByScope, getScopedPortfolioData } 
 import { createDocumentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../api/shared";
 import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
+import { getIndividualExperienceFeatures } from "../../../lib/individual-experience";
+import { getServerOperatorContext } from "../../../lib/operator-context";
 import DocumentsWorkspacePanel from "../../../components/documents-workspace-panel";
 
 export default async function DocumentsPage(): Promise<React.ReactElement> {
   const { session, access } = await requireDashboardSectionAccess("services");
+  const operatorContext = await getServerOperatorContext(session);
+  const features = getIndividualExperienceFeatures(operatorContext.experience);
 
   const documentRepo = createDocumentRepo();
 
@@ -70,6 +74,7 @@ export default async function DocumentsPage(): Promise<React.ReactElement> {
           properties={properties}
           leases={leases}
           tenants={tenants}
+          showEmailTemplates={features.emailTemplates}
         />
       </div>
     </>

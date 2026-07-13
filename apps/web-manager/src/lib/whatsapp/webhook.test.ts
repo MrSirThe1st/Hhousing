@@ -83,4 +83,46 @@ describe("processWhatsAppWebhookPayload", () => {
       errorMessage: null
     });
   });
+
+  it("records template status updates", async () => {
+    const result = await processWhatsAppWebhookPayload(
+      {
+        object: "whatsapp_business_account",
+        entry: [
+          {
+            id: "1581713516772841",
+            changes: [
+              {
+                field: "message_template_status_update",
+                value: {
+                  event: "APPROVED",
+                  message_template_id: 123456,
+                  message_template_name: "tenant_invitation_v1",
+                  message_template_language: "fr",
+                  reason: "NONE"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        createMessage: vi.fn(),
+        getMessageByExternalId: vi.fn(),
+        updateMessageStatus: vi.fn()
+      }
+    );
+
+    expect(result.processedStatuses).toBe(0);
+    expect(result.templateStatusEvents).toEqual([
+      {
+        event: "APPROVED",
+        templateName: "tenant_invitation_v1",
+        languageCode: "fr",
+        reason: "NONE",
+        templateId: "123456",
+        wabaId: "1581713516772841"
+      }
+    ]);
+  });
 });

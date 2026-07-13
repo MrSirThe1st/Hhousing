@@ -1,5 +1,5 @@
 import { processPawapayDepositCallback } from "../../../../../api/payments/process-pawapay-deposit-callback";
-import { sendRawHtmlEmailFromEnv } from "../../../../../lib/email/resend";
+import { createPaidInvoiceNotificationDepsFromEnv } from "../../../../../lib/notifications/payment-confirmation-notifiers";
 import {
   createInvoiceRepo,
   createPaymentRepo,
@@ -13,6 +13,8 @@ export async function POST(request: Request): Promise<Response> {
   const rawBody = await request.text();
   const organizationRepositoryResult = createRepositoryFromEnv();
 
+  const paidInvoiceNotificationDeps = createPaidInvoiceNotificationDepsFromEnv();
+
   const result = await processPawapayDepositCallback({
     request,
     rawBody,
@@ -23,7 +25,7 @@ export async function POST(request: Request): Promise<Response> {
     organizationRepository: organizationRepositoryResult.success
       ? organizationRepositoryResult.data
       : undefined,
-    sendInvoicePaidEmail: sendRawHtmlEmailFromEnv
+    notifyPaidInvoice: paidInvoiceNotificationDeps.notifyPaidInvoice
   });
 
   return jsonResponse(result.status, result.body);

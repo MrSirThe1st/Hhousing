@@ -17,7 +17,7 @@ import type {
   PaymentRepository,
   TenantLeaseRepository
 } from "@hhousing/data-access";
-import type { ManagedEmailAttachmentInput } from "../../lib/email/resend";
+import type { notifyPaidInvoice } from "../../lib/notifications/paid-invoice-notification";
 
 export async function processPawapayDepositCallback(params: {
   request: Request;
@@ -27,12 +27,7 @@ export async function processPawapayDepositCallback(params: {
   invoiceRepository: InvoiceRepository;
   tenantRepository: TenantLeaseRepository;
   organizationRepository?: OrganizationPropertyUnitRepository;
-  sendInvoicePaidEmail?: (input: {
-    to: string;
-    subject: string;
-    html: string;
-    attachments?: ManagedEmailAttachmentInput[];
-  }) => Promise<void>;
+  notifyPaidInvoice?: typeof notifyPaidInvoice;
 }): Promise<{ status: number; body: unknown }> {
   const config = readPawapayConfig();
   if (!config) {
@@ -83,7 +78,7 @@ export async function processPawapayDepositCallback(params: {
       invoiceRepository: params.invoiceRepository,
       tenantRepository: params.tenantRepository,
       organizationRepository: params.organizationRepository,
-      sendInvoicePaidEmail: params.sendInvoicePaidEmail
+      notifyPaidInvoice: params.notifyPaidInvoice
     });
   } else {
     await failPawapayDepositTransaction({
@@ -108,12 +103,7 @@ export async function refreshPawapayDepositTransactionStatus(params: {
   invoiceRepository: InvoiceRepository;
   tenantRepository: TenantLeaseRepository;
   organizationRepository?: OrganizationPropertyUnitRepository;
-  sendInvoicePaidEmail?: (input: {
-    to: string;
-    subject: string;
-    html: string;
-    attachments?: ManagedEmailAttachmentInput[];
-  }) => Promise<void>;
+  notifyPaidInvoice?: typeof notifyPaidInvoice;
 }): Promise<void> {
   const transaction = await params.pawapayTransactionRepository.getTransactionById(params.transactionId);
   if (!transaction || transaction.status === "completed" || transaction.status === "failed") {
@@ -134,7 +124,7 @@ export async function refreshPawapayDepositTransactionStatus(params: {
       invoiceRepository: params.invoiceRepository,
       tenantRepository: params.tenantRepository,
       organizationRepository: params.organizationRepository,
-      sendInvoicePaidEmail: params.sendInvoicePaidEmail
+      notifyPaidInvoice: params.notifyPaidInvoice
     });
     return;
   }

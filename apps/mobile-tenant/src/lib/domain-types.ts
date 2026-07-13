@@ -9,6 +9,8 @@ export interface Tenant {
   email: string;
   phoneNumber?: string;
   phone?: string;
+  whatsappOptIn?: boolean;
+  whatsappNumber?: string;
   moveInDate?: string;
   organizationId?: string;
 }

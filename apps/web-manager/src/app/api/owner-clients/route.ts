@@ -1,8 +1,15 @@
 import { createOwner, listOwners } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
+import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { createId, createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
+  const session = await extractAuthSessionFromCookies();
+  const experienceDenied = await rejectIfIndividualExperience(session);
+  if (experienceDenied !== null) {
+    return experienceDenied;
+  }
+
   let body: unknown;
   try {
     body = await parseJsonBody(request);
@@ -22,7 +29,7 @@ export async function POST(request: Request): Promise<Response> {
   const result = await createOwner(
     {
       body,
-      session: await extractAuthSessionFromCookies()
+      session
     },
     {
       repository: repositoryResult.data,

@@ -2,9 +2,14 @@ import { Permission, sendManagedEmailInputSchema } from "@hhousing/api-contracts
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
-import { sendManagedEmailFromEnv } from "../../../../lib/email/resend";
+import { sendDocumentCommunication } from "../../../../lib/notifications/document-communication";
+import {
+  resolveDocumentCommunicationPropertyLabel,
+  resolveDocumentCommunicationTenant
+} from "../../../../lib/notifications/document-communication-context";
+import { resolveLeaseDocumentsLink } from "../../../../lib/whatsapp/lease-documents";
 import { getScopedPortfolioData, isDocumentAttachmentInScope } from "../../../../lib/operator-scope-portfolio";
-import { createDocumentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
+import { createDocumentRepo, createId, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 function mapSendEmailError(error: unknown): { status: number; body: { success: false; code: string; error: string } } {
   if (error instanceof Error && error.message === "RESEND_EMAIL_NOT_CONFIGURED") {
@@ -86,7 +91,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const scopedPortfolio = await getScopedPortfolioData(access.data);
     const documentRepository = createDocumentRepo();
-    const organizationRepositoryResult = createRepositoryFromEnv();
+    const tenantLeaseRepository = createTenantLeaseRepo();
     const attachments = parsed.data.documentIds
       ? await Promise.all(
           parsed.data.documentIds.map(async (documentId) => {
@@ -103,21 +108,75 @@ export async function POST(request: Request): Promise<Response> {
           })
         )
       : [];
+    const organizationRepositoryResult = createRepositoryFromEnv();
     const organization = organizationRepositoryResult.success
       ? await organizationRepositoryResult.data.getOrganizationById(access.data.organizationId)
       : null;
 
-    await sendManagedEmailFromEnv({
-      to: parsed.data.to,
-      subject: parsed.data.subject,
-      body: parsed.data.body,
-      organization,
-      attachments
+    const lease = parsed.data.leaseId
+      ? await tenantLeaseRepository.getLeaseById(parsed.data.leaseId, access.data.organizationId)
+      : null;
+    if (parsed.data.leaseId && (!lease || !scopedPortfolio.leaseIds.has(parsed.data.leaseId))) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Lease not found"
+      });
+    }
+
+    const tenant = parsed.data.tenantId
+      ? await tenantLeaseRepository.getTenantById(parsed.data.tenantId, access.data.organizationId)
+      : lease
+        ? await tenantLeaseRepository.getTenantById(lease.tenantId, access.data.organizationId)
+        : null;
+    if (parsed.data.tenantId && !tenant) {
+      return jsonResponse(404, {
+        success: false,
+        code: "NOT_FOUND",
+        error: "Tenant not found"
+      });
+    }
+
+    const tenantContext = resolveDocumentCommunicationTenant({
+      tenant,
+      lease,
+      recipientEmail: parsed.data.to
     });
+    const propertyLabel = resolveDocumentCommunicationPropertyLabel({
+      lease,
+      properties: scopedPortfolio.properties
+    });
+    const documentsLink = resolveLeaseDocumentsLink(attachments) ?? "";
+
+    const notifications = await sendDocumentCommunication({
+      organizationId: access.data.organizationId,
+      tenantId: tenantContext.tenantId,
+      tenantEmail: parsed.data.to,
+      tenantPhone: tenantContext.tenantPhone,
+      tenantWhatsappNumber: tenantContext.tenantWhatsappNumber,
+      tenantWhatsappOptIn: tenantContext.tenantWhatsappOptIn,
+      tenantFullName: tenantContext.tenantFullName,
+      organizationName: organization?.name ?? "Haraka Property",
+      propertyLabel,
+      documentsLink,
+      emailSubject: parsed.data.subject,
+      emailBody: parsed.data.body,
+      organization,
+      attachments,
+      createMessageId: createId
+    });
+
+    const emailDelivery = notifications.find((notification) => notification.channel === "email");
+    if (emailDelivery?.status === "failed") {
+      throw new Error(emailDelivery.error ?? "EMAIL_SEND_FAILED");
+    }
 
     return jsonResponse(200, {
       success: true,
-      data: { success: true }
+      data: {
+        success: true,
+        notifications
+      }
     });
   } catch (error) {
     if (error instanceof Error && error.message === "EMAIL_DOCUMENT_NOT_FOUND") {

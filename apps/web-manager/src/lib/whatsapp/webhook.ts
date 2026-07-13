@@ -9,11 +9,30 @@ type WhatsAppWebhookStatus = {
   errors?: Array<{ code?: number; title?: string; message?: string }>;
 };
 
+type WhatsAppTemplateStatusUpdate = {
+  event?: string;
+  message_template_id?: number | string;
+  message_template_name?: string;
+  message_template_language?: string;
+  reason?: string;
+  disable_info?: {
+    disable_date?: string;
+  };
+};
+
 type WhatsAppWebhookChange = {
   field?: string;
   value?: {
     messaging_product?: string;
     statuses?: WhatsAppWebhookStatus[];
+    event?: string;
+    message_template_id?: number | string;
+    message_template_name?: string;
+    message_template_language?: string;
+    reason?: string;
+    disable_info?: {
+      disable_date?: string;
+    };
   };
 };
 
@@ -23,6 +42,15 @@ type WhatsAppWebhookPayload = {
     id?: string;
     changes?: WhatsAppWebhookChange[];
   }>;
+};
+
+export type WhatsAppTemplateStatusEvent = {
+  event: string;
+  templateName: string;
+  languageCode: string;
+  reason: string | null;
+  templateId: string | null;
+  wabaId: string | null;
 };
 
 export type VerifyWhatsAppWebhookResult =
@@ -78,18 +106,52 @@ function formatStatusError(status: WhatsAppWebhookStatus): string | null {
   return [firstError.title, firstError.message].filter(Boolean).join(": ") || "WHATSAPP_DELIVERY_FAILED";
 }
 
+function parseTemplateStatusUpdate(
+  value: WhatsAppWebhookChange["value"],
+  wabaId: string | null
+): WhatsAppTemplateStatusEvent | null {
+  if (!value?.event || !value.message_template_name) {
+    return null;
+  }
+
+  return {
+    event: value.event,
+    templateName: value.message_template_name,
+    languageCode: value.message_template_language ?? "fr",
+    reason: value.reason ?? null,
+    templateId: value.message_template_id !== undefined ? String(value.message_template_id) : null,
+    wabaId
+  };
+}
+
+export function logWhatsAppTemplateStatusEvent(event: WhatsAppTemplateStatusEvent): void {
+  console.info("[whatsapp:template-status]", JSON.stringify(event));
+}
+
 export async function processWhatsAppWebhookPayload(
   payload: WhatsAppWebhookPayload,
   repository: WhatsAppMessageRepository
-): Promise<{ processedStatuses: number }> {
+): Promise<{ processedStatuses: number; templateStatusEvents: WhatsAppTemplateStatusEvent[] }> {
   if (payload.object !== "whatsapp_business_account") {
-    return { processedStatuses: 0 };
+    return { processedStatuses: 0, templateStatusEvents: [] };
   }
 
   let processedStatuses = 0;
+  const templateStatusEvents: WhatsAppTemplateStatusEvent[] = [];
 
   for (const entry of payload.entry ?? []) {
+    const wabaId = entry.id ?? null;
+
     for (const change of entry.changes ?? []) {
+      if (change.field === "message_template_status_update") {
+        const templateEvent = parseTemplateStatusUpdate(change.value, wabaId);
+        if (templateEvent) {
+          logWhatsAppTemplateStatusEvent(templateEvent);
+          templateStatusEvents.push(templateEvent);
+        }
+        continue;
+      }
+
       if (change.field !== "messages") {
         continue;
       }
@@ -118,5 +180,5 @@ export async function processWhatsAppWebhookPayload(
     }
   }
 
-  return { processedStatuses };
+  return { processedStatuses, templateStatusEvents };
 }

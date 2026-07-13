@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createRepositoryFromEnv } from "../../../api/shared";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
+import { getIndividualExperienceFeatures } from "../../../../lib/individual-experience";
+import { getServerOperatorContext } from "../../../../lib/operator-context";
 import PropertyDetailClient from "./property-detail-client";
 
 type PageProps = {
@@ -11,6 +13,8 @@ type PageProps = {
 export default async function PropertyDetailPage({ params }: PageProps): Promise<React.ReactElement> {
   const { id } = await params;
   const { session } = await requireDashboardSectionAccess("operations");
+  const operatorContext = await getServerOperatorContext(session);
+  const features = getIndividualExperienceFeatures(operatorContext.experience);
   const repositoryResult = createRepositoryFromEnv();
 
   if (!repositoryResult.success) {
@@ -33,5 +37,13 @@ export default async function PropertyDetailPage({ params }: PageProps): Promise
 
   const ownerClients = await repositoryResult.data.listOwnerClients(session.organizationId);
 
-  return <PropertyDetailClient id={id} initialProperty={propertyRecord.property} initialOwnerClients={ownerClients} initialUnits={propertyRecord.units} />;
+  return (
+    <PropertyDetailClient
+      id={id}
+      initialProperty={propertyRecord.property}
+      initialOwnerClients={ownerClients}
+      initialUnits={propertyRecord.units}
+      showManagedPropertyMode={features.managedPropertyMode}
+    />
+  );
 }

@@ -286,7 +286,15 @@ export default function SignupPage(): React.ReactElement {
         </div>
 
         <p className="mt-4 text-center text-[10px] text-slate-500">
-          En créant un compte, vous acceptez nos conditions d'utilisation
+          En créant un compte, vous acceptez nos{" "}
+          <Link href="/conditions-utilisation" className="underline hover:text-slate-700">
+            conditions d&apos;utilisation
+          </Link>{" "}
+          et notre{" "}
+          <Link href="/politique-de-confidentialite" className="underline hover:text-slate-700">
+            politique de confidentialité
+          </Link>
+          .
         </p>
       </div>
     </main>

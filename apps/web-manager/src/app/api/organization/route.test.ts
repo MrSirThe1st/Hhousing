@@ -84,6 +84,7 @@ describe("/api/organization", () => {
     getOrganizationByIdMock.mockResolvedValue({
       id: "org-1",
       name: "Gestion Horizon",
+      platformExperience: "entreprise",
       logoUrl: null,
       contactEmail: null,
       contactPhone: null,
@@ -97,6 +98,7 @@ describe("/api/organization", () => {
     updateOrganizationMock.mockResolvedValue({
       id: "org-1",
       name: "Gestion Horizon",
+      platformExperience: "entreprise",
       logoUrl: "https://example.com/logo.png",
       contactEmail: "contact@horizon.test",
       contactPhone: null,

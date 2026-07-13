@@ -422,6 +422,15 @@ describe("/api/leases/[id]", () => {
       currencyCode: "CDF",
       status: "pending"
     });
+    getTenantByIdMock.mockResolvedValue({
+      id: "tenant-1",
+      organizationId: "org-1",
+      fullName: "Tenant One",
+      email: "tenant@example.com",
+      phone: "+243700000000",
+      whatsappNumber: null,
+      whatsappOptIn: false
+    });
     getDocumentByIdMock.mockResolvedValue({
       id: "doc-1",
       organizationId: "org-1",

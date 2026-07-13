@@ -7,6 +7,7 @@ import { upsertLeaseMoveOutInspection } from "../../../../../../api/leases/move-
 import { requirePermission } from "../../../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../../../auth/session-adapter";
+import { rejectIfIndividualExperience } from "../../../../../../lib/entreprise-experience-guard";
 import { getScopedPortfolioData } from "../../../../../../lib/operator-scope-portfolio";
 import {
   createId,
@@ -25,6 +26,11 @@ export async function PATCH(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(

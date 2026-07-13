@@ -1,8 +1,11 @@
 export type OrganizationStatus = "active" | "suspended";
 
+export type PlatformExperience = "entreprise" | "individual";
+
 export interface Organization {
   id: string;
   name: string;
+  platformExperience: PlatformExperience;
   logoUrl: string | null;
   contactEmail: string | null;
   contactPhone: string | null;

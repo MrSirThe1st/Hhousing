@@ -19,7 +19,13 @@ export function formatWhatsAppPhoneForDisplay(normalizedPhone: string): string {
   return `+${normalizedPhone}`;
 }
 
-export function resolveTenantWhatsAppRecipient(tenant: Pick<Tenant, "phone" | "whatsappNumber">): string | null {
+export function resolveTenantWhatsAppRecipient(
+  tenant: Pick<Tenant, "phone" | "whatsappNumber" | "whatsappOptIn">
+): string | null {
+  if (!tenant.whatsappOptIn) {
+    return null;
+  }
+
   const rawPhone = tenant.whatsappNumber ?? tenant.phone;
   if (!rawPhone) {
     return null;

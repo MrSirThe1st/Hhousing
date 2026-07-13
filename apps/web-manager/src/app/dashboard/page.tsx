@@ -4,12 +4,13 @@ import DashboardTasksPanel from "../../components/dashboard-tasks-panel";
 import ResponsiveTable from "../../components/responsive-table";
 import { requireDashboardSectionAccess } from "../../lib/dashboard-access";
 import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
+import { getIndividualExperienceFeatures } from "../../lib/individual-experience";
 import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo } from "../api/shared";
 import { buildDashboardWorkflowData } from "../../lib/dashboard-workflow";
 import DashboardCalendar from "../../components/dashboard-calendar";
 import { formatCurrencySummary, loadScopedFinanceData, subtractCurrencyTotals } from "../../lib/finance-reporting";
 import type { AuthSession } from "@hhousing/api-contracts";
-import type { Expense, MaintenanceRequest, Payment } from "@hhousing/domain";
+import type { Expense, MaintenanceRequest, Payment, PlatformExperience } from "@hhousing/domain";
 import { getNow } from "../../lib/time";
 
 type DashboardTab = "overview" | "tasks" | "calendar";
@@ -248,7 +249,11 @@ function getUrgentMaintenanceOpenCount(requests: MaintenanceRequest[]): number {
   ).length;
 }
 
-function getDashboardTab(tab: string | undefined): DashboardTab {
+function getDashboardTab(tab: string | undefined, allowTasksCalendar: boolean): DashboardTab {
+  if (!allowTasksCalendar && (tab === "tasks" || tab === "calendar")) {
+    return "overview";
+  }
+
   if (tab === "tasks" || tab === "calendar") {
     return tab;
   }
@@ -256,24 +261,17 @@ function getDashboardTab(tab: string | undefined): DashboardTab {
   return "overview";
 }
 
-function getVariantHeader(experience: "self_managed_owner" | "manager_for_others" | "mixed_operator"): { title: string; subtitle: string } {
-  if (experience === "self_managed_owner") {
+function getVariantHeader(experience: PlatformExperience): { title: string; subtitle: string } {
+  if (experience === "individual") {
     return {
-      title: "Vue proprietaire-operateur",
-      subtitle: "Focus revenus, occupation, profit"
-    };
-  }
-
-  if (experience === "manager_for_others") {
-    return {
-      title: "Vue property manager",
-      subtitle: "Focus tâches, maintenance, collecte"
+      title: "Vue particulier",
+      subtitle: "Gestion simplifiée de vos biens"
     };
   }
 
   return {
-    title: "Vue hybride",
-    subtitle: "Revenus propriétaires + opérations gérées"
+    title: "Vue entreprise",
+    subtitle: "Opérations complètes, équipe et portefeuille"
   };
 }
 
@@ -438,7 +436,7 @@ async function fetchDashboardMetrics(
 }
 
 function getStats(
-  experience: "self_managed_owner" | "manager_for_others" | "mixed_operator",
+  experience: PlatformExperience,
   scopeLabel: string,
   metrics: DashboardMetrics
 ): Array<{ label: string; value: string }> {
@@ -446,31 +444,19 @@ function getStats(
     ? Math.round((metrics.occupiedUnitCount / metrics.unitCount) * 100)
     : 0;
 
-  if (experience === "self_managed_owner") {
+  if (experience === "individual") {
     return [
-      { label: `Proprietes (${scopeLabel})`, value: metrics.propertyCount.toString() },
+      { label: `Propriétés (${scopeLabel})`, value: metrics.propertyCount.toString() },
       { label: "Unités totales", value: metrics.unitCount.toString() },
       { label: "Taux d'occupation", value: `${occupancyRate}%` },
       { label: "Locataires actifs", value: metrics.tenantCount.toString() },
-      { label: "Baux actifs", value: metrics.leaseCount.toString() },
-      { label: "Demandes maintenance", value: metrics.maintenanceCount.toString() }
-    ];
-  }
-
-  if (experience === "manager_for_others") {
-    return [
-      { label: `Biens (${scopeLabel})`, value: metrics.propertyCount.toString() },
-      { label: `Unites (${scopeLabel})`, value: metrics.unitCount.toString() },
-      { label: "Locataires actifs", value: metrics.tenantCount.toString() },
-      { label: "Taux d'occupation", value: `${occupancyRate}%` },
-      { label: "Incidents maintenance", value: metrics.maintenanceCount.toString() },
       { label: "Baux actifs", value: metrics.leaseCount.toString() }
     ];
   }
 
   return [
-    { label: `Proprietes (${scopeLabel})`, value: metrics.propertyCount.toString() },
-    { label: `Unites (${scopeLabel})`, value: metrics.unitCount.toString() },
+    { label: `Propriétés (${scopeLabel})`, value: metrics.propertyCount.toString() },
+    { label: `Unités (${scopeLabel})`, value: metrics.unitCount.toString() },
     { label: "Locataires actifs", value: metrics.tenantCount.toString() },
     { label: "Baux actifs", value: metrics.leaseCount.toString() },
     { label: "Taux d'occupation", value: `${occupancyRate}%` },
@@ -489,10 +475,11 @@ function getCollectionRate(metrics: DashboardMetrics): number {
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps): Promise<React.ReactElement> {
   const { session } = await requireDashboardSectionAccess("dashboard");  const params = await searchParams;
-  const activeTab = getDashboardTab(params?.tab);
+  const operatorContext = await getServerOperatorContext(session);
+  const individualFeatures = getIndividualExperienceFeatures(operatorContext.experience);
+  const activeTab = getDashboardTab(params?.tab, individualFeatures.dashboardTasksCalendar);
   const selectedCurrency = params?.currency === "CDF" || params?.currency === "FC" ? "CDF" : "USD";
 
-  const operatorContext = await getServerOperatorContext(session);
   const scopeLabel = getOperatorScopeLabel();
   const header = getVariantHeader(operatorContext.experience);
 
@@ -565,7 +552,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div id="dashboard-tabs" className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-          {(["overview", "tasks", "calendar"] as DashboardTab[]).map((tabId) => {
+          {(individualFeatures.dashboardTasksCalendar
+            ? (["overview", "tasks", "calendar"] as DashboardTab[])
+            : (["overview"] as DashboardTab[])
+          ).map((tabId) => {
             const label = tabId === "overview" ? "Vue d'ensemble" : tabId === "tasks" ? "Tâches" : "Calendrier";
             return (
               <Link
@@ -748,11 +738,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
                   <div>
                     <h2 className="text-base font-semibold text-[#010a19]">Vue d'ensemble opérationnelle</h2>
-                    <p className="mt-1 text-xs text-slate-500">Capacité, activité locative, maintenance et collecte.</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {individualFeatures.maintenanceDashboardWidgets
+                        ? "Capacité, activité locative, maintenance et collecte."
+                        : "Capacité, activité locative et collecte."}
+                    </p>
                   </div>
-                  <Link href="/dashboard/reports" className="text-sm font-medium text-[#0063fe] hover:underline">
-                    Ouvrir les rapports
-                  </Link>
+                  {individualFeatures.financeReportsWidgets ? (
+                    <Link href="/dashboard/reports" className="text-sm font-medium text-[#0063fe] hover:underline">
+                      Ouvrir les rapports
+                    </Link>
+                  ) : null}
                 </div>
 
                 <div className="mt-4 overflow-x-auto pb-1">
@@ -779,7 +775,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   ))}
                 </div>
 
-                <div className="mt-5 grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-3">
+                <div className={`mt-5 grid gap-3 border-t border-slate-200 pt-4 ${individualFeatures.maintenanceDashboardWidgets ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                   <div className="rounded-lg border border-slate-200 px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Paiements à encaisser</p>
                     <p className="mt-1 text-xl font-semibold text-[#010a19]">{formatCurrencySummary(metrics.pendingTotals)}</p>
@@ -792,17 +788,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     <p className="mt-1 text-xs text-slate-500">Part des paiements soldés</p>
                   </div>
 
+                  {individualFeatures.maintenanceDashboardWidgets ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Maintenance urgente</p>
                     <p className="mt-1 text-xl font-semibold text-amber-900">{metrics.urgentMaintenanceCount}</p>
                     <p className="mt-1 text-xs text-amber-700">Ticket(s) urgents ouverts/en cours</p>
                   </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 border-t border-slate-200 pt-4">
                   <h3 className="text-sm font-semibold text-[#010a19]">Digest quotidien manager</h3>
                   <p className="mt-1 text-xs text-slate-500">Points critiques à traiter immédiatement.</p>
-                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  <div className={`mt-3 grid gap-3 ${individualFeatures.maintenanceDashboardWidgets ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+                    {individualFeatures.maintenanceDashboardWidgets ? (
                     <article className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Urgences maintenance</p>
                       <p className="mt-1 text-xl font-semibold text-amber-900">{metrics.dailyDigest.urgentMaintenanceCount}</p>
@@ -810,6 +809,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                         Ouvrir la file maintenance
                       </Link>
                     </article>
+                    ) : null}
 
                     <article className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Paiements en retard</p>
@@ -836,6 +836,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </div>
               </section>
 
+              {individualFeatures.financeReportsWidgets ? (
               <section id="quick-reports" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-base font-semibold text-[#010a19]">Accès rapide rapports</h2>
                 <p className="mt-1 text-xs text-slate-500">Suivi détaillé par module pour action immédiate.</p>
@@ -854,6 +855,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   </Link>
                 </div>
               </section>
+              ) : null}
             </>
           )}
         </>

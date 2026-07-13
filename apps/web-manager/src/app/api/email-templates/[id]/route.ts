@@ -3,6 +3,7 @@ import { logOperatorAuditEvent } from "../../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
+import { rejectIfIndividualExperience } from "../../../../lib/entreprise-experience-guard";
 import { createEmailTemplateRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function PATCH(
@@ -14,6 +15,11 @@ export async function PATCH(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(
@@ -97,6 +103,11 @@ export async function DELETE(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(access.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(

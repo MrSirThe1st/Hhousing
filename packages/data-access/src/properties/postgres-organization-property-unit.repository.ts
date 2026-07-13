@@ -11,6 +11,7 @@ import type {
   CreateUnitRecordInput,
   ListPropertiesWithUnitsFilter,
   UpdateOrganizationRecordInput,
+  UpdateOrganizationPlatformExperienceRecordInput,
   UpdateOwnerRecordInput,
   UpdatePropertyRecordInput,
   UpdateUnitRecordInput,
@@ -37,6 +38,7 @@ interface OrganizationRow extends QueryResultRow {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  platform_experience: "entreprise" | "individual";
 }
 
 interface PropertyRow extends QueryResultRow {
@@ -285,6 +287,7 @@ function mapOrganization(row: OrganizationRow): Organization {
   return {
     id: row.id,
     name: row.name,
+    platformExperience: row.platform_experience ?? "entreprise",
     logoUrl: row.logo_url,
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
@@ -427,7 +430,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
       const result = await client.query<OrganizationRow>(
         `insert into organizations (id, name)
          values ($1, $2)
-         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code`,
+         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code, platform_experience`,
         [input.id, input.name]
       );
 
@@ -435,7 +438,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
     },
     async getOrganizationById(organizationId: string): Promise<Organization | null> {
       const result = await client.query<OrganizationRow>(
-        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code
+        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code, platform_experience
          from organizations
          where id = $1`,
         [organizationId]
@@ -445,7 +448,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
     },
     async getOrganizationByName(name: string): Promise<Organization | null> {
       const result = await client.query<OrganizationRow>(
-        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code
+        `select id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code, platform_experience
          from organizations
          where lower(name) = lower($1)`,
         [name]
@@ -480,7 +483,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
              state = $15,
              zip_code = $16
          where id = $1
-         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code`,
+         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code, platform_experience`,
         [
           input.id,
           input.name,
@@ -499,6 +502,19 @@ export function createPostgresOrganizationPropertyUnitRepository(
           input.state,
           input.zipCode
         ]
+      );
+
+      return result.rows[0] ? mapOrganization(result.rows[0]) : null;
+    },
+    async updateOrganizationPlatformExperience(
+      input: UpdateOrganizationPlatformExperienceRecordInput
+    ): Promise<Organization | null> {
+      const result = await client.query<OrganizationRow>(
+        `update organizations
+         set platform_experience = $2
+         where id = $1
+         returning id, name, logo_url, contact_email, contact_phone, contact_whatsapp, website_url, address, email_signature, status, created_at, registration_number, vat_number, capital, country, city, state, zip_code, platform_experience`,
+        [input.id, input.platformExperience]
       );
 
       return result.rows[0] ? mapOrganization(result.rows[0]) : null;

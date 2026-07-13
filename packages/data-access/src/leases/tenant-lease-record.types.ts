@@ -91,6 +91,15 @@ export interface CreateLeaseRecordInput {
   charges: CreateLeaseChargeRecordInput[];
 }
 
+export interface UpdateTenantMobileProfileInput {
+  id: string;
+  organizationId: string;
+  fullName: string;
+  phone: string | null;
+  whatsappOptIn: boolean;
+  whatsappNumber: string | null;
+}
+
 export interface UpdateTenantRecordInput {
   id: string;
   organizationId: string;
@@ -212,6 +221,7 @@ export interface TenantLeaseRepository {
   upsertMoveOutInspection(input: UpsertMoveOutInspectionRecordInput): Promise<MoveOutInspection>;
   closeMoveOut(input: CloseMoveOutRecordInput): Promise<MoveOut | null>;
   updateTenant(input: UpdateTenantRecordInput): Promise<Tenant | null>;
+  updateTenantMobileProfile(input: UpdateTenantMobileProfileInput): Promise<Tenant | null>;
   updateLease(input: UpdateLeaseRecordInput): Promise<Lease | null>;
   deleteTenant(tenantId: string, organizationId: string): Promise<boolean>;
 }

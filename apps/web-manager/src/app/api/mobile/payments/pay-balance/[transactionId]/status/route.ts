@@ -1,7 +1,7 @@
 import { extractTenantSessionFromRequest } from "../../../../../../../auth/session-adapter";
 import { mapErrorCodeToHttpStatus } from "../../../../../../../api/shared";
 import { refreshPawapayDepositTransactionStatus } from "../../../../../../../api/payments/process-pawapay-deposit-callback";
-import { sendRawHtmlEmailFromEnv } from "../../../../../../../lib/email/resend";
+import { createPaidInvoiceNotificationDepsFromEnv } from "../../../../../../../lib/notifications/payment-confirmation-notifiers";
 import {
   createInvoiceRepo,
   createPaymentRepo,
@@ -40,6 +40,8 @@ export async function GET(
   }
 
   if (transaction.status === "submitted") {
+    const paidInvoiceNotificationDeps = createPaidInvoiceNotificationDepsFromEnv();
+
     await refreshPawapayDepositTransactionStatus({
       transactionId,
       pawapayTransactionRepository,
@@ -49,7 +51,7 @@ export async function GET(
       organizationRepository: organizationRepositoryResult.success
         ? organizationRepositoryResult.data
         : undefined,
-      sendInvoicePaidEmail: sendRawHtmlEmailFromEnv
+      notifyPaidInvoice: paidInvoiceNotificationDeps.notifyPaidInvoice
     });
 
     transaction = await pawapayTransactionRepository.getTransactionByIdForTenant(

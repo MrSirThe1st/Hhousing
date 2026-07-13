@@ -71,6 +71,24 @@ function createPaymentRepositoryMock(): PaymentRepository {
   };
 }
 
+const sampleTenantWithPhone = {
+  id: "tenant-1",
+  organizationId: "org-1",
+  authUserId: null,
+  fullName: "Tenant One",
+  email: "tenant@example.com",
+  phone: "+243812345678",
+  whatsappNumber: null,
+  whatsappOptIn: false,
+  dateOfBirth: null,
+  photoUrl: null,
+  employmentStatus: null,
+  jobTitle: null,
+  monthlyIncome: null,
+  numberOfOccupants: null,
+  createdAtIso: "2026-03-31T00:00:00.000Z"
+};
+
 describe("createLease", () => {
   it("creates lease successfully", async () => {
     const repository: TenantLeaseRepository = {
@@ -119,17 +137,7 @@ describe("createLease", () => {
       listLeasesByOrganization: vi.fn(),
       getCurrentLeaseByTenantAuthUserId: vi.fn(),
       listTenantsByOrganization: vi.fn(),
-      getTenantById: vi.fn().mockResolvedValue({
-        id: "tenant-1",
-        organizationId: "org-1",
-        authUserId: null,
-        fullName: "Tenant One",
-        email: "tenant@example.com",
-        phone: null,
-        dateOfBirth: null,
-        photoUrl: null,
-        createdAtIso: "2026-03-31T00:00:00.000Z"
-      }),
+      getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -238,7 +246,7 @@ describe("createLease", () => {
       listLeasesByOrganization: vi.fn(),
       getCurrentLeaseByTenantAuthUserId: vi.fn(),
       listTenantsByOrganization: vi.fn(),
-      getTenantById: vi.fn(),
+      getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -313,7 +321,7 @@ describe("createLease", () => {
       listLeasesByOrganization: vi.fn(),
       getCurrentLeaseByTenantAuthUserId: vi.fn(),
       listTenantsByOrganization: vi.fn(),
-      getTenantById: vi.fn(),
+      getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -370,7 +378,7 @@ describe("createLease", () => {
       listLeasesByOrganization: vi.fn(),
       getCurrentLeaseByTenantAuthUserId: vi.fn(),
       listTenantsByOrganization: vi.fn(),
-      getTenantById: vi.fn(),
+      getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),

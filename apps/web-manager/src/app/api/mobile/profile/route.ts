@@ -1,5 +1,7 @@
 import { extractTenantSessionFromRequest } from "../../../../auth/session-adapter";
 import { mapErrorCodeToHttpStatus } from "../../../../api/shared";
+import { validateTenantPhoneForLease } from "@hhousing/api-contracts";
+import { normalizeWhatsAppPhoneNumber } from "../../../../lib/whatsapp/phone";
 import { createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function GET(request: Request): Promise<Response> {
@@ -52,6 +54,7 @@ export async function GET(request: Request): Promise<Response> {
 interface UpdateProfileBody {
   fullName: string;
   phone: string | null;
+  whatsappOptIn: boolean;
 }
 
 function parseUpdateBody(
@@ -69,7 +72,8 @@ function parseUpdateBody(
     typeof obj.phone === "string" && obj.phone.trim()
       ? obj.phone.trim()
       : null;
-  return { success: true, data: { fullName, phone } };
+  const whatsappOptIn = obj.whatsappOptIn === true;
+  return { success: true, data: { fullName, phone, whatsappOptIn } };
 }
 
 export async function PATCH(request: Request): Promise<Response> {
@@ -88,6 +92,17 @@ export async function PATCH(request: Request): Promise<Response> {
       code: "VALIDATION_ERROR",
       error: parsed.error
     });
+  }
+
+  if (parsed.data.whatsappOptIn) {
+    const phoneValidation = validateTenantPhoneForLease(parsed.data.phone);
+    if (!phoneValidation.success) {
+      return jsonResponse(400, {
+        success: false,
+        code: "VALIDATION_ERROR",
+        error: "Un numéro de téléphone valide est requis pour activer WhatsApp"
+      });
+    }
   }
 
   const repo = createTenantLeaseRepo();
@@ -116,18 +131,20 @@ export async function PATCH(request: Request): Promise<Response> {
       });
     }
 
-    const updated = await repo.updateTenant({
+    const normalizedPhone = parsed.data.phone
+      ? normalizeWhatsAppPhoneNumber(parsed.data.phone)
+      : null;
+    const whatsappNumber = parsed.data.whatsappOptIn && normalizedPhone
+      ? normalizedPhone
+      : null;
+
+    const updated = await repo.updateTenantMobileProfile({
       id: existing.id,
       organizationId: access.data.organizationId,
       fullName: parsed.data.fullName,
-      email: existing.email,
       phone: parsed.data.phone,
-      dateOfBirth: existing.dateOfBirth,
-      photoUrl: existing.photoUrl,
-      employmentStatus: existing.employmentStatus,
-      jobTitle: existing.jobTitle,
-      monthlyIncome: existing.monthlyIncome,
-      numberOfOccupants: existing.numberOfOccupants
+      whatsappOptIn: parsed.data.whatsappOptIn,
+      whatsappNumber
     });
 
     if (!updated) {

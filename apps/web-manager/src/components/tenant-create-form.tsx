@@ -141,8 +141,10 @@ export default function TenantCreateForm({ organizationId }: TenantCreateFormPro
               value={tenantForm.phone}
               onChange={(event) => setTenantForm((previous) => ({ ...previous, phone: event.target.value }))}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="Téléphone"
+              placeholder="+243..."
+              required
             />
+            <p className="mt-1 text-xs text-gray-500">Requis pour les communications WhatsApp avec le locataire.</p>
           </label>
           <label className="block text-sm font-medium text-gray-700 md:col-span-2">
             <span className="mb-1.5 block">Photo du locataire</span>

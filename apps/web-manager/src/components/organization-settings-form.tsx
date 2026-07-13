@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UpdateOrganizationOutput } from "@hhousing/api-contracts";
 import type { Organization } from "@hhousing/domain";
+import { isIndividualExperience } from "../lib/platform-experience";
 import { patchWithAuth } from "../lib/api-client";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import CitySelect from "./city-select";
@@ -130,6 +131,7 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
   }
 
   const logoPreview = logoFile ? URL.createObjectURL(logoFile) : form.logoUrl;
+  const isIndividual = isIndividualExperience(organization.platformExperience);
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -156,8 +158,14 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
 
       <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <div>
-          <h2 className="text-base font-semibold text-[#010a19]">Détails de l'organisation</h2>
-          <p className="mt-1 text-sm text-slate-500">Informations complémentaires de votre agence ou entité.</p>
+          <h2 className="text-base font-semibold text-[#010a19]">
+            {isIndividual ? "Détails de votre espace" : "Détails de l'organisation"}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {isIndividual
+              ? "Informations affichées sur vos baux et communications locataires."
+              : "Informations complémentaires de votre agence ou entité."}
+          </p>
         </div>
 
         {message ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div> : null}
@@ -171,7 +179,9 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
         <div className="grid gap-4 md:grid-cols-2">
           {/* General details */}
           <label className="block text-sm">
-            <span className="mb-1.5 block font-medium text-slate-700">Nom de l'organisation</span>
+            <span className="mb-1.5 block font-medium text-slate-700">
+              {isIndividual ? "Nom de votre espace" : "Nom de l'organisation"}
+            </span>
             <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" required />
           </label>
           <label className="block text-sm">
@@ -186,6 +196,8 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
             <span className="mb-1.5 block font-medium text-slate-700">WhatsApp</span>
             <input value={form.contactWhatsapp} onChange={(event) => setForm((current) => ({ ...current, contactWhatsapp: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" />
           </label>
+          {!isIndividual ? (
+            <>
           <label className="block text-sm md:col-span-2">
             <span className="mb-1.5 block font-medium text-slate-700">Site web</span>
             <input value={form.websiteUrl} onChange={(event) => setForm((current) => ({ ...current, websiteUrl: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="https://..." />
@@ -213,6 +225,8 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
             <span className="mb-1.5 block font-medium text-slate-700">Code postal</span>
             <input value={form.zipCode} onChange={(event) => setForm((current) => ({ ...current, zipCode: event.target.value }))} disabled={!canEdit || busy} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-100 disabled:text-slate-500" placeholder="Ex: 75001" />
           </label>
+            </>
+          ) : null}
 
           {/* Localization details */}
           <div className="block text-sm">

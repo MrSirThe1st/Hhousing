@@ -5,6 +5,8 @@ const {
   getOrganizationByIdMock,
   getScopedPortfolioDataMock,
   getDocumentByIdMock,
+  getLeaseByIdMock,
+  getTenantByIdMock,
   listMemberFunctionsMock,
   sendManagedEmailFromEnvMock
 } = vi.hoisted(() => ({
@@ -12,6 +14,8 @@ const {
   getOrganizationByIdMock: vi.fn(),
   getScopedPortfolioDataMock: vi.fn(),
   getDocumentByIdMock: vi.fn(),
+  getLeaseByIdMock: vi.fn(),
+  getTenantByIdMock: vi.fn(),
   listMemberFunctionsMock: vi.fn(),
   sendManagedEmailFromEnvMock: vi.fn()
 }));
@@ -51,6 +55,13 @@ vi.mock("../../shared", async () => {
       listMemberFunctions: typeof listMemberFunctionsMock;
     } => ({
       listMemberFunctions: listMemberFunctionsMock
+    }),
+    createTenantLeaseRepo: (): {
+      getLeaseById: typeof getLeaseByIdMock;
+      getTenantById: typeof getTenantByIdMock;
+    } => ({
+      getLeaseById: getLeaseByIdMock,
+      getTenantById: getTenantByIdMock
     })
   };
 });
@@ -90,12 +101,69 @@ describe("/api/emails/send", () => {
     ]);
     getScopedPortfolioDataMock.mockResolvedValue({
       currentScope: "managed",
-      properties: [],
-      propertyIds: new Set(),
+      properties: [
+        {
+          property: {
+            id: "property-1",
+            organizationId: "org-1",
+            name: "Immeuble A",
+            address: "1 Avenue Test",
+            city: "Kinshasa",
+            countryCode: "CD",
+            managementContext: "managed",
+            propertyType: "multi_unit",
+            yearBuilt: null,
+            photoUrls: [],
+            clientId: null,
+            clientName: null,
+            status: "active",
+            createdAtIso: "2026-01-01T00:00:00.000Z"
+          },
+          units: [
+            {
+              id: "unit-1",
+              propertyId: "property-1",
+              unitNumber: "A1",
+              monthlyRentAmount: 500,
+              depositAmount: 100,
+              currencyCode: "CDF",
+              status: "vacant",
+              bedroomCount: null,
+              bathroomCount: null,
+              sizeSqm: null,
+              amenities: [],
+              features: [],
+              createdAtIso: "2026-01-01T00:00:00.000Z"
+            }
+          ]
+        }
+      ],
+      propertyIds: new Set(["property-1"]),
       unitIds: new Set(["unit-1"]),
       leases: [],
       leaseIds: new Set(["lease-1"]),
       tenantIds: new Set(["tenant-1"])
+    });
+    getLeaseByIdMock.mockResolvedValue({
+      id: "lease-1",
+      tenantId: "tenant-1",
+      tenantFullName: "Tenant One",
+      tenantEmail: "tenant@example.com",
+      unitId: "unit-1",
+      startDate: "2026-04-01",
+      endDate: null,
+      monthlyRentAmount: 500,
+      currencyCode: "CDF",
+      status: "active"
+    });
+    getTenantByIdMock.mockResolvedValue({
+      id: "tenant-1",
+      organizationId: "org-1",
+      fullName: "Tenant One",
+      email: "tenant@example.com",
+      phone: "+243700000000",
+      whatsappNumber: null,
+      whatsappOptIn: false
     });
     getDocumentByIdMock.mockResolvedValue({
       id: "doc-1",
@@ -135,11 +203,22 @@ describe("/api/emails/send", () => {
         to: "tenant@example.com",
         subject: "Sujet",
         body: "Bonjour",
-        documentIds: ["doc-1"]
+        documentIds: ["doc-1"],
+        tenantId: "tenant-1",
+        leaseId: "lease-1"
       })
     }));
 
     expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      success: boolean;
+      data: { success: boolean; notifications: Array<{ channel: string; status: string }> };
+    };
+    expect(payload.data.notifications).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ channel: "email", status: "sent" })
+      ])
+    );
     expect(sendManagedEmailFromEnvMock).toHaveBeenCalledWith({
       to: "tenant@example.com",
       subject: "Sujet",

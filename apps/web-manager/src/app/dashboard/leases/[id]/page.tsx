@@ -4,6 +4,8 @@ import { requirePermission } from "../../../../api/organizations/permissions";
 import { filterDocumentsByScope, getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { createDocumentRepo, createPaymentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
 import { getDashboardOperatorSession } from "../../detail-page-access";
+import { getIndividualExperienceFeatures } from "../../../../lib/individual-experience";
+import { getServerOperatorContext } from "../../../../lib/operator-context";
 import LeaseDetailClient from "./lease-detail-client";
 
 type PageProps = {
@@ -13,6 +15,8 @@ type PageProps = {
 export default async function LeaseDetailPage({ params }: PageProps): Promise<React.ReactElement> {
   const { id } = await params;
   const session = await getDashboardOperatorSession();
+  const operatorContext = await getServerOperatorContext(session);
+  const features = getIndividualExperienceFeatures(operatorContext.experience);
   const permissionResult = await requirePermission(session, Permission.VIEW_LEASE, createTeamFunctionsRepo());
 
   if (!permissionResult.success) {
@@ -64,6 +68,7 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
       tenant={tenant}
       unit={unit}
       property={property}
+      showMoveOutAction={features.leaseMoveOut}
     />
   );
 }

@@ -1,6 +1,7 @@
 import { parseUpsertListingInput } from "@hhousing/api-contracts";
 import { logOperatorAuditEvent } from "../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
+import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { createId, createListingRepo, createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 
@@ -20,6 +21,11 @@ export async function POST(request: Request): Promise<Response> {
   const sessionResult = requireOperatorSession(await extractAuthSessionFromCookies());
   if (!sessionResult.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(sessionResult.code), sessionResult);
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(sessionResult.data);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   const parsed = parseUpsertListingInput(body);

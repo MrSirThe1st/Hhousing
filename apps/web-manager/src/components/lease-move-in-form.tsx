@@ -192,6 +192,12 @@ export default function LeaseMoveInForm({
       return;
     }
 
+    if (!selectedTenant?.phone?.trim()) {
+      setError("Le locataire sélectionné doit avoir un numéro de téléphone. Mettez à jour sa fiche locataire avant le move-in.");
+      setBusy(false);
+      return;
+    }
+
     const allCharges = moveInMode === "existing_tenant" && depositAlreadyPaid
       ? [...otherCharges]
       : [...depositRows, ...otherCharges];
@@ -548,6 +554,16 @@ export default function LeaseMoveInForm({
               ))}
             </select>
           </label>
+          {selectedTenant ? (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              <div className="font-medium text-[#010a19]">Coordonnées</div>
+              <p className="mt-1">Téléphone : {selectedTenant.phone ?? "— manquant"}</p>
+              <p>WhatsApp : {selectedTenant.whatsappOptIn ? "activé par le locataire" : "non activé"}</p>
+              {!selectedTenant.phone ? (
+                <p className="mt-2 text-amber-700">Ajoutez un numéro de téléphone sur la fiche locataire avant de continuer.</p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600">
             <div className="font-medium text-[#010a19]">Invitation par email</div>
             <p className="mt-1">

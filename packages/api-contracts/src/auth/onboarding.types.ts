@@ -1,17 +1,21 @@
-import type { Organization, OrganizationMembership } from "@hhousing/domain";
+import type { Organization, OrganizationMembership, PlatformExperience } from "@hhousing/domain";
 
-export type OperatorAccountType =
-  | "self_managed_owner"
-  | "manager_for_others"
-  | "mixed_operator"
-  | "tenant";
+export type { PlatformExperience };
 
 export interface CreateOperatorAccountInput {
   organizationName: string;
-  accountType: OperatorAccountType;
+  platformExperience: PlatformExperience;
 }
 
 export interface CreateOperatorAccountOutput {
   organization: Organization;
   membership: OrganizationMembership;
+}
+
+export interface UpdatePlatformExperienceInput {
+  platformExperience: PlatformExperience;
+}
+
+export interface UpdatePlatformExperienceOutput {
+  platformExperience: PlatformExperience;
 }

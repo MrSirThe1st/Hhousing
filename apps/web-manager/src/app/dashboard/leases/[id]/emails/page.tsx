@@ -16,7 +16,7 @@ export default async function LeaseEmailWorkspacePage({ params }: PageProps): Pr
   const permissionResult = await requirePermission(session, Permission.VIEW_LEASE, createTeamFunctionsRepo());
 
   if (!permissionResult.success) {
-    return <div className="p-8 text-red-600">Accès refusé à l'espace email du bail.</div>;
+    return <div className="p-8 text-red-600">Accès refusé à l'espace communications du bail.</div>;
   }
 
   const tenantLeaseRepo = createTenantLeaseRepo();

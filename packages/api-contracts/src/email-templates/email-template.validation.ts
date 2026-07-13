@@ -17,5 +17,7 @@ export const sendManagedEmailInputSchema = z.object({
   to: z.string().email(),
   subject: z.string().min(1),
   body: z.string().min(1),
-  documentIds: z.array(z.string().min(1)).optional()
+  documentIds: z.array(z.string().min(1)).optional(),
+  tenantId: z.string().min(1).optional(),
+  leaseId: z.string().min(1).optional()
 });

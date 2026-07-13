@@ -1,76 +1,15 @@
-import type { PaymentRepository, InvoiceRepository, TenantLeaseRepository, OrganizationPropertyUnitRepository } from "@hhousing/data-access";
-import type { Organization, Payment } from "@hhousing/domain";
-import type { PawapayTransactionRepository } from "@hhousing/data-access";
-import {
-  buildInvoiceDocumentContext,
-  buildInvoiceDocumentHtml,
-  buildInvoiceEmailHtml
-} from "../../lib/invoices/invoice-document";
-import type { ManagedEmailAttachmentInput } from "../../lib/email/resend";
+import type {
+  InvoiceRepository,
+  OrganizationPropertyUnitRepository,
+  PaymentRepository,
+  PawapayTransactionRepository,
+  TenantLeaseRepository
+} from "@hhousing/data-access";
+import type { Payment } from "@hhousing/domain";
 import { getNow } from "../../lib/time";
 import { logOperatorAuditEvent } from "../audit-log";
-
-function formatCurrency(amount: number, currencyCode: string): string {
-  return `${amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode}`;
-}
-
-async function sendPaidInvoiceEmail(
-  invoice: Awaited<ReturnType<InvoiceRepository["syncInvoiceForPaidPayment"]>>["invoice"],
-  tenantName: string,
-  tenantEmail: string,
-  organization: Organization | null | undefined,
-  sendEmail: (input: {
-    to: string;
-    subject: string;
-    html: string;
-    attachments?: ManagedEmailAttachmentInput[];
-  }) => Promise<void>
-): Promise<void> {
-  const formatDate = (value: string): string =>
-    new Date(value).toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric"
-    });
-
-  const invoiceDocumentHtml = buildInvoiceDocumentHtml(
-    buildInvoiceDocumentContext({
-      invoice,
-      tenantName,
-      tenantEmail,
-      organization,
-      formatDate
-    })
-  );
-
-  const attachmentContentBase64 = Buffer.from(invoiceDocumentHtml, "utf-8").toString("base64");
-  const attachments: ManagedEmailAttachmentInput[] = [
-    {
-      fileName: `facture-${invoice.invoiceNumber}.html`,
-      mimeType: "text/html",
-      fileUrl: `data:text/html;base64,${attachmentContentBase64}`
-    }
-  ];
-
-  const emailHtml = buildInvoiceEmailHtml({
-    tenantName,
-    organization,
-    invoiceNumber: invoice.invoiceNumber,
-    amountLabel: formatCurrency(invoice.totalAmount, invoice.currencyCode),
-    remainingLabel: formatCurrency(Math.max(0, invoice.totalAmount - invoice.amountPaid), invoice.currencyCode),
-    dueDateLabel: formatDate(invoice.dueDate),
-    issueDateLabel: formatDate(invoice.issueDate),
-    periodLabel: invoice.period ?? "Facture ponctuelle",
-    currencyCode: invoice.currencyCode
-  });
-
-  await sendEmail({
-    to: tenantEmail,
-    subject: `Facture ${invoice.invoiceNumber}`,
-    html: emailHtml,
-    attachments
-  });
-}
+import { tryNotifyPaidInvoice } from "../../lib/notifications/paid-invoice-notification";
+import type { notifyPaidInvoice } from "../../lib/notifications/paid-invoice-notification";
 
 export async function finalizePaidPayment(params: {
   payment: Payment;
@@ -79,12 +18,7 @@ export async function finalizePaidPayment(params: {
   invoiceRepository: InvoiceRepository;
   tenantRepository: TenantLeaseRepository;
   organizationRepository?: OrganizationPropertyUnitRepository;
-  sendInvoicePaidEmail?: (input: {
-    to: string;
-    subject: string;
-    html: string;
-    attachments?: ManagedEmailAttachmentInput[];
-  }) => Promise<void>;
+  notifyPaidInvoice?: typeof notifyPaidInvoice;
 }): Promise<Payment | null> {
   const paidPayment = await params.paymentRepository.markPaymentPaid({
     paymentId: params.payment.id,
@@ -108,42 +42,18 @@ export async function finalizePaidPayment(params: {
     period: paidPayment.chargePeriod
   });
 
-  if (
-    params.sendInvoicePaidEmail &&
-    syncResult.invoice.status === "paid" &&
-    (syncResult.invoice.emailStatus === "not_sent" || syncResult.invoice.emailStatus === "failed")
-  ) {
-    const tenant = await params.tenantRepository.getTenantById(
-      paidPayment.tenantId,
-      paidPayment.organizationId
-    );
-
-    if (tenant?.email) {
-      const organization = params.organizationRepository
-        ? await params.organizationRepository.getOrganizationById(paidPayment.organizationId)
-        : null;
-
-      try {
-        await sendPaidInvoiceEmail(
-          syncResult.invoice,
-          tenant.fullName,
-          tenant.email,
-          organization,
-          params.sendInvoicePaidEmail
-        );
-        await params.invoiceRepository.markInvoiceEmailSent(
-          syncResult.invoice.id,
-          paidPayment.organizationId
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        await params.invoiceRepository.markInvoiceEmailFailed(
-          syncResult.invoice.id,
-          paidPayment.organizationId,
-          message
-        );
-      }
-    }
+  if (params.notifyPaidInvoice) {
+    await tryNotifyPaidInvoice({
+      invoice: syncResult.invoice,
+      paymentId: paidPayment.id,
+      paymentAmount: paidPayment.amount,
+      organizationId: paidPayment.organizationId,
+      tenantId: paidPayment.tenantId,
+      invoiceRepository: params.invoiceRepository,
+      tenantRepository: params.tenantRepository,
+      organizationRepository: params.organizationRepository,
+      notifyPaidInvoice: params.notifyPaidInvoice
+    });
   }
 
   return paidPayment;
@@ -157,12 +67,7 @@ export async function completePawapayDepositTransaction(params: {
   invoiceRepository: InvoiceRepository;
   tenantRepository: TenantLeaseRepository;
   organizationRepository?: OrganizationPropertyUnitRepository;
-  sendInvoicePaidEmail?: (input: {
-    to: string;
-    subject: string;
-    html: string;
-    attachments?: ManagedEmailAttachmentInput[];
-  }) => Promise<void>;
+  notifyPaidInvoice?: typeof notifyPaidInvoice;
 }): Promise<{ completed: boolean; alreadyProcessed: boolean }> {
   const transaction = await params.pawapayTransactionRepository.getTransactionById(params.transactionId);
   if (!transaction) {
@@ -192,7 +97,7 @@ export async function completePawapayDepositTransaction(params: {
       invoiceRepository: params.invoiceRepository,
       tenantRepository: params.tenantRepository,
       organizationRepository: params.organizationRepository,
-      sendInvoicePaidEmail: params.sendInvoicePaidEmail
+      notifyPaidInvoice: params.notifyPaidInvoice
     });
   }
 

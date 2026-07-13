@@ -21,7 +21,8 @@ describe("resolveTenantWhatsAppRecipient", () => {
     expect(
       resolveTenantWhatsAppRecipient({
         phone: "0812345678",
-        whatsappNumber: "27681609849"
+        whatsappNumber: "27681609849",
+        whatsappOptIn: true
       })
     ).toBe("27681609849");
   });
@@ -30,8 +31,19 @@ describe("resolveTenantWhatsAppRecipient", () => {
     expect(
       resolveTenantWhatsAppRecipient({
         phone: "+243 812 345 678",
-        whatsappNumber: null
+        whatsappNumber: null,
+        whatsappOptIn: true
       })
     ).toBe("243812345678");
+  });
+
+  it("returns null when tenant has not opted in", () => {
+    expect(
+      resolveTenantWhatsAppRecipient({
+        phone: "+243 812 345 678",
+        whatsappNumber: null,
+        whatsappOptIn: false
+      })
+    ).toBeNull();
   });
 });

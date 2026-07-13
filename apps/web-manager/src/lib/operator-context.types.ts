@@ -1,5 +1,7 @@
-export type OperatorExperience = "self_managed_owner" | "manager_for_others" | "mixed_operator";
+import type { PlatformExperience } from "@hhousing/domain";
+
+export type { PlatformExperience };
 
 export interface OperatorContext {
-  experience: OperatorExperience;
+  experience: PlatformExperience;
 }

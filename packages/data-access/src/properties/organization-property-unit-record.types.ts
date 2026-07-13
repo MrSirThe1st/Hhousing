@@ -126,11 +126,17 @@ export interface PropertyWithUnitsRecord {
   units: Unit[];
 }
 
+export interface UpdateOrganizationPlatformExperienceRecordInput {
+  id: string;
+  platformExperience: "entreprise" | "individual";
+}
+
 export interface OrganizationPropertyUnitRepository {
   createOrganization(input: CreateOrganizationRecordInput): Promise<Organization>;
   getOrganizationById(organizationId: string): Promise<Organization | null>;
   getOrganizationByName(name: string): Promise<Organization | null>;
   updateOrganization(input: UpdateOrganizationRecordInput): Promise<Organization | null>;
+  updateOrganizationPlatformExperience(input: UpdateOrganizationPlatformExperienceRecordInput): Promise<Organization | null>;
   createOwner(input: CreateOwnerRecordInput): Promise<Owner>;
   createOwnerClient(input: CreateOwnerClientRecordInput): Promise<Owner>;
   updateOwner(input: UpdateOwnerRecordInput): Promise<Owner | null>;

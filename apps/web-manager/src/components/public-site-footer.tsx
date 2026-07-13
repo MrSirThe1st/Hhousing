@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function PublicSiteFooter(): React.ReactElement {
   return (
     <footer className="border-t border-slate-200 bg-[#010A19] text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-10">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.8fr] lg:px-10">
         <div>
           <div className="flex items-center gap-3">
             <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
@@ -32,6 +32,14 @@ export default function PublicSiteFooter(): React.ReactElement {
             <p>Propriétaires bailleurs</p>
             <p>Locataires</p>
             <p>Propriétaires investisseurs</p>
+          </div>
+        </div>
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Légal</p>
+          <div className="mt-4 space-y-3 text-sm text-slate-300">
+            <Link href="/politique-de-confidentialite" className="block hover:text-white">Politique de confidentialité</Link>
+            <Link href="/conditions-utilisation" className="block hover:text-white">Conditions d&apos;utilisation</Link>
+            <Link href="/suppression-donnees" className="block hover:text-white">Suppression des données</Link>
           </div>
         </div>
         <div>

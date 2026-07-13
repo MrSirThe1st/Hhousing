@@ -1,5 +1,6 @@
 import { createExpense, listExpenses } from "../../../api";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
+import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { filterExpensesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createExpenseRepo, createId, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
@@ -10,6 +11,11 @@ function getPayloadText(payload: Record<string, unknown>, key: string): string |
 
 export async function POST(request: Request): Promise<Response> {
   const session = await extractAuthSessionFromCookies();
+  const experienceDenied = await rejectIfIndividualExperience(session);
+  if (experienceDenied !== null) {
+    return experienceDenied;
+  }
+
   let body: unknown;
 
   try {
@@ -77,6 +83,10 @@ export async function POST(request: Request): Promise<Response> {
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const session = await extractAuthSessionFromCookies();
+  const experienceDenied = await rejectIfIndividualExperience(session);
+  if (experienceDenied !== null) {
+    return experienceDenied;
+  }
 
   const result = await listExpenses(
     {

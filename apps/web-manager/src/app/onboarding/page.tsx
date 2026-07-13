@@ -2,58 +2,39 @@
 
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
+import type { PlatformExperience } from "@hhousing/domain";
 import PlatformLogoLink from "../../components/platform-logo-link";
 
-type FlowType = "self_managed_owner" | "manager_for_others" | "mixed_operator" | "tenant";
+type FlowType = PlatformExperience;
 
 function getFlowType(raw: string | null): FlowType {
-  if (raw === "self_managed_owner") return raw;
-  if (raw === "manager_for_others") return raw;
-  if (raw === "mixed_operator") return raw;
-  return "tenant";
+  if (raw === "individual") {
+    return raw;
+  }
+
+  return "entreprise";
 }
 
 function getContent(flow: FlowType): { title: string; subtitle: string; steps: string[] } {
-  if (flow === "self_managed_owner") {
+  if (flow === "individual") {
     return {
-      title: "Bienvenue, propriétaire-opérateur",
-      subtitle: "Votre espace est optimisé pour les revenus, l'occupation et la rentabilité.",
+      title: "Bienvenue, particulier",
+      subtitle: "Votre espace est optimisé pour une gestion simple de vos biens.",
       steps: [
-        "Ajoutez vos propriétés depuis l'onglet Propriétés",
+        "Ajoutez vos propriétés",
         "Créez vos unités locatives",
         "Invitez vos locataires et créez les baux"
       ]
     };
   }
-  if (flow === "manager_for_others") {
-    return {
-      title: "Bienvenue, property manager",
-      subtitle: "Votre espace met l'accent sur les opérations, les tâches et la communication.",
-      steps: [
-        "Ajoutez les propriétés que vous gérez",
-        "Configurez les unités et tarifs",
-        "Gérez vos locataires et la collecte de loyer"
-      ]
-    };
-  }
-  if (flow === "mixed_operator") {
-    return {
-      title: "Bienvenue",
-      subtitle: "",
-      steps: [
-        "Ajoutez vos propriétés (propres et gérées)",
-        "Configurez vos unités",
-        "Gérez vos locataires et vos collectes"
-      ]
-    };
-  }
+
   return {
     title: "Bienvenue",
-    subtitle: "Commencez à gérer vos propriétés facilement.",
+    subtitle: "Votre espace professionnel est prêt pour gérer l'ensemble de votre activité locative.",
     steps: [
-      "Ajoutez vos propriétés",
-      "Créez vos unités",
-      "Gérez vos locataires"
+      "Ajoutez vos propriétés (propres et gérées)",
+      "Configurez vos unités",
+      "Gérez vos locataires, équipe et collectes"
     ]
   };
 }
@@ -78,7 +59,7 @@ export default function OnboardingPage({ searchParams }: OnboardingPageProps): R
   };
 
   return (
-    <main 
+    <main
       className="min-h-screen flex items-center justify-center bg-white px-4 py-12 relative"
       style={{
         backgroundImage: "url('/brand/MOTIFS.png')",
@@ -87,11 +68,9 @@ export default function OnboardingPage({ searchParams }: OnboardingPageProps): R
         backgroundRepeat: "no-repeat"
       }}
     >
-      {/* Sharp backdrop overlay matching other auth pages */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none bg-slate-50/30" />
 
       <div className="relative w-full max-w-xl">
-        {/* Logo / Brand */}
         <div className="mb-10 text-center">
           <PlatformLogoLink centered subtitle="Initialisation de votre espace" />
         </div>
@@ -109,8 +88,8 @@ export default function OnboardingPage({ searchParams }: OnboardingPageProps): R
               <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">Prochaines étapes</h2>
               <div className="space-y-3">
                 {content.steps.map((step, index) => (
-                  <div 
-                    key={step} 
+                  <div
+                    key={step}
                     className="flex items-start gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition"
                   >
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-sm font-bold text-[#0063fe]">
@@ -126,7 +105,7 @@ export default function OnboardingPage({ searchParams }: OnboardingPageProps): R
 
             <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100">
               <button
-                onClick={() => handleNavigate("dashboard", `/dashboard?variant=${encodeURIComponent(flow)}`)}
+                onClick={() => handleNavigate("dashboard", `/dashboard?experience=${encodeURIComponent(flow)}`)}
                 disabled={isNavigating !== null}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0063fe] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >

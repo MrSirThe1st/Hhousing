@@ -1,6 +1,7 @@
 import { parseCreateTaskInput } from "@hhousing/api-contracts";
 import { logOperatorAuditEvent } from "../../../api/audit-log";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
+import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { syncSystemTasks } from "../../../lib/dashboard-workflow";
 import { filterTasksByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { validateWorkflowEntitySelection } from "../../../lib/workflow-entity-validation";
@@ -14,6 +15,11 @@ export async function GET(): Promise<Response> {
 
   if (session.role === "tenant") {
     return jsonResponse(403, { success: false, code: "FORBIDDEN", error: "Operator access required" });
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(session);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   await syncSystemTasks(session);
@@ -39,6 +45,11 @@ export async function POST(request: Request): Promise<Response> {
 
   if (session.role === "tenant") {
     return jsonResponse(403, { success: false, code: "FORBIDDEN", error: "Operator access required" });
+  }
+
+  const experienceDenied = await rejectIfIndividualExperience(session);
+  if (experienceDenied !== null) {
+    return experienceDenied;
   }
 
   let body: unknown;

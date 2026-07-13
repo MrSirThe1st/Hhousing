@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Organization } from "@hhousing/domain";
 import { useAuth } from "../contexts/auth-context";
+import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
 
 const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed_v2";
 const SIDEBAR_SET_COLLAPSED_EVENT = "hhousing.sidebar.setCollapsed";
@@ -52,6 +53,7 @@ interface NavSection {
 interface SidebarProps {
   currentRoleLabel: string;
   access: SidebarAccess;
+  isIndividualExperience: boolean;
 }
 
 interface SidebarBadgeCounts {
@@ -218,7 +220,7 @@ function getOrganizationInitials(name?: string): string {
   return letters.toUpperCase();
 }
 
-export default function Sidebar({ currentRoleLabel, access }: SidebarProps): React.ReactElement {
+export default function Sidebar({ currentRoleLabel, access, isIndividualExperience }: SidebarProps): React.ReactElement {
   const pathname = usePathname();
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -300,7 +302,15 @@ export default function Sidebar({ currentRoleLabel, access }: SidebarProps): Rea
     }
 
     return section;
-  }).filter((section) => section.items.length > 0);
+  }).map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      if (isIndividualExperience && isNavHrefHiddenInIndividualExperience(item.href)) {
+        return false;
+      }
+      return true;
+    })
+  })).filter((section) => section.items.length > 0);
 
   useEffect(() => {
     const storedState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
@@ -406,18 +416,24 @@ export default function Sidebar({ currentRoleLabel, access }: SidebarProps): Rea
     .map((p: string) => p[0]?.toUpperCase() ?? "")
     .join("") || "OP";
 
+  const orgSettingsHref = isIndividualExperience
+    ? "/dashboard/profile"
+    : access.manageOrganization
+      ? "/dashboard/organization"
+      : null;
+
   return (
     <aside
       className={`hidden md:flex h-full shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[#010a19] transition-[width] duration-300 ${shellWidthClassName}`}
     >
       {/* Top: organisation block */}
       <div className="border-b border-slate-200 px-3 py-3">
-        {access.manageOrganization ? (
+        {orgSettingsHref ? (
           <Link
-            href="/dashboard/organization"
+            href={orgSettingsHref}
             className={`flex min-w-0 flex-1 items-center rounded-lg transition hover:bg-slate-50 ${isCollapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5"}`}
-            aria-label="Organisation"
-            title={isCollapsed ? "Organisation" : undefined}
+            aria-label={isIndividualExperience ? "Paramètres" : "Organisation"}
+            title={isCollapsed ? (isIndividualExperience ? "Paramètres" : "Organisation") : undefined}
           >
             {organization?.logoUrl ? (
               <img src={organization.logoUrl} alt={organization.name} className="h-9 w-9 shrink-0 rounded-md object-contain bg-white p-1 ring-1 ring-slate-200" />

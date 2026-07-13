@@ -14,6 +14,7 @@ import type {
   TenantInvitationPreviewRecord,
   TenantInvitationRecord,
   UpdateTenantRecordInput,
+  UpdateTenantMobileProfileInput,
   UpdateLeaseRecordInput,
   UpsertMoveOutInspectionRecordInput,
   UpsertMoveOutRecordInput,
@@ -957,6 +958,20 @@ export function createPostgresTenantLeaseRepository(
          where id = $10 and organization_id = $11
          returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
         [input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants, input.id, input.organizationId]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async updateTenantMobileProfile(input: UpdateTenantMobileProfileInput): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `update tenants
+         set full_name = $1,
+             phone = $2,
+             whatsapp_number = $3,
+             whatsapp_opt_in = $4
+         where id = $5 and organization_id = $6
+         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+        [input.fullName, input.phone, input.whatsappNumber, input.whatsappOptIn, input.id, input.organizationId]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
     },

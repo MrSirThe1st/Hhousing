@@ -34,6 +34,7 @@ interface PropertyDetailClientProps {
   initialProperty: Property;
   initialOwnerClients: OwnerClient[];
   initialUnits: Unit[];
+  showManagedPropertyMode: boolean;
 }
 
 function PlusIcon(): React.ReactElement {
@@ -60,7 +61,8 @@ export default function PropertyDetailClient({
   id,
   initialProperty,
   initialOwnerClients,
-  initialUnits
+  initialUnits,
+  showManagedPropertyMode
 }: PropertyDetailClientProps): React.ReactElement {
   const router = useRouter();
   const [property, setProperty] = useState<Property>(initialProperty);
@@ -151,7 +153,7 @@ export default function PropertyDetailClient({
                   <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-500">
                     <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">{totalUnits} unités</span>
                     <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">{occupancyRate}% d’occupation</span>
-                    {property.clientName ? (
+                    {showManagedPropertyMode && property.clientName ? (
                       <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">
                         Client:{" "}
                         {property.clientId ? (
@@ -220,6 +222,7 @@ export default function PropertyDetailClient({
                  required
                />
              </div>
+            {showManagedPropertyMode ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Contexte de gestion</label>
               <select
@@ -238,7 +241,8 @@ export default function PropertyDetailClient({
                 <option value="managed">Parc gere</option>
               </select>
             </div>
-            {formData.managementContext === "managed" ? (
+            ) : null}
+            {showManagedPropertyMode && formData.managementContext === "managed" ? (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Client / proprietaire</label>
                 <select

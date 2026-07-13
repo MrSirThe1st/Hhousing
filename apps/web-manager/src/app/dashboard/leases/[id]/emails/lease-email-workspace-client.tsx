@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { LeaseWithTenantView, NotificationChannelDeliveryStatus } from "@hhousing/api-contracts";
 import type { Document } from "@hhousing/domain";
 import { patchWithAuth } from "../../../../../lib/api-client";
-import { formatInvitationDeliveryMessage } from "../../../../../lib/notifications/format-delivery-status";
+import { formatInvitationDeliveryMessage, formatLeaseDraftDeliveryMessage } from "../../../../../lib/notifications/format-delivery-status";
 import UniversalLoadingState from "../../../../../components/universal-loading-state";
 
 type LeaseEmailWorkspaceClientProps = {
@@ -61,13 +61,18 @@ export default function LeaseEmailWorkspaceClient({
     notifications: NotificationChannelDeliveryStatus[];
   };
 
+  type SendDraftEmailResponse = {
+    lease: LeaseWithTenantView;
+    notifications: NotificationChannelDeliveryStatus[];
+  };
+
   async function handleSendDraftEmail(): Promise<void> {
     setSendingDraftEmail(true);
     setError(null);
     setDraftEmailMessage(null);
     setActivationEmailMessage(null);
 
-    const result = await patchWithAuth<LeaseWithTenantView>(`/api/leases/${id}`, {
+    const result = await patchWithAuth<SendDraftEmailResponse>(`/api/leases/${id}`, {
       action: "send_draft_email",
       documentIds: selectedDocumentIds
     });
@@ -78,7 +83,7 @@ export default function LeaseEmailWorkspaceClient({
       return;
     }
 
-    setDraftEmailMessage("Email de brouillon envoyé au locataire.");
+    setDraftEmailMessage(formatLeaseDraftDeliveryMessage(result.data.notifications));
     setSendingDraftEmail(false);
   }
 
@@ -128,16 +133,21 @@ export default function LeaseEmailWorkspaceClient({
         <Link href={`/dashboard/leases/${id}`} className="inline-block text-sm text-[#0063fe] hover:underline">
           ← Retour au bail
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-[#010a19]">Emails du bail</h1>
-        <p className="mt-1 text-sm text-gray-600">{lease.tenantFullName} · {lease.tenantEmail ?? "Aucun e-mail locataire"}</p>
+        <h1 className="mt-2 text-2xl font-semibold text-[#010a19]">Communications du bail</h1>
+        <p className="mt-1 text-sm text-gray-600">
+          {lease.tenantFullName} · {lease.tenantEmail ?? "Aucun e-mail locataire"}
+        </p>
+        <p className="mt-1 text-sm text-gray-500">
+          Les envois partent par email (pièces jointes) et par WhatsApp (lien document) lorsque le numéro du locataire est disponible.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-[#010a19]">Envoyer l'email du brouillon</h2>
-              <p className="mt-1 text-sm text-gray-600">Sélectionnez les pièces jointes à envoyer avec le brouillon du bail.</p>
+              <h2 className="text-base font-semibold text-[#010a19]">Envoyer le brouillon</h2>
+              <p className="mt-1 text-sm text-gray-600">Sélectionnez les documents à joindre à l'email et à partager via WhatsApp.</p>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
               {selectedDocumentIds.length} sélectionné(s)
