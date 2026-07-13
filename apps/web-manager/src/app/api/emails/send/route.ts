@@ -163,7 +163,7 @@ export async function POST(request: Request): Promise<Response> {
       emailBody: parsed.data.body,
       organization,
       attachments,
-      createMessageId: createId
+      createMessageId: () => createId("wam")
     });
 
     const emailDelivery = notifications.find((notification) => notification.channel === "email");

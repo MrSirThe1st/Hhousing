@@ -475,7 +475,7 @@ export async function PATCH(
           mimeType: document.mimeType,
           fileUrl: document.fileUrl
         })),
-        createMessageId: createId
+        createMessageId: () => createId("wam")
       });
 
       const emailDelivery = notifications.find((notification) => notification.channel === "email");
