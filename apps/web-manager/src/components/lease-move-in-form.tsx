@@ -209,7 +209,9 @@ export default function LeaseMoveInForm({
         amount: Number(row.amount),
         currencyCode: row.currencyCode.trim().toUpperCase(),
         frequency: row.frequency,
-        startDate: row.startDate,
+        startDate: moveInMode === "existing_tenant" && row.chargeType === "deposit"
+          ? effectiveLeaseStartDate
+          : row.startDate,
         endDate: row.endDate || null
       }));
 
@@ -451,7 +453,7 @@ export default function LeaseMoveInForm({
             <button type="button" onClick={() => addChargeRow(setDepositRows, "deposit")} className="text-sm font-medium text-[#0063fe] hover:underline">Ajouter un dépôt</button>
           </div>
           {depositRows.map((row) => (
-            <div key={row.id} className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <div key={row.id} className={`grid grid-cols-1 gap-3 md:grid-cols-2 ${moveInMode === "existing_tenant" ? "xl:grid-cols-5" : "xl:grid-cols-6"}`}>
               <label className="block text-sm font-medium text-gray-700 xl:col-span-2">
                 <span className="mb-1.5 block">Libellé du dépôt</span>
                 <input value={row.label} onChange={(event) => updateChargeRow(setDepositRows, row.id, "label", event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Libellé" />
@@ -467,10 +469,12 @@ export default function LeaseMoveInForm({
                   <option value="USD">USD (Dollar Américain)</option>
                 </select>
               </label>
-              <label className="block text-sm font-medium text-gray-700">
-                <span className="mb-1.5 block">Date d'échéance</span>
-                <input type="date" value={row.startDate} onChange={(event) => updateChargeRow(setDepositRows, row.id, "startDate", event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-              </label>
+              {moveInMode === "standard" ? (
+                <label className="block text-sm font-medium text-gray-700">
+                  <span className="mb-1.5 block">Date d&apos;échéance</span>
+                  <input type="date" value={row.startDate} onChange={(event) => updateChargeRow(setDepositRows, row.id, "startDate", event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                </label>
+              ) : null}
               <button type="button" onClick={() => removeChargeRow(setDepositRows, row.id)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Retirer</button>
             </div>
           ))}

@@ -34,7 +34,7 @@ export default function EditProfileScreen(): React.ReactElement {
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 

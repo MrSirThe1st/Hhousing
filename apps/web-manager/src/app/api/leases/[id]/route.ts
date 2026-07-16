@@ -459,7 +459,7 @@ export async function PATCH(
         tenantEmail: lease.tenantEmail,
         tenantPhone: tenantRecord?.phone ?? null,
         tenantWhatsappNumber: tenantRecord?.whatsappNumber ?? null,
-        tenantWhatsappOptIn: tenantRecord?.whatsappOptIn ?? false,
+        tenantWhatsappOptIn: tenantRecord?.whatsappOptIn ?? true,
         tenantFullName: tenantRecord?.fullName ?? lease.tenantFullName,
         organizationName: organization?.name ?? "Haraka Property",
         propertyLabel: buildLeasePropertyLabel({

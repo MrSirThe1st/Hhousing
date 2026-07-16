@@ -72,7 +72,7 @@ function parseUpdateBody(
     typeof obj.phone === "string" && obj.phone.trim()
       ? obj.phone.trim()
       : null;
-  const whatsappOptIn = obj.whatsappOptIn === true;
+  const whatsappOptIn = typeof obj.whatsappOptIn === "boolean" ? obj.whatsappOptIn : true;
   return { success: true, data: { fullName, phone, whatsappOptIn } };
 }
 

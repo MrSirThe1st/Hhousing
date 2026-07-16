@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/auth-context";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
@@ -17,43 +17,45 @@ interface OperatorProfilePanelProps {
 type ProfileFormState = {
   fullName: string;
   email: string;
+  phone: string;
+  whatsapp: string;
+  jobTitle: string;
+  city: string;
   avatarUrl: string;
 };
+
+function readMetadataString(metadata: unknown, key: string): string {
+  if (!metadata || typeof metadata !== "object") {
+    return "";
+  }
+
+  const value = key in metadata ? (metadata as Record<string, unknown>)[key] : undefined;
+  return typeof value === "string" ? value : "";
+}
 
 function resolveInitialState(user: ReturnType<typeof useAuth>["user"]): ProfileFormState {
   if (!user) {
     return {
       fullName: "",
       email: "",
+      phone: "",
+      whatsapp: "",
+      jobTitle: "",
+      city: "",
       avatarUrl: ""
     };
   }
 
   const metadata = user.user_metadata;
-  const fullName = (() => {
-    if (metadata && typeof metadata === "object") {
-      const value = "full_name" in metadata ? metadata.full_name : undefined;
-      if (typeof value === "string") {
-        return value;
-      }
-    }
-    return "";
-  })();
-
-  const avatarUrl = (() => {
-    if (metadata && typeof metadata === "object") {
-      const value = "avatar_url" in metadata ? metadata.avatar_url : undefined;
-      if (typeof value === "string") {
-        return value;
-      }
-    }
-    return "";
-  })();
 
   return {
-    fullName,
+    fullName: readMetadataString(metadata, "full_name"),
     email: user.email ?? "",
-    avatarUrl
+    phone: readMetadataString(metadata, "phone"),
+    whatsapp: readMetadataString(metadata, "whatsapp"),
+    jobTitle: readMetadataString(metadata, "job_title"),
+    city: readMetadataString(metadata, "city"),
+    avatarUrl: readMetadataString(metadata, "avatar_url")
   };
 }
 
@@ -95,6 +97,10 @@ export default function OperatorProfilePanel({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setForm(resolveInitialState(user));
+  }, [user]);
+
   const [checklistDismissed, setChecklistDismissed] = useState(() => {
     if (typeof window !== "undefined") {
       return window.localStorage.getItem("hhousing.profile_checklist.dismissed") === "true";
@@ -118,9 +124,11 @@ export default function OperatorProfilePanel({
     return [
       { label: "Nom complet renseigné", done: form.fullName.trim().length > 0 },
       { label: "Photo de profil définie", done: form.avatarUrl.trim().length > 0 || !!avatarFile },
-      { label: "Adresse email valide", done: form.email.trim().length > 0 }
+      { label: "Adresse email valide", done: form.email.trim().length > 0 },
+      { label: "Téléphone renseigné", done: form.phone.trim().length > 0 },
+      { label: "WhatsApp renseigné", done: form.whatsapp.trim().length > 0 }
     ];
-  }, [form.fullName, form.avatarUrl, avatarFile, form.email]);
+  }, [form.fullName, form.avatarUrl, avatarFile, form.email, form.phone, form.whatsapp]);
 
   const completionPercent = useMemo(() => {
     const completedCount = checklist.filter((item) => item.done).length;
@@ -169,11 +177,19 @@ export default function OperatorProfilePanel({
         data: {
           full_name: string;
           avatar_url: string;
+          phone: string;
+          whatsapp: string;
+          job_title: string;
+          city: string;
         };
       } = {
         data: {
           full_name: form.fullName.trim(),
-          avatar_url: nextAvatarUrl
+          avatar_url: nextAvatarUrl,
+          phone: form.phone.trim(),
+          whatsapp: form.whatsapp.trim(),
+          job_title: form.jobTitle.trim(),
+          city: form.city.trim()
         }
       };
 
@@ -190,7 +206,11 @@ export default function OperatorProfilePanel({
 
       setForm((current) => ({
         ...current,
-        avatarUrl: nextAvatarUrl
+        avatarUrl: nextAvatarUrl,
+        phone: form.phone.trim(),
+        whatsapp: form.whatsapp.trim(),
+        jobTitle: form.jobTitle.trim(),
+        city: form.city.trim()
       }));
       setAvatarFile(null);
       setMessage(updates.email ? "Profil mis à jour. Veuillez vérifier votre boîte email pour confirmer la nouvelle adresse." : "Votre profil a été enregistré avec succès.");
@@ -312,12 +332,20 @@ export default function OperatorProfilePanel({
               {/* Text Fields */}
               <h2 className="mt-4 truncate text-lg font-bold text-slate-900">{form.fullName || "Operateur Haraka"}</h2>
               <p className="truncate text-sm text-slate-500">{form.email}</p>
+              {form.phone.trim() ? (
+                <p className="mt-1 truncate text-xs text-slate-500">{form.phone}</p>
+              ) : null}
 
               {/* Badges */}
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-[#0063fe] ring-1 ring-inset ring-blue-700/10">
                   {getRoleLabel(role)}
                 </span>
+                {form.jobTitle.trim() ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-600/10">
+                    {form.jobTitle}
+                  </span>
+                ) : null}
                 {organization?.name ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-600/10">
                     {organization.name}
@@ -438,6 +466,68 @@ export default function OperatorProfilePanel({
                   placeholder="nom@exemple.com"
                 />
                 <p className="text-[11px] text-slate-400">Si vous changez d&apos;adresse email, un email de confirmation vous sera envoye.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="job-title" className="text-xs font-semibold text-slate-700">
+                  Fonction
+                </label>
+                <input
+                  id="job-title"
+                  type="text"
+                  value={form.jobTitle}
+                  onChange={(event) => setForm((current) => ({ ...current, jobTitle: event.target.value }))}
+                  disabled={busy}
+                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
+                  placeholder="Ex. Gestionnaire, Propriétaire"
+                />
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label htmlFor="phone-number" className="text-xs font-semibold text-slate-700">
+                    Téléphone
+                  </label>
+                  <input
+                    id="phone-number"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                    disabled={busy}
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
+                    placeholder="+243..."
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="whatsapp-number" className="text-xs font-semibold text-slate-700">
+                    WhatsApp
+                  </label>
+                  <input
+                    id="whatsapp-number"
+                    type="tel"
+                    value={form.whatsapp}
+                    onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))}
+                    disabled={busy}
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
+                    placeholder="+243..."
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="city" className="text-xs font-semibold text-slate-700">
+                  Ville
+                </label>
+                <input
+                  id="city"
+                  type="text"
+                  value={form.city}
+                  onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
+                  disabled={busy}
+                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
+                  placeholder="Ex. Kinshasa"
+                />
               </div>
             </div>
 

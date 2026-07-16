@@ -381,7 +381,7 @@ function mapTenant(row: ListingApplicationViewRow): Tenant | null {
     email: row.tenant_email,
     phone: row.tenant_phone,
     whatsappNumber: null,
-    whatsappOptIn: false,
+    whatsappOptIn: true,
     dateOfBirth: row.tenant_date_of_birth,
     photoUrl: row.tenant_photo_url,
     employmentStatus: row.tenant_employment_status ?? null,
