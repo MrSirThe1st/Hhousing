@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Sidebar from "../../components/sidebar";
@@ -86,11 +86,13 @@ export default async function DashboardLayout({
         {children}
         <DashboardTour access={sidebarAccess} />
       </main>
-      <BottomNavigation
-        access={sidebarAccess}
-        currentRoleLabel={getRoleLabel(session.role)}
-        isIndividualExperience={isIndividual}
-      />
+      <Suspense fallback={null}>
+        <BottomNavigation
+          access={sidebarAccess}
+          currentRoleLabel={getRoleLabel(session.role)}
+          isIndividualExperience={isIndividual}
+        />
+      </Suspense>
       <FloatingActionButton access={sidebarAccess} />
     </div>
   );

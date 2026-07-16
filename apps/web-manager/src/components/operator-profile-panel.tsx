@@ -4,12 +4,10 @@ import { useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/auth-context";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
-import LogoutButton from "./logout-button";
 import UniversalLoadingState from "./universal-loading-state";
 
 import type { Organization } from "@hhousing/domain";
 import { postWithAuth } from "../lib/api-client";
-import { isIndividualExperience } from "../lib/platform-experience";
 
 interface OperatorProfilePanelProps {
   role: "landlord" | "property_manager" | "platform_admin";
@@ -94,7 +92,6 @@ export default function OperatorProfilePanel({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,25 +115,12 @@ export default function OperatorProfilePanel({
   }, [avatarFile, form.avatarUrl]);
 
   const checklist = useMemo(() => {
-    const items = [
+    return [
       { label: "Nom complet renseigné", done: form.fullName.trim().length > 0 },
       { label: "Photo de profil définie", done: form.avatarUrl.trim().length > 0 || !!avatarFile },
       { label: "Adresse email valide", done: form.email.trim().length > 0 }
     ];
-
-    if (role !== "platform_admin" && organization && isIndividualExperience(organization.platformExperience)) {
-      items.push(
-        { label: "Nom de votre espace", done: !!organization.name },
-        { label: "Logo de l'organisation", done: !!organization.logoUrl },
-        { label: "Email de contact", done: !!organization.contactEmail },
-        { label: "Téléphone ou WhatsApp", done: !!organization.contactPhone || !!organization.contactWhatsapp },
-        { label: "Adresse & Localisation", done: !!organization.address && !!organization.city && !!organization.country },
-        { label: "Signature email configurée", done: !!organization.emailSignature }
-      );
-    }
-
-    return items;
-  }, [form.fullName, form.avatarUrl, avatarFile, form.email, role, organization]);
+  }, [form.fullName, form.avatarUrl, avatarFile, form.email]);
 
   const completionPercent = useMemo(() => {
     const completedCount = checklist.filter((item) => item.done).length;
@@ -249,13 +233,6 @@ export default function OperatorProfilePanel({
     }
   }
 
-  const handleCopyId = () => {
-    if (!user) return;
-    navigator.clipboard.writeText(user.id);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
-
   const triggerFileInput = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -270,29 +247,8 @@ export default function OperatorProfilePanel({
     );
   }
 
-  const authProvider = user.app_metadata?.provider ?? "email";
-  const isIndividual = organization ? isIndividualExperience(organization.platformExperience) : false;
-  const accountCreatedAt = user.created_at
-    ? new Date(user.created_at).toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" })
-    : "-";
-
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      {/* Title Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Mon profil</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {isIndividual
-              ? "Vos informations personnelles, votre espace locatif et l'expérience plateforme."
-              : "Gérez vos informations de connexion et personnalisez votre compte gestionnaire."}
-          </p>
-        </div>
-        <div className="shrink-0">
-          <LogoutButton />
-        </div>
-      </div>
-
+    <div className="space-y-8">
       <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
         {/* Left column: Summary Card & Checklist */}
         <div className="space-y-6">

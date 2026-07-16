@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { SidebarAccess } from "./sidebar";
 import LogoutButton from "./logout-button";
 import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
@@ -19,6 +19,7 @@ export default function BottomNavigation({
   isIndividualExperience
 }: BottomNavigationProps): React.ReactElement {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Scroll lock when drawer is open
@@ -116,8 +117,8 @@ export default function BottomNavigation({
     { href: "/dashboard/documents", label: "Documents", icon: "documents", visible: access.services },
     { href: "/dashboard/team", label: "Équipe", icon: "team", visible: access.organization },
     { href: "/dashboard/audit", label: "Audit", icon: "audit", visible: access.audit },
-    { href: "/dashboard/organization", label: "Organisation", icon: "organization", visible: access.manageOrganization && !isIndividualExperience },
-    { href: "/dashboard/profile", label: "Mon Profil", icon: "profile", visible: true },
+    { href: "/dashboard/profile?tab=organisation", label: isIndividualExperience ? "Espace" : "Organisation", icon: "organization", visible: access.manageOrganization || isIndividualExperience },
+    { href: "/dashboard/profile?tab=compte", label: "Mon Profil", icon: "profile", visible: true },
   ];
 
   return (
@@ -206,7 +207,16 @@ export default function BottomNavigation({
         {/* Grid menu list */}
         <div className="p-4 grid grid-cols-3 gap-3">
           {menuItems.filter((item) => isItemVisible(item.href, item.visible)).map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const itemPath = item.href.split("?")[0];
+            const itemTab = new URLSearchParams(item.href.split("?")[1] ?? "").get("tab");
+            const currentTab = searchParams.get("tab");
+            const isActive = itemPath === "/dashboard/profile"
+              ? pathname.startsWith("/dashboard/profile") && (
+                  itemTab === null
+                  || itemTab === currentTab
+                  || (itemTab === "compte" && (currentTab === null || currentTab === "compte"))
+                )
+              : pathname.startsWith(itemPath);
             return (
               <Link
                 key={item.href}

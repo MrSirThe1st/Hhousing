@@ -51,7 +51,7 @@ export default function DashboardUserAvatarLink(): React.ReactElement {
 
   return (
     <Link
-      href="/dashboard/profile"
+      href="/dashboard/profile?tab=compte"
       className="inline-flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 transition hover:border-slate-300 hover:bg-slate-50"
       aria-label="Ouvrir mon profil"
       title="Mon profil"
