@@ -1,9 +1,4 @@
-import {
-  createPaymentRepositoryFromEnv,
-  createTenantLeaseRepositoryFromEnv,
-  createWhatsAppMessageRepositoryFromEnv
-} from "@hhousing/data-access";
-import { handleIncomingWhatsAppMessages } from "../../../../lib/whatsapp/inbound";
+import { createWhatsAppMessageRepositoryFromEnv } from "@hhousing/data-access";
 import {
   processWhatsAppWebhookPayload,
   verifyWhatsAppWebhookRequest
@@ -47,18 +42,9 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const repository = createWhatsAppMessageRepositoryFromEnv();
-    const tenantRepository = createTenantLeaseRepositoryFromEnv(process.env);
-    const paymentRepository = createPaymentRepositoryFromEnv(process.env);
-
     const result = await processWhatsAppWebhookPayload(
       payload as Parameters<typeof processWhatsAppWebhookPayload>[0],
-      repository,
-      async (messages) =>
-        handleIncomingWhatsAppMessages({
-          messages: messages ?? [],
-          tenantRepository,
-          paymentRepository
-        })
+      repository
     );
 
     return new Response(JSON.stringify({ success: true, data: result }), {

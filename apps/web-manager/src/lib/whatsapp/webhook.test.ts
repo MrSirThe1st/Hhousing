@@ -76,7 +76,6 @@ describe("processWhatsAppWebhookPayload", () => {
     );
 
     expect(result.processedStatuses).toBe(1);
-    expect(result.processedInboundMessages).toBe(0);
     expect(updateMessageStatus).toHaveBeenCalledWith({
       id: "msg-1",
       status: "delivered",
@@ -115,7 +114,6 @@ describe("processWhatsAppWebhookPayload", () => {
     );
 
     expect(result.processedStatuses).toBe(0);
-    expect(result.processedInboundMessages).toBe(0);
     expect(result.templateStatusEvents).toEqual([
       {
         event: "APPROVED",

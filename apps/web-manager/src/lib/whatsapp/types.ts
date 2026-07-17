@@ -31,23 +31,6 @@ export type WhatsAppTemplateMessageSender = (
 
 export interface WhatsAppClient {
   sendTemplateMessage(input: SendWhatsAppTemplateMessageInput): Promise<SendWhatsAppTemplateMessageResult>;
-  sendTextMessage(input: { to: string; body: string }): Promise<SendWhatsAppTemplateMessageResult>;
-  sendInteractiveListMessage(input: {
-    to: string;
-    bodyText: string;
-    buttonText: string;
-    sections: Array<{
-      title: string;
-      rows: Array<{ id: string; title: string; description?: string }>;
-    }>;
-  }): Promise<SendWhatsAppTemplateMessageResult>;
-  sendFlowMessage(input: {
-    to: string;
-    bodyText: string;
-    flowId: string;
-    flowCta: string;
-    flowToken: string;
-  }): Promise<SendWhatsAppTemplateMessageResult>;
 }
 
 export class WhatsAppApiError extends Error {

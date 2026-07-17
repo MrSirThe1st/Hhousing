@@ -27,116 +27,49 @@ export function isWhatsAppConfigured(): boolean {
   return Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
 }
 
-async function postWhatsAppMessage(
-  config: WhatsAppClientConfig,
-  payload: Record<string, unknown>
-): Promise<SendWhatsAppTemplateMessageResult> {
-  const baseUrl = `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/messages`;
-  const response = await fetch(baseUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.accessToken}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const responseBody = await response.text();
-  if (!response.ok) {
-    throw new WhatsAppApiError(response.status, responseBody);
-  }
-
-  let parsed: { messages?: Array<{ id?: string }> };
-  try {
-    parsed = JSON.parse(responseBody) as { messages?: Array<{ id?: string }> };
-  } catch {
-    throw new WhatsAppApiError(response.status, responseBody);
-  }
-
-  const externalMessageId = parsed.messages?.[0]?.id;
-  if (!externalMessageId) {
-    throw new WhatsAppApiError(response.status, responseBody);
-  }
-
-  return { externalMessageId };
-}
-
 export function createWhatsAppClient(config: WhatsAppClientConfig): WhatsAppClient {
+  const baseUrl = `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/messages`;
+
   return {
     async sendTemplateMessage(
       input: SendWhatsAppTemplateMessageInput
     ): Promise<SendWhatsAppTemplateMessageResult> {
-      return postWhatsAppMessage(config, {
-        messaging_product: "whatsapp",
-        to: input.to,
-        type: "template",
-        template: {
-          name: input.templateName,
-          language: { code: input.languageCode },
-          components: input.components
-        }
-      });
-    },
-
-    async sendTextMessage(input: { to: string; body: string }): Promise<SendWhatsAppTemplateMessageResult> {
-      return postWhatsAppMessage(config, {
-        messaging_product: "whatsapp",
-        to: input.to,
-        type: "text",
-        text: { body: input.body }
-      });
-    },
-
-    async sendInteractiveListMessage(input: {
-      to: string;
-      bodyText: string;
-      buttonText: string;
-      sections: Array<{
-        title: string;
-        rows: Array<{ id: string; title: string; description?: string }>;
-      }>;
-    }): Promise<SendWhatsAppTemplateMessageResult> {
-      return postWhatsAppMessage(config, {
-        messaging_product: "whatsapp",
-        to: input.to,
-        type: "interactive",
-        interactive: {
-          type: "list",
-          body: { text: input.bodyText },
-          action: {
-            button: input.buttonText,
-            sections: input.sections
+      const response = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: input.to,
+          type: "template",
+          template: {
+            name: input.templateName,
+            language: { code: input.languageCode },
+            components: input.components
           }
-        }
+        })
       });
-    },
 
-    async sendFlowMessage(input: {
-      to: string;
-      bodyText: string;
-      flowId: string;
-      flowCta: string;
-      flowToken: string;
-    }): Promise<SendWhatsAppTemplateMessageResult> {
-      return postWhatsAppMessage(config, {
-        messaging_product: "whatsapp",
-        to: input.to,
-        type: "interactive",
-        interactive: {
-          type: "flow",
-          body: { text: input.bodyText },
-          action: {
-            name: "flow",
-            parameters: {
-              flow_message_version: "3",
-              flow_id: input.flowId,
-              flow_cta: input.flowCta,
-              flow_token: input.flowToken,
-              flow_action: "data_exchange"
-            }
-          }
-        }
-      });
+      const responseBody = await response.text();
+      if (!response.ok) {
+        throw new WhatsAppApiError(response.status, responseBody);
+      }
+
+      let payload: { messages?: Array<{ id?: string }> };
+      try {
+        payload = JSON.parse(responseBody) as { messages?: Array<{ id?: string }> };
+      } catch {
+        throw new WhatsAppApiError(response.status, responseBody);
+      }
+
+      const externalMessageId = payload.messages?.[0]?.id;
+      if (!externalMessageId) {
+        throw new WhatsAppApiError(response.status, responseBody);
+      }
+
+      return { externalMessageId };
     }
   };
 }

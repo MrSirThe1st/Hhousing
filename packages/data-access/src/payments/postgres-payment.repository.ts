@@ -145,11 +145,6 @@ export function createPostgresPaymentRepository(
         values.push(filter.leaseId);
       }
 
-      if (filter.tenantId !== undefined) {
-        conditions.push(`tenant_id = $${idx++}`);
-        values.push(filter.tenantId);
-      }
-
       if (filter.status !== undefined) {
         conditions.push(`status = $${idx++}`);
         values.push(filter.status);
