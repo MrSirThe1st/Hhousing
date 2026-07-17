@@ -2,7 +2,7 @@ import { createHash, randomInt, randomBytes } from "crypto";
 import type { ApiResult } from "@hhousing/api-contracts";
 import type { AuthRepository, TenantLeaseRepository, TenantLoginOtpRepository } from "@hhousing/data-access";
 import { normalizeTenantPhoneNumber } from "@hhousing/data-access";
-import { mapErrorCodeToHttpStatus } from "../shared/error-http-status";
+import { mapErrorCodeToHttpStatus } from "../shared";
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;

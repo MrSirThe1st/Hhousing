@@ -145,5 +145,5 @@ export function createTenantLoginOtpRepositoryFromEnv(
     throw new Error(envResult.error);
   }
 
-  return createPostgresTenantLoginOtpRepository(getOrCreatePool(envResult.databaseUrl));
+  return createPostgresTenantLoginOtpRepository(getOrCreatePool(envResult.data.connectionString));
 }
