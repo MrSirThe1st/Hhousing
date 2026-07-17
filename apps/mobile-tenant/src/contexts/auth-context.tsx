@@ -7,6 +7,7 @@ type AuthContextValue = {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
+  signInWithSession: (accessToken: string, refreshToken: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 };
 
@@ -71,6 +72,18 @@ export function AuthProvider({ children }: PropsWithChildren): React.ReactElemen
         const result = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password
+        });
+
+        if (result.error) {
+          return result.error.message;
+        }
+
+        return null;
+      },
+      signInWithSession: async (accessToken: string, refreshToken: string): Promise<string | null> => {
+        const result = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
         });
 
         if (result.error) {

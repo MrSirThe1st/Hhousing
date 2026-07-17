@@ -23,7 +23,7 @@ export default async function ListingEditorPage({ params }: ListingEditorPagePro
   return (
     <ListingEditorForm
       organizationId={session.organizationId}
-      currentScopeLabel="Portefeuille unifié"
+      currentScopeLabel="Tous mes biens"
       item={item}
       allManagerListings={listings as ManagerListingView[]}
     />

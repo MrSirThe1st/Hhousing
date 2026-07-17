@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   // Public pages
-  if (pathname === "/login" || pathname === "/signup") {
+  if (pathname === "/login" || pathname === "/signup" || pathname === "/invite") {
     if (user !== null) {
       const membershipExists = await hasMembership(user.id);
       debugLogs.push(`[middleware] /login: membershipExists=${membershipExists}`);

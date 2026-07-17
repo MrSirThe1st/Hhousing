@@ -30,7 +30,7 @@ export default async function AddUnitPage(): Promise<React.ReactElement> {
   return (
     <UnitCreateForm
       organizationId={session.organizationId ?? ""}
-      currentScopeLabel="Portefeuille unifié"
+      currentScopeLabel="Tous mes biens"
       items={items}
     />
   );

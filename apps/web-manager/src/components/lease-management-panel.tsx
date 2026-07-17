@@ -37,9 +37,9 @@ export default function LeaseManagementPanel({
     <div className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Baux</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Contrats</h1>
           <p className="mt-2 text-sm text-slate-500">
-            {leases.length} bail(s), {activeCount} actif(s), {pendingCount} en attente, {endedCount} terminé(s).
+            {leases.length} contrat(s), {activeCount} actif(s), {pendingCount} en attente, {endedCount} terminé(s).
           </p>
         </div>
         <Link href="/dashboard/leases/move-in" className="inline-flex items-center rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]">

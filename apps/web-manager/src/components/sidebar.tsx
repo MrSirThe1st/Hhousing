@@ -230,14 +230,14 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
       items: [{ href: "/dashboard", label: "Vue d'ensemble", icon: "dashboard" }]
     },
     {
-      title: "Opérations locatives",
+      title: "Locations",
       items: [
-        { href: "/dashboard/properties", label: "Portfolio", icon: "portfolio" },
+        { href: "/dashboard/properties", label: "Mes biens", icon: "portfolio" },
         { href: "/dashboard/clients", label: "Propriétaires", icon: "clients" },
-        { href: "/dashboard/listings", label: "Listings", icon: "listings", badgeCount: badgeCounts.listings },
+        { href: "/dashboard/listings", label: "Annonces", icon: "listings", badgeCount: badgeCounts.listings },
         { href: "/dashboard/tenants", label: "Locataires", icon: "tenants" },
-        { href: "/dashboard/leases", label: "Baux", icon: "leases" },
-        { href: "/dashboard/move-outs", label: "Départs", icon: "move-outs" }
+        { href: "/dashboard/leases", label: "Contrats", icon: "leases" },
+        { href: "/dashboard/move-outs", label: "Fin de location", icon: "move-outs" }
       ]
     },
     {
@@ -253,7 +253,7 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
     {
       title: "Services",
       items: [
-        { href: "/dashboard/maintenance", label: "Maintenance", icon: "maintenance", badgeCount: badgeCounts.maintenance },
+        { href: "/dashboard/maintenance", label: "Réparations", icon: "maintenance", badgeCount: badgeCounts.maintenance },
         { href: "/dashboard/documents", label: "Documents", icon: "documents" }
       ]
     },
@@ -271,7 +271,7 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
       return { ...section, items: [] };
     }
 
-    if (section.title === "Opérations locatives" && !access.operations) {
+    if (section.title === "Locations" && !access.operations) {
       return { ...section, items: [] };
     }
 

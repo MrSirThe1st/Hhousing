@@ -57,7 +57,7 @@ export default function MaintenanceManagementPanel({
     <div className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Demandes de maintenance</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Réparations</h1>
           <p className="mt-2 text-sm text-slate-500">{requests.length} demande(s), {urgentCount} urgente(s).</p>
         </div>
       </div>

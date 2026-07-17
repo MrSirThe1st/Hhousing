@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import type { Owner } from "@hhousing/domain";
 import { createRepositoryFromEnv } from "../../../api/shared";
 import PropertyCreateForm from "../../../../components/property-create-form";
@@ -6,10 +5,17 @@ import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access"
 import { getIndividualExperienceFeatures } from "../../../../lib/individual-experience";
 import { getServerOperatorContext } from "../../../../lib/operator-context";
 
-export default async function AddPropertyPage(): Promise<React.ReactElement> {
+type AddPropertyPageProps = {
+  searchParams?: Promise<{
+    from?: string;
+  }>;
+};
+
+export default async function AddPropertyPage({ searchParams }: AddPropertyPageProps): Promise<React.ReactElement> {
   const { session } = await requireDashboardSectionAccess("operations");
   const operatorContext = await getServerOperatorContext(session);
   const features = getIndividualExperienceFeatures(operatorContext.experience);
+  const params = await searchParams;
 
   const repoResult = createRepositoryFromEnv();
 
@@ -26,6 +32,8 @@ export default async function AddPropertyPage(): Promise<React.ReactElement> {
     <PropertyCreateForm
       organizationId={session.organizationId ?? ""}
       owners={filteredOwners}
+      managedPropertyMode={features.managedPropertyMode}
+      fromOnboarding={params?.from === "onboarding"}
     />
   );
 }

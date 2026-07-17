@@ -46,7 +46,7 @@ export default function OwnerPortalLoginPage(): React.ReactElement {
             vos encaissements, vos indicateurs d'occupation et vos rapports, sans accès d'écriture.
           </p>
           <div className="mt-10 space-y-4 text-sm text-slate-200">
-            <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Portefeuille owner en lecture seule</div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Vos biens en lecture seule</div>
             <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Paiements et performance centralisés</div>
             <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4">Accès par invitation email uniquement</div>
           </div>

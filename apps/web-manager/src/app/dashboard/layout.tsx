@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 function getRoleLabel(role: "landlord" | "property_manager" | "platform_admin"): string {
   if (role === "landlord") {
-    return "Propriétaire";
+    return "Bailleur";
   }
 
   if (role === "property_manager") {
@@ -64,11 +64,11 @@ export default async function DashboardLayout({
                 <SidebarToggleButton />
               </div>
               <div>
-                <p className="text-sm font-medium text-[#010a19]">Espace opérateur</p>
+                <p className="text-sm font-medium text-[#010a19]">Mon espace</p>
                 <p className="text-xs md:text-sm text-gray-500 line-clamp-1 md:line-clamp-none">
                   {isIndividual
                     ? "Gérez vos biens, locataires et paiements depuis un espace simplifié."
-                    : "Portefeuille unifié par propriétaire. Utilisez les filtres par propriétaire pour segmenter les données."}
+                    : "Tous vos biens au même endroit. Filtrez par propriétaire pour voir un client à la fois."}
                 </p>
               </div>
             </div>

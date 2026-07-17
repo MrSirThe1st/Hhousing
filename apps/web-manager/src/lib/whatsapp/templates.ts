@@ -30,6 +30,11 @@ export const WHATSAPP_TEMPLATES = {
     name: "payment_confirmation_v1",
     languageCode: "fr" as const,
     bodyParameterCount: 5
+  },
+  loginOtp: {
+    name: "tenant_login_otp_v1",
+    languageCode: "fr" as const,
+    bodyParameterCount: 2
   }
 } as const;
 
@@ -92,5 +97,21 @@ export function getPaymentConfirmationTemplateFromEnv(): WhatsAppTemplateDefinit
     name: templateName,
     languageCode,
     bodyParameterCount: 5
+  };
+}
+
+export function getLoginOtpTemplateFromEnv(): WhatsAppTemplateDefinition | null {
+  const templateName = process.env.WHATSAPP_LOGIN_OTP_TEMPLATE?.trim();
+  if (!templateName) {
+    return null;
+  }
+
+  const configuredLanguage = process.env.WHATSAPP_LOGIN_OTP_TEMPLATE_LANGUAGE?.trim();
+  const languageCode = normalizeWhatsAppTemplateLanguage(configuredLanguage);
+
+  return {
+    name: templateName,
+    languageCode,
+    bodyParameterCount: 2
   };
 }

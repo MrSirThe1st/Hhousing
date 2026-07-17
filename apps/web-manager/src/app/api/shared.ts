@@ -44,7 +44,7 @@ export function jsonResponse(status: number, body: unknown): Response {
 }
 
 export function createId(prefix: string): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export function parseJsonBody(request: Request): Promise<unknown> {

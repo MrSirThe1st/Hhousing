@@ -271,9 +271,9 @@ export default function UnitCreateForm({
     <div className="p-8">
       <div className="mb-6">
         <Link href="/dashboard/properties" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
-          ← Retour au portfolio
+          ← Retour à mes biens
         </Link>
-        <h1 className="text-2xl font-semibold text-[#010a19]">Ajouter une ou plusieurs unités</h1>
+        <h1 className="text-2xl font-semibold text-[#010a19]">Ajouter un ou plusieurs logements</h1>
         <p className="mt-1 text-sm text-gray-500">Les unités seront ajoutées dans {currentScopeLabel.toLowerCase()}.</p>
       </div>
 
@@ -340,12 +340,12 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <UnitFieldLabel icon="deposit" label="Caution" />
+            <UnitFieldLabel icon="deposit" label="Garantie" />
             <input
               value={unitForm.depositAmount}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, depositAmount: event.target.value }))}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
-              placeholder="Caution"
+              placeholder="Garantie"
               inputMode="decimal"
               required
             />

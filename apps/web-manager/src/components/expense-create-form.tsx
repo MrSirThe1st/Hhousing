@@ -44,7 +44,7 @@ interface ExpenseInitialValues {
 }
 
 const CATEGORY_OPTIONS: Array<{ value: ExpenseCategory; label: string }> = [
-  { value: "maintenance", label: "Maintenance" },
+  { value: "maintenance", label: "Réparations" },
   { value: "utilities", label: "Utilités" },
   { value: "taxes", label: "Taxes" },
   { value: "insurance", label: "Assurance" },

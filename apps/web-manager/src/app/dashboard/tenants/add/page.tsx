@@ -1,9 +1,20 @@
-import { redirect } from "next/navigation";
 import TenantCreateForm from "../../../../components/tenant-create-form";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
-export default async function AddTenantPage(): Promise<React.ReactElement> {
-  const { session } = await requireDashboardSectionAccess("operations");
+type AddTenantPageProps = {
+  searchParams?: Promise<{
+    from?: string;
+  }>;
+};
 
-  return <TenantCreateForm organizationId={session.organizationId ?? ""} />;
+export default async function AddTenantPage({ searchParams }: AddTenantPageProps): Promise<React.ReactElement> {
+  const { session } = await requireDashboardSectionAccess("operations");
+  const params = await searchParams;
+
+  return (
+    <TenantCreateForm
+      organizationId={session.organizationId ?? ""}
+      fromOnboarding={params?.from === "onboarding"}
+    />
+  );
 }

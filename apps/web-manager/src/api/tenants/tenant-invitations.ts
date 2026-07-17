@@ -216,6 +216,10 @@ export async function createTenantInvitation(
   });
 
   const activationLink = buildActivationLink(deps.inviteLinkBaseUrl, token);
+  const appDownloadLink =
+    process.env.TENANT_APP_DOWNLOAD_URL?.trim()
+    || process.env.NEXT_PUBLIC_APP_URL?.trim()
+    || activationLink;
   const organization = deps.organizationRepository
     ? await deps.organizationRepository.getOrganizationById(sessionResult.data.organizationId)
     : null;
@@ -243,6 +247,7 @@ export async function createTenantInvitation(
               tenantFullName: tenant.fullName,
               organizationName,
               activationLink,
+              appDownloadLink,
               createMessageId: deps.createId
             })
         : undefined

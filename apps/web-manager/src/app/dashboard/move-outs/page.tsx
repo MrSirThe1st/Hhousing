@@ -20,7 +20,7 @@ export default async function MoveOutsPage(): Promise<React.ReactElement> {
     <div id="move-outs-container" className="p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#010a19]">Départs locataires</h1>
+          <h1 className="text-2xl font-semibold text-[#010a19]">Fin de location</h1>
           <p className="mt-1 text-sm text-gray-500">Suivez tous les dossiers de départ en cours et clôturés.</p>
         </div>
         <Link

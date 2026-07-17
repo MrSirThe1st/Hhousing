@@ -264,14 +264,14 @@ function getDashboardTab(tab: string | undefined, allowTasksCalendar: boolean): 
 function getVariantHeader(experience: PlatformExperience): { title: string; subtitle: string } {
   if (experience === "individual") {
     return {
-      title: "Vue particulier",
+      title: "Compte personnel",
       subtitle: "Gestion simplifiée de vos biens"
     };
   }
 
   return {
-    title: "Vue entreprise",
-    subtitle: "Opérations complètes, équipe et portefeuille"
+    title: "Compte agence",
+    subtitle: "Locations, équipe et tous vos biens"
   };
 }
 
@@ -446,21 +446,21 @@ function getStats(
 
   if (experience === "individual") {
     return [
-      { label: `Propriétés (${scopeLabel})`, value: metrics.propertyCount.toString() },
-      { label: "Unités totales", value: metrics.unitCount.toString() },
-      { label: "Taux d'occupation", value: `${occupancyRate}%` },
+      { label: `Biens (${scopeLabel})`, value: metrics.propertyCount.toString() },
+      { label: "Logements", value: metrics.unitCount.toString() },
+      { label: "Logements occupés", value: `${occupancyRate}%` },
       { label: "Locataires actifs", value: metrics.tenantCount.toString() },
-      { label: "Baux actifs", value: metrics.leaseCount.toString() }
+      { label: "Contrats actifs", value: metrics.leaseCount.toString() }
     ];
   }
 
   return [
-    { label: `Propriétés (${scopeLabel})`, value: metrics.propertyCount.toString() },
-    { label: `Unités (${scopeLabel})`, value: metrics.unitCount.toString() },
+    { label: `Biens (${scopeLabel})`, value: metrics.propertyCount.toString() },
+    { label: `Logements (${scopeLabel})`, value: metrics.unitCount.toString() },
     { label: "Locataires actifs", value: metrics.tenantCount.toString() },
-    { label: "Baux actifs", value: metrics.leaseCount.toString() },
-    { label: "Taux d'occupation", value: `${occupancyRate}%` },
-    { label: "Demandes en cours", value: metrics.maintenanceCount.toString() }
+    { label: "Contrats actifs", value: metrics.leaseCount.toString() },
+    { label: "Logements occupés", value: `${occupancyRate}%` },
+    { label: "Réparations en cours", value: metrics.maintenanceCount.toString() }
   ];
 }
 
@@ -608,19 +608,19 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Commencez par alimenter votre portfolio</h2>
+              <h2 className="text-lg font-semibold text-[#010a19]">Configurez votre espace</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Votre tableau de bord affichera les métriques une fois que vous aurez ajouté des biens et unités.
+                Suivez l&apos;assistant : premier bien, locataire, puis bail.
               </p>
               <div className="mt-6 flex justify-center gap-3">
                 <Link
-                  href="/dashboard/properties/add"
+                  href="/onboarding"
                   className="inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                  Ajouter un bien
+                  Continuer la configuration
                 </Link>
               </div>
             </div>
@@ -629,15 +629,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <section id="financial-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
                   <div>
-                    <h2 className="text-base font-semibold text-[#010a19]">Pilotage financier</h2>
-                    <p className="mt-1 text-xs text-slate-500">Revenus encaissés, dépenses, solde net et encours à risque.</p>
+                    <h2 className="text-base font-semibold text-[#010a19]">Argent du mois</h2>
+                    <p className="mt-1 text-xs text-slate-500">Loyers reçus, dépenses, reste et retards à suivre.</p>
                   </div>
                   <div className="text-xs text-slate-500">Portée: {scopeLabel}</div>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Revenus encaissés</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Loyers reçus</p>
                     <p className="mt-1 text-lg font-semibold text-[#010a19]">{formatCurrencySummary(metrics.paidTotals)}</p>
                     <p className="mt-1 text-xs text-slate-500">{metrics.paidPaymentCount} paiement(s) payés</p>
                   </div>
@@ -645,17 +645,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dépenses</p>
                     <p className="mt-1 text-lg font-semibold text-[#010a19]">{formatCurrencySummary(metrics.expenseTotals)}</p>
-                    <p className="mt-1 text-xs text-slate-500">Charges d'exploitation enregistrées</p>
+                    <p className="mt-1 text-xs text-slate-500">Charges enregistrées</p>
                   </div>
 
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Net opérationnel</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Reste après dépenses</p>
                     <p className="mt-1 text-lg font-semibold text-[#010a19]">{formatCurrencySummary(metrics.netTotals)}</p>
-                    <p className="mt-1 text-xs text-slate-500">Revenus - dépenses</p>
+                    <p className="mt-1 text-xs text-slate-500">Loyers - dépenses</p>
                   </div>
 
                   <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Encours en retard</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Loyers en retard</p>
                     <p className="mt-1 text-lg font-semibold text-rose-900">{formatCurrencySummary(metrics.overdueTotals)}</p>
                     <p className="mt-1 text-xs text-rose-700">{metrics.overduePaymentCount} paiement(s) en retard</p>
                   </div>
@@ -663,7 +663,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
                 <div className="mt-5 border-t border-slate-200 pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-[#010a19]">Priorisation retards</h3>
+                    <h3 className="text-sm font-semibold text-[#010a19]">Qui n&apos;a pas payé</h3>
                     <Link href="/dashboard/payments" className="text-xs font-medium text-[#0063fe] hover:underline">
                       Voir tous les paiements
                     </Link>
@@ -687,7 +687,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           )
                         },
                         {
-                          header: "Unité",
+                          header: "Logement",
                           render: (row) => <span className="text-slate-700">{row.unitLabel}</span>
                         },
                         {
@@ -718,7 +718,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                             </span>
                           </div>
                           <div className="text-xs text-slate-500 flex justify-between">
-                            <span>Unité: {row.unitLabel}</span>
+                            <span>Logement: {row.unitLabel}</span>
                             <span>Échéance: {formatIsoDate(row.dueDate)}</span>
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t border-slate-100">
@@ -737,11 +737,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <section id="operational-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
                   <div>
-                    <h2 className="text-base font-semibold text-[#010a19]">Vue d'ensemble opérationnelle</h2>
+                    <h2 className="text-base font-semibold text-[#010a19]">Activité des locations</h2>
                     <p className="mt-1 text-xs text-slate-500">
                       {individualFeatures.maintenanceDashboardWidgets
-                        ? "Capacité, activité locative, maintenance et collecte."
-                        : "Capacité, activité locative et collecte."}
+                        ? "Occupation, contrats, réparations et collecte."
+                        : "Occupation, contrats et collecte."}
                     </p>
                   </div>
                   {individualFeatures.financeReportsWidgets ? (
@@ -757,9 +757,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       <article key={bucket.month} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{bucket.label}</p>
                         <div className="mt-2 space-y-1 text-[11px] leading-4">
-                          <p className="text-emerald-700">Rev: {formatCurrencySummary(bucket.revenueTotals)}</p>
+                          <p className="text-emerald-700">Loyers: {formatCurrencySummary(bucket.revenueTotals)}</p>
                           <p className="text-slate-600">Dép: {formatCurrencySummary(bucket.expenseTotals)}</p>
-                          <p className="font-semibold text-[#010a19]">Net: {formatCurrencySummary(bucket.netTotals)}</p>
+                          <p className="font-semibold text-[#010a19]">Reste: {formatCurrencySummary(bucket.netTotals)}</p>
                         </div>
                       </article>
                     ))}
@@ -777,20 +777,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
                 <div className={`mt-5 grid gap-3 border-t border-slate-200 pt-4 ${individualFeatures.maintenanceDashboardWidgets ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                   <div className="rounded-lg border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Paiements à encaisser</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Loyers à encaisser</p>
                     <p className="mt-1 text-xl font-semibold text-[#010a19]">{formatCurrencySummary(metrics.pendingTotals)}</p>
                     <p className="mt-1 text-xs text-slate-500">{metrics.pendingPaymentCount} paiement(s) en attente</p>
                   </div>
 
                   <div className="rounded-lg border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Taux de collecte</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">% de loyers payés</p>
                     <p className="mt-1 text-xl font-semibold text-[#010a19]">{collectionRate}%</p>
                     <p className="mt-1 text-xs text-slate-500">Part des paiements soldés</p>
                   </div>
 
                   {individualFeatures.maintenanceDashboardWidgets ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Maintenance urgente</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Réparations urgentes</p>
                     <p className="mt-1 text-xl font-semibold text-amber-900">{metrics.urgentMaintenanceCount}</p>
                     <p className="mt-1 text-xs text-amber-700">Ticket(s) urgents ouverts/en cours</p>
                   </div>
@@ -798,21 +798,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </div>
 
                 <div className="mt-5 border-t border-slate-200 pt-4">
-                  <h3 className="text-sm font-semibold text-[#010a19]">Digest quotidien manager</h3>
-                  <p className="mt-1 text-xs text-slate-500">Points critiques à traiter immédiatement.</p>
+                  <h3 className="text-sm font-semibold text-[#010a19]">À traiter aujourd&apos;hui</h3>
+                  <p className="mt-1 text-xs text-slate-500">Les points urgents de vos locations.</p>
                   <div className={`mt-3 grid gap-3 ${individualFeatures.maintenanceDashboardWidgets ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                     {individualFeatures.maintenanceDashboardWidgets ? (
                     <article className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Urgences maintenance</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Réparations urgentes</p>
                       <p className="mt-1 text-xl font-semibold text-amber-900">{metrics.dailyDigest.urgentMaintenanceCount}</p>
                       <Link href="/dashboard/maintenance" className="mt-2 inline-block text-xs font-medium text-amber-800 hover:underline">
-                        Ouvrir la file maintenance
+                        Voir les réparations
                       </Link>
                     </article>
                     ) : null}
 
                     <article className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Paiements en retard</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Loyers en retard</p>
                       <p className="mt-1 text-xl font-semibold text-rose-900">{metrics.dailyDigest.overduePaymentCount}</p>
                       <p className="mt-1 text-xs text-rose-700">Max retard: {metrics.dailyDigest.mostOverdueDays} jour(s)</p>
                       <Link href="/dashboard/payments" className="mt-2 inline-block text-xs font-medium text-rose-800 hover:underline">
@@ -821,12 +821,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     </article>
 
                     <article className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Baux fin proche (30j)</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Contrats bientôt finis (30j)</p>
                       <p className="mt-1 text-xl font-semibold text-blue-900">{metrics.dailyDigest.leasesEndingSoonCount}</p>
                       <p className="mt-1 text-xs text-blue-700">
                         {metrics.dailyDigest.nextLeaseEndDate
                           ? `Prochaine fin: ${formatIsoDate(metrics.dailyDigest.nextLeaseEndDate)}`
-                          : "Aucune fin de bail imminente"}
+                          : "Aucune fin de contrat imminente"}
                       </p>
                       <Link href="/dashboard/leases" className="mt-2 inline-block text-xs font-medium text-blue-800 hover:underline">
                         Préparer les renouvellements
@@ -838,11 +838,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
               {individualFeatures.financeReportsWidgets ? (
               <section id="quick-reports" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="text-base font-semibold text-[#010a19]">Accès rapide rapports</h2>
-                <p className="mt-1 text-xs text-slate-500">Suivi détaillé par module pour action immédiate.</p>
+                <h2 className="text-base font-semibold text-[#010a19]">Rapports rapides</h2>
+                <p className="mt-1 text-xs text-slate-500">Accédez aux détails pour agir tout de suite.</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <Link href="/dashboard/revenues" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe]">
-                    Revenus détaillés
+                    Loyers détaillés
                   </Link>
                   <Link href="/dashboard/expenses" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe]">
                     Dépenses détaillées
@@ -851,7 +851,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     Paiements et relances
                   </Link>
                   <Link href="/dashboard/maintenance" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe]">
-                    File maintenance
+                    File des réparations
                   </Link>
                 </div>
               </section>

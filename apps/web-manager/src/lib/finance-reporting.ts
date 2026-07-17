@@ -106,7 +106,7 @@ export function formatCurrencySummary(totals: CurrencyTotal[]): string {
 export function formatExpenseCategory(category: ExpenseCategory): string {
   switch (category) {
     case "maintenance":
-      return "Maintenance";
+      return "Réparations";
     case "utilities":
       return "Utilités";
     case "taxes":

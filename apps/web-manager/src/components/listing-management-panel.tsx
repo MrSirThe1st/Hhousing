@@ -442,38 +442,38 @@ export default function ListingManagementPanel({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">
-            Listings and Applications
+            Annonces et candidatures
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            {listings.length} listing(s), {totalApplicationsCount} application(s).
+            {listings.length} annonce(s), {totalApplicationsCount} candidature(s).
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Listings</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Annonces</p>
           <p className="text-xl font-semibold text-slate-900">{listings.length}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Published</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Publiées</p>
           <p className="text-xl font-semibold text-slate-900">{publishedListingsCount}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Applications</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Candidatures</p>
           <p className="text-xl font-semibold text-slate-900">{totalApplicationsCount}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Approved</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Approuvées</p>
           <p className="text-xl font-semibold text-slate-900">{approvedApplicationsCount}</p>
         </div>
       </div>
@@ -487,7 +487,7 @@ export default function ListingManagementPanel({
               : "text-slate-600 hover:text-[#010a19]"
           }`}
         >
-          Listings
+          Annonces
         </Link>
         <Link
           href="/dashboard/listings?tab=applications"
@@ -497,7 +497,7 @@ export default function ListingManagementPanel({
               : "text-slate-600 hover:text-[#010a19]"
           }`}
         >
-          Applications
+          Candidatures
         </Link>
         <Link
           href="/dashboard/listings?tab=screening"
@@ -507,7 +507,7 @@ export default function ListingManagementPanel({
               : "text-slate-600 hover:text-[#010a19]"
           }`}
         >
-          Screening
+          Vérification
         </Link>
       </div>
 

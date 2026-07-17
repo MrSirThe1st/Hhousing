@@ -25,7 +25,7 @@ const STATUS_STYLES: Record<PaymentStatus, string> = {
 
 const PAYMENT_KIND_LABELS: Record<PaymentKind, string> = {
   rent: "Loyer",
-  deposit: "Depot",
+  deposit: "Garantie",
   prorated_rent: "Loyer prorata",
   fee: "Frais",
   other: "Autre"

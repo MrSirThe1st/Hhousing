@@ -70,7 +70,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
           <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
           <span>
             <span className="block text-lg font-semibold tracking-tight">Haraka Property</span>
-            <span className="hidden sm:block text-[11px] uppercase tracking-[0.18em] text-slate-500">Opérations locatives</span>
+            <span className="hidden sm:block text-[11px] uppercase tracking-[0.18em] text-slate-500">Gestion de vos locations</span>
           </span>
         </Link>
 

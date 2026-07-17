@@ -11,6 +11,8 @@ export interface SendTenantInvitationWhatsAppInput {
   tenantFullName: string;
   organizationName: string;
   activationLink: string;
+  /** Prefer web activation link so the tenant sets password before downloading the app. */
+  appDownloadLink?: string;
   createMessageId?: () => string;
 }
 

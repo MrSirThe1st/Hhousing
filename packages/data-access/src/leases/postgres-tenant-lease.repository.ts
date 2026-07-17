@@ -2,6 +2,7 @@ import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, LeaseMoveInMode, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
+import { normalizeTenantPhoneNumber } from "../phone/normalize-phone";
 import type {
   CreateLeaseChargeRecordInput,
   CreateTenantRecordInput,
@@ -380,11 +381,29 @@ export function createPostgresTenantLeaseRepository(
 
   return {
     async createTenant(input: CreateTenantRecordInput): Promise<Tenant> {
+      const phoneNormalized = input.phone ? normalizeTenantPhoneNumber(input.phone) : null;
       const result = await client.query<TenantRow>(
-        `insert into tenants (id, organization_id, auth_user_id, full_name, email, phone, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `insert into tenants (
+           id, organization_id, auth_user_id, full_name, email, phone, phone_normalized,
+           date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants
+         )
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
-        [input.id, input.organizationId, input.authUserId, input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants]
+        [
+          input.id,
+          input.organizationId,
+          input.authUserId,
+          input.fullName,
+          input.email,
+          input.phone,
+          phoneNormalized,
+          input.dateOfBirth,
+          input.photoUrl,
+          input.employmentStatus,
+          input.jobTitle,
+          input.monthlyIncome,
+          input.numberOfOccupants
+        ]
       );
       return mapTenant(result.rows[0]);
     },
@@ -490,13 +509,15 @@ export function createPostgresTenantLeaseRepository(
       authUserId: string,
       phone: string | null
     ): Promise<Tenant | null> {
+      const phoneNormalized = phone ? normalizeTenantPhoneNumber(phone) : null;
       const result = await client.query<TenantRow>(
         `update tenants
          set auth_user_id = $1,
-             phone = coalesce($2, phone)
-         where id = $3 and organization_id = $4 and auth_user_id is null
+             phone = coalesce($2, phone),
+             phone_normalized = coalesce($3, phone_normalized)
+         where id = $4 and organization_id = $5 and auth_user_id is null
          returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
-        [authUserId, phone, tenantId, organizationId]
+        [authUserId, phone, phoneNormalized, tenantId, organizationId]
       );
 
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
@@ -515,10 +536,10 @@ export function createPostgresTenantLeaseRepository(
                status, signed_at, signing_method, activated_at
              )
              select
-               $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+               $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12, $13::date, $14, $15,
                $17, $18, $19,
                $16,
-               case when $16 = 'active' then $20 else null end,
+               case when $16 = 'active' then $20::date else null end,
                case when $16 = 'active' then $21 else null end,
                case when $16 = 'active' then now() else null end
              from units u
@@ -534,7 +555,6 @@ export function createPostgresTenantLeaseRepository(
                  where l2.unit_id = $3
                    and l2.organization_id = $2
                    and l2.status = 'active'
-                   and l2.tenant_id != $4
                )
              returning
                id, organization_id, unit_id, tenant_id,
@@ -718,6 +738,23 @@ export function createPostgresTenantLeaseRepository(
          from tenants
          where id = $1 and organization_id = $2`,
         [tenantId, organizationId]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async findTenantByNormalizedPhone(phoneNormalized: string): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `select id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
+         from tenants
+         where phone_normalized = $1
+            or regexp_replace(coalesce(whatsapp_number, ''), '\\D', '', 'g') = $1
+            or regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = $1
+            or regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = ('0' || substr($1, 4))
+         order by
+           case when auth_user_id is not null then 0 else 1 end,
+           created_at desc
+         limit 1`,
+        [phoneNormalized]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
     },
@@ -952,26 +989,33 @@ export function createPostgresTenantLeaseRepository(
     },
 
     async updateTenant(input: UpdateTenantRecordInput): Promise<Tenant | null> {
+      const phoneNormalized = input.phone ? normalizeTenantPhoneNumber(input.phone) : null;
       const result = await client.query<TenantRow>(
         `update tenants
-         set full_name = $1, email = $2, phone = $3, date_of_birth = $4, photo_url = $5, employment_status = $6, job_title = $7, monthly_income = $8, number_of_occupants = $9
-         where id = $10 and organization_id = $11
+         set full_name = $1, email = $2, phone = $3, phone_normalized = $4, date_of_birth = $5, photo_url = $6, employment_status = $7, job_title = $8, monthly_income = $9, number_of_occupants = $10
+         where id = $11 and organization_id = $12
          returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
-        [input.fullName, input.email, input.phone, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants, input.id, input.organizationId]
+        [input.fullName, input.email, input.phone, phoneNormalized, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants, input.id, input.organizationId]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
     },
 
     async updateTenantMobileProfile(input: UpdateTenantMobileProfileInput): Promise<Tenant | null> {
+      const phoneNormalized = input.phone
+        ? normalizeTenantPhoneNumber(input.phone)
+        : input.whatsappNumber
+          ? normalizeTenantPhoneNumber(input.whatsappNumber)
+          : null;
       const result = await client.query<TenantRow>(
         `update tenants
          set full_name = $1,
              phone = $2,
              whatsapp_number = $3,
-             whatsapp_opt_in = $4
-         where id = $5 and organization_id = $6
+             whatsapp_opt_in = $4,
+             phone_normalized = coalesce($5, phone_normalized)
+         where id = $6 and organization_id = $7
          returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
-        [input.fullName, input.phone, input.whatsappNumber, input.whatsappOptIn, input.id, input.organizationId]
+        [input.fullName, input.phone, input.whatsappNumber, input.whatsappOptIn, phoneNormalized, input.id, input.organizationId]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
     },

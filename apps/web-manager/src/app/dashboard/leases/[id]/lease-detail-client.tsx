@@ -63,7 +63,7 @@ const MOVE_OUT_CHARGE_OPTIONS: Array<{ value: MoveOutChargeType; label: string }
   { value: "damage", label: "Dommages" },
   { value: "cleaning", label: "Nettoyage" },
   { value: "penalty", label: "Pénalité" },
-  { value: "deposit_deduction", label: "Retenue sur dépôt" },
+  { value: "deposit_deduction", label: "Retenue sur garantie" },
   { value: "credit", label: "Crédit locataire" }
 ];
 
@@ -448,7 +448,7 @@ export default function LeaseDetailClient({
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Financials</h2>
           <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
             <div><p className="text-xs text-slate-500">Monthly rent</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.monthlyRentAmount.toLocaleString()} {lease.currencyCode}</p></div>
-            <div><p className="text-xs text-slate-500">Security deposit</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.depositAmount.toLocaleString()} {lease.currencyCode}</p></div>
+            <div><p className="text-xs text-slate-500">Garantie</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.depositAmount.toLocaleString()} {lease.currencyCode}</p></div>
             <div><p className="text-xs text-slate-500">Signing method</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.signingMethod ? lease.signingMethod.replace(/_/g, " ") : "—"}</p></div>
             <div><p className="text-xs text-slate-500">Signed at</p><p className="mt-0.5 text-sm font-medium text-[#010a19]">{lease.signedAt ?? "—"}</p></div>
           </div>
@@ -537,7 +537,7 @@ export default function LeaseDetailClient({
               <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 md:grid-cols-3">
                 <div><p className="text-xs uppercase tracking-wide text-gray-500">Impayés</p><p className="text-base font-semibold text-[#010a19]">{moveOutSummary.outstandingAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}</p></div>
                 <div><p className="text-xs uppercase tracking-wide text-gray-500">Futur planifié</p><p className="text-base font-semibold text-[#010a19]">{moveOutSummary.futureScheduledAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}</p></div>
-                <div><p className="text-xs uppercase tracking-wide text-gray-500">Dépôt détenu</p><p className="text-base font-semibold text-[#010a19]">{moveOutSummary.depositHeldAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}</p></div>
+                <div><p className="text-xs uppercase tracking-wide text-gray-500">Garantie détenue</p><p className="text-base font-semibold text-[#010a19]">{moveOutSummary.depositHeldAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}</p></div>
               </div>
             ) : null}
 

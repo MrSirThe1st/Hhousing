@@ -34,6 +34,14 @@ type MoveOutChargeDraft = {
 };
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+type WizardStep = "departure" | "finances" | "inspection" | "close";
+
+const WIZARD_STEPS: Array<{ id: WizardStep; label: string }> = [
+  { id: "departure", label: "Départ" },
+  { id: "finances", label: "Finances" },
+  { id: "inspection", label: "Inspection" },
+  { id: "close", label: "Clôturer" }
+];
 
 const DEFAULT_CHECKLIST: MoveOutChecklistItem[] = [
   { id: "keys_returned", label: "Clés récupérées", isChecked: false, note: null },
@@ -50,7 +58,7 @@ const MOVE_OUT_CHARGE_OPTIONS: Array<{ value: MoveOutChargeType; label: string }
   { value: "damage", label: "Dommages" },
   { value: "cleaning", label: "Nettoyage" },
   { value: "penalty", label: "Pénalité" },
-  { value: "deposit_deduction", label: "Retenue sur caution" },
+  { value: "deposit_deduction", label: "Retenue sur garantie" },
   { value: "credit", label: "Crédit locataire" }
 ];
 
@@ -115,6 +123,7 @@ export default function MoveOutFlowClient({ id, initialLease, initialAvailableDo
   const [closureLedgerEventId, setClosureLedgerEventId] = useState("");
   const [reconciliation, setReconciliation] = useState<GetMoveOutReconciliationOutput | null>(null);
   const [showConfirmCloseModal, setShowConfirmCloseModal] = useState(false);
+  const [step, setStep] = useState<WizardStep>("departure");
   const photoFileInputRef = useRef<HTMLInputElement>(null);
 
   const inspectionPhotoDocuments = useMemo(
@@ -218,7 +227,7 @@ export default function MoveOutFlowClient({ id, initialLease, initialAvailableDo
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [saveState]);
 
-  async function handleSaveMoveOut(nextStatus: "draft" | "confirmed"): Promise<void> {
+  async function handleSaveMoveOut(nextStatus: "draft" | "confirmed"): Promise<boolean> {
     setSavingMoveOut(true);
     setSaveState("saving");
     setError(null);
@@ -250,16 +259,17 @@ export default function MoveOutFlowClient({ id, initialLease, initialAvailableDo
       setError(result.error);
       setSaveState("error");
       setSavingMoveOut(false);
-      return;
+      return false;
     }
 
     await loadMoveOutView();
     setSaveState("saved");
     setLastSavedAt(new Date().toISOString());
     setSavingMoveOut(false);
+    return true;
   }
 
-  async function handleSaveInspection(): Promise<void> {
+  async function handleSaveInspection(): Promise<boolean> {
     setSavingInspection(true);
     setSaveState("saving");
     setError(null);
@@ -275,13 +285,14 @@ export default function MoveOutFlowClient({ id, initialLease, initialAvailableDo
       setError(result.error);
       setSaveState("error");
       setSavingInspection(false);
-      return;
+      return false;
     }
 
     setSaveState("saved");
     setLastSavedAt(new Date().toISOString());
     await loadMoveOutView();
     setSavingInspection(false);
+    return true;
   }
 
   async function handleAutoFillLedgerEventId(): Promise<void> {
@@ -434,181 +445,385 @@ export default function MoveOutFlowClient({ id, initialLease, initialAvailableDo
 
   const blockingIssues = reconciliation?.issues.filter((i) => i.severity === "blocking") ?? [];
   const canClose = currentStatus === "confirmed" && !isMoveOutClosed && blockingIssues.length === 0;
+  const stepIndex = WIZARD_STEPS.findIndex((item) => item.id === step);
+  const busy = savingMoveOut || savingInspection || closingMoveOut || loadingMoveOut;
+
+  useEffect(() => {
+    if (isMoveOutClosed) {
+      setStep("close");
+    }
+  }, [isMoveOutClosed]);
+
+  function validateStep(currentStep: WizardStep): string | null {
+    if (currentStep === "departure") {
+      if (!moveOutDate) {
+        return "Indiquez la date de sortie.";
+      }
+      return null;
+    }
+    if (currentStep === "finances") {
+      const invalidCharge = moveOutCharges.find((charge) => {
+        const trimmed = charge.amount.trim();
+        if (trimmed.length === 0) {
+          return false;
+        }
+        const amount = Number(trimmed);
+        return !Number.isFinite(amount) || amount <= 0;
+      });
+      if (invalidCharge) {
+        return "Chaque ligne de régularisation renseignée doit avoir un montant positif.";
+      }
+      return null;
+    }
+    return null;
+  }
+
+  async function goNext(): Promise<void> {
+    setError(null);
+    const validationError = validateStep(step);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    if (step === "departure" && !isMoveOutClosed && saveState === "dirty") {
+      const saved = await handleSaveMoveOut(isConfirmed ? "confirmed" : "draft");
+      if (!saved) {
+        return;
+      }
+    }
+
+    if (step === "finances" && !isMoveOutClosed && saveState === "dirty" && !isConfirmed) {
+      const saved = await handleSaveMoveOut("draft");
+      if (!saved) {
+        return;
+      }
+    }
+
+    if (step === "inspection" && !isMoveOutClosed && saveState === "dirty") {
+      const saved = await handleSaveInspection();
+      if (!saved) {
+        return;
+      }
+    }
+
+    const next = WIZARD_STEPS[stepIndex + 1];
+    if (next) {
+      setStep(next.id);
+    }
+  }
+
+  function goBack(): void {
+    setError(null);
+    const previous = WIZARD_STEPS[stepIndex - 1];
+    if (previous) {
+      setStep(previous.id);
+    }
+  }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="p-4 sm:p-8">
+      <div className="mb-6 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <Link href="/dashboard/move-outs" className="text-sm text-[#0063fe] hover:underline">← Départs</Link>
             <span className="text-gray-300">/</span>
             <Link href={`/dashboard/leases/${id}`} className="text-sm text-gray-500 hover:underline">{lease.tenantFullName}</Link>
           </div>
-          <div className="mt-2 flex items-center gap-3">
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold text-[#010a19]">Départ locataire</h1>
             <StatusPill />
           </div>
+          <p className="mt-2 text-sm text-slate-600">Suivez les étapes. Une seule décision à la fois.</p>
         </div>
         <SaveStateIndicator />
       </div>
 
-      <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-        {/* Section 1 — Move-out info */}
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Étape 1 — Informations de départ</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <label className="block text-sm font-medium text-gray-700">
-              <span className="mb-1.5 block">Date de sortie</span>
-              {isConfirmed && !isMoveOutClosed ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-[#010a19]">{new Date(moveOutDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</span>
-                  <button type="button" onClick={() => handleSaveMoveOut("draft")} className="text-xs text-[#0063fe] hover:underline">Modifier (repasser en brouillon)</button>
+      <div className="mb-6 max-w-2xl">
+        <div className="flex items-center gap-1 sm:gap-2">
+          {WIZARD_STEPS.map((wizardStep, index) => {
+            const isCurrent = wizardStep.id === step;
+            const isDone = index < stepIndex || (isMoveOutClosed && index <= stepIndex);
+            return (
+              <div key={wizardStep.id} className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
+                      isCurrent
+                        ? "bg-[#0063fe] text-white"
+                        : isDone
+                          ? "bg-[#0063fe]/15 text-[#0063fe]"
+                          : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  <span className={`hidden truncate text-xs sm:block ${isCurrent ? "font-semibold text-[#010a19]" : "text-slate-500"}`}>
+                    {wizardStep.label}
+                  </span>
                 </div>
-              ) : (
+                {index < WIZARD_STEPS.length - 1 ? (
+                  <div className={`mb-4 hidden h-0.5 flex-1 sm:block ${isDone ? "bg-[#0063fe]/40" : "bg-slate-200"}`} />
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-center text-sm font-medium text-[#010a19] sm:hidden">
+          Étape {stepIndex + 1} sur {WIZARD_STEPS.length} · {WIZARD_STEPS[stepIndex]?.label}
+        </p>
+      </div>
+
+      <div className="max-w-2xl space-y-5">
+        {step === "departure" ? (
+          <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div>
+              <h2 className="text-lg font-semibold text-[#010a19]">Quand part le locataire ?</h2>
+              <p className="mt-1 text-sm text-slate-600">Date de sortie et motif du départ.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <label className="block text-sm font-medium text-gray-700">
+                <span className="mb-1.5 block">Date de sortie</span>
+                {isConfirmed && !isMoveOutClosed ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-[#010a19]">
+                      {new Date(moveOutDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                    <button type="button" onClick={() => void handleSaveMoveOut("draft")} className="text-xs text-[#0063fe] hover:underline">
+                      Modifier (repasser en brouillon)
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="date"
+                    value={moveOutDate}
+                    onChange={(event) => { setMoveOutDate(event.target.value); markDirty(); }}
+                    disabled={isMoveOutClosed}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] disabled:opacity-60"
+                  />
+                )}
+              </label>
+              <label className="block text-sm font-medium text-gray-700">
+                <span className="mb-1.5 block">Motif (optionnel)</span>
                 <input
-                  type="date"
-                  value={moveOutDate}
-                  onChange={(event) => { setMoveOutDate(event.target.value); markDirty(); }}
+                  type="text"
+                  value={moveOutReason}
+                  onChange={(event) => { setMoveOutReason(event.target.value); markDirty(); }}
                   disabled={isMoveOutClosed}
+                  placeholder="Ex. fin de contrat, départ anticipé..."
                   className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] disabled:opacity-60"
                 />
-              )}
-            </label>
-            <label className="block text-sm font-medium text-gray-700 md:col-span-2">
-              <span className="mb-1.5 block">Motif</span>
-              <input
-                type="text"
-                value={moveOutReason}
-                onChange={(event) => { setMoveOutReason(event.target.value); markDirty(); }}
-                disabled={isMoveOutClosed}
-                placeholder="Ex. fin de contrat, départ anticipé..."
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] disabled:opacity-60"
-              />
-            </label>
-          </div>
-        </div>
-
-        <hr className="border-gray-100" />
-
-        {/* Section 2 — Régularisations */}
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Étape 2 — Régularisations financières</h2>
-
-          {moveOutSummary ? (
-            <div className="mb-4 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 md:grid-cols-3">
-              <div><p className="text-xs uppercase tracking-wide text-gray-500">Loyers en retard</p><p className="text-base font-semibold text-[#010a19]">{moveOutSummary.outstandingAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}</p></div>
-              <div><p className="text-xs uppercase tracking-wide text-gray-500">Échéances à venir</p><p className="text-base font-semibold text-[#010a19]">{moveOutSummary.futureScheduledAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}</p></div>
-              <div><p className="text-xs uppercase tracking-wide text-gray-500">Caution</p><p className="text-base font-semibold text-[#010a19]">{moveOutSummary.depositHeldAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}</p></div>
+              </label>
             </div>
-          ) : null}
+          </section>
+        ) : null}
 
-          {isConfirmed && confirmedAt ? (
-            <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
-              <span className="text-xs font-medium text-blue-600">Données figées le {formatDateTime(confirmedAt)}</span>
+        {step === "finances" ? (
+          <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div>
+              <h2 className="text-lg font-semibold text-[#010a19]">Régularisations financières</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Loyers, dommages, retenues sur caution. Vous pouvez continuer sans ligne si tout est déjà soldé.
+              </p>
             </div>
-          ) : null}
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-[#010a19]">Lignes de régularisation</h3>
-              {!isMoveOutClosed ? (
-                <button type="button" onClick={addMoveOutCharge} className="rounded-lg border border-[#0063fe] px-3 py-1.5 text-xs font-semibold text-[#0063fe] hover:bg-[#0063fe]/5">Ajouter une ligne</button>
-              ) : null}
-            </div>
-            {moveOutCharges.length === 0 ? <p className="text-sm text-gray-500">Aucun ajustement saisi.</p> : (
-              <div className="space-y-3">
-                {moveOutCharges.map((charge, index) => (
-                  <div key={charge.id} className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-3 md:grid-cols-12">
-                    <select value={charge.chargeType} onChange={(event) => updateMoveOutCharge(index, { chargeType: event.target.value as MoveOutChargeType })} disabled={isMoveOutClosed} className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 md:col-span-4">
-                      {MOVE_OUT_CHARGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                    <input value={charge.amount} onChange={(event) => updateMoveOutCharge(index, { amount: event.target.value })} disabled={isMoveOutClosed} placeholder="Montant" className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 md:col-span-2" />
-                    <input value={charge.currencyCode} onChange={(event) => updateMoveOutCharge(index, { currencyCode: event.target.value.toUpperCase() })} disabled={isMoveOutClosed} className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 md:col-span-2" />
-                    <input value={charge.note} onChange={(event) => updateMoveOutCharge(index, { note: event.target.value })} disabled={isMoveOutClosed} placeholder="Note" className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 md:col-span-3" />
-                    {!isMoveOutClosed ? <button type="button" onClick={() => removeMoveOutCharge(index)} className="rounded-lg border border-red-200 px-2 py-2 text-xs font-semibold text-red-600 md:col-span-1">Suppr.</button> : <div className="md:col-span-1" />}
-                  </div>
-                ))}
+            {moveOutSummary ? (
+              <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-slate-50 p-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Loyers en retard</p>
+                  <p className="text-base font-semibold text-[#010a19]">
+                    {moveOutSummary.outstandingAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Échéances à venir</p>
+                  <p className="text-base font-semibold text-[#010a19]">
+                    {moveOutSummary.futureScheduledAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Garantie</p>
+                  <p className="text-base font-semibold text-[#010a19]">
+                    {moveOutSummary.depositHeldAmount.toLocaleString("fr-FR")} {moveOutSummary.currencyCode}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
+            ) : null}
 
-          {!isMoveOutClosed ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              {!isConfirmed ? (
-                <>
-                  <button type="button" onClick={() => handleSaveMoveOut("draft")} disabled={savingMoveOut} className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60">Enregistrer le brouillon</button>
+            {isConfirmed && confirmedAt ? (
+              <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+                <span className="text-xs font-medium text-blue-600">Données figées le {formatDateTime(confirmedAt)}</span>
+              </div>
+            ) : null}
+
+            <div className="rounded-lg border border-gray-200 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-[#010a19]">Lignes de régularisation</h3>
+                {!isMoveOutClosed ? (
                   <button
                     type="button"
-                    onClick={() => handleSaveMoveOut("confirmed")}
-                    disabled={savingMoveOut}
-                    title="La date et les données financières seront figées. Vous pourrez encore ajouter des photos et notes."
-                    className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0052d4] disabled:opacity-60"
+                    onClick={addMoveOutCharge}
+                    className="rounded-lg border border-[#0063fe] px-3 py-1.5 text-xs font-semibold text-[#0063fe] hover:bg-[#0063fe]/5"
                   >
-                    Valider et figer les données financières
+                    Ajouter une ligne
                   </button>
-                </>
+                ) : null}
+              </div>
+              {moveOutCharges.length === 0 ? (
+                <p className="text-sm text-gray-500">Aucun ajustement saisi.</p>
               ) : (
-                <button type="button" onClick={() => handleSaveMoveOut("draft")} disabled={savingMoveOut} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60">Repasser en brouillon</button>
-              )}
-            </div>
-          ) : null}
-        </div>
-
-        <hr className="border-gray-100" />
-
-        {/* Section 3 — Vérifications financières */}
-        {reconciliation ? (
-          <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Vérifications financières</h2>
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              {reconciliation.issues.length === 0 ? (
-                <p className="text-sm text-green-700 font-medium">✓ Tout est correct</p>
-              ) : (
-                <div className="space-y-2">
-                  {reconciliation.issues.map((issue) => (
-                    <div
-                      key={issue.code}
-                      className={`rounded-lg border px-3 py-2 text-sm ${RECONCILIATION_SEVERITY_STYLES[issue.severity] ?? RECONCILIATION_SEVERITY_STYLES.warning}`}
-                    >
-                      <p className="font-semibold">{RECONCILIATION_SEVERITY_LABELS[issue.severity] ?? issue.severity}</p>
-                      <p>{issue.message}</p>
+                <div className="space-y-3">
+                  {moveOutCharges.map((charge, index) => (
+                    <div key={charge.id} className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-3 sm:grid-cols-12">
+                      <select
+                        value={charge.chargeType}
+                        onChange={(event) => updateMoveOutCharge(index, { chargeType: event.target.value as MoveOutChargeType })}
+                        disabled={isMoveOutClosed}
+                        className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 sm:col-span-4"
+                      >
+                        {MOVE_OUT_CHARGE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        value={charge.amount}
+                        onChange={(event) => updateMoveOutCharge(index, { amount: event.target.value })}
+                        disabled={isMoveOutClosed}
+                        placeholder="Montant"
+                        className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 sm:col-span-2"
+                      />
+                      <input
+                        value={charge.currencyCode}
+                        onChange={(event) => updateMoveOutCharge(index, { currencyCode: event.target.value.toUpperCase() })}
+                        disabled={isMoveOutClosed}
+                        className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 sm:col-span-2"
+                      />
+                      <input
+                        value={charge.note}
+                        onChange={(event) => updateMoveOutCharge(index, { note: event.target.value })}
+                        disabled={isMoveOutClosed}
+                        placeholder="Note"
+                        className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm disabled:opacity-60 sm:col-span-3"
+                      />
+                      {!isMoveOutClosed ? (
+                        <button
+                          type="button"
+                          onClick={() => removeMoveOutCharge(index)}
+                          className="rounded-lg border border-red-200 px-2 py-2 text-xs font-semibold text-red-600 sm:col-span-1"
+                        >
+                          Suppr.
+                        </button>
+                      ) : (
+                        <div className="sm:col-span-1" />
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          </div>
+
+            {reconciliation ? (
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <h3 className="mb-2 text-sm font-semibold text-[#010a19]">Vérifications</h3>
+                {reconciliation.issues.length === 0 ? (
+                  <p className="text-sm font-medium text-green-700">✓ Tout est correct</p>
+                ) : (
+                  <div className="space-y-2">
+                    {reconciliation.issues.map((issue) => (
+                      <div
+                        key={issue.code}
+                        className={`rounded-lg border px-3 py-2 text-sm ${RECONCILIATION_SEVERITY_STYLES[issue.severity] ?? RECONCILIATION_SEVERITY_STYLES.warning}`}
+                      >
+                        <p className="font-semibold">{RECONCILIATION_SEVERITY_LABELS[issue.severity] ?? issue.severity}</p>
+                        <p>{issue.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {!isMoveOutClosed ? (
+              <div className="flex flex-wrap items-center gap-3">
+                {!isConfirmed ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveMoveOut("draft")}
+                      disabled={savingMoveOut}
+                      className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60"
+                    >
+                      Enregistrer le brouillon
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveMoveOut("confirmed")}
+                      disabled={savingMoveOut}
+                      title="La date et les données financières seront figées. Vous pourrez encore ajouter des photos et notes."
+                      className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0052d4] disabled:opacity-60"
+                    >
+                      Valider et figer les finances
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveMoveOut("draft")}
+                    disabled={savingMoveOut}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Repasser en brouillon
+                  </button>
+                )}
+              </div>
+            ) : null}
+          </section>
         ) : null}
 
-        {reconciliation ? <hr className="border-gray-100" /> : null}
+        {step === "inspection" ? (
+          <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div>
+              <h2 className="text-lg font-semibold text-[#010a19]">Inspection du logement</h2>
+              <p className="mt-1 text-sm text-slate-600">Cochez ce qui a été vérifié. Photos et notes peuvent attendre.</p>
+            </div>
 
-        {/* Section 4 — Inspection */}
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Étape 3 — Inspection</h2>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="space-y-2">
               {inspectionChecklist.map((item) => (
-                <div key={item.id} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                <div key={item.id} className="rounded-lg border border-gray-200 bg-slate-50 px-3 py-2">
                   <label className="flex items-center gap-2 text-sm text-[#010a19]">
-                    <input type="checkbox" checked={item.isChecked} onChange={() => toggleInspectionChecklistItem(item.id)} disabled={isMoveOutClosed} className="h-4 w-4 rounded border-gray-300" />
+                    <input
+                      type="checkbox"
+                      checked={item.isChecked}
+                      onChange={() => toggleInspectionChecklistItem(item.id)}
+                      disabled={isMoveOutClosed}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
                     {item.label}
                   </label>
-                  <input value={item.note ?? ""} onChange={(event) => updateInspectionChecklistNote(item.id, event.target.value)} disabled={isMoveOutClosed} placeholder="Note optionnelle" className="mt-2 w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm disabled:opacity-60" />
+                  <input
+                    value={item.note ?? ""}
+                    onChange={(event) => updateInspectionChecklistNote(item.id, event.target.value)}
+                    disabled={isMoveOutClosed}
+                    placeholder="Note optionnelle"
+                    className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                  />
                 </div>
               ))}
             </div>
 
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">
-                <span className="mb-1.5 block">Date d'inspection</span>
-                <input type="date" value={inspectionDate} onChange={(event) => { setInspectionDate(event.target.value); markDirty(); }} disabled={isMoveOutClosed} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm disabled:opacity-60" />
-              </label>
-            </div>
+            <label className="block text-sm font-medium text-gray-700">
+              <span className="mb-1.5 block">Date d&apos;inspection (optionnel)</span>
+              <input
+                type="date"
+                value={inspectionDate}
+                onChange={(event) => { setInspectionDate(event.target.value); markDirty(); }}
+                disabled={isMoveOutClosed}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm disabled:opacity-60"
+              />
+            </label>
 
-            {/* Photo upload */}
-            <div className="mt-4">
-              <p className="mb-2 text-sm font-medium text-gray-700">Photos d'inspection</p>
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-700">Photos d&apos;inspection (optionnel)</p>
               {inspectionPhotoDocuments.length > 0 ? (
                 <div className="mb-3 flex flex-wrap gap-2">
                   {inspectionPhotoDocuments.map((doc) => (
@@ -621,7 +836,10 @@ export default function MoveOutFlowClient({ id, initialLease, initialAvailableDo
                       {!isMoveOutClosed ? (
                         <button
                           type="button"
-                          onClick={() => setInspectionPhotoDocumentIds((prev) => prev.filter((docId) => docId !== doc.id))}
+                          onClick={() => {
+                            setInspectionPhotoDocumentIds((prev) => prev.filter((docId) => docId !== doc.id));
+                            markDirty();
+                          }}
                           className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 bg-white text-xs text-gray-500 opacity-0 transition-opacity group-hover:opacity-100"
                           aria-label="Retirer la photo"
                         >
@@ -666,88 +884,193 @@ export default function MoveOutFlowClient({ id, initialLease, initialAvailableDo
               ) : null}
             </div>
 
-            <label className="mt-4 block text-sm font-medium text-gray-700">
-              <span className="mb-1.5 block">Notes globales</span>
-              <textarea value={inspectionNotes} onChange={(event) => { setInspectionNotes(event.target.value); markDirty(); }} disabled={isMoveOutClosed} className="min-h-24 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm disabled:opacity-60" />
+            <label className="block text-sm font-medium text-gray-700">
+              <span className="mb-1.5 block">Notes globales (optionnel)</span>
+              <textarea
+                value={inspectionNotes}
+                onChange={(event) => { setInspectionNotes(event.target.value); markDirty(); }}
+                disabled={isMoveOutClosed}
+                className="min-h-24 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm disabled:opacity-60"
+              />
             </label>
 
             {!isMoveOutClosed ? (
-              <div className="mt-3 flex justify-end">
-                <button type="button" onClick={handleSaveInspection} disabled={savingInspection || uploadingPhoto} className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60">Enregistrer l'inspection</button>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void handleSaveInspection()}
+                  disabled={savingInspection || uploadingPhoto}
+                  className="rounded-lg border border-[#0063fe] px-4 py-2 text-sm font-semibold text-[#0063fe] hover:bg-[#0063fe]/5 disabled:opacity-60"
+                >
+                  Enregistrer l&apos;inspection
+                </button>
               </div>
             ) : null}
-          </div>
-        </div>
+          </section>
+        ) : null}
 
-        <hr className="border-gray-100" />
+        {step === "close" ? (
+          <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div>
+              <h2 className="text-lg font-semibold text-[#010a19]">Finaliser le départ</h2>
+              <p className="mt-1 text-sm text-slate-600">Vérifiez le résumé, puis clôturez définitivement.</p>
+            </div>
 
-        {/* Section 5 — Finalisation */}
-        {!isMoveOutClosed ? (
-          <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Étape 4 — Finalisation</h2>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <p className="text-sm text-gray-600">
-                Les données financières actuelles seront utilisées pour clôturer ce départ.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-gray-500">Séquence comptable :</span>
-                <input
-                  type="text"
-                  value={closureLedgerEventId ? `#${closureLedgerEventId}` : "—"}
-                  readOnly
-                  className="w-24 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
-                />
-                {!isMoveOutClosed ? (
-                  <button type="button" onClick={handleAutoFillLedgerEventId} className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100">Utiliser le dernier enregistrement</button>
-                ) : null}
+            <dl className="space-y-3 rounded-lg border border-gray-100 bg-slate-50 px-4 py-3 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Locataire</dt>
+                <dd className="text-right font-medium text-[#010a19]">{lease.tenantFullName}</dd>
               </div>
-              {blockingIssues.length > 0 ? (
-                <p className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">
-                  Résolvez les blocages ci-dessus avant de finaliser le départ.
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Date de sortie</dt>
+                <dd className="text-right font-medium text-[#010a19]">
+                  {moveOutDate
+                    ? new Date(`${moveOutDate}T12:00:00`).toLocaleDateString("fr-FR")
+                    : "—"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Motif</dt>
+                <dd className="text-right font-medium text-[#010a19]">{moveOutReason.trim() || "—"}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Régularisations</dt>
+                <dd className="text-right font-medium text-[#010a19]">
+                  {moveOutCharges.filter((c) => c.amount.trim()).length || "Aucune"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Inspection</dt>
+                <dd className="text-right font-medium text-[#010a19]">
+                  {inspectionChecklist.filter((item) => item.isChecked).length}/{inspectionChecklist.length} points
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Statut</dt>
+                <dd className="text-right font-medium text-[#010a19]">
+                  {currentStatus === "closed" ? "Clôturé" : currentStatus === "confirmed" ? "Confirmé" : "Brouillon"}
+                </dd>
+              </div>
+            </dl>
+
+            {!isMoveOutClosed ? (
+              <div className="rounded-lg border border-dashed border-gray-300 px-4 py-3 space-y-3">
+                <p className="text-sm text-gray-600">
+                  Les données financières actuelles seront utilisées pour clôturer ce départ.
                 </p>
-              ) : null}
-              {currentStatus !== "confirmed" ? (
-                <p className="mt-3 text-xs text-gray-400">Validez et figez les données financières d'abord.</p>
-              ) : null}
-              <div className="mt-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-gray-500">Séquence comptable :</span>
+                  <input
+                    type="text"
+                    value={closureLedgerEventId ? `#${closureLedgerEventId}` : "—"}
+                    readOnly
+                    className="w-24 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleAutoFillLedgerEventId()}
+                    className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                  >
+                    Utiliser le dernier enregistrement
+                  </button>
+                </div>
+                {blockingIssues.length > 0 ? (
+                  <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">
+                    Résolvez les blocages financiers avant de finaliser.
+                  </p>
+                ) : null}
+                {currentStatus !== "confirmed" ? (
+                  <p className="text-xs text-amber-700">
+                    Retournez à Finances et validez pour figer les données avant de clôturer.
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setShowConfirmCloseModal(true)}
                   disabled={!canClose || closingMoveOut}
-                  className="rounded-lg bg-[#010a19] px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
+                  className="rounded-lg bg-[#010a19] px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
                 >
                   Finaliser le départ
                 </button>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <p className="text-sm font-semibold text-green-700">Départ finalisé</p>
-            <p className="mt-1 text-xs text-green-600">Ce dossier a été clôturé et est désormais archivé.</p>
-          </div>
-        )}
+            ) : (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                <p className="text-sm font-semibold text-green-700">Départ finalisé</p>
+                <p className="mt-1 text-xs text-green-600">Ce dossier a été clôturé et est désormais archivé.</p>
+                <Link
+                  href={`/dashboard/leases/${id}`}
+                  className="mt-3 inline-block text-sm font-medium text-[#0063fe] hover:underline"
+                >
+                  Retour au bail
+                </Link>
+              </div>
+            )}
+          </section>
+        ) : null}
 
-        {error ? <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p> : null}
+        {error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        ) : null}
+
+        {!isMoveOutClosed || step !== "close" ? (
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+            {stepIndex > 0 ? (
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={busy}
+                className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Retour
+              </button>
+            ) : (
+              <span />
+            )}
+            {step !== "close" ? (
+              <button
+                type="button"
+                onClick={() => void goNext()}
+                disabled={busy}
+                className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
+              >
+                Continuer
+              </button>
+            ) : (
+              <span />
+            )}
+          </div>
+        ) : null}
       </div>
 
-      {/* Confirmation modal */}
       {showConfirmCloseModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/40 backdrop-blur-[2px]">
           <div className="mx-4 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
             <h2 className="text-base font-semibold text-[#010a19]">Confirmer la finalisation</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Cette action est <strong>définitive</strong> et ne peut pas être annulée. Le dossier sera archivé avec l'état financier actuel.
+              Cette action est <strong>définitive</strong> et ne peut pas être annulée. Le dossier sera archivé avec l&apos;état financier actuel.
             </p>
-            <div className="mt-6 flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowConfirmCloseModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Annuler</button>
-              <button type="button" onClick={handleCloseMoveOut} disabled={closingMoveOut} className="rounded-lg bg-[#010a19] px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">Finaliser définitivement</button>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmCloseModal(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCloseMoveOut()}
+                disabled={closingMoveOut}
+                className="rounded-lg bg-[#010a19] px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-60"
+              >
+                Finaliser définitivement
+              </button>
             </div>
           </div>
         </div>
       ) : null}
 
-      {savingMoveOut || savingInspection || closingMoveOut || loadingMoveOut ? (
+      {busy ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
           <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
         </div>

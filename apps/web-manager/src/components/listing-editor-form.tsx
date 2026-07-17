@@ -884,7 +884,7 @@ return (
                 }}
                 className="rounded-xl bg-[#0063FE] hover:bg-[#0052d4] px-5 py-2 text-sm font-semibold text-white transition cursor-pointer"
               >
-                Apply & Publish {selectedUnitIds.length + 1} Listings
+                Appliquer et publier {selectedUnitIds.length + 1} annonces
               </button>
             </div>
           </div>

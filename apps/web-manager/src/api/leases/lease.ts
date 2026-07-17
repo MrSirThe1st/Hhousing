@@ -320,18 +320,34 @@ export async function createLease(
           success: false,
           code: "VALIDATION_ERROR",
           error: isExistingTenant
-            ? "Unit must exist, be vacant or occupied without another active lease"
+            ? "Cette unité a déjà un bail actif, ou elle n'est pas disponible. Terminez l'ancien bail avant d'en créer un nouveau."
             : "Unit must exist and be vacant before creating a lease"
         }
       };
     }
 
+    const pgCode = typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+    if (pgCode === "23505") {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Cette unité a déjà un bail actif. Terminez l'ancien bail avant d'en créer un nouveau."
+        }
+      };
+    }
+
+    console.error("Failed to create lease", error);
+    const message = error instanceof Error ? error.message : "Failed to create lease";
     return {
       status: 500,
       body: {
         success: false,
         code: "INTERNAL_ERROR",
-        error: "Failed to create lease"
+        error: message.startsWith("Failed to create lease") ? message : `Failed to create lease: ${message}`
       }
     };
   }

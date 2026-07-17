@@ -75,14 +75,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Dépôts (passif)</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Garanties (passif)</p>
           <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(revenueDataset.depositLiabilityTotals)}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Net income</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Reste</p>
           <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(netTotals)}</p>
         </div>
       </div>
@@ -103,8 +103,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#010a19]">Lecture du portefeuille</h2>
-            <p className="mt-1 text-sm text-gray-500">Synthèse par propriété, recalculée à chaque ouverture de page.</p>
+            <h2 className="text-lg font-semibold text-[#010a19]">Lecture de vos biens</h2>
+            <p className="mt-1 text-sm text-gray-500">Synthèse par bien, recalculée à chaque ouverture de page.</p>
           </div>
         </div>
 

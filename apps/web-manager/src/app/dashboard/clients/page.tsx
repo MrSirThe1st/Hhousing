@@ -168,9 +168,9 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
         <div className="rounded-xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-6 py-4">
             <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold text-[#010a19]">Portefeuille propriétaires</h2>
+              <h2 className="text-lg font-semibold text-[#010a19]">Biens des propriétaires</h2>
               <p className="text-sm text-slate-500">
-                Vue synthétique des propriétaires tiers, de leur parc géré et des points d&apos;attention opérationnels.
+                Vue synthétique des propriétaires tiers, de leurs biens gérés et des points d&apos;attention.
               </p>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                 render: (summary) => <span>{formatOwnerLocation(summary.owner) ?? "Non renseignée"}</span>
               },
               {
-                header: "Portefeuille",
+                header: "Biens",
                 render: (summary) => {
                   const ownerOccupancyRate = summary.unitCount > 0
                     ? Math.round((summary.occupiedUnitCount / summary.unitCount) * 100)

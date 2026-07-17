@@ -22,9 +22,14 @@ const INITIAL_TENANT_FORM: TenantFormState = {
 
 interface TenantCreateFormProps {
   organizationId: string;
+  /** When true, continue setup into lease move-in after create. */
+  fromOnboarding?: boolean;
 }
 
-export default function TenantCreateForm({ organizationId }: TenantCreateFormProps): React.ReactElement {
+export default function TenantCreateForm({
+  organizationId,
+  fromOnboarding = false
+}: TenantCreateFormProps): React.ReactElement {
   const router = useRouter();
   const [tenantForm, setTenantForm] = useState<TenantFormState>(INITIAL_TENANT_FORM);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -91,17 +96,31 @@ export default function TenantCreateForm({ organizationId }: TenantCreateFormPro
       return;
     }
 
-    router.push(`/dashboard/tenants/${result.data.id}`);
+    if (fromOnboarding) {
+      router.push(`/dashboard/leases/move-in?from=onboarding&tenantId=${encodeURIComponent(result.data.id)}`);
+    } else {
+      router.push(`/dashboard/tenants/${result.data.id}`);
+    }
     router.refresh();
   }
 
   return (
     <div className="p-8">
       <div className="mb-6">
-        <Link href="/dashboard/tenants" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
-          ← Retour aux locataires
+        <Link
+          href={fromOnboarding ? "/onboarding" : "/dashboard/tenants"}
+          className="mb-4 inline-block text-sm text-[#0063fe] hover:underline"
+        >
+          {fromOnboarding ? "← Retour à la configuration" : "← Retour aux locataires"}
         </Link>
-        <h1 className="text-2xl font-semibold text-[#010a19]">Ajouter un locataire</h1>
+        <h1 className="text-2xl font-semibold text-[#010a19]">
+          {fromOnboarding ? "Premier locataire" : "Ajouter un locataire"}
+        </h1>
+        {fromOnboarding ? (
+          <p className="mt-2 text-sm text-slate-600">
+            Nom et téléphone WhatsApp suffisent pour commencer. Le reste peut attendre.
+          </p>
+        ) : null}
       </div>
 
       <form onSubmit={handleCreateTenant} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 lg:max-w-3xl">

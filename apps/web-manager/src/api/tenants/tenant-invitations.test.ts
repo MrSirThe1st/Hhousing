@@ -65,6 +65,7 @@ describe("createTenantInvitation notifications", () => {
             numberOfOccupants: null,
             createdAtIso: "2026-01-01T00:00:00.000Z"
           }),
+          findTenantByNormalizedPhone: vi.fn(),
           revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
           createTenantInvitation: vi.fn().mockResolvedValue({
             id: "tin-1",
@@ -148,6 +149,7 @@ describe("createTenantInvitation notifications", () => {
             numberOfOccupants: null,
             createdAtIso: "2026-01-01T00:00:00.000Z"
           }),
+          findTenantByNormalizedPhone: vi.fn(),
           revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
           createTenantInvitation: vi.fn().mockResolvedValue({
             id: "tin-1",

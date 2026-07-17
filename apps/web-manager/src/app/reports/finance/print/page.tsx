@@ -54,7 +54,7 @@ export default async function PrintReportPage({ searchParams }: PrintReportPageP
             <p className="mt-2 text-lg font-semibold">{formatCurrencySummary(expenseDataset.expenseTotals)}</p>
           </article>
           <article className="rounded-xl border border-gray-200 p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Dépôts (passif)</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Garanties (passif)</p>
             <p className="mt-2 text-lg font-semibold">{formatCurrencySummary(revenueDataset.depositLiabilityTotals)}</p>
           </article>
           <article className="rounded-xl border border-gray-200 p-4">
@@ -95,7 +95,7 @@ export default async function PrintReportPage({ searchParams }: PrintReportPageP
             <table className="min-w-full text-sm">
               <thead className="border-b border-gray-200 text-left text-xs uppercase tracking-[0.14em] text-gray-400">
                 <tr>
-                  <th className="pb-3">Portefeuille</th>
+                  <th className="pb-3">Biens</th>
                   <th className="pb-3">Revenus</th>
                   <th className="pb-3">Dépenses</th>
                   <th className="pb-3">Net</th>

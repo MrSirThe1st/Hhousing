@@ -25,6 +25,16 @@ type WhatsAppWebhookChange = {
   value?: {
     messaging_product?: string;
     statuses?: WhatsAppWebhookStatus[];
+    messages?: Array<{
+      from?: string;
+      type?: string;
+      text?: { body?: string };
+      interactive?: {
+        type?: string;
+        list_reply?: { id?: string; title?: string };
+        button_reply?: { id?: string; title?: string };
+      };
+    }>;
     event?: string;
     message_template_id?: number | string;
     message_template_name?: string;
@@ -130,13 +140,19 @@ export function logWhatsAppTemplateStatusEvent(event: WhatsAppTemplateStatusEven
 
 export async function processWhatsAppWebhookPayload(
   payload: WhatsAppWebhookPayload,
-  repository: WhatsAppMessageRepository
-): Promise<{ processedStatuses: number; templateStatusEvents: WhatsAppTemplateStatusEvent[] }> {
+  repository: WhatsAppMessageRepository,
+  inboundHandler?: (messages: NonNullable<WhatsAppWebhookChange["value"]>["messages"]) => Promise<number>
+): Promise<{
+  processedStatuses: number;
+  processedInboundMessages: number;
+  templateStatusEvents: WhatsAppTemplateStatusEvent[];
+}> {
   if (payload.object !== "whatsapp_business_account") {
-    return { processedStatuses: 0, templateStatusEvents: [] };
+    return { processedStatuses: 0, processedInboundMessages: 0, templateStatusEvents: [] };
   }
 
   let processedStatuses = 0;
+  let processedInboundMessages = 0;
   const templateStatusEvents: WhatsAppTemplateStatusEvent[] = [];
 
   for (const entry of payload.entry ?? []) {
@@ -154,6 +170,11 @@ export async function processWhatsAppWebhookPayload(
 
       if (change.field !== "messages") {
         continue;
+      }
+
+      const inboundMessages = change.value?.messages ?? [];
+      if (inboundHandler && inboundMessages.length > 0) {
+        processedInboundMessages += await inboundHandler(inboundMessages);
       }
 
       for (const statusUpdate of change.value?.statuses ?? []) {
@@ -180,5 +201,5 @@ export async function processWhatsAppWebhookPayload(
     }
   }
 
-  return { processedStatuses, templateStatusEvents };
+  return { processedStatuses, processedInboundMessages, templateStatusEvents };
 }

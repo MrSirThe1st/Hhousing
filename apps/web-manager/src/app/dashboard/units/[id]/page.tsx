@@ -19,7 +19,7 @@ export default async function UnitDetailPage({ params }: PageProps): Promise<Rea
       <div className="p-8">
         <p className="text-gray-600">Unité introuvable</p>
         <Link href="/dashboard/properties" className="mt-4 inline-block text-[#0063fe] hover:underline">
-          Retour au portfolio
+          Retour à mes biens
         </Link>
       </div>
     );

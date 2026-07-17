@@ -22,7 +22,7 @@ export default async function OwnerPortalDashboardLayout({
           <div className="border-b border-slate-200 px-6 py-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Portefeuille consultatif</h1>
+                <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Espace propriétaire</h1>
                 <p className="mt-1 text-sm text-slate-600">Accès owner</p>
               </div>
               <OwnerPortalSignOutButton />

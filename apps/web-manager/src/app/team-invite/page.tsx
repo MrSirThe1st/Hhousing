@@ -153,7 +153,7 @@ function TeamInvitePageContent(): React.ReactElement {
                 <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
                 <span className="text-left">
                   <span className="block text-lg font-semibold tracking-tight text-white">Haraka Property</span>
-                  <span className="block text-xs uppercase tracking-[0.16em] text-slate-400">Opérations locatives</span>
+                  <span className="block text-xs uppercase tracking-[0.16em] text-slate-400">Gestion de vos locations</span>
                 </span>
               </Link>
             </div>

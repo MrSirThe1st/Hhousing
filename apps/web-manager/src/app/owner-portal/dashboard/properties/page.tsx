@@ -23,7 +23,7 @@ export default async function OwnerPortalPropertiesPage(): Promise<React.ReactEl
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Portefeuille immobilier</h2>
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Mes biens</h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
               Lecture consolidée par bien, avec occupation, baux actifs et encaissements liés à votre portefeuille owner.
             </p>

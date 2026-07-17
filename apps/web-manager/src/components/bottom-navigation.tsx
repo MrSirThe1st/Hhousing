@@ -70,7 +70,7 @@ export default function BottomNavigation({
     },
     {
       href: "/dashboard/properties",
-      label: "Portfolio",
+      label: "Mes biens",
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
           <path d="M4 20.5V9.5L12 4l8 5.5v11" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
@@ -107,9 +107,9 @@ export default function BottomNavigation({
   const menuItems = [
     { href: "/dashboard/clients", label: "Propriétaires", icon: "clients", visible: access.operations },
     { href: "/dashboard/tenants", label: "Locataires", icon: "tenants", visible: access.operations },
-    { href: "/dashboard/leases", label: "Baux", icon: "leases", visible: access.operations },
-    { href: "/dashboard/listings", label: "Listings", icon: "listings", visible: access.operations },
-    { href: "/dashboard/move-outs", label: "Départs", icon: "move-outs", visible: access.operations },
+    { href: "/dashboard/leases", label: "Contrats", icon: "leases", visible: access.operations },
+    { href: "/dashboard/listings", label: "Annonces", icon: "listings", visible: access.operations },
+    { href: "/dashboard/move-outs", label: "Fin de location", icon: "move-outs", visible: access.operations },
     { href: "/dashboard/expenses", label: "Dépenses", icon: "expenses", visible: access.finances },
     { href: "/dashboard/invoices", label: "Factures", icon: "invoices", visible: access.finances },
     { href: "/dashboard/reports", label: "Rapports", icon: "reports", visible: access.finances },

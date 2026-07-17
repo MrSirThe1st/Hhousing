@@ -20,7 +20,7 @@ function formatPaymentKind(paymentKind: PaymentKind): string {
     case "rent":
       return "Loyer";
     case "deposit":
-      return "Dépôt";
+      return "Garantie";
     case "prorated_rent":
       return "Prorata";
     case "fee":
@@ -46,7 +46,7 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Revenus</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Revenus opérationnels encaissés (hors dépôts de garantie).
+            Revenus opérationnels encaissés (hors garanties locatives).
           </p>
         </div>
       </div>
@@ -67,7 +67,7 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Dépôts (passif)</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Garanties (passif)</p>
           <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.depositLiabilityTotals)}</p>
           <p className="mt-1 text-xs text-slate-500">{dataset.recordedDepositCount.toLocaleString("fr-FR")} encaissement(s)</p>
         </div>

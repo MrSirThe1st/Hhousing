@@ -34,7 +34,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps):
     <div id="listings-container">
       <ListingManagementPanel
         organizationId={session.organizationId}
-        currentScopeLabel="Portefeuille unifié"
+        currentScopeLabel="Tous mes biens"
         activeTab={activeTab}
         listings={listings as ManagerListingView[]}
         applications={applications as ListingApplicationView[]}

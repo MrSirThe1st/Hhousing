@@ -212,6 +212,7 @@ export interface TenantLeaseRepository {
   ): Promise<LeaseWithTenantView | null>;
   listTenantsByOrganization(organizationId: string): Promise<Tenant[]>;
   getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null>;
+  findTenantByNormalizedPhone(phoneNormalized: string): Promise<Tenant | null>;
   getLeaseById(leaseId: string, organizationId: string): Promise<LeaseWithTenantView | null>;
   listMoveOutsByOrganization(organizationId: string): Promise<MoveOutListItem[]>;
   getLatestLedgerEventId(organizationId: string): Promise<number | null>;

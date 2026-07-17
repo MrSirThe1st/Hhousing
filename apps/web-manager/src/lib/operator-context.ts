@@ -38,7 +38,7 @@ export async function getServerOperatorContext(session: AuthSession): Promise<Op
 }
 
 export function getOperatorScopeLabel(): string {
-  return "Portefeuille";
+  return "Tous mes biens";
 }
 
 export function canEditOrganizationDetails(session: AuthSession): boolean {

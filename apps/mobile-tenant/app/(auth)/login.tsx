@@ -15,11 +15,20 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth-context";
+import { postWithoutAuth } from "@/lib/api-client";
 import { env } from "@/lib/env";
 
+type PhonePasswordLoginOutput = {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tenantId: string;
+  organizationId: string;
+};
+
 export default function LoginScreen(): React.ReactElement {
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
+  const { signInWithSession } = useAuth();
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,19 +41,34 @@ export default function LoginScreen(): React.ReactElement {
     });
   }
 
-  async function handleSignIn(): Promise<void> {
-    if (!email.trim() || !password) {
-      setError("Email et mot de passe sont requis.");
+  async function handleLogin(): Promise<void> {
+    if (!phone.trim()) {
+      setError("Entrez votre numéro de téléphone.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
 
-    const signInError = await signIn(email, password);
+    const result = await postWithoutAuth<PhonePasswordLoginOutput>("/api/mobile/auth/login", {
+      phone: phone.trim(),
+      password
+    });
 
+    if (!result.success) {
+      setError(result.error);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const signInError = await signInWithSession(result.data.accessToken, result.data.refreshToken);
     if (signInError) {
-      setError("Connexion impossible. Vérifiez vos identifiants.");
+      setError("Connexion impossible. Réessayez.");
       setIsSubmitting(false);
       return;
     }
@@ -67,46 +91,45 @@ export default function LoginScreen(): React.ReactElement {
               resizeMode="contain"
             />
             <Text style={styles.brandName}>Mon Espace</Text>
-            <Text style={styles.subtitle}>Gérez votre logement, simplement.</Text>
+            <Text style={styles.subtitle}>Connectez-vous avec votre numéro et votre mot de passe.</Text>
           </View>
 
           <View style={styles.card}>
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Adresse e-mail</Text>
+              <Text style={styles.label}>Numéro de téléphone</Text>
               <View style={styles.inputWrap}>
-                <Ionicons name="mail-outline" size={18} color="#9CA3AF" />
+                <Ionicons name="call-outline" size={18} color="#9CA3AF" />
                 <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={styles.input}
-                  placeholder="nom@exemple.com"
+                  placeholder="+243 990 000 000"
                   placeholderTextColor="#9CA3AF"
                 />
               </View>
             </View>
 
             <View style={styles.fieldGroup}>
-              <View style={styles.passwordRow}>
-                <Text style={styles.label}>Mot de passe</Text>
-                <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
-              </View>
+              <Text style={styles.label}>Mot de passe</Text>
               <View style={styles.inputWrap}>
                 <Ionicons name="lock-closed-outline" size={18} color="#9CA3AF" />
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
                   style={styles.input}
-                  placeholder="••••••••"
+                  placeholder="Votre mot de passe"
                   placeholderTextColor="#9CA3AF"
                 />
-                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                <Pressable onPress={() => setShowPassword((value) => !value)} hitSlop={8}>
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
+                    size={18}
                     color="#9CA3AF"
                   />
                 </Pressable>
@@ -118,7 +141,7 @@ export default function LoginScreen(): React.ReactElement {
             <Pressable
               style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
               onPress={() => {
-                void handleSignIn();
+                void handleLogin();
               }}
               disabled={isSubmitting}
             >
@@ -140,7 +163,9 @@ export default function LoginScreen(): React.ReactElement {
 
           <View style={styles.footerWrap}>
             <Text style={styles.footerText}>Pas encore de compte ?</Text>
-            <Text style={styles.footerLink}>Contactez votre gestionnaire.</Text>
+            <Text style={styles.footerLink}>
+              Activez-le via le lien d&apos;invitation reçu par e-mail ou WhatsApp.
+            </Text>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -197,16 +222,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontWeight: "600"
   },
-  passwordRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
-  forgotText: {
-    fontSize: 13,
-    color: "#0063FE",
-    fontWeight: "500"
-  },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -257,7 +272,8 @@ const styles = StyleSheet.create({
   footerLink: {
     color: "#0063FE",
     fontSize: 14,
-    fontWeight: "600"
+    fontWeight: "600",
+    textAlign: "center"
   },
   marketplaceWrap: {
     alignItems: "center",
@@ -278,8 +294,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textDecorationLine: "underline"
-  },
-  eyeBtn: {
-    padding: 4
   }
 });

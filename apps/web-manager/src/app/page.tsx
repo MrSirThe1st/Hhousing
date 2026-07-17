@@ -14,11 +14,11 @@ import {
 } from "./public-site-data";
 
 export const metadata: Metadata = {
-  title: "Haraka Property — Logiciel de gestion immobilière et locative en RDC",
-  description: "Pilotez et centralisez la gestion de vos biens immobiliers en République Démocratique du Congo. Solution professionnelle pour baux, paiements, maintenance, communication et diffusion d'annonces.",
+  title: "Haraka Property — Gestion de vos locations en RDC",
+  description: "Gérez vos maisons et immeubles en République Démocratique du Congo : contrats, loyers, réparations, communication et annonces.",
   openGraph: {
-    title: "Haraka Property — Logiciel de gestion immobilière en RDC",
-    description: "Pilotez et centralisez la gestion de vos biens immobiliers en République Démocratique du Congo. Solution professionnelle pour baux, paiements, maintenance, communication et diffusion d'annonces.",
+    title: "Haraka Property — Gestion de vos locations en RDC",
+    description: "Gérez vos maisons et immeubles en République Démocratique du Congo : contrats, loyers, réparations, communication et annonces.",
     type: "website",
     locale: "fr_FR"
   }
@@ -54,7 +54,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
         <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center w-full">
           <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-6 max-w-3xl leading-tight">
-            Trouver un logement à louer ou gérer vos biens existants
+            Gérez vos loyers et vos maisons en RDC
           </h1>
           <div className="w-full">
             <PublicMarketplaceSearchForm action="/marketplace" submitLabel="Rechercher" variant="hero" />
@@ -135,14 +135,14 @@ export default async function HomePage(): Promise<React.ReactElement> {
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
               <h1 className="mt-6 max-w-2xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900 lg:leading-tight">
-                Gerez vos biens immobiliers en toute simplicite
+                Gérez vos biens immobiliers en toute simplicité
               </h1>
               <p className="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600">
-                Centralisez la gestion de vos biens immobiliers : baux, paiements, maintenance, communication locataires et diffusion d'annonces depuis une seule plateforme moderne.
+                Suivez vos contrats, loyers et réparations, restez en contact avec vos locataires, et publiez des annonces — le tout depuis une seule plateforme pensée pour la RDC.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
                 <Link href="/signup" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-xl hover:shadow-blue-500/30 w-full sm:w-auto">
-                  Demarrer gratuitement
+                  Démarrer gratuitement
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </Link>
                 <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-6 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 w-full sm:w-auto">
@@ -177,7 +177,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                 <div className="space-y-3 p-6">
                   <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
                     <div>
-                      <div className="text-sm text-slate-600">Revenus du mois</div>
+                      <div className="text-sm text-slate-600">Loyers du mois</div>
                       <div className="mt-1 text-2xl font-bold text-slate-900">2,450,000 FC</div>
                     </div>
                     <div className="rounded-lg bg-emerald-100 p-3 text-emerald-600">
@@ -186,7 +186,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                   </div>
                   <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
-                      <div className="text-[10px] sm:text-xs text-slate-500">Baux actifs</div>
+                      <div className="text-[10px] sm:text-xs text-slate-500">Contrats actifs</div>
                       <div className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold">24</div>
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
@@ -261,7 +261,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             </div>
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Une solution adaptée à chacun</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Que vous soyez propriétaire, locataire, ou professionnel de l'immobilier, notre plateforme répond à vos besoins.
+              Que vous soyez bailleur, locataire, ou professionnel de l&apos;immobilier, notre plateforme répond à vos besoins.
             </p>
           </div>
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -284,7 +284,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
           <div className="text-center">
             <h2 className="text-4xl font-bold tracking-tight text-slate-900">Tout ce dont vous avez besoin</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Des outils professionnels pour gérer efficacement votre activité locative
+              Des outils simples pour gérer efficacement vos locations
             </p>
           </div>
           <div className="mt-16 grid gap-8 lg:grid-cols-3">

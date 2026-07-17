@@ -167,10 +167,10 @@ export default function PropertyManagementPanel({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Portfolio</h1>
+              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Mes biens</h1>
             </div>
             <p className="mt-2 text-sm text-slate-500">
-              {summary.totalProperties} biens, {summary.totalUnits} unités, {summary.occupancyRate}% d’occupation.
+              {summary.totalProperties} biens, {summary.totalUnits} logements, {summary.occupancyRate}% d’occupation.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -186,7 +186,7 @@ export default function PropertyManagementPanel({
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               <PlusIcon />
-              Ajouter une unité
+              Ajouter un logement
             </Link>
           </div>
         </div>

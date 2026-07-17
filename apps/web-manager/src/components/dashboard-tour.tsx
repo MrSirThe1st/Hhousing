@@ -38,8 +38,8 @@ const ALL_STEPS: TourStepDef[] = [
   {
     element: "#financial-overview",
     url: "/dashboard",
-    title: "Pilotage Financier",
-    description: "Suivez en temps réel le total des loyers encaissés, vos charges/dépenses d'exploitation, votre solde net et les encours en retard.",
+    title: "Argent du mois",
+    description: "Suivez les loyers reçus, vos dépenses, le reste après charges et les loyers en retard.",
     side: "bottom",
     align: "start"
   },
@@ -47,8 +47,8 @@ const ALL_STEPS: TourStepDef[] = [
   {
     element: "#properties-container",
     url: "/dashboard/properties",
-    title: "Gestion du Portfolio (Biens)",
-    description: "Ici, gérez votre parc immobilier. Vous pouvez ajouter des biens complexes (immeubles) ou des unités locatives simples.",
+    title: "Mes biens",
+    description: "Ici, gérez vos maisons et immeubles. Ajoutez un bien complet ou un logement à louer.",
     side: "top",
     align: "start"
   },
@@ -56,39 +56,39 @@ const ALL_STEPS: TourStepDef[] = [
     element: "#clients-container",
     url: "/dashboard/clients",
     title: "Propriétaires",
-    description: "Gérez vos clients propriétaires tiers, raccordez leurs biens, et suivez les indicateurs d'occupation de leur portefeuille.",
+    description: "Gérez vos clients propriétaires, rattachez leurs biens, et suivez l'occupation de chaque client.",
     side: "top",
     align: "start"
   },
   {
     element: "#listings-container",
     url: "/dashboard/listings",
-    title: "Listings & Candidatures",
-    description: "Publiez vos annonces de location, recevez les dossiers de candidature en ligne et gérez les processus de screening.",
+    title: "Annonces & candidatures",
+    description: "Publiez vos annonces de location, recevez les dossiers en ligne et suivez les candidatures.",
     side: "top",
     align: "start"
   },
   {
     element: "#tenants-container",
     url: "/dashboard/tenants",
-    title: "Suivi des Locataires",
-    description: "Gérez vos locataires actifs, visualisez leurs fiches d'information et gérez leurs invitations d'accès.",
+    title: "Suivi des locataires",
+    description: "Gérez vos locataires actifs, visualisez leurs fiches et gérez leurs invitations d'accès.",
     side: "top",
     align: "start"
   },
   {
     element: "#leases-container",
     url: "/dashboard/leases",
-    title: "Gestion des Contrats de Bail",
-    description: "Rédigez les baux, suivez les renouvellements, les révisions de loyer et les échéances de vos contrats.",
+    title: "Contrats de location",
+    description: "Créez les contrats, suivez les renouvellements, les révisions de loyer et les échéances.",
     side: "top",
     align: "start"
   },
   {
     element: "#move-outs-container",
     url: "/dashboard/move-outs",
-    title: "Départs Locataires",
-    description: "Suivez les procédures de sortie, les états des lieux de départ et les soldes de tout compte des locataires.",
+    title: "Fin de location",
+    description: "Suivez les sorties, les états des lieux et le solde de tout compte des locataires.",
     side: "top",
     align: "start"
   },
@@ -96,40 +96,40 @@ const ALL_STEPS: TourStepDef[] = [
   {
     element: "#revenues-container",
     url: "/dashboard/revenues",
-    title: "Suivi des Revenus",
-    description: "Visualisez les encaissements réels, les dépôts de garantie en réserve et l'évolution de vos entrées de trésorerie.",
+    title: "Suivi des revenus",
+    description: "Visualisez les encaissements, les garanties en réserve et l'évolution de vos entrées d'argent.",
     side: "top",
     align: "start"
   },
   {
     element: "#expenses-container",
     url: "/dashboard/expenses",
-    title: "Journal des Dépenses",
-    description: "Saisissez et catégorisez toutes les charges d'exploitation de vos biens pour un suivi comptable précis.",
+    title: "Journal des dépenses",
+    description: "Saisissez et catégorisez les charges de vos biens pour un suivi clair.",
     side: "top",
     align: "start"
   },
   {
     element: "#reports-container",
     url: "/dashboard/reports",
-    title: "Rapports Financiers",
-    description: "Générez des synthèses d'activité, analysez le net income par propriété et exportez vos données en PDF ou CSV.",
+    title: "Rapports financiers",
+    description: "Générez des synthèses d'activité, analysez le résultat par bien et exportez vos données en PDF ou CSV.",
     side: "top",
     align: "start"
   },
   {
     element: "#payments-container",
     url: "/dashboard/payments",
-    title: "Loyers & Facturation",
-    description: "Suivez la collecte de vos loyers, enregistrez les paiements et relancez les retards de facturation.",
+    title: "Loyers & facturation",
+    description: "Suivez la collecte de vos loyers, enregistrez les paiements et relancez les retards.",
     side: "top",
     align: "start"
   },
   {
     element: "#invoices-container",
     url: "/dashboard/invoices",
-    title: "Gestion des Factures",
-    description: "Émettez des appels de loyers, suivez le statut de délivrance des factures et gérez les soldes créditeurs.",
+    title: "Gestion des factures",
+    description: "Émettez des appels de loyers, suivez le statut des factures et gérez les soldes.",
     side: "top",
     align: "start"
   },
@@ -137,16 +137,16 @@ const ALL_STEPS: TourStepDef[] = [
   {
     element: "#maintenance-container",
     url: "/dashboard/maintenance",
-    title: "Tickets de Maintenance",
-    description: "Suivez les réclamations de vos locataires, planifiez les interventions de réparation et gérez vos prestataires.",
+    title: "Réparations",
+    description: "Suivez les signalements de vos locataires, planifiez les interventions et gérez vos prestataires.",
     side: "top",
     align: "start"
   },
   {
     element: "#documents-container",
     url: "/dashboard/documents",
-    title: "Coffre-fort Documentaire",
-    description: "Stockez et partagez les documents officiels, baux signés, pièces d'identité et attestations d'assurance.",
+    title: "Mes documents",
+    description: "Stockez et partagez les documents officiels, contrats signés, pièces d'identité et attestations.",
     side: "top",
     align: "start"
   },
@@ -154,16 +154,16 @@ const ALL_STEPS: TourStepDef[] = [
   {
     element: "#team-container",
     url: "/dashboard/team",
-    title: "Gestion d'Équipe",
-    description: "Invitez des collaborateurs, configurez les permissions d'accès et déléguez des tâches d'exploitation.",
+    title: "Gestion d'équipe",
+    description: "Invitez des collaborateurs, configurez les permissions et déléguez des tâches.",
     side: "top",
     align: "start"
   },
   {
     element: "#audit-container",
     url: "/dashboard/audit",
-    title: "Journal d'Audit",
-    description: "Pour des raisons de conformité et de sécurité, suivez l'historique complet des actions effectuées par votre équipe.",
+    title: "Journal d'audit",
+    description: "Pour la conformité et la sécurité, suivez l'historique des actions effectuées par votre équipe.",
     side: "top",
     align: "start"
   },
@@ -183,17 +183,17 @@ function getSectionName(url: string): string {
     case "/dashboard":
       return "Vue d'ensemble";
     case "/dashboard/properties":
-      return "Portfolio";
+      return "Mes biens";
     case "/dashboard/clients":
       return "Propriétaires";
     case "/dashboard/listings":
-      return "Listings";
+      return "Annonces";
     case "/dashboard/tenants":
       return "Locataires";
     case "/dashboard/leases":
-      return "Baux";
+      return "Contrats";
     case "/dashboard/move-outs":
-      return "Départs";
+      return "Fin de location";
     case "/dashboard/revenues":
       return "Revenus";
     case "/dashboard/expenses":
@@ -205,7 +205,7 @@ function getSectionName(url: string): string {
     case "/dashboard/invoices":
       return "Factures";
     case "/dashboard/maintenance":
-      return "Maintenance";
+      return "Réparations";
     case "/dashboard/documents":
       return "Documents";
     case "/dashboard/team":

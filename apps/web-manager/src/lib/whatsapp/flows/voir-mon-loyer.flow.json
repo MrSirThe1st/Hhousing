@@ -1,0 +1,73 @@
+{
+  "version": "7.0",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "LOYER": []
+  },
+  "screens": [
+    {
+      "id": "LOYER",
+      "title": "Mon loyer",
+      "terminal": true,
+      "data": {
+        "heading": {
+          "type": "string",
+          "__example__": "Votre loyer"
+        },
+        "tenant_name": {
+          "type": "string",
+          "__example__": "Jean Dupont"
+        },
+        "amount_label": {
+          "type": "string",
+          "__example__": "450 000 CDF"
+        },
+        "due_date_label": {
+          "type": "string",
+          "__example__": "5 juillet 2026"
+        },
+        "status_label": {
+          "type": "string",
+          "__example__": "À payer"
+        },
+        "summary_text": {
+          "type": "string",
+          "__example__": "450 000 CDF · Échéance 5 juillet 2026 · À payer"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "${data.heading}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.tenant_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Montant : ${data.amount_label}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Échéance : ${data.due_date_label}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Statut : ${data.status_label}"
+          },
+          {
+            "type": "Footer",
+            "label": "Fermer",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

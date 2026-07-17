@@ -27,6 +27,7 @@ export type MarkPaymentPaidOutput = Payment;
 export interface ListPaymentsFilter {
   organizationId: string;
   leaseId?: string;
+  tenantId?: string;
   status?: string;
 }
 

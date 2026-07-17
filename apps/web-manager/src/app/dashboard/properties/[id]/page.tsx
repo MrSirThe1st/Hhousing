@@ -29,7 +29,7 @@ export default async function PropertyDetailPage({ params }: PageProps): Promise
       <div className="p-8">
         <p className="text-gray-600">Propriété introuvable</p>
         <Link href="/dashboard/properties" className="mt-4 inline-block text-[#0063fe] hover:underline">
-          Retour au portfolio
+          Retour à mes biens
         </Link>
       </div>
     );

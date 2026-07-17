@@ -10,11 +10,11 @@ export default function PublicSiteFooter(): React.ReactElement {
             <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
             <span>
               <span className="block text-lg font-semibold tracking-tight">Haraka Property</span>
-              <span className="block text-xs uppercase tracking-[0.18em] text-slate-400">Opérations locatives</span>
+              <span className="block text-xs uppercase tracking-[0.18em] text-slate-400">Gestion de vos locations</span>
             </span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-7 text-slate-300">
-            Plateforme moderne d'exploitation locative pour les baux, la maintenance, les paiements, la communication et la diffusion publique des logements.
+            Plateforme de gestion locative pour vos contrats, réparations, paiements, communication et annonces de logements en RDC.
           </p>
         </div>
         <div>
@@ -29,9 +29,9 @@ export default function PublicSiteFooter(): React.ReactElement {
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Profils</p>
           <div className="mt-4 space-y-3 text-sm text-slate-300">
             <p>Gestionnaires immobiliers</p>
-            <p>Propriétaires bailleurs</p>
+            <p>Bailleurs</p>
             <p>Locataires</p>
-            <p>Propriétaires investisseurs</p>
+            <p>Investisseurs immobiliers</p>
           </div>
         </div>
         <div>

@@ -320,7 +320,9 @@ export async function PATCH(
         });
       }
 
-      const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
+      const inviteLinkBaseUrl =
+        process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim()
+        || `${(process.env.NEXT_PUBLIC_APP_URL ?? "https://www.harakaproperty.com").replace(/\/$/, "")}/invite`;
       const organizationRepositoryResult = createRepositoryFromEnv();
       const notificationDeps = createTenantInvitationNotificationDepsFromEnv();
       const invitationResult = await createTenantInvitation(
@@ -583,7 +585,9 @@ export async function PATCH(
         });
       }
 
-      const inviteLinkBaseUrl = process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim() || "hhousing-tenant://accept-invite";
+      const inviteLinkBaseUrl =
+        process.env.MOBILE_TENANT_INVITE_URL_BASE?.trim()
+        || `${(process.env.NEXT_PUBLIC_APP_URL ?? "https://www.harakaproperty.com").replace(/\/$/, "")}/invite`;
       const organizationRepositoryResult = createRepositoryFromEnv();
       const notificationDeps = createTenantInvitationNotificationDepsFromEnv();
       const invitationResult = await createTenantInvitation(

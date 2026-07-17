@@ -117,7 +117,7 @@ function getMemberInitials(name: string): string {
 
 function getRoleSummary(teamFunction: TeamFunction): string {
   if (teamFunction.functionCode === TeamFunctionCode.LEASING_AGENT) {
-    return "Operations locatives: portefeuille, listings, locataires et baux.";
+    return "Locations: biens, annonces, locataires et contrats.";
   }
 
   if (teamFunction.functionCode === TeamFunctionCode.ACCOUNTANT) {

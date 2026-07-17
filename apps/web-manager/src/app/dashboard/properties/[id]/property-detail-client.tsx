@@ -136,7 +136,7 @@ export default function PropertyDetailClient({
     <div className="space-y-6 p-8">
       <div>
         <Link href="/dashboard/properties" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
-          ← Retour au portfolio
+          ← Retour à mes biens
         </Link>
       </div>
 

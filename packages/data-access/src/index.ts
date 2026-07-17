@@ -195,3 +195,14 @@ export type {
   WhatsAppMessageRepository
 } from "./whatsapp/whatsapp-message-record.types";
 export type { WhatsAppMessageQueryable } from "./whatsapp/postgres-whatsapp-message.repository";
+export {
+  createPostgresTenantLoginOtpRepository,
+  createTenantLoginOtpRepositoryFromEnv
+} from "./auth/postgres-tenant-otp.repository";
+export type {
+  CreateTenantLoginOtpInput,
+  TenantLoginOtpRecord,
+  TenantLoginOtpRepository,
+  TenantWithPhoneLookup
+} from "./auth/tenant-otp-record.types";
+export { normalizeTenantPhoneNumber } from "./phone/normalize-phone";

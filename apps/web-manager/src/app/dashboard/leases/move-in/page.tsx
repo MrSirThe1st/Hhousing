@@ -12,6 +12,7 @@ type LeaseMoveInPageProps = {
     propertyId?: string;
     unitId?: string;
     applicationId?: string;
+    from?: string;
   }>;
 };
 
@@ -51,6 +52,7 @@ export default async function LeaseMoveInPage({ searchParams }: LeaseMoveInPageP
       initialPropertyId={params?.propertyId ?? applicationView?.property.id}
       initialTenantId={params?.tenantId}
       initialUnitId={params?.unitId ?? applicationView?.unit.id}
+      fromOnboarding={params?.from === "onboarding"}
     />
   );
 }

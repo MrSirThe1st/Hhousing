@@ -75,7 +75,7 @@ function getInitials(value: string): string {
 
 function getRoleLabel(role: "landlord" | "property_manager" | "platform_admin"): string {
   if (role === "landlord") {
-    return "Propriétaire";
+    return "Bailleur";
   }
   if (role === "property_manager") {
     return "Gestionnaire";
@@ -479,7 +479,7 @@ export default function OperatorProfilePanel({
                   onChange={(event) => setForm((current) => ({ ...current, jobTitle: event.target.value }))}
                   disabled={busy}
                   className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#0063fe] focus:ring-4 focus:ring-[#0063fe]/10 disabled:bg-slate-50 disabled:text-slate-400"
-                  placeholder="Ex. Gestionnaire, Propriétaire"
+                  placeholder="Ex. Gestionnaire, Bailleur"
                 />
               </div>
 

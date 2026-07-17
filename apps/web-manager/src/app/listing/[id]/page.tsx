@@ -328,7 +328,7 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                 <div className="space-y-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   {item.listing.visibility.showDeposit && (
                     <div className="flex items-center justify-between">
-                      <span>Caution</span>
+                      <span>Garantie</span>
                       <span className="font-extrabold text-slate-800 tracking-normal normal-case">
                         {item.unit.depositAmount.toLocaleString("fr-FR")} {item.unit.currencyCode}
                       </span>

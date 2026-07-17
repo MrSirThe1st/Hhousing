@@ -1,62 +1,31 @@
 import { useEffect, useState } from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import type {
-  AcceptTenantInvitationOutput,
-  ValidateTenantInvitationOutput
-} from "@/lib/api-contracts-types";
-import { useAuth } from "@/contexts/auth-context";
-import { getWithoutAuth, postWithoutAuth } from "@/lib/api-client";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { getWithoutAuth } from "@/lib/api-client";
+import { env } from "@/lib/env";
 
-type InvitationPreviewView = {
-  tenantFullName: string;
-  organizationName: string;
-  tenantEmail: string;
-  tenantPhone: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function asString(value: unknown, fallback = ""): string {
-  return typeof value === "string" ? value : fallback;
-}
-
-function normalizeInvitation(value: unknown): InvitationPreviewView {
-  const raw = isRecord(value) ? value : {};
-  return {
-    tenantFullName: asString(raw.tenantFullName || raw.fullName, "Locataire"),
-    organizationName: asString(raw.organizationName || raw.propertyName, "Organisation"),
-    tenantEmail: asString(raw.tenantEmail, ""),
-    tenantPhone: asString(raw.tenantPhone || raw.phone, "")
+type InvitationValidateData = {
+  invitation: {
+    tenantFullName: string;
   };
-}
+};
 
 export default function AcceptInviteScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ token?: string }>();
   const token = typeof params.token === "string" ? params.token : "";
-  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<InvitationPreviewView | null>(null);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [phone, setPhone] = useState("");
+  const [tenantFullName, setTenantFullName] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load(): Promise<void> {
+    async function loadInvitation(): Promise<void> {
       if (!token) {
         setError("Lien d'invitation invalide.");
         setIsLoading(false);
         return;
       }
 
-      const result = await getWithoutAuth<ValidateTenantInvitationOutput>(
+      const result = await getWithoutAuth<InvitationValidateData>(
         `/api/mobile/invitations/validate?token=${encodeURIComponent(token)}`
       );
 
@@ -66,133 +35,41 @@ export default function AcceptInviteScreen(): React.ReactElement {
         return;
       }
 
-      const invitation = normalizeInvitation(result.data.invitation);
-      setPreview(invitation);
-      setPhone(invitation.tenantPhone);
+      setTenantFullName(result.data.invitation.tenantFullName);
       setIsLoading(false);
     }
 
-    void load();
+    void loadInvitation();
   }, [token]);
 
-  async function handleAccept(): Promise<void> {
-    if (!preview) {
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    const result = await postWithoutAuth<AcceptTenantInvitationOutput>(
-      "/api/mobile/invitations/accept",
-      {
-        token,
-        password,
-        phone: phone.trim() || null
-      }
-    );
-
-    if (!result.success) {
-      setError(result.error);
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!preview.tenantEmail) {
-      setError("Invitation invalide: email du locataire introuvable.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const signInError = await signIn(preview.tenantEmail, password);
-    if (signInError) {
-      setError("Compte activé, mais la connexion automatique a échoué.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    setIsSubmitting(false);
+  function openWebActivation(): void {
+    const url = `${env.apiBaseUrl}/invite?token=${encodeURIComponent(token)}`;
+    void Linking.openURL(url);
   }
 
   return (
     <>
-      <Stack.Screen options={{ title: "Activer le compte", headerShown: false }} />
+      <Stack.Screen options={{ title: "Invitation", headerShown: false }} />
       <View style={styles.root}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Activation du compte</Text>
-          {isLoading ? <ActivityIndicator size="large" color="#0063FE" /> : null}
-
-          {!isLoading && error ? <Text style={styles.error}>{error}</Text> : null}
-
-          {!isLoading && !error && preview ? (
-            <>
-              <Text style={styles.subtitle}>
-                Bienvenue {preview.tenantFullName}. Définissez votre mot de passe pour accéder à votre espace locataire.
-              </Text>
-              <Text style={styles.meta}>Organisation: {preview.organizationName}</Text>
-              <Text style={styles.meta}>Email: {preview.tenantEmail}</Text>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Téléphone (optionnel)"
-                style={styles.input}
-              />
-              <View style={styles.passwordInputWrap}>
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Mot de passe"
-                  secureTextEntry={!showPassword}
-                  style={styles.passwordInput}
-                />
-                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Ionicons
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color="#9CA3AF"
-                  />
-                </Pressable>
-              </View>
-              <View style={styles.passwordInputWrap}>
-                <TextInput
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Confirmer le mot de passe"
-                  secureTextEntry={!showConfirmPassword}
-                  style={styles.passwordInput}
-                />
-                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeBtn}>
-                  <Ionicons
-                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color="#9CA3AF"
-                  />
-                </Pressable>
-              </View>
-              <Pressable
-                style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
-                disabled={isSubmitting}
-                onPress={() => {
-                  void handleAccept();
-                }}
-              >
-                <Text style={styles.buttonText}>
-                  {isSubmitting ? "Activation..." : "Activer mon compte"}
-                </Text>
-              </Pressable>
-            </>
-          ) : null}
-        </View>
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#0063FE" />
+        ) : error ? (
+          <View style={styles.card}>
+            <Text style={styles.title}>Lien invalide</Text>
+            <Text style={styles.body}>{error}</Text>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.title}>Bienvenue{tenantFullName ? `, ${tenantFullName}` : ""}</Text>
+            <Text style={styles.body}>
+              Créez votre mot de passe sur la page web sécurisée, puis reconnectez-vous ici avec votre
+              numéro et ce mot de passe.
+            </Text>
+            <Pressable style={styles.button} onPress={openWebActivation}>
+              <Text style={styles.buttonText}>Ouvrir la page d&apos;activation</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
     </>
   );
@@ -201,76 +78,39 @@ export default function AcceptInviteScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: "#F3F4FA",
     justifyContent: "center",
-    backgroundColor: "#F4F7FB",
-    paddingHorizontal: 24
+    paddingHorizontal: 20
   },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 20,
-    gap: 12
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#C9CFDA",
+    padding: 24,
+    gap: 14
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "700",
     color: "#010A19"
   },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#4B5563"
-  },
-  meta: {
-    fontSize: 13,
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
     color: "#6B7280"
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 15,
-    color: "#010A19",
-    backgroundColor: "#ffffff"
-  },
   button: {
-    marginTop: 4,
+    marginTop: 8,
     borderRadius: 10,
-    paddingVertical: 12,
+    minHeight: 52,
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#0063FE"
-  },
-  buttonDisabled: {
-    opacity: 0.65
   },
   buttonText: {
     color: "#ffffff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700"
-  },
-  error: {
-    color: "#B91C1C",
-    fontSize: 14
-  },
-  passwordInputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    backgroundColor: "#ffffff",
-    paddingRight: 12
-  },
-  passwordInput: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 15,
-    color: "#010A19"
-  },
-  eyeBtn: {
-    padding: 4
   }
 });

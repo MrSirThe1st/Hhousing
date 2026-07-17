@@ -17,7 +17,7 @@ const WIZARD_STEPS: Array<{ id: WizardStep; label: string }> = [
   { id: "who", label: "Qui ?" },
   { id: "where", label: "Où ?" },
   { id: "rent", label: "Loyer" },
-  { id: "deposit", label: "Caution" },
+  { id: "deposit", label: "Garantie" },
   { id: "confirm", label: "Confirmer" }
 ];
 
@@ -35,7 +35,7 @@ interface ChargeRowState {
 function createChargeRow(chargeType: ChargeType, currencyCode = "CDF"): ChargeRowState {
   return {
     id: `${chargeType}_${Math.random().toString(36).slice(2, 8)}`,
-    label: chargeType === "deposit" ? "Dépôt de garantie" : "",
+    label: chargeType === "deposit" ? "Garantie locative" : "",
     amount: "",
     currencyCode,
     frequency: chargeType === "deposit" ? "one_time" : "monthly",
@@ -68,6 +68,7 @@ interface LeaseMoveInFormProps {
   initialPropertyId?: string;
   initialUnitId?: string;
   initialApplicationId?: string;
+  fromOnboarding?: boolean;
 }
 
 export default function LeaseMoveInForm({
@@ -77,7 +78,8 @@ export default function LeaseMoveInForm({
   initialTenantId,
   initialPropertyId,
   initialUnitId,
-  initialApplicationId
+  initialApplicationId,
+  fromOnboarding = false
 }: LeaseMoveInFormProps): React.ReactElement {
   const router = useRouter();
   const [step, setStep] = useState<WizardStep>("who");
@@ -355,7 +357,7 @@ export default function LeaseMoveInForm({
       return;
     }
 
-    router.push(`/dashboard/leases/${result.data.id}`);
+    router.push(fromOnboarding ? "/onboarding" : `/dashboard/leases/${result.data.id}`);
     router.refresh();
   }
 
@@ -375,10 +377,15 @@ export default function LeaseMoveInForm({
   return (
     <div className="p-4 sm:p-8">
       <div className="mb-6 max-w-2xl">
-        <Link href="/dashboard/leases" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
-          ← Retour aux baux
+        <Link
+          href={fromOnboarding ? "/onboarding" : "/dashboard/leases"}
+          className="mb-4 inline-block text-sm text-[#0063fe] hover:underline"
+        >
+          {fromOnboarding ? "← Retour à la configuration" : "← Retour aux baux"}
         </Link>
-        <h1 className="text-2xl font-semibold text-[#010a19]">Enregistrer un locataire</h1>
+        <h1 className="text-2xl font-semibold text-[#010a19]">
+          {fromOnboarding ? "Premier bail" : "Enregistrer un locataire"}
+        </h1>
         <p className="mt-2 text-sm text-slate-600">
           Suivez les étapes. Une seule décision à la fois.
         </p>
@@ -706,7 +713,7 @@ export default function LeaseMoveInForm({
         {step === "deposit" ? (
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Caution</h2>
+              <h2 className="text-lg font-semibold text-[#010a19]">Garantie</h2>
               <p className="mt-1 text-sm text-slate-600">
                 {moveInMode === "existing_tenant"
                   ? "Dans la plupart des cas, la caution est déjà payée hors plateforme."
@@ -775,7 +782,7 @@ export default function LeaseMoveInForm({
                         value={row.label}
                         onChange={(event) => updateChargeRow(setDepositRows, row.id, "label", event.target.value)}
                         className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
-                        placeholder="Dépôt de garantie"
+                        placeholder="Garantie locative"
                       />
                     </label>
                     <label className="block text-sm font-medium text-gray-700">
@@ -946,7 +953,7 @@ export default function LeaseMoveInForm({
                 <dd className="text-right font-medium text-[#010a19]">{formatDisplayDate(recurringStartDate)}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Caution</dt>
+                <dt className="text-slate-500">Garantie</dt>
                 <dd className="text-right font-medium text-[#010a19]">{depositSummary}</dd>
               </div>
               <div className="flex justify-between gap-4">
