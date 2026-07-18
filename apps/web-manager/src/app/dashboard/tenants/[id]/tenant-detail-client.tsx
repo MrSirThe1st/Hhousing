@@ -10,6 +10,9 @@ import type { Tenant } from "@hhousing/domain";
 import { patchWithAuth, deleteWithAuth, postWithAuth } from "../../../../lib/api-client";
 import { formatInvitationDeliveryMessage } from "../../../../lib/notifications/format-delivery-status";
 import ActionMenu from "../../../../components/action-menu";
+import ActionToast from "../../../../components/action-toast";
+import PhoneInput from "../../../../components/phone-input";
+import { validateDrcPhoneInput } from "../../../../lib/phone-input";
 
 const ContextualDocumentPanel = dynamic(
   () => import("../../../../components/contextual-document-panel"),
@@ -166,6 +169,13 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
     setSaving(true);
     setError(null);
 
+    const phoneError = validateDrcPhoneInput(formData.phone);
+    if (phoneError) {
+      setError(phoneError);
+      setSaving(false);
+      return;
+    }
+
     const result = await patchWithAuth<Tenant>(`/api/tenants/${id}`, {
       fullName: formData.fullName.trim(),
       email: formData.email.trim() || null,
@@ -227,6 +237,17 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
 
   return (
     <div className="space-y-6 p-8">
+      <ActionToast
+        message={successMessage}
+        tone="success"
+        onDismiss={() => setSuccessMessage(null)}
+      />
+      <ActionToast
+        message={error}
+        tone="error"
+        onDismiss={() => setError(null)}
+      />
+
       <div>
         <Link href="/dashboard/tenants" className="mb-4 inline-block text-sm text-[#0063fe] hover:underline">
           ← Retour aux locataires
@@ -236,6 +257,21 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         {!editMode ? (
           <div className="px-6 py-5">
+            {successMessage ? (
+              <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white" aria-hidden="true">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
+                <p className="font-medium">{successMessage}</p>
+              </div>
+            ) : null}
+            {error ? (
+              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -335,8 +371,6 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
               </dl>
             </div>
 
-            {successMessage ? <p className="mt-6 rounded-lg border border-emerald-100 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700">{successMessage}</p> : null}
-            {error ? <p className="mt-6 rounded-lg border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-600">{error}</p> : null}
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-5 px-6 py-5">
@@ -348,7 +382,14 @@ export default function TenantDetailClient({ id, initialTenant, canInviteMobile 
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Nom complet</label><input type="text" required value={formData.fullName} onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Date de naissance</label><input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData((prev) => ({ ...prev, dateOfBirth: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">E-mail</label><input type="email" value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20" required placeholder="+243..." /></div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Téléphone</label>
+                <PhoneInput
+                  value={formData.phone}
+                  onChange={(nextPhone) => setFormData((prev) => ({ ...prev, phone: nextPhone }))}
+                  required
+                />
+              </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Statut professionnel</label>
                 <select value={formData.employmentStatus} onChange={(e) => setFormData((prev) => ({ ...prev, employmentStatus: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19] outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20">

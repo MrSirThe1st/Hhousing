@@ -26,11 +26,17 @@ function validateRequiredPhone(phone: string | null): ApiResult<string> {
   }
 
   const digits = phone.replace(/\D/g, "");
-  if (digits.length < 9 || digits.length > 15) {
+  const isDrc =
+    (digits.startsWith("243") && digits.length === 12)
+    || (digits.startsWith("0") && digits.length === 10)
+    || digits.length === 9;
+  const isInternational = digits.length >= 10 && digits.length <= 15;
+
+  if (!isDrc && !isInternational) {
     return {
       success: false,
       code: "VALIDATION_ERROR",
-      error: "Numéro de téléphone invalide"
+      error: "Utilisez un numéro congolais à 9 chiffres (ex. +243 990 000 000)"
     };
   }
 

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { postPublic } from "../lib/api-client";
+import { validateDrcPhoneInput } from "../lib/phone-input";
+import PhoneInput from "./phone-input";
 
 interface PublicListingApplicationFormProps {
   listingId: string;
@@ -28,6 +30,13 @@ export default function PublicListingApplicationForm({
     setBusy(true);
     setError(null);
     setSuccess(null);
+
+    const phoneError = validateDrcPhoneInput(phone);
+    if (phoneError) {
+      setError(phoneError);
+      setBusy(false);
+      return;
+    }
 
     const parsedIncome = monthlyIncome.trim().length > 0 ? Number(monthlyIncome) : null;
     const parsedOccupants = numberOfOccupants.trim().length > 0 ? Number(numberOfOccupants) : null;
@@ -97,11 +106,13 @@ export default function PublicListingApplicationForm({
 
         <label className="col-span-1 block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
           <span className="mb-1 block">Téléphone</span>
-          <input
+          <PhoneInput
             value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            className="w-full rounded-xl border border-slate-200/75 px-3 py-2 text-sm text-slate-800 placeholder-slate-400/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition font-normal normal-case tracking-normal"
+            onChange={setPhone}
             required
+            hint=""
+            className="font-normal normal-case tracking-normal"
+            inputClassName="py-2"
           />
         </label>
 

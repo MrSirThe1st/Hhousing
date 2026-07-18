@@ -2,8 +2,24 @@
 // DEBUG: Add logging for production routing issues
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { applyMobileCorsHeaders } from "./lib/mobile-cors";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
+  const { pathname } = request.nextUrl;
+
+  // Mobile tenant API is called from Expo (native + web). Browsers need CORS.
+  if (pathname.startsWith("/api/mobile")) {
+    if (request.method === "OPTIONS") {
+      const preflight = new NextResponse(null, { status: 204 });
+      applyMobileCorsHeaders(preflight.headers, request);
+      return preflight;
+    }
+
+    const response = NextResponse.next({ request });
+    applyMobileCorsHeaders(response.headers, request);
+    return response;
+  }
+
   let response = NextResponse.next({ request });
   const debugLogs: string[] = [];
 
@@ -32,7 +48,6 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     data: { user }
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
   debugLogs.push(`[middleware] path=${pathname} user_id=${user?.id ?? "none"}`);
 
   // Fast existence checks avoid expensive exact-count scans on hot auth paths.
@@ -158,5 +173,15 @@ function logDebug(logs: string[]): void {
 }
 
 export const config = {
-  matcher: ["/", "/marketplace", "/login", "/signup", "/account-type", "/onboarding", "/dashboard/:path*", "/owner-portal/:path*"]
+  matcher: [
+    "/",
+    "/marketplace",
+    "/login",
+    "/signup",
+    "/account-type",
+    "/onboarding",
+    "/dashboard/:path*",
+    "/owner-portal/:path*",
+    "/api/mobile/:path*"
+  ]
 };

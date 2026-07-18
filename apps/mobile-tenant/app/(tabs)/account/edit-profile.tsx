@@ -20,6 +20,13 @@ import { getWithAuth, patchWithAuth } from "@/lib/api-client";
 import { FormSkeleton } from "@/components/skeleton";
 import { useAuth } from "@/contexts/auth-context";
 import { NetworkError } from "@/components/network-error";
+import {
+  extractDrcNationalNumber,
+  formatDrcNationalDisplay,
+  nationalFromStoredPhone,
+  toDrcE164,
+  validateDrcPhoneInput
+} from "@/lib/phone-input";
 
 type ProfileOutput = { tenant: Tenant };
 type LeaseOutput = { lease: LeaseWithTenantView | null };
@@ -58,7 +65,7 @@ export default function EditProfileScreen(): React.ReactElement {
       setIsOffline(false);
       setTenant(profileResult.data.tenant);
       setFullName(profileResult.data.tenant.fullName ?? "");
-      setPhone(profileResult.data.tenant.phone ?? "");
+      setPhone(nationalFromStoredPhone(profileResult.data.tenant.phone));
       setWhatsappOptIn(Boolean(profileResult.data.tenant.whatsappOptIn));
       setError(null);
     } else {
@@ -110,10 +117,16 @@ export default function EditProfileScreen(): React.ReactElement {
       return;
     }
 
+    const phoneError = validateDrcPhoneInput(phone);
+    if (phoneError) {
+      Alert.alert("Erreur", phoneError);
+      return;
+    }
+
     setIsSaving(true);
     const result: ApiResult<ProfileOutput> = await patchWithAuth<ProfileOutput>("/api/mobile/profile", {
       fullName: fullName.trim(),
-      phone: phone.trim() || null,
+      phone: toDrcE164(phone),
       whatsappOptIn
     });
     setIsSaving(false);
@@ -202,16 +215,19 @@ export default function EditProfileScreen(): React.ReactElement {
           <Text style={styles.label}>Téléphone</Text>
           <View style={styles.inputWrap}>
             <Ionicons name="call-outline" size={16} color="#6B7280" />
+            <Text style={styles.prefix}>+243</Text>
             <TextInput
-              value={phone}
-              onChangeText={setPhone}
+              value={formatDrcNationalDisplay(phone)}
+              onChangeText={(nextValue) => setPhone(extractDrcNationalNumber(nextValue))}
               style={styles.input}
               keyboardType="phone-pad"
               autoCorrect={false}
-              placeholder="+243..."
+              placeholder="990 000 000"
               placeholderTextColor="#9CA3AF"
+              maxLength={11}
             />
           </View>
+          <Text style={styles.hint}>9 chiffres après +243</Text>
         </View>
 
         <View style={styles.field}>
@@ -386,11 +402,20 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 10
   },
+  prefix: {
+    color: "#010A19",
+    fontSize: 15,
+    fontWeight: "700"
+  },
   input: {
     flex: 1,
     fontSize: 15,
     color: "#010A19",
     paddingVertical: 0
+  },
+  hint: {
+    color: "#9CA3AF",
+    fontSize: 12
   },
   readonlyField: {
     backgroundColor: "#ECEEF7"

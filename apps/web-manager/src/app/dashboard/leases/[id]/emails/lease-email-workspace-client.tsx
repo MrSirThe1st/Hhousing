@@ -6,6 +6,7 @@ import type { LeaseWithTenantView, NotificationChannelDeliveryStatus } from "@hh
 import type { Document } from "@hhousing/domain";
 import { patchWithAuth } from "../../../../../lib/api-client";
 import { formatInvitationDeliveryMessage, formatLeaseDraftDeliveryMessage } from "../../../../../lib/notifications/format-delivery-status";
+import ActionToast from "../../../../../components/action-toast";
 import UniversalLoadingState from "../../../../../components/universal-loading-state";
 
 type LeaseEmailWorkspaceClientProps = {
@@ -129,6 +130,19 @@ export default function LeaseEmailWorkspaceClient({
 
   return (
     <div className="p-8">
+      <ActionToast
+        message={activationEmailMessage ?? draftEmailMessage}
+        tone="success"
+        onDismiss={() => {
+          setActivationEmailMessage(null);
+          setDraftEmailMessage(null);
+        }}
+      />
+      <ActionToast
+        message={error}
+        tone="error"
+        onDismiss={() => setError(null)}
+      />
       <div className="mb-6">
         <Link href={`/dashboard/leases/${id}`} className="inline-block text-sm text-[#0063fe] hover:underline">
           ← Retour au bail

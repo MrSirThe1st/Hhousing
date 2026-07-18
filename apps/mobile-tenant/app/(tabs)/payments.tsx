@@ -18,6 +18,13 @@ import type { ApiResult } from "@/lib/api-client";
 import { ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
+import {
+  extractDrcNationalNumber,
+  formatDrcNationalDisplay,
+  nationalFromStoredPhone,
+  toDrcE164,
+  validateDrcPhoneInput
+} from "@/lib/phone-input";
 
 type MobilePaymentsOutput = { payments: Payment[] };
 
@@ -278,13 +285,14 @@ export default function PaymentsScreen(): React.ReactElement {
 
     const profileResult: ApiResult<ProfileOutput> = await getWithAuth<ProfileOutput>("/api/mobile/profile");
     if (profileResult.success && profileResult.data.tenant.phone) {
-      setPhoneNumber(profileResult.data.tenant.phone);
+      setPhoneNumber(nationalFromStoredPhone(profileResult.data.tenant.phone));
     }
   }, []);
 
   const handlePayBalance = useCallback(async (): Promise<void> => {
-    if (!phoneNumber.trim()) {
-      setPayError("Veuillez saisir votre numéro mobile money.");
+    const phoneError = validateDrcPhoneInput(phoneNumber);
+    if (phoneError) {
+      setPayError(phoneError);
       return;
     }
 
@@ -296,7 +304,7 @@ export default function PaymentsScreen(): React.ReactElement {
       "/api/mobile/payments/pay-balance",
       {
         provider: selectedProvider,
-        phoneNumber: phoneNumber.trim()
+        phoneNumber: toDrcE164(phoneNumber)
       }
     );
 
@@ -549,15 +557,20 @@ export default function PaymentsScreen(): React.ReactElement {
             </View>
 
             <Text style={styles.fieldLabel}>Numéro mobile money</Text>
-            <TextInput
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder="+243..."
-              placeholderTextColor="#9CA3AF"
-              keyboardType="phone-pad"
-              style={styles.phoneInput}
-              editable={!isPaying}
-            />
+            <View style={styles.phoneInputWrap}>
+              <Text style={styles.phonePrefix}>+243</Text>
+              <TextInput
+                value={formatDrcNationalDisplay(phoneNumber)}
+                onChangeText={(nextValue) => setPhoneNumber(extractDrcNationalNumber(nextValue))}
+                placeholder="990 000 000"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="phone-pad"
+                style={styles.phoneInput}
+                editable={!isPaying}
+                maxLength={11}
+              />
+            </View>
+            <Text style={styles.phoneHint}>9 chiffres après +243</Text>
 
             {payStatusMessage ? (
               <View style={styles.statusNotice}>
@@ -901,14 +914,32 @@ const styles = StyleSheet.create({
   providerChipTextActive: {
     color: "#0063FE"
   },
-  phoneInput: {
+  phoneInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     borderWidth: 1,
     borderColor: "#D4DAE7",
     borderRadius: 10,
     paddingHorizontal: 12,
+    minHeight: 48,
+    backgroundColor: "#ffffff"
+  },
+  phonePrefix: {
+    color: "#010A19",
+    fontSize: 16,
+    fontWeight: "700"
+  },
+  phoneInput: {
+    flex: 1,
     paddingVertical: 12,
     fontSize: 16,
     color: "#010A19"
+  },
+  phoneHint: {
+    marginTop: 4,
+    color: "#9CA3AF",
+    fontSize: 12
   },
   statusNotice: {
     borderRadius: 10,

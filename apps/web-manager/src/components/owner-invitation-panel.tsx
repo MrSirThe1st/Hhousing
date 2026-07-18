@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CreateOwnerInvitationOutput } from "@hhousing/api-contracts";
 import { postWithAuth } from "../lib/api-client";
+import ActionToast from "./action-toast";
 
 interface OwnerInvitationPanelProps {
   ownerId: string;
@@ -38,9 +39,20 @@ export default function OwnerInvitationPanel({ ownerId, ownerName, initialEmail 
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <ActionToast
+        message={message}
+        tone="success"
+        onDismiss={() => setMessage(null)}
+      />
+      <ActionToast
+        message={error}
+        tone="error"
+        onDismiss={() => setError(null)}
+      />
+
       <h2 className="text-lg font-semibold text-[#010a19]">Inviter ce propriétaire</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Envoyez un lien d'activation au propriétaire {ownerName}. Il pourra créer son mot de passe puis accéder à son portail en lecture seule.
+        Envoyez un lien d&apos;activation au propriétaire {ownerName}. Il pourra créer son mot de passe puis accéder à son portail en lecture seule.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 md:flex-row md:items-end">
@@ -65,8 +77,13 @@ export default function OwnerInvitationPanel({ ownerId, ownerName, initialEmail 
       </form>
 
       {message ? (
-        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          {message}
+        <div className="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white" aria-hidden="true">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          <p className="font-medium">{message}</p>
         </div>
       ) : null}
       {error ? (

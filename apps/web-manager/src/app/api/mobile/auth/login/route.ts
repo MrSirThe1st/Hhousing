@@ -1,6 +1,10 @@
 import { createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../../shared";
 import { loginTenantWithPhonePassword } from "../../../../../api/tenants/tenant-phone-login";
 
+export async function OPTIONS(): Promise<Response> {
+  return jsonResponse(204, null, new Request("http://localhost"));
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
   try {
@@ -10,7 +14,7 @@ export async function POST(request: Request): Promise<Response> {
       success: false,
       code: "VALIDATION_ERROR",
       error: "Body must be valid JSON"
-    });
+    }, request);
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -24,7 +28,7 @@ export async function POST(request: Request): Promise<Response> {
       success: false,
       code: "INTERNAL_ERROR",
       error: "Supabase auth is not configured"
-    });
+    }, request);
   }
 
   const result = await loginTenantWithPhonePassword(body, {
@@ -33,5 +37,5 @@ export async function POST(request: Request): Promise<Response> {
     supabaseAnonKey
   });
 
-  return jsonResponse(result.status, result.body);
+  return jsonResponse(result.status, result.body, request);
 }

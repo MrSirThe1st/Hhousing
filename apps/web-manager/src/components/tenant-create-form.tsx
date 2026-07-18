@@ -6,7 +6,9 @@ import Link from "next/link";
 import type { Tenant } from "@hhousing/domain";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth } from "../lib/api-client";
+import { validateDrcPhoneInput } from "../lib/phone-input";
 import type { TenantFormState } from "./tenant-management.types";
+import PhoneInput from "./phone-input";
 import UniversalLoadingState from "./universal-loading-state";
 
 const INITIAL_TENANT_FORM: TenantFormState = {
@@ -66,6 +68,13 @@ export default function TenantCreateForm({
     event.preventDefault();
     setBusy(true);
     setError(null);
+
+    const phoneError = validateDrcPhoneInput(tenantForm.phone);
+    if (phoneError) {
+      setError(phoneError);
+      setBusy(false);
+      return;
+    }
 
     let photoUrl: string | null = null;
 
@@ -156,14 +165,12 @@ export default function TenantCreateForm({
           </label>
           <label className="block text-sm font-medium text-gray-700">
             <span className="mb-1.5 block">Téléphone</span>
-            <input
+            <PhoneInput
               value={tenantForm.phone}
-              onChange={(event) => setTenantForm((previous) => ({ ...previous, phone: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="+243..."
+              onChange={(nextPhone) => setTenantForm((previous) => ({ ...previous, phone: nextPhone }))}
               required
+              hint="Requis pour WhatsApp. Format Congo : +243 puis 9 chiffres."
             />
-            <p className="mt-1 text-xs text-gray-500">Requis pour les communications WhatsApp avec le locataire.</p>
           </label>
           <label className="block text-sm font-medium text-gray-700 md:col-span-2">
             <span className="mb-1.5 block">Photo du locataire</span>

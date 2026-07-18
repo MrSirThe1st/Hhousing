@@ -17,6 +17,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { postWithoutAuth } from "@/lib/api-client";
 import { env } from "@/lib/env";
+import {
+  extractDrcNationalNumber,
+  formatDrcNationalDisplay,
+  toDrcE164,
+  validateDrcPhoneInput
+} from "@/lib/phone-input";
 
 type PhonePasswordLoginOutput = {
   accessToken: string;
@@ -28,7 +34,7 @@ type PhonePasswordLoginOutput = {
 
 export default function LoginScreen(): React.ReactElement {
   const { signInWithSession } = useAuth();
-  const [phone, setPhone] = useState("");
+  const [phoneNational, setPhoneNational] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,9 +47,14 @@ export default function LoginScreen(): React.ReactElement {
     });
   }
 
+  function handlePhoneChange(nextValue: string): void {
+    setPhoneNational(extractDrcNationalNumber(nextValue));
+  }
+
   async function handleLogin(): Promise<void> {
-    if (!phone.trim()) {
-      setError("Entrez votre numéro de téléphone.");
+    const phoneError = validateDrcPhoneInput(phoneNational);
+    if (phoneError) {
+      setError(phoneError);
       return;
     }
 
@@ -56,7 +67,7 @@ export default function LoginScreen(): React.ReactElement {
     setError(null);
 
     const result = await postWithoutAuth<PhonePasswordLoginOutput>("/api/mobile/auth/login", {
-      phone: phone.trim(),
+      phone: toDrcE164(phoneNational),
       password
     });
 
@@ -99,17 +110,20 @@ export default function LoginScreen(): React.ReactElement {
               <Text style={styles.label}>Numéro de téléphone</Text>
               <View style={styles.inputWrap}>
                 <Ionicons name="call-outline" size={18} color="#9CA3AF" />
+                <Text style={styles.prefix}>+243</Text>
                 <TextInput
-                  value={phone}
-                  onChangeText={setPhone}
+                  value={formatDrcNationalDisplay(phoneNational)}
+                  onChangeText={handlePhoneChange}
                   keyboardType="phone-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={styles.input}
-                  placeholder="+243 990 000 000"
+                  placeholder="990 000 000"
                   placeholderTextColor="#9CA3AF"
+                  maxLength={11}
                 />
               </View>
+              <Text style={styles.hint}>9 chiffres après +243</Text>
             </View>
 
             <View style={styles.fieldGroup}>
@@ -233,12 +247,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     minHeight: 52
   },
+  prefix: {
+    color: "#010A19",
+    fontSize: 15,
+    fontWeight: "700"
+  },
   input: {
     flex: 1,
     paddingVertical: 0,
     fontSize: 15,
     color: "#010A19",
     backgroundColor: "transparent"
+  },
+  hint: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 2
   },
   error: {
     color: "#B91C1C",

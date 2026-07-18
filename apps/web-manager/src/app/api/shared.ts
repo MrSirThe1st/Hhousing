@@ -34,12 +34,26 @@ import {
   TeamFunctionsRepository
 } from "@hhousing/data-access";
 
-export function jsonResponse(status: number, body: unknown): Response {
+export function jsonResponse(status: number, body: unknown, request?: Request): Response {
+  const headers = new Headers({
+    "content-type": "application/json"
+  });
+
+  // Mobile routes often run behind Expo web; attach CORS when the caller passes the request.
+  if (request) {
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
+  }
+
+  if (status === 204) {
+    headers.delete("content-type");
+    return new Response(null, { status, headers });
+  }
+
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "content-type": "application/json"
-    }
+    headers
   });
 }
 

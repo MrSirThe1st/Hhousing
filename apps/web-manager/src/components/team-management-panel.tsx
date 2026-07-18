@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TeamFunctionCode, type TeamFunction } from "@hhousing/api-contracts";
 import type { OrganizationMembership, TeamMemberInvitation } from "@hhousing/domain";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
+import ActionToast from "./action-toast";
 import UniversalLoadingState from "./universal-loading-state";
 
 type TeamDashboardMember = OrganizationMembership & {
@@ -258,7 +259,7 @@ export default function TeamManagementPanel({
         return;
       }
 
-      setMessage("Invitation envoyee.");
+      setMessage(`Invitation envoyée à ${inviteEmail.trim()}.`);
       setInviteEmail("");
       setInviteModalOpen(false);
       setBusyInvite(false);
@@ -286,7 +287,7 @@ export default function TeamManagementPanel({
         return;
       }
 
-      setMessage("Invitation renvoyee.");
+      setMessage("Invitation renvoyée.");
       setBusyInvitationId(null);
       router.refresh();
     } catch {
@@ -311,7 +312,7 @@ export default function TeamManagementPanel({
         return;
       }
 
-      setMessage("Invitation annulee.");
+      setMessage("Invitation annulée.");
       setBusyInvitationId(null);
       router.refresh();
     } catch {
@@ -353,7 +354,7 @@ export default function TeamManagementPanel({
         return;
       }
 
-      setMessage("Roles applicatifs mis a jour.");
+      setMessage("Rôles applicatifs mis à jour.");
       setConfiguringMemberId(null);
       setBusyMemberId(null);
       router.refresh();
@@ -429,6 +430,16 @@ export default function TeamManagementPanel({
 
   return (
     <div className="space-y-6">
+      <ActionToast
+        message={message}
+        tone="success"
+        onDismiss={() => setMessage(null)}
+      />
+      <ActionToast
+        message={error}
+        tone="error"
+        onDismiss={() => setError(null)}
+      />
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Gestion d'equipe</h1>
