@@ -245,7 +245,7 @@ export default function EditProfileScreen(): React.ReactElement {
               <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
               <View>
                 <Text style={styles.securityText}>Notifications WhatsApp</Text>
-                <Text style={styles.securityHint}>Invitations, documents et confirmations de paiement</Text>
+                <Text style={styles.securityHint}>Invitations et confirmations de paiement</Text>
               </View>
             </View>
             <Switch

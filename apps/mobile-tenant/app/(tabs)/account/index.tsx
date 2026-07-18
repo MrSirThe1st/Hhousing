@@ -11,12 +11,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import type { Lease, Tenant } from "@/lib/domain-types";
+import type { Tenant } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 import { NetworkError } from "@/components/network-error";
+import { openWhatsAppMessage } from "@/lib/whatsapp";
+import { formatDrcNationalDisplay, nationalFromStoredPhone } from "@/lib/phone-input";
 
 type LeaseOutput = {
   lease: LeaseWithTenantView | null;
@@ -24,22 +26,6 @@ type LeaseOutput = {
 type ProfileOutput = {
   tenant: Tenant;
 };
-
-const MONTHS_SHORT = [
-  "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-  "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"
-];
-
-function formatShortDate(isoDate: string): string {
-  const [yearRaw, monthRaw, dayRaw] = isoDate.split("-");
-  const month = MONTHS_SHORT[Math.max(0, Number(monthRaw) - 1)] ?? "";
-  return `${Number(dayRaw ?? "1")} ${month} ${yearRaw ?? ""}`;
-}
-
-function formatAmount(value: number): string {
-  const base = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
-  return `${base} FC`;
-}
 
 function getInitials(name: string, email: string): string {
   const source = name.trim() || email.trim();
@@ -109,12 +95,13 @@ export default function AccountScreen(): React.ReactElement {
       }
 
       if (!profileResult.success) {
-        // `/api/mobile/profile` may be unavailable in some deployed environments.
-        // Fallback to lease tenant identity when possible instead of blocking screen content.
         if (profileResult.code === "NETWORK_ERROR") {
           setIsOffline(true);
         }
-        if (profileResult.code === "NOT_FOUND" || (profileResult.code === "INTERNAL_ERROR" && profileResult.error.includes("404"))) {
+        if (
+          profileResult.code === "NOT_FOUND"
+          || (profileResult.code === "INTERNAL_ERROR" && profileResult.error.includes("404"))
+        ) {
           setTenant(null);
           setError(null);
         } else if (!leaseResult.success) {
@@ -153,13 +140,22 @@ export default function AccountScreen(): React.ReactElement {
     await signOut();
   };
 
+  const handleContactSupport = async (): Promise<void> => {
+    const displayName = tenant?.fullName?.trim() || lease?.tenantFullName?.trim() || "locataire";
+    await openWhatsAppMessage(
+      `Bonjour, je suis ${displayName}. J'ai besoin d'aide avec Mon Espace (Haraka Property).`
+    );
+  };
+
   const fallbackEmail = lease?.tenantEmail ?? session?.user.email ?? "";
   const email = tenant?.email ?? fallbackEmail;
   const name = tenant?.fullName?.trim() || lease?.tenantFullName?.trim() || getNameFromEmail(email);
+  const phoneRaw = tenant?.phone ?? tenant?.phoneNumber ?? null;
+  const phoneLabel = phoneRaw
+    ? `+243 ${formatDrcNationalDisplay(nationalFromStoredPhone(phoneRaw))}`
+    : null;
 
   const initials = useMemo(() => getInitials(name, email), [email, name]);
-  const leaseStartLabel = lease ? formatShortDate(lease.startDate) : "-";
-  const rentLabel = lease ? formatAmount(lease.monthlyRentAmount ?? lease.monthlyRent) : "-";
 
   if (isLoading || isAuthLoading) {
     return (
@@ -198,97 +194,63 @@ export default function AccountScreen(): React.ReactElement {
           )
         ) : null}
 
-        <View style={styles.profileHead}>
+        <Pressable
+          style={styles.profileHead}
+          onPress={() => { router.push("/(tabs)/account/edit-profile"); }}
+        >
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarText}>{initials}</Text>
-            <View style={styles.avatarEditBadge}>
-              <Ionicons name="create-outline" size={12} color="#ffffff" />
-            </View>
           </View>
-
           <Text style={styles.nameText}>{name}</Text>
-          <Text style={styles.emailText}>{email}</Text>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Ionicons name="calendar-outline" size={16} color="#0063FE" />
-            <Text style={styles.summaryLabel}>Début du bail</Text>
-            <Text style={styles.summaryValue}>{leaseStartLabel}</Text>
-          </View>
-
-          <View style={styles.summaryCard}>
-            <Ionicons name="receipt-outline" size={16} color="#0063FE" />
-            <Text style={styles.summaryLabel}>Loyer mensuel</Text>
-            <Text style={styles.summaryValue}>{rentLabel}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Paramètres du compte</Text>
-
-        <View style={styles.menuCard}>
-          <MenuItem
-            label="Mon bail"
-            icon="document-text-outline"
-            onPress={() => { router.push("/(tabs)/account/lease"); }}
-          />
-          <MenuItem
-            label="Mes documents"
-            icon="folder-open-outline"
-            onPress={() => { router.push("/(tabs)/account/documents"); }}
-          />
-          <MenuItem
-            label="Modifier le profil"
-            icon="settings-outline"
-            onPress={() => { router.push("/(tabs)/account/edit-profile"); }}
-          />
-        </View>
+          {phoneLabel ? (
+            <Text style={styles.phoneText}>{phoneLabel}</Text>
+          ) : (
+            <Text style={styles.phoneMuted}>Aucun numéro enregistré</Text>
+          )}
+          {email ? <Text style={styles.emailText}>{email}</Text> : null}
+          <Text style={styles.editHint}>Modifier mon profil</Text>
+        </Pressable>
 
         <Pressable
-          style={[styles.logoutCard, isSigningOut && styles.buttonDisabled]}
+          style={styles.primaryRow}
+          onPress={() => { router.push("/(tabs)/account/lease"); }}
+        >
+          <View style={styles.primaryIconWrap}>
+            <Ionicons name="home-outline" size={20} color="#0063FE" />
+          </View>
+          <View style={styles.primaryTextWrap}>
+            <Text style={styles.primaryTitle}>Mon logement</Text>
+            <Text style={styles.primarySubtitle}>
+              {lease ? "Voir mon contrat et mon loyer" : "Pas encore de logement lié"}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+        </Pressable>
+
+        <Pressable style={styles.whatsappRow} onPress={() => { void handleContactSupport(); }}>
+          <View style={styles.whatsappIconWrap}>
+            <Ionicons name="logo-whatsapp" size={20} color="#128C7E" />
+          </View>
+          <Text style={styles.whatsappText}>Aide WhatsApp</Text>
+          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+        </Pressable>
+
+        <Pressable
+          style={[styles.logoutRow, isSigningOut && styles.buttonDisabled]}
           onPress={() => { void handleSignOut(); }}
           disabled={isSigningOut}
         >
-          <View style={styles.logoutLeftIconWrap}>
-            <Ionicons name="log-out-outline" size={18} color="#DC2626" />
-          </View>
           {isSigningOut ? (
             <ActivityIndicator color="#DC2626" size="small" />
           ) : (
-            <Text style={styles.logoutCardText}>Se déconnecter</Text>
+            <>
+              <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+              <Text style={styles.logoutText}>Se déconnecter</Text>
+            </>
           )}
-          <Ionicons name="chevron-forward" size={18} color="#FCA5A5" />
         </Pressable>
-
-        <View style={styles.supportCard}>
-          <Text style={styles.supportTitle}>Besoin d'aide ?</Text>
-          <Text style={styles.supportBody}>Notre équipe de support est là pour vous 24/7.</Text>
-          <Text style={styles.supportLink}>Contacter le support</Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function MenuItem({
-  label,
-  icon,
-  onPress
-}: {
-  label: string;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  onPress: () => void;
-}): React.ReactElement {
-  return (
-    <Pressable style={styles.menuItem} onPress={onPress}>
-      <View style={styles.menuLeft}>
-        <View style={styles.menuIconWrap}>
-          <Ionicons name={icon} size={16} color="#0063FE" />
-        </View>
-        <Text style={styles.menuLabel}>{label}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-    </Pressable>
   );
 }
 
@@ -299,9 +261,9 @@ const styles = StyleSheet.create({
   },
   container: { flex: 1 },
   content: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    paddingBottom: 40,
     gap: 12
   },
   loadingWrap: {
@@ -328,161 +290,118 @@ const styles = StyleSheet.create({
   retryText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
   profileHead: {
     alignItems: "center",
-    gap: 8,
-    marginTop: 4,
-    marginBottom: 6
+    gap: 6,
+    marginBottom: 12,
+    paddingVertical: 8
   },
   avatarWrap: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "#0063FE",
     justifyContent: "center",
     alignItems: "center",
-    position: "relative"
+    marginBottom: 6
   },
   avatarText: {
     color: "#ffffff",
-    fontSize: 31,
+    fontSize: 28,
     fontWeight: "700"
   },
-  avatarEditBadge: {
-    position: "absolute",
-    right: -2,
-    bottom: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#0057E6",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#ffffff"
-  },
   nameText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     color: "#010A19"
+  },
+  phoneText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#010A19"
+  },
+  phoneMuted: {
+    fontSize: 14,
+    color: "#9CA3AF"
   },
   emailText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#6B7280"
   },
-  summaryRow: {
-    flexDirection: "row",
-    gap: 10
+  editHint: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#0063FE"
   },
-  summaryCard: {
-    flex: 1,
+  primaryRow: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#C5CCD9",
+    borderColor: "#D4DAE7",
     backgroundColor: "#ffffff",
-    padding: 12,
-    gap: 5
-  },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#6B7280",
-    textTransform: "uppercase"
-  },
-  summaryValue: {
-    fontSize: 29,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  sectionTitle: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#010A19",
-    marginTop: 10
-  },
-  menuCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#C5CCD9",
-    backgroundColor: "#ffffff",
-    overflow: "hidden"
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB"
-  },
-  menuLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12
   },
-  menuIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  primaryIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#E8F1FF",
     alignItems: "center",
     justifyContent: "center"
   },
-  menuLabel: {
+  primaryTextWrap: {
+    flex: 1,
+    gap: 2
+  },
+  primaryTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#010A19"
   },
-  logoutCard: {
-    marginTop: 6,
+  primarySubtitle: {
+    fontSize: 13,
+    color: "#6B7280"
+  },
+  whatsappRow: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#C5CCD9",
+    borderColor: "#D4DAE7",
     backgroundColor: "#ffffff",
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between"
+    gap: 12
   },
-  logoutLeftIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#FEE2E2",
+  whatsappIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E7F6F3",
     alignItems: "center",
     justifyContent: "center"
   },
-  logoutCardText: {
+  whatsappText: {
     flex: 1,
-    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#010A19"
+  },
+  logoutRow: {
+    marginTop: 8,
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8
+  },
+  logoutText: {
     color: "#DC2626",
     fontSize: 16,
     fontWeight: "700"
   },
-  supportCard: {
-    marginTop: 12,
-    borderRadius: 10,
-    padding: 16,
-    backgroundColor: "#0057E6",
-    minHeight: 90
-  },
-  buttonDisabled: { backgroundColor: "#FCA5A5" },
-  supportTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#ffffff"
-  },
-  supportBody: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: "#DBEAFE",
-    marginTop: 3
-  },
-  supportLink: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#ffffff",
-    textDecorationLine: "underline",
-    marginTop: 8
-  }
+  buttonDisabled: { opacity: 0.6 }
 });

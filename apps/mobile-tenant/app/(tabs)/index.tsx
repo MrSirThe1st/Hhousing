@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import type { Lease, Payment, Tenant } from "@/lib/domain-types";
 import { getWithAuth } from "@/lib/api-client";
 import { NetworkError } from "@/components/network-error";
+import { openWhatsAppMessage } from "@/lib/whatsapp";
 
 type LeaseOutput = {
   lease: Lease | null;
@@ -27,7 +28,7 @@ type PaymentsOutput = { payments: Payment[] };
 type ProfileOutput = { tenant: Tenant };
 
 const PAYMENT_STATUS_LABEL: Record<Payment["status"], string> = {
-  pending: "En attente",
+  pending: "À payer",
   paid: "Payé",
   overdue: "En retard",
   cancelled: "Annulé"
@@ -48,9 +49,9 @@ const PAYMENT_STATUS_TEXT: Record<Payment["status"], string> = {
 };
 
 const PAYMENT_KIND_LABEL: Record<NonNullable<Payment["paymentKind"]>, string> = {
-  rent: "Loyer Mensuel",
-  deposit: "Caution",
-  prorated_rent: "Loyer Proratisé",
+  rent: "Loyer du mois",
+  deposit: "Garantie",
+  prorated_rent: "Loyer (prorata)",
   fee: "Frais",
   other: "Autre"
 };
@@ -121,13 +122,21 @@ export default function HomeScreen(): React.ReactElement {
 
       if (!leaseRes.success) {
         if (leaseRes.code === "NETWORK_ERROR") setIsOffline(true);
-        setError(leaseRes.error);
+        setError(
+          leaseRes.code === "NETWORK_ERROR"
+            ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+            : leaseRes.error
+        );
         return;
       }
 
       if (!paymentsRes.success) {
         if (paymentsRes.code === "NETWORK_ERROR") setIsOffline(true);
-        setError(paymentsRes.error);
+        setError(
+          paymentsRes.code === "NETWORK_ERROR"
+            ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+            : paymentsRes.error
+        );
         return;
       }
 
@@ -140,7 +149,7 @@ export default function HomeScreen(): React.ReactElement {
         .slice(0, 3);
 
       const tenantName = profileRes.success ? (profileRes.data.tenant.fullName ?? "") : "";
-      const unitSuffix = leaseRes.data.unitLabel ? `, Unité ${leaseRes.data.unitLabel}` : "";
+      const unitSuffix = leaseRes.data.unitLabel ? `, ${leaseRes.data.unitLabel}` : "";
       const rentalAddress = leaseRes.data.rentalAddress
         ? `${leaseRes.data.rentalAddress}${unitSuffix}`
         : leaseRes.data.propertyName
@@ -163,6 +172,14 @@ export default function HomeScreen(): React.ReactElement {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleContactManager(): Promise<void> {
+    const name = data.tenantName || "locataire";
+    const message = data.nextPayment
+      ? `Bonjour, je suis ${name}. Je vous contacte au sujet de mon loyer (${formatAmount(data.nextPayment.amount, data.nextPayment.currencyCode ?? "CDF")}).`
+      : `Bonjour, je suis ${name}. Je vous contacte au sujet de mon logement.`;
+    await openWhatsAppMessage(message);
+  }
 
   if (isLoading) {
     return (
@@ -196,6 +213,7 @@ export default function HomeScreen(): React.ReactElement {
 
   const firstName = getFirstName(data.tenantName);
   const displayTenantName = data.tenantName || firstName || "Locataire";
+  const hasDue = Boolean(data.nextPayment);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -210,35 +228,20 @@ export default function HomeScreen(): React.ReactElement {
           />
         }
       >
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>Bonjour</Text>
-          <Text style={styles.tenantName}>{displayTenantName}</Text>
+          <Text style={styles.greeting}>Bonjour {firstName || displayTenantName}</Text>
           {data.rentalAddress ? (
             <View style={styles.addressRow}>
-              <Ionicons name="location-outline" size={15} color="#6B7280" />
+              <Ionicons name="home-outline" size={15} color="#6B7280" />
               <Text style={styles.addressText}>{data.rentalAddress}</Text>
             </View>
-          ) : null}
-
-          {data.rentalPhotoUrl ? (
-            <View style={styles.rentalPhotoWrap}>
-              <Image
-                source={{ uri: data.rentalPhotoUrl }}
-                style={styles.rentalPhoto}
-                resizeMode="cover"
-              />
-              <View style={styles.rentalPhotoBadge}>
-                <Ionicons name="home-outline" size={12} color="#ffffff" />
-                <Text style={styles.rentalPhotoBadgeText}>Votre logement</Text>
-              </View>
-            </View>
-          ) : null}
+          ) : (
+            <Text style={styles.addressText}>Votre espace locataire</Text>
+          )}
         </View>
 
-        {/* Next Payment Card */}
         {data.nextPayment ? (
-          <View style={styles.rentCard}>
+          <View style={[styles.rentCard, data.nextPayment.status === "overdue" && styles.rentCardOverdue]}>
             <View style={styles.rentCardTop}>
               <Text style={styles.rentCardTitle}>
                 Loyer de {getMonthFromDate(data.nextPayment.dueDate)}
@@ -265,9 +268,18 @@ export default function HomeScreen(): React.ReactElement {
             </Text>
 
             <View style={styles.dueDateRow}>
-              <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
-              <Text style={styles.dueDateText}>
-                Échéance le {formatDueDate(data.nextPayment.dueDate)}
+              <Ionicons
+                name={data.nextPayment.status === "overdue" ? "alert-circle-outline" : "calendar-outline"}
+                size={16}
+                color={data.nextPayment.status === "overdue" ? "#DC2626" : "#6B7280"}
+              />
+              <Text
+                style={[
+                  styles.dueDateText,
+                  data.nextPayment.status === "overdue" ? { color: "#DC2626" } : null
+                ]}
+              >
+                À payer le {formatDueDate(data.nextPayment.dueDate)}
               </Text>
             </View>
 
@@ -275,61 +287,93 @@ export default function HomeScreen(): React.ReactElement {
               style={styles.payNowBtn}
               onPress={() => { router.push("/(tabs)/payments"); }}
             >
-              <Text style={styles.payNowText}>Voir les paiements</Text>
+              <Ionicons name="phone-portrait-outline" size={20} color="#ffffff" />
+              <Text style={styles.payNowText}>Payer maintenant</Text>
             </Pressable>
+            <Text style={styles.payHint}>Airtel Money · Orange Money · M-Pesa</Text>
           </View>
         ) : data.lease ? (
           <View style={styles.rentCard}>
-            <Text style={styles.rentCardTitle}>Votre bail est actif</Text>
-            <Text style={styles.rentAmount}>
-              {formatAmount(data.lease.monthlyRentAmount ?? data.lease.monthlyRent ?? 0, data.lease.currencyCode ?? "CDF")}
+            <View style={styles.okRow}>
+              <Ionicons name="checkmark-circle" size={28} color="#16A34A" />
+              <View style={styles.okTextWrap}>
+                <Text style={styles.rentCardTitle}>Aucun loyer à payer ce mois</Text>
+                <Text style={[styles.dueDateText, { color: "#16A34A" }]}>
+                  Tout est en ordre. Merci.
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.rentAmountMuted}>
+              Loyer habituel : {formatAmount(data.lease.monthlyRentAmount ?? data.lease.monthlyRent ?? 0, data.lease.currencyCode ?? "CDF")}
             </Text>
-            <View style={styles.dueDateRow}>
-              <Ionicons name="checkmark-circle-outline" size={16} color="#16A34A" />
-              <Text style={[styles.dueDateText, { color: "#16A34A" }]}>
-                Aucun paiement en attente
-              </Text>
+          </View>
+        ) : (
+          <View style={styles.rentCard}>
+            <Text style={styles.rentCardTitle}>Bienvenue</Text>
+            <Text style={styles.emptyHelp}>
+              Votre logement n&apos;est pas encore lié. Contactez votre bailleur pour activer votre compte.
+            </Text>
+            <Pressable style={styles.whatsappBtn} onPress={() => { void handleContactManager(); }}>
+              <Ionicons name="logo-whatsapp" size={20} color="#ffffff" />
+              <Text style={styles.whatsappBtnText}>Contacter mon bailleur</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <View style={styles.actionsRow}>
+          <Pressable style={styles.actionTile} onPress={() => { router.push("/(tabs)/payments"); }}>
+            <View style={styles.actionIconWrap}>
+              <Ionicons name="card-outline" size={22} color="#0063FE" />
+            </View>
+            <Text style={styles.actionLabel}>{hasDue ? "Mes paiements" : "Historique"}</Text>
+          </Pressable>
+          <Pressable style={styles.actionTile} onPress={() => { router.push("/(tabs)/account/lease"); }}>
+            <View style={styles.actionIconWrap}>
+              <Ionicons name="home-outline" size={22} color="#0063FE" />
+            </View>
+            <Text style={styles.actionLabel}>Mon logement</Text>
+          </Pressable>
+          <Pressable style={styles.actionTile} onPress={() => { void handleContactManager(); }}>
+            <View style={[styles.actionIconWrap, styles.whatsappIconWrap]}>
+              <Ionicons name="logo-whatsapp" size={22} color="#128C7E" />
+            </View>
+            <Text style={styles.actionLabel}>WhatsApp</Text>
+          </Pressable>
+        </View>
+
+        {data.rentalPhotoUrl ? (
+          <View style={styles.rentalPhotoWrap}>
+            <Image
+              source={{ uri: data.rentalPhotoUrl }}
+              style={styles.rentalPhoto}
+              resizeMode="cover"
+            />
+            <View style={styles.rentalPhotoBadge}>
+              <Ionicons name="home-outline" size={12} color="#ffffff" />
+              <Text style={styles.rentalPhotoBadgeText}>Votre logement</Text>
             </View>
           </View>
         ) : null}
 
-        {/* Quick Actions 2×2 grid */}
-        <View style={styles.quickGrid}>
-          <QuickActionTile
-            label="Maintenance"
-            icon="construct-outline"
-            onPress={() => { router.push("/(tabs)/maintenance"); }}
-          />
-          <QuickActionTile
-            label="Documents"
-            icon="document-text-outline"
-            onPress={() => { router.push("/(tabs)/account"); }}
-          />
-          <QuickActionTile
-            label="Mon bail"
-            icon="reader-outline"
-            onPress={() => { router.push("/(tabs)/account/lease"); }}
-          />
-          <QuickActionTile
-            label="Messages"
-            icon="chatbubble-ellipses-outline"
-            onPress={() => { router.push("/(tabs)/messages"); }}
-          />
-        </View>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Derniers paiements</Text>
+            <Pressable onPress={() => { router.push("/(tabs)/payments"); }}>
+              <Text style={styles.sectionLink}>Tout voir</Text>
+            </Pressable>
+          </View>
 
-        {/* Recent Payments */}
-        {data.recentPayments.length > 0 ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Paiements récents</Text>
-              <Pressable onPress={() => { router.push("/(tabs)/payments"); }}>
-                <Text style={styles.sectionLink}>Tout voir</Text>
-              </Pressable>
+          {data.recentPayments.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyHelp}>
+                Aucun paiement enregistré pour le moment.
+              </Text>
             </View>
-            {data.recentPayments.map((payment) => (
+          ) : (
+            data.recentPayments.map((payment) => (
               <View key={payment.id} style={styles.paymentRow}>
                 <View style={styles.paymentIcon}>
-                  <Ionicons name="receipt-outline" size={18} color="#0063FE" />
+                  <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
                 </View>
                 <View style={styles.paymentInfo}>
                   <Text style={styles.paymentDate}>
@@ -343,49 +387,18 @@ export default function HomeScreen(): React.ReactElement {
                   <Text style={styles.paymentAmount}>
                     {formatAmount(payment.amount, payment.currencyCode ?? "CDF")}
                   </Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: PAYMENT_STATUS_BG[payment.status] }
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusBadgeText,
-                        { color: PAYMENT_STATUS_TEXT[payment.status] }
-                      ]}
-                    >
-                      {PAYMENT_STATUS_LABEL[payment.status].toUpperCase()}
+                  <View style={[styles.statusBadge, { backgroundColor: PAYMENT_STATUS_BG.paid }]}>
+                    <Text style={[styles.statusBadgeText, { color: PAYMENT_STATUS_TEXT.paid }]}>
+                      Payé
                     </Text>
                   </View>
                 </View>
               </View>
-            ))}
-          </View>
-        ) : null}
+            ))
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
-
-function QuickActionTile({
-  label,
-  icon,
-  onPress
-}: {
-  label: string;
-  icon: IoniconName;
-  onPress: () => void;
-}): React.ReactElement {
-  return (
-    <Pressable style={styles.quickTile} onPress={onPress}>
-      <View style={styles.quickTileIconWrap}>
-        <Ionicons name={icon} size={22} color="#0063FE" />
-      </View>
-      <Text style={styles.quickTileLabel}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -406,19 +419,12 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 16
   },
-
-  // Header
   header: {
     gap: 4,
     marginBottom: 4
   },
   greeting: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  tenantName: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "700",
     color: "#010A19"
   },
@@ -430,10 +436,10 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 14,
-    color: "#6B7280"
+    color: "#6B7280",
+    flexShrink: 1
   },
   rentalPhotoWrap: {
-    marginTop: 8,
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
@@ -462,8 +468,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700"
   },
-
-  // Rent card
   rentCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -475,14 +479,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3
   },
+  rentCardOverdue: {
+    borderWidth: 1,
+    borderColor: "#FECACA"
+  },
   rentCardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center"
   },
   rentCardTitle: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: "#010A19"
   },
   statusBadge: {
@@ -495,10 +503,15 @@ const styles = StyleSheet.create({
     fontWeight: "600"
   },
   rentAmount: {
-    fontSize: 30,
+    fontSize: 34,
     fontWeight: "700",
     color: "#0063FE",
     letterSpacing: -0.5
+  },
+  rentAmountMuted: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#6B7280"
   },
   dueDateRow: {
     flexDirection: "row",
@@ -511,42 +524,85 @@ const styles = StyleSheet.create({
   },
   dueDateText: {
     fontSize: 13,
-    color: "#6B7280"
+    color: "#6B7280",
+    flexShrink: 1
   },
   payNowBtn: {
     backgroundColor: "#0063FE",
     borderRadius: 12,
-    paddingVertical: 16,
+    minHeight: 56,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
     marginTop: 4
   },
   payNowText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "700",
     color: "#ffffff"
   },
-
-  // Quick actions 2x2
-  quickGrid: {
+  payHint: {
+    textAlign: "center",
+    fontSize: 12,
+    color: "#9CA3AF"
+  },
+  okRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
     gap: 12
   },
-  quickTile: {
-    width: "47%",
+  okTextWrap: {
+    flex: 1,
+    gap: 2
+  },
+  emptyHelp: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6B7280"
+  },
+  emptyCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB"
+  },
+  whatsappBtn: {
+    backgroundColor: "#128C7E",
+    borderRadius: 12,
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8
+  },
+  whatsappBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10
+  },
+  actionTile: {
+    flex: 1,
     backgroundColor: "#ffffff",
     borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2
   },
-  quickTileIconWrap: {
+  actionIconWrap: {
     width: 44,
     height: 44,
     borderRadius: 12,
@@ -554,14 +610,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  quickTileLabel: {
-    fontSize: 13,
+  whatsappIconWrap: {
+    backgroundColor: "#E7F8F5"
+  },
+  actionLabel: {
+    fontSize: 12,
     fontWeight: "600",
     color: "#010A19",
     textAlign: "center"
   },
-
-  // Recent payments
   section: {
     gap: 0
   },
@@ -593,7 +650,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center"
   },
@@ -619,8 +676,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#010A19"
   },
-
-  // Error
   errorBox: {
     borderRadius: 12,
     borderWidth: 1,

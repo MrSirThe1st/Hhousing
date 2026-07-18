@@ -12,12 +12,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Payment } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import { ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
+import { openWhatsAppMessage } from "@/lib/whatsapp";
 import {
   extractDrcNationalNumber,
   formatDrcNationalDisplay,
@@ -25,6 +26,8 @@ import {
   toDrcE164,
   validateDrcPhoneInput
 } from "@/lib/phone-input";
+
+const LAST_PROVIDER_KEY = "hhousing.mobile.lastMoneyProvider";
 
 type MobilePaymentsOutput = { payments: Payment[] };
 
@@ -60,6 +63,13 @@ type ProviderOption = {
   label: string;
 };
 
+type PaymentSuccessProof = {
+  amount: number;
+  currencyCode: string;
+  providerLabel: string;
+  paidAtLabel: string;
+};
+
 const PROVIDER_OPTIONS: ProviderOption[] = [
   { code: "AIRTEL_COD", label: "Airtel Money" },
   { code: "ORANGE_COD", label: "Orange Money" },
@@ -76,7 +86,7 @@ type PaymentGroup = {
 };
 
 const STATUS_LABEL: Record<Payment["status"], string> = {
-  pending: "En attente",
+  pending: "À payer",
   paid: "Payé",
   overdue: "En retard",
   cancelled: "Annulé"
@@ -135,10 +145,32 @@ function paymentTitle(payment: Payment): string {
   if (payment.paymentKind === "rent") {
     return `Loyer ${monthLabelFromYmd(payment.dueDate)}`;
   }
-  if (payment.paymentKind === "deposit") return "Caution";
-  if (payment.paymentKind === "prorated_rent") return "Loyer proratisé";
+  if (payment.paymentKind === "deposit") return "Garantie";
+  if (payment.paymentKind === "prorated_rent") return "Loyer (prorata)";
   if (payment.paymentKind === "fee") return "Frais";
   return "Paiement";
+}
+
+function providerLabel(code: string): string {
+  return PROVIDER_OPTIONS.find((option) => option.code === code)?.label ?? code;
+}
+
+function formatPaidAtLabel(iso: string | null): string {
+  const date = iso ? new Date(iso) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toLocaleString("fr-FR");
+  }
+  return date.toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function isProviderCode(value: string): value is ProviderOption["code"] {
+  return PROVIDER_OPTIONS.some((option) => option.code === value);
 }
 
 function sortPaymentsDesc(left: Payment, right: Payment): number {
@@ -191,7 +223,6 @@ function getGroups(payments: Payment[]): PaymentGroup[] {
 }
 
 export default function PaymentsScreen(): React.ReactElement {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -204,6 +235,7 @@ export default function PaymentsScreen(): React.ReactElement {
   const [payError, setPayError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [payStatusMessage, setPayStatusMessage] = useState<string | null>(null);
+  const [successProof, setSuccessProof] = useState<PaymentSuccessProof | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
@@ -219,7 +251,11 @@ export default function PaymentsScreen(): React.ReactElement {
       if (result.code === "NETWORK_ERROR") {
         setIsOffline(true);
       }
-      setError(result.error);
+      setError(
+        result.code === "NETWORK_ERROR"
+          ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+          : result.error
+      );
     } else {
       setPayments(result.data.payments);
     }
@@ -230,6 +266,19 @@ export default function PaymentsScreen(): React.ReactElement {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void (async (): Promise<void> => {
+      try {
+        const stored = await AsyncStorage.getItem(LAST_PROVIDER_KEY);
+        if (stored && isProviderCode(stored)) {
+          setSelectedProvider(stored);
+        }
+      } catch {
+        // keep default provider
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -262,8 +311,14 @@ export default function PaymentsScreen(): React.ReactElement {
         if (result.data.status === "completed") {
           stopPolling();
           setIsPaying(false);
-          setPayStatusMessage("Paiement confirmé. Merci !");
+          setPayStatusMessage(null);
           setIsPayModalVisible(false);
+          setSuccessProof({
+            amount: result.data.totalAmount,
+            currencyCode: result.data.currencyCode,
+            providerLabel: providerLabel(result.data.provider),
+            paidAtLabel: formatPaidAtLabel(result.data.completedAtIso)
+          });
           await load();
           return;
         }
@@ -271,7 +326,10 @@ export default function PaymentsScreen(): React.ReactElement {
         if (result.data.status === "failed") {
           stopPolling();
           setIsPaying(false);
-          setPayError(result.data.failureMessage ?? "Le paiement a échoué.");
+          setPayError(
+            result.data.failureMessage
+              ?? "Le paiement a échoué. Vérifiez votre solde Mobile Money et réessayez."
+          );
           setPayStatusMessage(null);
         }
       })();
@@ -282,6 +340,15 @@ export default function PaymentsScreen(): React.ReactElement {
     setPayError(null);
     setPayStatusMessage(null);
     setIsPayModalVisible(true);
+
+    try {
+      const stored = await AsyncStorage.getItem(LAST_PROVIDER_KEY);
+      if (stored && isProviderCode(stored)) {
+        setSelectedProvider(stored);
+      }
+    } catch {
+      // keep current selection
+    }
 
     const profileResult: ApiResult<ProfileOutput> = await getWithAuth<ProfileOutput>("/api/mobile/profile");
     if (profileResult.success && profileResult.data.tenant.phone) {
@@ -298,7 +365,13 @@ export default function PaymentsScreen(): React.ReactElement {
 
     setIsPaying(true);
     setPayError(null);
-    setPayStatusMessage("Confirmez le paiement sur votre téléphone...");
+    setPayStatusMessage("Confirmez sur votre téléphone Mobile Money…");
+
+    try {
+      await AsyncStorage.setItem(LAST_PROVIDER_KEY, selectedProvider);
+    } catch {
+      // non-blocking
+    }
 
     const result: ApiResult<PayBalanceOutput> = await postWithAuth<PayBalanceOutput>(
       "/api/mobile/payments/pay-balance",
@@ -311,12 +384,29 @@ export default function PaymentsScreen(): React.ReactElement {
     if (!result.success) {
       setIsPaying(false);
       setPayStatusMessage(null);
-      setPayError(result.error);
+      setPayError(
+        result.code === "NETWORK_ERROR"
+          ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+          : result.error
+      );
       return;
     }
 
+    setPayStatusMessage("Paiement en cours…");
     pollTransactionStatus(result.data.transactionId);
   }, [phoneNumber, pollTransactionStatus, selectedProvider]);
+
+  const shareProofOnWhatsApp = useCallback(async (): Promise<void> => {
+    if (!successProof) return;
+    const message = [
+      "Preuve de paiement — Haraka Property",
+      `Montant : ${formatAmount(successProof.amount, successProof.currencyCode)}`,
+      `Via : ${successProof.providerLabel}`,
+      `Date : ${successProof.paidAtLabel}`,
+      "Statut : Payé"
+    ].join("\n");
+    await openWhatsAppMessage(message);
+  }, [successProof]);
 
   const payablePayment = useMemo(() => {
     const dueList = payments
@@ -382,6 +472,9 @@ export default function PaymentsScreen(): React.ReactElement {
     setFilter("all");
   }, [filter]);
 
+  const filterHint =
+    filter === "pending" ? "À payer" : filter === "paid" ? "Payés" : "Tous";
+
   return (
     <SafeAreaView style={styles.root}>
       {isLoading ? (
@@ -413,29 +506,22 @@ export default function PaymentsScreen(): React.ReactElement {
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => { void load(); }} tintColor="#0063FE" />}
         >
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>SOLDE TOTAL DÛ</Text>
+            <Text style={styles.summaryLabel}>À PAYER</Text>
             <Text style={styles.summaryAmount}>
               {formatAmount(totalDue, payablePayment?.currencyCode ?? "CDF")}
             </Text>
-            <View style={styles.summaryActions}>
-              {totalDue > 0 ? (
-                <Pressable style={styles.payBtn} onPress={() => { void openPayModal(); }}>
-                  <Ionicons name="phone-portrait-outline" size={18} color="#ffffff" />
-                  <Text style={styles.payBtnText}>Payer maintenant</Text>
-                </Pressable>
-              ) : (
-                <View style={styles.manualNoticeBox}>
-                  <Ionicons name="checkmark-circle-outline" size={16} color="#16A34A" />
-                  <Text style={styles.manualNoticeText}>Aucun paiement en attente.</Text>
-                </View>
-              )}
-              <Pressable
-                style={styles.historyBtn}
-                onPress={() => { router.push("/(tabs)/account/documents"); }}
-              >
-                <Ionicons name="receipt-outline" size={18} color="#010A19" />
+            {totalDue > 0 ? (
+              <Pressable style={styles.payBtn} onPress={() => { void openPayModal(); }}>
+                <Ionicons name="phone-portrait-outline" size={18} color="#ffffff" />
+                <Text style={styles.payBtnText}>Payer maintenant</Text>
               </Pressable>
-            </View>
+            ) : (
+              <View style={styles.manualNoticeBox}>
+                <Ionicons name="checkmark-circle-outline" size={16} color="#16A34A" />
+                <Text style={styles.manualNoticeText}>Aucun loyer à payer pour le moment.</Text>
+              </View>
+            )}
+            <Text style={styles.payHint}>Airtel Money · Orange Money · M-Pesa</Text>
           </View>
 
           <View style={styles.searchRow}>
@@ -444,7 +530,7 @@ export default function PaymentsScreen(): React.ReactElement {
               <TextInput
                 value={search}
                 onChangeText={setSearch}
-                placeholder="Rechercher un paiement..."
+                placeholder="Rechercher un loyer…"
                 placeholderTextColor="#9CA3AF"
                 style={styles.searchInput}
               />
@@ -456,10 +542,20 @@ export default function PaymentsScreen(): React.ReactElement {
               <Ionicons name="options-outline" size={18} color={filter === "all" ? "#010A19" : "#0063FE"} />
             </Pressable>
           </View>
+          {filter !== "all" ? (
+            <Text style={styles.filterHint}>Filtre : {filterHint}</Text>
+          ) : null}
 
-          {groups.length === 0 ? (
+          {payments.length === 0 ? (
             <View style={styles.notice}>
-              <Text style={styles.emptyTitle}>Aucun paiement trouvé</Text>
+              <Text style={styles.emptyTitle}>Aucun paiement pour l&apos;instant</Text>
+              <Text style={styles.emptyText}>
+                Quand votre bailleur enregistrera un loyer, il apparaîtra ici.
+              </Text>
+            </View>
+          ) : groups.length === 0 ? (
+            <View style={styles.notice}>
+              <Text style={styles.emptyTitle}>Aucun résultat</Text>
               <Text style={styles.emptyText}>Essayez une autre recherche ou un autre filtre.</Text>
             </View>
           ) : (
@@ -508,7 +604,7 @@ export default function PaymentsScreen(): React.ReactElement {
               <View style={styles.archiveDivider} />
               <Text style={styles.archiveText}>Anciens paiements</Text>
               <Pressable onPress={() => { setSearch(""); setFilter("all"); }}>
-                <Text style={styles.archiveLink}>Voir l'archive complète</Text>
+                <Text style={styles.archiveLink}>Voir tout</Text>
               </Pressable>
             </View>
           ) : null}
@@ -527,9 +623,9 @@ export default function PaymentsScreen(): React.ReactElement {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Payer par mobile money</Text>
+            <Text style={styles.modalTitle}>Payer par Mobile Money</Text>
             <Text style={styles.modalSubtitle}>
-              Montant total: {formatAmount(totalDue, payablePayment?.currencyCode ?? "CDF")}
+              Montant : {formatAmount(totalDue, payablePayment?.currencyCode ?? "CDF")}
             </Text>
 
             <Text style={styles.fieldLabel}>Opérateur</Text>
@@ -556,7 +652,7 @@ export default function PaymentsScreen(): React.ReactElement {
               ))}
             </View>
 
-            <Text style={styles.fieldLabel}>Numéro mobile money</Text>
+            <Text style={styles.fieldLabel}>Numéro Mobile Money</Text>
             <View style={styles.phoneInputWrap}>
               <Text style={styles.phonePrefix}>+243</Text>
               <TextInput
@@ -601,7 +697,7 @@ export default function PaymentsScreen(): React.ReactElement {
                 onPress={() => { void handlePayBalance(); }}
               >
                 <Text style={styles.confirmBtnText}>
-                  {isPaying ? "En cours..." : "Confirmer"}
+                  {isPaying ? "En cours…" : "Confirmer"}
                 </Text>
               </Pressable>
             </View>
@@ -609,6 +705,41 @@ export default function PaymentsScreen(): React.ReactElement {
         </View>
       </Modal>
 
+      <Modal
+        visible={successProof !== null}
+        animationType="fade"
+        transparent
+        onRequestClose={() => { setSuccessProof(null); }}
+      >
+        <View style={styles.proofBackdrop}>
+          <View style={styles.proofCard}>
+            <View style={styles.proofIconWrap}>
+              <Ionicons name="checkmark-circle" size={56} color="#16A34A" />
+            </View>
+            <Text style={styles.proofTitle}>Payé</Text>
+            <Text style={styles.proofSubtitle}>Votre paiement a bien été reçu.</Text>
+            {successProof ? (
+              <View style={styles.proofDetails}>
+                <Text style={styles.proofAmount}>
+                  {formatAmount(successProof.amount, successProof.currencyCode)}
+                </Text>
+                <Text style={styles.proofMeta}>Via {successProof.providerLabel}</Text>
+                <Text style={styles.proofMeta}>{successProof.paidAtLabel}</Text>
+              </View>
+            ) : null}
+            <Text style={styles.proofHint}>
+              Faites une capture d&apos;écran ou envoyez cette preuve sur WhatsApp.
+            </Text>
+            <Pressable style={styles.proofWhatsAppBtn} onPress={() => { void shareProofOnWhatsApp(); }}>
+              <Ionicons name="logo-whatsapp" size={20} color="#ffffff" />
+              <Text style={styles.proofWhatsAppText}>Envoyer sur WhatsApp</Text>
+            </Pressable>
+            <Pressable style={styles.proofCloseBtn} onPress={() => { setSuccessProof(null); }}>
+              <Text style={styles.proofCloseText}>Fermer</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -636,7 +767,7 @@ const styles = StyleSheet.create({
     borderColor: "#D4DAE7",
     borderRadius: 12,
     padding: 14,
-    gap: 8
+    gap: 10
   },
   summaryLabel: {
     fontSize: 12,
@@ -650,16 +781,11 @@ const styles = StyleSheet.create({
     color: "#010A19",
     lineHeight: 44
   },
-  summaryActions: {
-    flexDirection: "row",
-    gap: 8
-  },
   payBtn: {
-    flex: 1,
     borderRadius: 10,
     backgroundColor: "#0063FE",
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -667,35 +793,30 @@ const styles = StyleSheet.create({
   },
   payBtnText: {
     color: "#ffffff",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700"
   },
+  payHint: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    textAlign: "center"
+  },
   manualNoticeBox: {
-    flex: 1,
     borderWidth: 1,
-    borderColor: "#BFD7FF",
-    backgroundColor: "#EFF6FF",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
     borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 6
   },
   manualNoticeText: {
     flex: 1,
-    color: "#1E3A8A",
-    fontSize: 12,
+    color: "#166534",
+    fontSize: 13,
     fontWeight: "600"
-  },
-  historyBtn: {
-    width: 48,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#D4DAE7",
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "center"
   },
   searchRow: {
     flexDirection: "row",
@@ -733,6 +854,12 @@ const styles = StyleSheet.create({
   filterBtnActive: {
     borderColor: "#93C5FD",
     backgroundColor: "#EFF6FF"
+  },
+  filterHint: {
+    marginTop: -6,
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600"
   },
   groupSection: {
     gap: 10
@@ -821,13 +948,14 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   archiveText: {
-    fontSize: 20,
-    color: "#6B7280"
+    fontSize: 16,
+    color: "#6B7280",
+    fontWeight: "600"
   },
   archiveLink: {
     color: "#0063FE",
     fontWeight: "700",
-    fontSize: 24
+    fontSize: 16
   },
   notice: {
     borderRadius: 12,
@@ -844,7 +972,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: "#6B7280"
+    color: "#6B7280",
+    lineHeight: 20
   },
   errorText: {
     color: "#B91C1C",
@@ -992,5 +1121,82 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     color: "#ffffff",
     fontWeight: "700"
+  },
+  proofBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(1, 10, 25, 0.5)",
+    justifyContent: "center",
+    paddingHorizontal: 24
+  },
+  proofCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    gap: 10
+  },
+  proofIconWrap: {
+    marginBottom: 4
+  },
+  proofTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#16A34A"
+  },
+  proofSubtitle: {
+    fontSize: 15,
+    color: "#374151",
+    textAlign: "center"
+  },
+  proofDetails: {
+    alignItems: "center",
+    gap: 4,
+    marginTop: 8,
+    marginBottom: 4
+  },
+  proofAmount: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#010A19"
+  },
+  proofMeta: {
+    fontSize: 14,
+    color: "#6B7280"
+  },
+  proofHint: {
+    fontSize: 13,
+    color: "#9CA3AF",
+    textAlign: "center",
+    lineHeight: 18,
+    marginTop: 4
+  },
+  proofWhatsAppBtn: {
+    marginTop: 8,
+    width: "100%",
+    borderRadius: 10,
+    backgroundColor: "#128C7E",
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8
+  },
+  proofWhatsAppText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  proofCloseBtn: {
+    width: "100%",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#D4DAE7",
+    paddingVertical: 12,
+    alignItems: "center"
+  },
+  proofCloseText: {
+    color: "#374151",
+    fontWeight: "700",
+    fontSize: 14
   }
 });

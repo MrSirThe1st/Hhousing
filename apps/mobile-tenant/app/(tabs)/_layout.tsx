@@ -1,6 +1,6 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useInbox } from "@/contexts/inbox-context";
+// import { useInbox } from "@/contexts/inbox-context";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -11,7 +11,7 @@ function tabIcon(name: IoniconName, focusedName: IoniconName) {
 }
 
 export default function TabsLayout(): React.ReactElement {
-  const { unreadCount } = useInbox();
+  // const { unreadCount } = useInbox();
 
   return (
     <Tabs
@@ -32,21 +32,31 @@ export default function TabsLayout(): React.ReactElement {
         name="payments"
         options={{ title: "Paiements", tabBarIcon: tabIcon("card-outline", "card") }}
       />
+      {/* Hidden for now — re-enable when maintenance is ready */}
       <Tabs.Screen
         name="maintenance"
-        options={{ title: "Maintenance", tabBarIcon: tabIcon("construct-outline", "construct") }}
+        options={{ href: null }}
       />
+      {/* Hidden for now — re-enable when inbox/messages is ready */}
       <Tabs.Screen
         name="messages"
-        options={{
-          title: "Inbox",
-          tabBarIcon: tabIcon("chatbubble-outline", "chatbubble"),
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined
-        }}
+        options={{ href: null }}
+        // options={{
+        //   title: "Inbox",
+        //   tabBarIcon: tabIcon("chatbubble-outline", "chatbubble"),
+        //   tabBarBadge: unreadCount > 0 ? unreadCount : undefined
+        // }}
       />
       <Tabs.Screen
         name="account"
         options={{ title: "Profil", tabBarIcon: tabIcon("person-outline", "person") }}
+        listeners={{
+          tabPress: (event) => {
+            // Always open the tiny profile — don't restore nested routes like /documents
+            event.preventDefault();
+            router.replace("/(tabs)/account");
+          }
+        }}
       />
     </Tabs>
   );

@@ -10,7 +10,9 @@ export function NetworkError({ onRetry }: NetworkErrorProps): React.ReactElement
     <View style={styles.container}>
       <Ionicons name="wifi-outline" size={48} color="#9CA3AF" />
       <Text style={styles.title}>Pas de connexion</Text>
-      <Text style={styles.message}>Vérifiez votre connexion internet et réessayez.</Text>
+      <Text style={styles.message}>
+        Le réseau est faible ou coupé. Vérifiez votre connexion, puis réessayez.
+      </Text>
       <Pressable style={styles.retryBtn} onPress={onRetry}>
         <Text style={styles.retryBtnText}>Réessayer</Text>
       </Pressable>
@@ -34,7 +36,8 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 14,
     color: "#6B7280",
-    textAlign: "center"
+    textAlign: "center",
+    lineHeight: 20
   },
   retryBtn: {
     marginTop: 8,

@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,41 +12,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { CardSkeleton, ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
-import type { Document } from "@/lib/domain-types";
 import type { ApiResult, LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
+import { openWhatsAppMessage } from "@/lib/whatsapp";
 
 type TenantLeaseOutput = {
   lease: LeaseWithTenantView | null;
 };
-
-type LeaseDocument = {
-  id: string;
-  fileName: string;
-  fileUrl: string;
-  fileSize: number;
-  createdAtIso: string;
-};
-
-type MobileDocumentsOutput = { documents: Document[] };
-
-function asString(value: unknown, fallback = ""): string {
-  return typeof value === "string" ? value : fallback;
-}
-
-function asNumber(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function normalizeDocument(document: Document, index: number): LeaseDocument {
-  return {
-    id: asString(document.id, `doc-${index}`),
-    fileName: asString(document.fileName || document.name, `Document ${index + 1}`),
-    fileUrl: asString(document.fileUrl || document.url),
-    fileSize: Math.max(0, asNumber(document.fileSize, 0)),
-    createdAtIso: asString(document.createdAtIso || document.createdAt, new Date().toISOString())
-  };
-}
 
 function formatDateNumeric(value: string): string {
   return new Date(value).toLocaleDateString("fr-FR", {
@@ -71,26 +41,17 @@ function formatAmount(amount: number, currencyCode: string): string {
   return `${formatted.replace(/\u00A0|\s/g, ".")} ${currencyCode}`;
 }
 
-function formatFileSize(sizeBytes: number): string {
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function badgeLeaseId(leaseId: string): string {
-  return `ID: #${leaseId.slice(0, 8).toUpperCase()}`;
+  return `N° ${leaseId.slice(0, 8).toUpperCase()}`;
 }
 
 export default function LeaseScreen(): React.ReactElement {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isOpeningDoc, setIsOpeningDoc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [lease, setLease] = useState<LeaseWithTenantView | null>(null);
-  const [documents, setDocuments] = useState<LeaseDocument[]>([]);
 
   const load = useCallback(async (refresh = false): Promise<void> => {
     if (refresh) {
@@ -103,32 +64,21 @@ export default function LeaseScreen(): React.ReactElement {
     setIsOffline(false);
 
     try {
-      const [leaseResult, docsResult] = await Promise.all([
-        getWithAuth<TenantLeaseOutput>("/api/mobile/lease"),
-        getWithAuth<MobileDocumentsOutput>("/api/mobile/documents")
-      ]);
-
-      let nextError: string | null = null;
+      const leaseResult: ApiResult<TenantLeaseOutput> = await getWithAuth<TenantLeaseOutput>(
+        "/api/mobile/lease"
+      );
 
       if (!leaseResult.success) {
         if (leaseResult.code === "NETWORK_ERROR") setIsOffline(true);
-        nextError = leaseResult.error;
         setLease(null);
+        setError(
+          leaseResult.code === "NETWORK_ERROR"
+            ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+            : leaseResult.error
+        );
       } else {
         setLease(leaseResult.data.lease);
       }
-
-      if (!docsResult.success) {
-        if (docsResult.code === "NETWORK_ERROR") setIsOffline(true);
-        if (!nextError) {
-          nextError = docsResult.error;
-        }
-        setDocuments([]);
-      } else {
-        setDocuments(docsResult.data.documents.map((document, index) => normalizeDocument(document, index)));
-      }
-
-      setError(nextError);
     } finally {
       if (refresh) {
         setIsRefreshing(false);
@@ -142,27 +92,12 @@ export default function LeaseScreen(): React.ReactElement {
     void load();
   }, [load]);
 
-  const visibleDocuments = useMemo(() => documents.slice(0, 3), [documents]);
-
-  const openDocument = useCallback(async (document: LeaseDocument): Promise<void> => {
-    setIsOpeningDoc(document.id);
-    try {
-      if (!document.fileUrl) {
-        setError("Ce document n'a pas de lien téléchargeable.");
-        return;
-      }
-      const canOpen = await Linking.canOpenURL(document.fileUrl);
-      if (!canOpen) {
-        setError("Impossible d'ouvrir ce document.");
-        return;
-      }
-      await Linking.openURL(document.fileUrl);
-    } catch {
-      setError("Impossible d'ouvrir ce document.");
-    } finally {
-      setIsOpeningDoc(null);
-    }
-  }, []);
+  async function handleContactManager(): Promise<void> {
+    const name = lease?.tenantFullName ?? "locataire";
+    await openWhatsAppMessage(
+      `Bonjour, je suis ${name}. Je vous contacte au sujet de mon logement.`
+    );
+  }
 
   if (isLoading) {
     return (
@@ -181,27 +116,8 @@ export default function LeaseScreen(): React.ReactElement {
       <View style={styles.topBar}>
         <Pressable style={styles.topBarLeft} onPress={() => { router.back(); }}>
           <Ionicons name="arrow-back" size={22} color="#0063FE" />
-          <Text style={styles.topBarTitle}>Mon Bail</Text>
+          <Text style={styles.topBarTitle}>Mon logement</Text>
         </Pressable>
-        <View style={styles.topBarActions}>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => {
-              const first = visibleDocuments[0];
-              if (first) {
-                void openDocument(first);
-              }
-            }}
-          >
-            <Ionicons name="download-outline" size={18} color="#4B5563" />
-          </Pressable>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => { router.push("/(tabs)/account/documents"); }}
-          >
-            <Ionicons name="share-social-outline" size={18} color="#4B5563" />
-          </Pressable>
-        </View>
       </View>
 
       <ScrollView
@@ -231,17 +147,21 @@ export default function LeaseScreen(): React.ReactElement {
 
         {!lease ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="document-outline" size={40} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>Aucun bail actif</Text>
+            <Ionicons name="home-outline" size={40} color="#D1D5DB" />
+            <Text style={styles.emptyTitle}>Pas encore de logement</Text>
             <Text style={styles.emptyText}>
-              Votre compte n'est pas encore lié à un bail. Contactez votre gestionnaire.
+              Votre compte n&apos;est pas encore lié. Contactez votre bailleur pour activer votre location.
             </Text>
+            <Pressable style={styles.whatsappBtn} onPress={() => { void handleContactManager(); }}>
+              <Ionicons name="logo-whatsapp" size={18} color="#ffffff" />
+              <Text style={styles.whatsappBtnText}>Contacter mon bailleur</Text>
+            </Pressable>
           </View>
         ) : (
           <>
             <View style={styles.profileCard}>
               <View style={styles.avatarWrap}>
-                <Ionicons name="person-outline" size={34} color="#6B7280" />
+                <Ionicons name="home-outline" size={34} color="#6B7280" />
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark-circle-outline" size={14} color="#ffffff" />
                 </View>
@@ -272,7 +192,7 @@ export default function LeaseScreen(): React.ReactElement {
               <Divider />
               <DetailRow label="Fin" value={lease.endDate ? formatDateNumeric(lease.endDate) : "-"} />
               <Divider />
-              <DetailRow label="Type" value={lease.termType === "fixed" ? "Résidentiel" : "Mois à mois"} />
+              <DetailRow label="Type" value={lease.termType === "fixed" ? "Durée fixe" : "Mois à mois"} />
             </View>
 
             <View style={styles.card}>
@@ -298,46 +218,33 @@ export default function LeaseScreen(): React.ReactElement {
                 </View>
               </View>
               <Divider />
-              <DetailRow label="Dépôt" value={formatAmount(lease.depositAmount ?? lease.securityDeposit ?? 0, lease.currencyCode ?? "USD")} />
+              <DetailRow
+                label="Garantie"
+                value={formatAmount(lease.depositAmount ?? lease.securityDeposit ?? 0, lease.currencyCode ?? "USD")}
+              />
               <Divider />
               <DetailRow
                 label="Fréquence"
-                value={lease.paymentFrequency === "monthly" ? "Mensuelle" : lease.paymentFrequency === "quarterly" ? "Trimestrielle" : "Annuelle"}
+                value={
+                  lease.paymentFrequency === "monthly"
+                    ? "Chaque mois"
+                    : lease.paymentFrequency === "quarterly"
+                      ? "Tous les 3 mois"
+                      : "Chaque année"
+                }
               />
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.documentsTitle}>Documents du bail</Text>
-
-              {visibleDocuments.length === 0 ? (
-                <Text style={styles.documentsEmpty}>Aucun document disponible.</Text>
-              ) : (
-                visibleDocuments.map((document, index) => (
-                  <Pressable
-                    key={document.id}
-                    style={styles.docRow}
-                    onPress={() => { void openDocument(document); }}
-                    disabled={isOpeningDoc === document.id}
-                  >
-                    <View style={styles.docIconWrap}>
-                      <Ionicons name="document-attach-outline" size={18} color="#6B7280" />
-                    </View>
-                    <View style={styles.docBody}>
-                      <Text style={styles.docName} numberOfLines={1}>{document.fileName}</Text>
-                      <Text style={styles.docMeta}>
-                        {formatFileSize(document.fileSize)} • {formatDateNumeric(document.createdAtIso)}
-                      </Text>
-                    </View>
-                    {isOpeningDoc === document.id ? (
-                      <ActivityIndicator size="small" color="#0063FE" />
-                    ) : (
-                      <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                    )}
-                    {index < visibleDocuments.length - 1 ? <Divider offset /> : null}
-                  </Pressable>
-                ))
-              )}
-            </View>
+            <Pressable style={styles.contactCard} onPress={() => { void handleContactManager(); }}>
+              <View style={styles.contactIconWrap}>
+                <Ionicons name="logo-whatsapp" size={20} color="#128C7E" />
+              </View>
+              <View style={styles.contactTextWrap}>
+                <Text style={styles.contactTitle}>Parler au bailleur</Text>
+                <Text style={styles.contactBody}>Ouvrir WhatsApp</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+            </Pressable>
           </>
         )}
       </ScrollView>
@@ -354,8 +261,8 @@ function DetailRow({ label, value }: { label: string; value: string }): React.Re
   );
 }
 
-function Divider({ offset = false }: { offset?: boolean }): React.ReactElement {
-  return <View style={[styles.divider, offset && styles.docDivider]} />;
+function Divider(): React.ReactElement {
+  return <View style={styles.divider} />;
 }
 
 const styles = StyleSheet.create({
@@ -385,20 +292,9 @@ const styles = StyleSheet.create({
     gap: 8
   },
   topBarTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "700",
     color: "#0063FE"
-  },
-  topBarActions: {
-    flexDirection: "row",
-    gap: 4
-  },
-  iconBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center"
   },
   scroll: { flex: 1 },
   content: {
@@ -435,6 +331,21 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#374151" },
   emptyText: { fontSize: 14, color: "#6B7280", textAlign: "center", lineHeight: 20 },
+  whatsappBtn: {
+    marginTop: 8,
+    borderRadius: 10,
+    backgroundColor: "#128C7E",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  whatsappBtnText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 14
+  },
 
   profileCard: {
     borderRadius: 12,
@@ -527,7 +438,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   sectionTitle: {
-    fontSize: 32,
+    fontSize: 18,
     fontWeight: "700",
     color: "#010A19"
   },
@@ -539,11 +450,11 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     color: "#6B7280",
-    fontSize: 24
+    fontSize: 16
   },
   rowValue: {
     color: "#010A19",
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: "700"
   },
   divider: {
@@ -563,7 +474,7 @@ const styles = StyleSheet.create({
     maxWidth: "62%"
   },
   rentAmount: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "700",
     color: "#0063FE",
     textAlign: "right"
@@ -574,48 +485,36 @@ const styles = StyleSheet.create({
     marginTop: -2
   },
 
-  documentsTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#010A19",
-    marginBottom: 8
-  },
-  documentsEmpty: {
-    fontSize: 14,
-    color: "#6B7280"
-  },
-  docRow: {
-    position: "relative",
+  contactCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#C5CCD9",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 12
+    gap: 12
   },
-  docIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#ECEEF7",
+  contactIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E7F6F3",
     alignItems: "center",
     justifyContent: "center"
   },
-  docBody: {
+  contactTextWrap: {
     flex: 1,
-    gap: 3
+    gap: 2
   },
-  docName: {
+  contactTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#010A19"
   },
-  docMeta: {
-    fontSize: 12,
+  contactBody: {
+    fontSize: 13,
     color: "#6B7280"
-  },
-  docDivider: {
-    position: "absolute",
-    left: 44,
-    right: 0,
-    bottom: 0
   }
 });
