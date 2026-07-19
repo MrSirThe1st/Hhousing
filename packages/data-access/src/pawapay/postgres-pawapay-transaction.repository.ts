@@ -207,6 +207,28 @@ export function createPostgresPawapayTransactionRepository(
       return result.rows.length > 0;
     },
 
+    async expireStaleInFlightTransactions(
+      tenantId: string,
+      organizationId: string,
+      olderThanMinutes = 2
+    ): Promise<number> {
+      const result = await client.query(
+        `update pawapay_transactions
+         set status = 'failed',
+             pawapay_status = coalesce(pawapay_status, 'EXPIRED'),
+             failure_code = 'STALE_IN_FLIGHT',
+             failure_message = 'Transaction expirée après attente trop longue.',
+             updated_at = now(),
+             completed_at = now()
+         where tenant_id = $1
+           and organization_id = $2
+           and status in ('pending', 'submitted')
+           and created_at < now() - ($3::text || ' minutes')::interval`,
+        [tenantId, organizationId, String(olderThanMinutes)]
+      );
+      return result.rowCount ?? 0;
+    },
+
     async updateTransactionStatus(
       input: UpdatePawapayTransactionStatusInput
     ): Promise<PawapayTransaction | null> {

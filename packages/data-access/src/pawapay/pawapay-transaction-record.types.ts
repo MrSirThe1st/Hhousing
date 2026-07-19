@@ -36,5 +36,10 @@ export interface PawapayTransactionRepository {
     organizationId: string
   ): Promise<PawapayTransaction | null>;
   hasInFlightTransactionForTenant(tenantId: string, organizationId: string): Promise<boolean>;
+  expireStaleInFlightTransactions(
+    tenantId: string,
+    organizationId: string,
+    olderThanMinutes?: number
+  ): Promise<number>;
   updateTransactionStatus(input: UpdatePawapayTransactionStatusInput): Promise<PawapayTransaction | null>;
 }

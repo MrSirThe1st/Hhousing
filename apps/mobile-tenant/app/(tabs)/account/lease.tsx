@@ -14,7 +14,6 @@ import { CardSkeleton, ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
 import type { ApiResult, LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
-import { openWhatsAppMessage } from "@/lib/whatsapp";
 
 type TenantLeaseOutput = {
   lease: LeaseWithTenantView | null;
@@ -92,16 +91,9 @@ export default function LeaseScreen(): React.ReactElement {
     void load();
   }, [load]);
 
-  async function handleContactManager(): Promise<void> {
-    const name = lease?.tenantFullName ?? "locataire";
-    await openWhatsAppMessage(
-      `Bonjour, je suis ${name}. Je vous contacte au sujet de mon logement.`
-    );
-  }
-
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView style={styles.root} edges={["top"]}>
         <View style={styles.loadingWrap}>
           <CardSkeleton />
           <CardSkeleton />
@@ -112,13 +104,13 @@ export default function LeaseScreen(): React.ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={["top"]}>
       <View style={styles.topBar}>
-        <Pressable style={styles.topBarLeft} onPress={() => { router.back(); }}>
+        <Pressable style={styles.backBtn} onPress={() => { router.back(); }} hitSlop={10}>
           <Ionicons name="arrow-back" size={22} color="#0063FE" />
-          <Text style={styles.topBarTitle}>Mon logement</Text>
         </Pressable>
       </View>
+      <View style={styles.headerRule} />
 
       <ScrollView
         style={styles.scroll}
@@ -147,82 +139,69 @@ export default function LeaseScreen(): React.ReactElement {
 
         {!lease ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="home-outline" size={40} color="#D1D5DB" />
+            <Ionicons name="home-outline" size={36} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>Pas encore de logement</Text>
             <Text style={styles.emptyText}>
               Votre compte n&apos;est pas encore lié. Contactez votre bailleur pour activer votre location.
             </Text>
-            <Pressable style={styles.whatsappBtn} onPress={() => { void handleContactManager(); }}>
-              <Ionicons name="logo-whatsapp" size={18} color="#ffffff" />
-              <Text style={styles.whatsappBtnText}>Contacter mon bailleur</Text>
-            </Pressable>
           </View>
         ) : (
           <>
-            <View style={styles.profileCard}>
+            <View style={styles.summaryCard}>
               <View style={styles.avatarWrap}>
-                <Ionicons name="home-outline" size={34} color="#6B7280" />
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle-outline" size={14} color="#ffffff" />
-                </View>
+                <Ionicons name="home-outline" size={22} color="#6B7280" />
               </View>
-
-              <Text style={styles.tenantName}>{lease.tenantFullName ?? "Locataire"}</Text>
-              <Text style={styles.tenantSince}>Locataire depuis {formatDateReadable(lease.startDate)}</Text>
-
-              <View style={styles.profileBadges}>
-                <View style={styles.statusPill}>
-                  <Text style={styles.statusPillText}>CONTRAT ACTIF</Text>
-                </View>
-                <View style={styles.idPill}>
-                  <Text style={styles.idPillText}>{badgeLeaseId(lease.id)}</Text>
+              <View style={styles.summaryCopy}>
+                <Text style={styles.tenantName}>{lease.tenantFullName ?? "Locataire"}</Text>
+                <Text style={styles.tenantSince}>
+                  Locataire depuis {formatDateReadable(lease.startDate)}
+                </Text>
+                <View style={styles.profileBadges}>
+                  <View style={styles.statusPill}>
+                    <Text style={styles.statusPillText}>Contrat actif</Text>
+                  </View>
+                  <View style={styles.idPill}>
+                    <Text style={styles.idPillText}>{badgeLeaseId(lease.id)}</Text>
+                  </View>
                 </View>
               </View>
             </View>
 
             <View style={styles.card}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconWrap}>
-                  <Ionicons name="document-text-outline" size={18} color="#0063FE" />
-                </View>
-                <Text style={styles.sectionTitle}>CONTRAT</Text>
-              </View>
-
+              <Text style={styles.sectionTitle}>Contrat</Text>
               <DetailRow label="Début" value={formatDateNumeric(lease.startDate)} />
-              <Divider />
+              <View style={styles.divider} />
               <DetailRow label="Fin" value={lease.endDate ? formatDateNumeric(lease.endDate) : "-"} />
-              <Divider />
-              <DetailRow label="Type" value={lease.termType === "fixed" ? "Durée fixe" : "Mois à mois"} />
+              <View style={styles.divider} />
+              <DetailRow
+                label="Type"
+                value={lease.termType === "fixed" ? "Durée fixe" : "Mois à mois"}
+              />
             </View>
 
             <View style={styles.card}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconWrap}>
-                  <Ionicons name="cash-outline" size={18} color="#0063FE" />
-                </View>
-                <Text style={styles.sectionTitle}>LOYER</Text>
-              </View>
-
+              <Text style={styles.sectionTitle}>Loyer</Text>
               <View style={styles.rentAmountRow}>
                 <Text style={styles.rowLabel}>Montant mensuel</Text>
                 <View style={styles.rentRight}>
-                  <Text
-                    style={styles.rentAmount}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.72}
-                  >
-                    {formatAmount(lease.monthlyRentAmount ?? lease.monthlyRent, lease.currencyCode ?? "USD")}
+                  <Text style={styles.rentAmount} numberOfLines={1}>
+                    {formatAmount(
+                      lease.monthlyRentAmount ?? lease.monthlyRent,
+                      lease.currencyCode ?? "USD"
+                    )}
                   </Text>
-                  <Text style={styles.rentSuffix}>/ MOIS</Text>
+                  <Text style={styles.rentSuffix}>/ mois</Text>
                 </View>
               </View>
-              <Divider />
+              <View style={styles.divider} />
               <DetailRow
                 label="Garantie"
-                value={formatAmount(lease.depositAmount ?? lease.securityDeposit ?? 0, lease.currencyCode ?? "USD")}
+                value={formatAmount(
+                  lease.depositAmount ?? lease.securityDeposit ?? 0,
+                  lease.currencyCode ?? "USD"
+                )}
               />
-              <Divider />
+              <View style={styles.divider} />
               <DetailRow
                 label="Fréquence"
                 value={
@@ -234,17 +213,6 @@ export default function LeaseScreen(): React.ReactElement {
                 }
               />
             </View>
-
-            <Pressable style={styles.contactCard} onPress={() => { void handleContactManager(); }}>
-              <View style={styles.contactIconWrap}>
-                <Ionicons name="logo-whatsapp" size={20} color="#128C7E" />
-              </View>
-              <View style={styles.contactTextWrap}>
-                <Text style={styles.contactTitle}>Parler au bailleur</Text>
-                <Text style={styles.contactBody}>Ouvrir WhatsApp</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-            </Pressable>
           </>
         )}
       </ScrollView>
@@ -261,50 +229,41 @@ function DetailRow({ label, value }: { label: string; value: string }): React.Re
   );
 }
 
-function Divider(): React.ReactElement {
-  return <View style={styles.divider} />;
-}
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F5F6FA"
+    backgroundColor: "#FFFFFF"
   },
   loadingWrap: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 16,
     gap: 10
   },
   topBar: {
-    minHeight: 48,
-    borderBottomWidth: 1,
-    borderBottomColor: "#D4DAE7",
-    backgroundColor: "#F5F6FA",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 12
+    minHeight: 44,
+    paddingHorizontal: 12,
+    justifyContent: "center"
   },
-  topBarLeft: {
-    flexDirection: "row",
+  backBtn: {
+    width: 40,
+    height: 40,
     alignItems: "center",
-    gap: 8
+    justifyContent: "center"
   },
-  topBarTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#0063FE"
+  headerRule: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#E5E7EB"
   },
   scroll: { flex: 1 },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 14,
-    paddingBottom: 24,
+    paddingBottom: 32,
     gap: 12
   },
   notice: {
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#ffffff",
@@ -321,94 +280,70 @@ const styles = StyleSheet.create({
   },
   retryButtonText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
   emptyCard: {
-    borderRadius: 16,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#D4DAE7",
+    borderColor: "#E5E7EB",
     backgroundColor: "#ffffff",
-    padding: 24,
+    padding: 20,
     alignItems: "center",
     gap: 8
   },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#374151" },
-  emptyText: { fontSize: 14, color: "#6B7280", textAlign: "center", lineHeight: 20 },
-  whatsappBtn: {
-    marginTop: 8,
+  emptyTitle: { fontSize: 15, fontWeight: "700", color: "#374151" },
+  emptyText: { fontSize: 13, color: "#6B7280", textAlign: "center", lineHeight: 19 },
+
+  summaryCard: {
     borderRadius: 10,
-    backgroundColor: "#128C7E",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#ffffff",
+    padding: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8
-  },
-  whatsappBtnText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 14
-  },
-
-  profileCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#C5CCD9",
-    backgroundColor: "#ffffff",
-    padding: 16,
-    alignItems: "center",
-    gap: 4
+    gap: 12
   },
   avatarWrap: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    backgroundColor: "#E5E7EB",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#F3F4F6",
     alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    marginBottom: 4
+    justifyContent: "center"
   },
-  verifiedBadge: {
-    position: "absolute",
-    right: 0,
-    bottom: 2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#0063FE",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#ffffff"
+  summaryCopy: {
+    flex: 1,
+    gap: 2
   },
   tenantName: {
-    fontSize: 23,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#010A19"
+    color: "#111827"
   },
   tenantSince: {
-    fontSize: 14,
-    color: "#6B7280"
+    fontSize: 12,
+    color: "#9CA3AF"
   },
   profileBadges: {
     marginTop: 6,
     flexDirection: "row",
-    gap: 8
+    flexWrap: "wrap",
+    gap: 6
   },
   statusPill: {
-    backgroundColor: "#DBEAFE",
-    paddingHorizontal: 10,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 999
+    borderRadius: 6
   },
   statusPillText: {
-    color: "#2563EB",
+    color: "#0063FE",
     fontSize: 10,
     fontWeight: "700"
   },
   idPill: {
-    backgroundColor: "#E5E7EB",
-    paddingHorizontal: 10,
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 999
+    borderRadius: 6
   },
   idPillText: {
     color: "#6B7280",
@@ -417,48 +352,39 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#C5CCD9",
+    borderColor: "#E5E7EB",
     backgroundColor: "#ffffff",
-    padding: 16
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 14
-  },
-  sectionIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#E8F1FF",
-    alignItems: "center",
-    justifyContent: "center"
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 4
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: "700",
-    color: "#010A19"
+    color: "#9CA3AF",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    marginBottom: 4
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10
+    paddingVertical: 11
   },
   rowLabel: {
     color: "#6B7280",
-    fontSize: 16
+    fontSize: 14
   },
   rowValue: {
-    color: "#010A19",
-    fontSize: 16,
+    color: "#111827",
+    fontSize: 14,
     fontWeight: "700"
   },
   divider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: "#E5E7EB"
   },
 
@@ -466,55 +392,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10
+    paddingVertical: 11
   },
   rentRight: {
     alignItems: "flex-end",
     flexShrink: 1,
-    maxWidth: "62%"
+    maxWidth: "58%"
   },
   rentAmount: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: "700",
     color: "#0063FE",
     textAlign: "right"
   },
   rentSuffix: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: -2
-  },
-
-  contactCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#C5CCD9",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12
-  },
-  contactIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E7F6F3",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  contactTextWrap: {
-    flex: 1,
-    gap: 2
-  },
-  contactTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  contactBody: {
-    fontSize: 13,
-    color: "#6B7280"
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: 1
   }
 });

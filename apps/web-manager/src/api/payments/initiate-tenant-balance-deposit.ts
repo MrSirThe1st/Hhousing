@@ -85,6 +85,12 @@ export async function initiateTenantBalanceDeposit(
     };
   }
 
+  await deps.pawapayTransactionRepository.expireStaleInFlightTransactions(
+    tenant.id,
+    input.organizationId,
+    2
+  );
+
   const hasInFlight = await deps.pawapayTransactionRepository.hasInFlightTransactionForTenant(
     tenant.id,
     input.organizationId

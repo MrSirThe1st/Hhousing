@@ -55,24 +55,28 @@ export async function processPawapayDepositCallback(params: {
     };
   }
 
-  if (!payload.depositId || !payload.status) {
+  const depositId = payload.data?.depositId ?? payload.depositId;
+  const depositStatus = payload.data?.status ?? payload.status;
+  const failureReason = payload.data?.failureReason ?? payload.failureReason;
+
+  if (!depositId || !depositStatus) {
     return {
       status: 400,
       body: { success: false, error: "Missing depositId or status" }
     };
   }
 
-  if (!isFinalPawapayDepositStatus(payload.status)) {
+  if (!isFinalPawapayDepositStatus(depositStatus)) {
     return {
       status: 200,
       body: { success: true, ignored: true }
     };
   }
 
-  if (isSuccessfulPawapayDepositStatus(payload.status)) {
+  if (isSuccessfulPawapayDepositStatus(depositStatus)) {
     await completePawapayDepositTransaction({
-      transactionId: payload.depositId,
-      pawapayStatus: payload.status,
+      transactionId: depositId,
+      pawapayStatus: depositStatus,
       pawapayTransactionRepository: params.pawapayTransactionRepository,
       paymentRepository: params.paymentRepository,
       invoiceRepository: params.invoiceRepository,
@@ -82,10 +86,10 @@ export async function processPawapayDepositCallback(params: {
     });
   } else {
     await failPawapayDepositTransaction({
-      transactionId: payload.depositId,
-      pawapayStatus: payload.status,
-      failureCode: payload.failureReason?.failureCode ?? null,
-      failureMessage: payload.failureReason?.failureMessage ?? null,
+      transactionId: depositId,
+      pawapayStatus: depositStatus,
+      failureCode: failureReason?.failureCode ?? null,
+      failureMessage: failureReason?.failureMessage ?? null,
       pawapayTransactionRepository: params.pawapayTransactionRepository
     });
   }

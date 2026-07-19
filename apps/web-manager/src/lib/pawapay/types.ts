@@ -28,12 +28,21 @@ export interface PawapayDepositStatusResponse {
   failureReason?: PawapayFailureReason;
 }
 
+export interface PawapayDepositStatusApiResponse {
+  depositId?: string;
+  status?: PawapayDepositFinalStatus;
+  data?: PawapayDepositStatusResponse;
+  failureReason?: PawapayFailureReason;
+}
+
 export interface PawapayDepositCallbackPayload {
-  depositId: string;
-  status: string;
-  requestedAmount?: string;
-  currency?: string;
-  country?: string;
+  depositId?: string;
+  status?: string;
+  data?: {
+    depositId?: string;
+    status?: string;
+    failureReason?: PawapayFailureReason;
+  };
   failureReason?: PawapayFailureReason;
 }
 

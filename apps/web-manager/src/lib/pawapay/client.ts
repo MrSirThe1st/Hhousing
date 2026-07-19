@@ -3,6 +3,7 @@ import { formatPawapayAmount } from "./amount";
 import { readPawapayConfig } from "./config";
 import type {
   PawapayDepositInitiationResponse,
+  PawapayDepositStatusApiResponse,
   PawapayDepositStatusResponse
 } from "./types";
 
@@ -80,7 +81,22 @@ export async function initiatePawapayDeposit(
 export async function getPawapayDepositStatus(
   depositId: string
 ): Promise<PawapayDepositStatusResponse> {
-  return pawapayRequest<PawapayDepositStatusResponse>(`/v2/deposits/${depositId}`, {
+  const payload = await pawapayRequest<PawapayDepositStatusApiResponse>(`/v2/deposits/${depositId}`, {
     method: "GET"
   });
+
+  const nested = payload.data;
+  if (nested?.status) {
+    return nested;
+  }
+
+  if (payload.status && payload.depositId) {
+    return {
+      depositId: payload.depositId,
+      status: payload.status,
+      failureReason: payload.failureReason
+    };
+  }
+
+  throw new PawapayClientError("PawaPay deposit status response was missing status");
 }

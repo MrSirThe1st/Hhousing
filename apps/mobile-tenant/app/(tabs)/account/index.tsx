@@ -17,7 +17,6 @@ import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 import { NetworkError } from "@/components/network-error";
-import { openWhatsAppMessage } from "@/lib/whatsapp";
 import { formatDrcNationalDisplay, nationalFromStoredPhone } from "@/lib/phone-input";
 
 type LeaseOutput = {
@@ -140,13 +139,6 @@ export default function AccountScreen(): React.ReactElement {
     await signOut();
   };
 
-  const handleContactSupport = async (): Promise<void> => {
-    const displayName = tenant?.fullName?.trim() || lease?.tenantFullName?.trim() || "locataire";
-    await openWhatsAppMessage(
-      `Bonjour, je suis ${displayName}. J'ai besoin d'aide avec Mon Espace (Haraka Property).`
-    );
-  };
-
   const fallbackEmail = lease?.tenantEmail ?? session?.user.email ?? "";
   const email = tenant?.email ?? fallbackEmail;
   const name = tenant?.fullName?.trim() || lease?.tenantFullName?.trim() || getNameFromEmail(email);
@@ -168,7 +160,7 @@ export default function AccountScreen(): React.ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={["top"]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={styles.container}
@@ -181,6 +173,11 @@ export default function AccountScreen(): React.ReactElement {
           />
         }
       >
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Profil</Text>
+        </View>
+        <View style={styles.headerRule} />
+
         {error ? (
           isOffline ? (
             <NetworkError onRetry={() => { void loadProfile(); }} />
@@ -195,48 +192,42 @@ export default function AccountScreen(): React.ReactElement {
         ) : null}
 
         <Pressable
-          style={styles.profileHead}
+          style={styles.profileCard}
           onPress={() => { router.push("/(tabs)/account/edit-profile"); }}
         >
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          <Text style={styles.nameText}>{name}</Text>
-          {phoneLabel ? (
-            <Text style={styles.phoneText}>{phoneLabel}</Text>
-          ) : (
-            <Text style={styles.phoneMuted}>Aucun numéro enregistré</Text>
-          )}
-          {email ? <Text style={styles.emailText}>{email}</Text> : null}
-          <Text style={styles.editHint}>Modifier mon profil</Text>
+          <View style={styles.profileCopy}>
+            <Text style={styles.nameText}>{name}</Text>
+            {phoneLabel ? (
+              <Text style={styles.phoneText}>{phoneLabel}</Text>
+            ) : (
+              <Text style={styles.phoneMuted}>Aucun numéro enregistré</Text>
+            )}
+            {email ? <Text style={styles.emailText}>{email}</Text> : null}
+            <Text style={styles.editHint}>Modifier mon profil</Text>
+          </View>
         </Pressable>
 
         <Pressable
-          style={styles.primaryRow}
+          style={styles.rowCard}
           onPress={() => { router.push("/(tabs)/account/lease"); }}
         >
-          <View style={styles.primaryIconWrap}>
-            <Ionicons name="home-outline" size={20} color="#0063FE" />
+          <View style={styles.rowIconWrap}>
+            <Ionicons name="home-outline" size={18} color="#0063FE" />
           </View>
-          <View style={styles.primaryTextWrap}>
-            <Text style={styles.primaryTitle}>Mon logement</Text>
-            <Text style={styles.primarySubtitle}>
+          <View style={styles.rowCopy}>
+            <Text style={styles.rowTitle}>Mon logement</Text>
+            <Text style={styles.rowSubtitle}>
               {lease ? "Voir mon contrat et mon loyer" : "Pas encore de logement lié"}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
         </Pressable>
 
-        <Pressable style={styles.whatsappRow} onPress={() => { void handleContactSupport(); }}>
-          <View style={styles.whatsappIconWrap}>
-            <Ionicons name="logo-whatsapp" size={20} color="#128C7E" />
-          </View>
-          <Text style={styles.whatsappText}>Aide WhatsApp</Text>
-          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-        </Pressable>
-
         <Pressable
-          style={[styles.logoutRow, isSigningOut && styles.buttonDisabled]}
+          style={[styles.logoutBtn, isSigningOut && styles.buttonDisabled]}
           onPress={() => { void handleSignOut(); }}
           disabled={isSigningOut}
         >
@@ -244,7 +235,7 @@ export default function AccountScreen(): React.ReactElement {
             <ActivityIndicator color="#DC2626" size="small" />
           ) : (
             <>
-              <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+              <Ionicons name="log-out-outline" size={18} color="#DC2626" />
               <Text style={styles.logoutText}>Se déconnecter</Text>
             </>
           )}
@@ -257,24 +248,38 @@ export default function AccountScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F5F6FA"
+    backgroundColor: "#FFFFFF"
   },
   container: { flex: 1 },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 40,
-    gap: 12
+    paddingBottom: 40
   },
   loadingWrap: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center"
   },
+  pageHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 14
+  },
+  pageTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827"
+  },
+  headerRule: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#E5E7EB",
+    marginBottom: 18
+  },
   notice: {
+    marginHorizontal: 20,
+    marginBottom: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#D4DAE7",
+    borderColor: "#E5E7EB",
     backgroundColor: "#ffffff",
     padding: 14,
     gap: 10
@@ -288,54 +293,65 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   retryText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
-  profileHead: {
-    alignItems: "center",
-    gap: 6,
+  profileCard: {
+    marginHorizontal: 20,
     marginBottom: 12,
-    paddingVertical: 8
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14
   },
   avatarWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#0063FE",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#E8EEF7",
     justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6
+    alignItems: "center"
   },
   avatarText: {
-    color: "#ffffff",
-    fontSize: 28,
+    color: "#374151",
+    fontSize: 20,
     fontWeight: "700"
   },
+  profileCopy: {
+    flex: 1,
+    gap: 2
+  },
   nameText: {
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#010A19"
+    color: "#111827"
   },
   phoneText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#010A19"
+    color: "#111827"
   },
   phoneMuted: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#9CA3AF"
   },
   emailText: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#6B7280"
   },
   editHint: {
     marginTop: 4,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     color: "#0063FE"
   },
-  primaryRow: {
+  rowCard: {
+    marginHorizontal: 20,
+    marginBottom: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#D4DAE7",
+    borderColor: "#E5E7EB",
     backgroundColor: "#ffffff",
     paddingHorizontal: 14,
     paddingVertical: 14,
@@ -343,55 +359,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12
   },
-  primaryIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#E8F1FF",
+  rowIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center"
   },
-  primaryTextWrap: {
+  rowCopy: {
     flex: 1,
     gap: 2
   },
-  primaryTitle: {
-    fontSize: 16,
+  rowTitle: {
+    fontSize: 15,
     fontWeight: "700",
-    color: "#010A19"
+    color: "#111827"
   },
-  primarySubtitle: {
-    fontSize: 13,
-    color: "#6B7280"
+  rowSubtitle: {
+    fontSize: 12,
+    color: "#9CA3AF"
   },
-  whatsappRow: {
+  logoutBtn: {
+    marginTop: 16,
+    marginHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#D4DAE7",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12
-  },
-  whatsappIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#E7F6F3",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  whatsappText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  logoutRow: {
-    marginTop: 8,
-    borderRadius: 12,
+    borderColor: "#E5E7EB",
     paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -400,7 +394,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: "#DC2626",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700"
   },
   buttonDisabled: { opacity: 0.6 }
