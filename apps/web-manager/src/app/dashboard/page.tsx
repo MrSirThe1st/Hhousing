@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import DashboardTasksPanel from "../../components/dashboard-tasks-panel";
-import ResponsiveTable from "../../components/responsive-table";
+import DashboardOverduePaymentsTable from "../../components/dashboard-overdue-payments-table";
 import { requireDashboardSectionAccess } from "../../lib/dashboard-access";
 import { getOperatorScopeLabel, getServerOperatorContext } from "../../lib/operator-context";
 import { getIndividualExperienceFeatures } from "../../lib/individual-experience";
@@ -512,7 +512,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       }
     };
   const stats = getStats(operatorContext.experience, scopeLabel, metrics);
-  const workflowData = activeTab === "overview" ? null : await buildDashboardWorkflowData(session);
+  let workflowData: Awaited<ReturnType<typeof buildDashboardWorkflowData>> | null = null;
+  if (activeTab !== "overview") {
+    try {
+      workflowData = await buildDashboardWorkflowData(session);
+    } catch (error) {
+      console.error("Failed to load dashboard workflow data", error);
+    }
+  }
   const collectionRate = getCollectionRate(metrics);
 
   const hasNoData = metrics.propertyCount === 0;
@@ -669,68 +676,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     </Link>
                   </div>
 
-                  {metrics.overdueRows.length === 0 ? (
-                    <p className="text-sm text-slate-500">Aucun paiement en retard pour le moment.</p>
-                  ) : (
-                    <ResponsiveTable<OverduePriorityRow>
-                      paginate={false}
-                      keyExtractor={(row) => row.paymentId}
-                      data={metrics.overdueRows}
-                      columns={[
-                        {
-                          header: "Locataire",
-                          render: (row) => (
-                            <div>
-                              <p className="font-medium text-[#010a19]">{row.tenantName}</p>
-                              <p className="text-xs text-slate-500">Échéance: {formatIsoDate(row.dueDate)}</p>
-                            </div>
-                          )
-                        },
-                        {
-                          header: "Logement",
-                          render: (row) => <span className="text-slate-700">{row.unitLabel}</span>
-                        },
-                        {
-                          header: "Montant",
-                          className: "text-right",
-                          render: (row) => (
-                            <span className="font-medium text-[#010a19]">
-                              {row.amount.toLocaleString("fr-FR")} {row.currencyCode}
-                            </span>
-                          )
-                        },
-                        {
-                          header: "Jours retard",
-                          className: "text-right",
-                          render: (row) => (
-                            <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-800">
-                              {row.daysLate} j
-                            </span>
-                          )
-                        }
-                      ]}
-                      renderMobileCard={(row) => (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-[#010a19]">{row.tenantName}</p>
-                            <span className="inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
-                              {row.daysLate} j
-                            </span>
-                          </div>
-                          <div className="text-xs text-slate-500 flex justify-between">
-                            <span>Logement: {row.unitLabel}</span>
-                            <span>Échéance: {formatIsoDate(row.dueDate)}</span>
-                          </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                            <span className="text-xs text-slate-400">Montant</span>
-                            <span className="font-semibold text-rose-600">
-                              {row.amount.toLocaleString("fr-FR")} {row.currencyCode}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    />
-                  )}
+                  <DashboardOverduePaymentsTable rows={metrics.overdueRows} />
                 </div>
               </section>
 

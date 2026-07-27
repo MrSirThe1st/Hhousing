@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): React.ReactElement {
   return (
-    <html lang="fr">
-      <body className="bg-gray-50 text-foreground antialiased">
+    <html lang="fr" suppressHydrationWarning>
+      <body className="bg-gray-50 text-foreground antialiased" suppressHydrationWarning>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
