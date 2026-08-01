@@ -10,6 +10,7 @@ import { resolveDashboardAccess } from "../../lib/dashboard-access";
 import { getServerOperatorContext } from "../../lib/operator-context";
 import { isIndividualExperience } from "../../lib/platform-experience";
 import DashboardTour from "../../components/dashboard-tour";
+import ThemeToggle from "../../components/theme-toggle";
 
 export const metadata: Metadata = {
   title: "hhousing — Tableau de bord",
@@ -50,37 +51,42 @@ export default async function DashboardLayout({
   const isIndividual = isIndividualExperience(operatorContext.experience);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden w-full max-w-full">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden w-full max-w-full dark:bg-[#0a1120]">
       <Sidebar
         currentRoleLabel={getRoleLabel(session.role)}
         access={sidebarAccess}
         isIndividualExperience={isIndividual}
       />
       <main className="flex-1 overflow-y-auto pb-32 md:pb-0 min-w-0 max-w-full overflow-x-hidden">
-        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3 md:px-6 md:py-4">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3 md:px-6 md:py-4 dark:border-slate-800 dark:bg-[#0d1526]">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="hidden md:block">
                 <SidebarToggleButton />
               </div>
               <div>
-                <p className="text-sm font-medium text-[#010a19]">Mon espace</p>
-                <p className="text-xs md:text-sm text-gray-500 line-clamp-1 md:line-clamp-none">
+                <p className="text-sm font-medium text-[#010a19] dark:text-white">Mon espace</p>
+                <p className="text-xs md:text-sm text-gray-500 line-clamp-1 md:line-clamp-none dark:text-slate-400">
                   {isIndividual
                     ? "Gérez vos biens, locataires et paiements depuis un espace simplifié."
                     : "Tous vos biens au même endroit. Filtrez par propriétaire pour voir un client à la fois."}
                 </p>
               </div>
             </div>
-            <button
-              id="start-tour-button"
-              className="flex items-center gap-2 shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-[#0063fe] hover:border-[#0063fe]/30 focus:outline-none"
-            >
-              <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="hidden sm:inline">Visite guidée</span>
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden md:block">
+                <ThemeToggle />
+              </div>
+              <button
+                id="start-tour-button"
+                className="flex items-center gap-2 shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-[#0063fe] hover:border-[#0063fe]/30 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <svg className="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="hidden sm:inline">Visite guidée</span>
+              </button>
+            </div>
           </div>
         </div>
         {children}

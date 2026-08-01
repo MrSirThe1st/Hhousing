@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Brand Colors */
   --color-brand-blue: #0063fe;
@@ -44,6 +46,196 @@
     font-family: var(--font-sans);
     color: var(--color-foreground);
     background-color: var(--color-surface);
+  }
+
+  html.dark {
+    color-scheme: dark;
+    color: #e2e8f0;
+    background-color: #0a1120;
+    --color-surface: #0a1120;
+    --color-foreground: #e2e8f0;
+  }
+}
+
+/*
+  Dark-mode surface remaps for components that still use light-only utilities
+  (bg-white, slate-50, etc.). Explicit dark:* utilities keep winning when they
+  target the same property later in the cascade.
+*/
+@layer utilities {
+  .dark :where(.bg-white),
+  .dark :where(.bg-white\/90),
+  .dark :where(.bg-white\/95),
+  .dark :where(.bg-white\/80),
+  .dark :where(.bg-\[\#ffffff\]),
+  .dark :where(.bg-\[\#fff\]),
+  .dark :where(.bg-\[\#f2f6fb\]),
+  .dark :where(.bg-\[\#f4f5f7\]),
+  .dark :where(.bg-\[\#f8fafc\]),
+  .dark :where(.bg-\[\#eef4fb\]),
+  .dark :where(.bg-\[\#eef3f8\]) {
+    background-color: #0d1526;
+  }
+
+  .dark :where(.bg-gray-50),
+  .dark :where(.bg-slate-50),
+  .dark :where(.bg-slate-50\/50),
+  .dark :where(.bg-slate-50\/30),
+  .dark :where(.bg-neutral-50),
+  .dark :where(.bg-zinc-50) {
+    background-color: #0a1120;
+  }
+
+  .dark :where(.bg-gray-100),
+  .dark :where(.bg-slate-100),
+  .dark :where(.bg-neutral-100),
+  .dark :where(.bg-zinc-100) {
+    background-color: #111827;
+  }
+
+  .dark :where(.bg-blue-50),
+  .dark :where(.bg-blue-50\/50) {
+    background-color: rgb(0 99 254 / 0.12);
+  }
+
+  .dark :where(.bg-rose-50),
+  .dark :where(.bg-rose-100),
+  .dark :where(.bg-red-50),
+  .dark :where(.bg-red-100) {
+    background-color: rgb(244 63 94 / 0.14);
+  }
+
+  .dark :where(.bg-emerald-50),
+  .dark :where(.bg-emerald-100),
+  .dark :where(.bg-green-50),
+  .dark :where(.bg-green-100) {
+    background-color: rgb(16 185 129 / 0.14);
+  }
+
+  .dark :where(.bg-amber-50),
+  .dark :where(.bg-amber-100),
+  .dark :where(.bg-yellow-50),
+  .dark :where(.bg-orange-50) {
+    background-color: rgb(245 158 11 / 0.14);
+  }
+
+  .dark :where(.bg-indigo-50),
+  .dark :where(.bg-violet-50),
+  .dark :where(.bg-sky-50),
+  .dark :where(.bg-cyan-50) {
+    background-color: rgb(59 130 246 / 0.14);
+  }
+
+  .dark :where(.hover\:bg-white:hover),
+  .dark :where(.hover\:bg-gray-50:hover),
+  .dark :where(.hover\:bg-slate-50:hover),
+  .dark :where(.hover\:bg-gray-100:hover),
+  .dark :where(.hover\:bg-slate-100:hover) {
+    background-color: #1e293b;
+  }
+
+  .dark :where(.active\:bg-slate-50:active),
+  .dark :where(.active\:bg-gray-50:active) {
+    background-color: #1e293b;
+  }
+
+  .dark :where(.border-slate-100),
+  .dark :where(.border-gray-100),
+  .dark :where(.border-slate-200),
+  .dark :where(.border-gray-200),
+  .dark :where(.border-slate-200\/80),
+  .dark :where(.border-slate-300),
+  .dark :where(.border-gray-300) {
+    border-color: #1e293b;
+  }
+
+  .dark :where(.border-rose-200),
+  .dark :where(.border-red-200) {
+    border-color: rgb(244 63 94 / 0.35);
+  }
+
+  .dark :where(.border-blue-200),
+  .dark :where(.border-emerald-200),
+  .dark :where(.border-amber-200) {
+    border-color: rgb(148 163 184 / 0.25);
+  }
+
+  .dark :where(.divide-slate-100) > :not([hidden]) ~ :not([hidden]),
+  .dark :where(.divide-slate-200) > :not([hidden]) ~ :not([hidden]),
+  .dark :where(.divide-gray-100) > :not([hidden]) ~ :not([hidden]),
+  .dark :where(.divide-gray-200) > :not([hidden]) ~ :not([hidden]) {
+    border-color: #1e293b;
+  }
+
+  .dark :where(.ring-slate-200),
+  .dark :where(.ring-gray-200),
+  .dark :where(.ring-slate-100) {
+    --tw-ring-color: #1e293b;
+  }
+
+  .dark :where(.text-\[\#010a19\]),
+  .dark :where(.text-\[\#010A19\]),
+  .dark :where(.text-\[\#0f2748\]),
+  .dark :where(.text-slate-950),
+  .dark :where(.text-slate-900),
+  .dark :where(.text-gray-900),
+  .dark :where(.text-neutral-900),
+  .dark :where(.text-zinc-900),
+  .dark :where(.text-black) {
+    color: #f1f5f9;
+  }
+
+  .dark :where(.text-slate-800),
+  .dark :where(.text-gray-800) {
+    color: #e2e8f0;
+  }
+
+  .dark :where(.text-slate-700),
+  .dark :where(.text-gray-700) {
+    color: #cbd5e1;
+  }
+
+  .dark :where(.text-slate-600),
+  .dark :where(.text-gray-600) {
+    color: #94a3b8;
+  }
+
+  .dark :where(.text-slate-500),
+  .dark :where(.text-gray-500) {
+    color: #94a3b8;
+  }
+
+  .dark :where(.placeholder\:text-slate-400)::placeholder,
+  .dark :where(.placeholder\:text-gray-400)::placeholder,
+  .dark :where(.placeholder\:text-slate-500)::placeholder {
+    color: #64748b;
+  }
+
+  .dark :where(.shadow-sm),
+  .dark :where(.shadow),
+  .dark :where(.shadow-xs),
+  .dark :where(.shadow-md),
+  .dark :where(.shadow-lg),
+  .dark :where(.shadow-xl) {
+    --tw-shadow-color: rgb(0 0 0 / 0.45);
+  }
+
+  .dark :where(input):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  .dark :where(textarea),
+  .dark :where(select) {
+    background-color: #0a1120;
+    color: #e2e8f0;
+    border-color: #1e293b;
+  }
+
+  .dark :where(input):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])::placeholder,
+  .dark :where(textarea)::placeholder {
+    color: #64748b;
+  }
+
+  .dark :where(option) {
+    background-color: #0d1526;
+    color: #e2e8f0;
   }
 }
 

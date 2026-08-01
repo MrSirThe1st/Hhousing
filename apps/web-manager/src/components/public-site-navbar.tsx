@@ -65,11 +65,11 @@ export default function PublicSiteNavbar(): React.ReactElement {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4 lg:px-10">
-        <Link href="/" className="flex items-center gap-3 text-[#010A19]">
-          <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
-          <span>
-            <span className="block text-lg font-semibold tracking-tight">Haraka Property</span>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6 lg:px-10">
+        <Link href="/" className="flex min-w-0 items-center gap-2 text-[#010A19] sm:gap-3">
+          <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
+          <span className="min-w-0">
+            <span className="block truncate text-base font-semibold tracking-tight sm:text-lg">Haraka Property</span>
             <span className="hidden sm:block text-[11px] uppercase tracking-[0.18em] text-slate-500">Gestion de vos locations</span>
           </span>
         </Link>
@@ -109,15 +109,16 @@ export default function PublicSiteNavbar(): React.ReactElement {
           })}
         </nav>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           {loading ? (
             <div className="h-8 w-20 sm:h-10 sm:w-24 rounded-full bg-slate-100 animate-pulse" />
           ) : user !== null ? (
             <Link
               href="/dashboard"
-              className="rounded-full bg-[#0063FE] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+              className="whitespace-nowrap rounded-full bg-[#0063FE] px-3 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]"
             >
-              Mon tableau de bord
+              <span className="sm:hidden">Tableau de bord</span>
+              <span className="hidden sm:inline">Mon tableau de bord</span>
             </Link>
           ) : (
             <>
@@ -133,11 +134,11 @@ export default function PublicSiteNavbar(): React.ReactElement {
         </div>
       </div>
 
-      <div className="border-t border-slate-200 px-4 py-3 lg:hidden">
-        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto">
-          <Link href="/#pricing" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Tarification</Link>
-          <Link href="/#use-cases" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Cas d'usage</Link>
-          <Link href="/#features" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Fonctionnalités</Link>
+      <div className="border-t border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 lg:hidden">
+        <div className="mx-auto flex max-w-7xl gap-1.5 overflow-x-auto sm:gap-2">
+          <Link href="/#pricing" className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 sm:px-4 sm:py-2 sm:text-sm">Tarification</Link>
+          <Link href="/#use-cases" className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 sm:px-4 sm:py-2 sm:text-sm">Cas d'usage</Link>
+          <Link href="/#features" className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 sm:px-4 sm:py-2 sm:text-sm">Fonctionnalités</Link>
         </div>
       </div>
     </header>

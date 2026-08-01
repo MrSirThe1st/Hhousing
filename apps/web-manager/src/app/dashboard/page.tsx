@@ -552,13 +552,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <div className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{header.title}</h1>
-          <p className="mt-1 text-sm text-slate-600">{header.subtitle}</p>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19] dark:text-white">{header.title}</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{header.subtitle}</p>
         </div>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div id="dashboard-tabs" className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <div id="dashboard-tabs" className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-[#0d1526]">
           {(individualFeatures.dashboardTasksCalendar
             ? (["overview", "tasks", "calendar"] as DashboardTab[])
             : (["overview"] as DashboardTab[])
@@ -568,10 +568,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <Link
                 key={tabId}
                 href={getTabHref(tabId)}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                   activeTab === tabId
                     ? "bg-[#0063fe] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100"
+                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                 }`}
               >
                 {label}
@@ -581,14 +581,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         </div>
 
         {activeTab === "overview" && (
-          <div className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-            <span className="px-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Devise :</span>
+          <div className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-[#0d1526]">
+            <span className="px-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">Devise :</span>
             <Link
               href={getCurrencyHref("USD")}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 selectedCurrency === "USD"
                   ? "bg-[#0063fe] text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
               }`}
             >
               USD
@@ -598,7 +598,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 selectedCurrency === "CDF"
                   ? "bg-[#0063fe] text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
               }`}
             >
               CDF
@@ -609,17 +609,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       {activeTab === "overview" ? (
         <>
           {hasNoData ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900/40">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-[#0063fe]/15">
                 <svg className="h-8 w-8 text-[#0063fe]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Configurez votre espace</h2>
-              <p className="mt-2 text-sm text-slate-500">
+              <h2 className="text-lg font-semibold text-[#010a19] dark:text-white">Configurez votre espace</h2>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 Suivez l&apos;assistant : premier bien, locataire, puis bail.
               </p>
-              <div className="mt-6 flex justify-center gap-3">
+              <div className="mt-6 flex justify-center gap-3 pr-16 md:pr-0">
                 <Link
                   href="/onboarding"
                   className="inline-flex items-center gap-2 rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
@@ -633,44 +633,44 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
           ) : (
             <>
-              <section id="financial-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
+              <section id="financial-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0d1526]">
+                <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3 dark:border-slate-800">
                   <div>
-                    <h2 className="text-base font-semibold text-[#010a19]">Argent du mois</h2>
-                    <p className="mt-1 text-xs text-slate-500">Loyers reçus, dépenses, reste et retards à suivre.</p>
+                    <h2 className="text-base font-semibold text-[#010a19] dark:text-white">Argent du mois</h2>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Loyers reçus, dépenses, reste et retards à suivre.</p>
                   </div>
-                  <div className="text-xs text-slate-500">Portée: {scopeLabel}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Portée: {scopeLabel}</div>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Loyers reçus</p>
-                    <p className="mt-1 text-lg font-semibold text-[#010a19]">{formatCurrencySummary(metrics.paidTotals)}</p>
-                    <p className="mt-1 text-xs text-slate-500">{metrics.paidPaymentCount} paiement(s) payés</p>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Loyers reçus</p>
+                    <p className="mt-1 text-lg font-semibold text-[#010a19] dark:text-white">{formatCurrencySummary(metrics.paidTotals)}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{metrics.paidPaymentCount} paiement(s) payés</p>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dépenses</p>
-                    <p className="mt-1 text-lg font-semibold text-[#010a19]">{formatCurrencySummary(metrics.expenseTotals)}</p>
-                    <p className="mt-1 text-xs text-slate-500">Charges enregistrées</p>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Dépenses</p>
+                    <p className="mt-1 text-lg font-semibold text-[#010a19] dark:text-white">{formatCurrencySummary(metrics.expenseTotals)}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Charges enregistrées</p>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Reste après dépenses</p>
-                    <p className="mt-1 text-lg font-semibold text-[#010a19]">{formatCurrencySummary(metrics.netTotals)}</p>
-                    <p className="mt-1 text-xs text-slate-500">Loyers - dépenses</p>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Reste après dépenses</p>
+                    <p className="mt-1 text-lg font-semibold text-[#010a19] dark:text-white">{formatCurrencySummary(metrics.netTotals)}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Loyers - dépenses</p>
                   </div>
 
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Loyers en retard</p>
-                    <p className="mt-1 text-lg font-semibold text-rose-900">{formatCurrencySummary(metrics.overdueTotals)}</p>
-                    <p className="mt-1 text-xs text-rose-700">{metrics.overduePaymentCount} paiement(s) en retard</p>
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-500/20 dark:bg-rose-500/10">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">Loyers en retard</p>
+                    <p className="mt-1 text-lg font-semibold text-rose-900 dark:text-rose-200">{formatCurrencySummary(metrics.overdueTotals)}</p>
+                    <p className="mt-1 text-xs text-rose-700 dark:text-rose-300">{metrics.overduePaymentCount} paiement(s) en retard</p>
                   </div>
                 </div>
 
-                <div className="mt-5 border-t border-slate-200 pt-4">
+                <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-[#010a19]">Qui n&apos;a pas payé</h3>
+                    <h3 className="text-sm font-semibold text-[#010a19] dark:text-white">Qui n&apos;a pas payé</h3>
                     <Link href="/dashboard/payments" className="text-xs font-medium text-[#0063fe] hover:underline">
                       Voir tous les paiements
                     </Link>
@@ -680,11 +680,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </div>
               </section>
 
-              <section id="operational-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
+              <section id="operational-overview" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0d1526]">
+                <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-3 dark:border-slate-800">
                   <div>
-                    <h2 className="text-base font-semibold text-[#010a19]">Activité des locations</h2>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <h2 className="text-base font-semibold text-[#010a19] dark:text-white">Activité des locations</h2>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {individualFeatures.maintenanceDashboardWidgets
                         ? "Occupation, contrats, réparations et collecte."
                         : "Occupation, contrats et collecte."}
@@ -700,12 +700,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <div className="mt-4 overflow-x-auto pb-1">
                   <div className="grid min-w-215 grid-cols-6 gap-2">
                     {metrics.monthlyTrend.map((bucket) => (
-                      <article key={bucket.month} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{bucket.label}</p>
+                      <article key={bucket.month} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/40">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{bucket.label}</p>
                         <div className="mt-2 space-y-1 text-[11px] leading-4">
-                          <p className="text-emerald-700">Loyers: {formatCurrencySummary(bucket.revenueTotals)}</p>
-                          <p className="text-slate-600">Dép: {formatCurrencySummary(bucket.expenseTotals)}</p>
-                          <p className="font-semibold text-[#010a19]">Reste: {formatCurrencySummary(bucket.netTotals)}</p>
+                          <p className="text-emerald-700 dark:text-emerald-400">Loyers: {formatCurrencySummary(bucket.revenueTotals)}</p>
+                          <p className="text-slate-600 dark:text-slate-400">Dép: {formatCurrencySummary(bucket.expenseTotals)}</p>
+                          <p className="font-semibold text-[#010a19] dark:text-white">Reste: {formatCurrencySummary(bucket.netTotals)}</p>
                         </div>
                       </article>
                     ))}
@@ -714,67 +714,67 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {stats.map((stat) => (
-                    <div key={stat.label} className="rounded-lg border border-slate-200 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{stat.label}</p>
-                      <p className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{stat.value}</p>
+                    <div key={stat.label} className="rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-800">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{stat.label}</p>
+                      <p className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-[#010a19] dark:text-white">{stat.value}</p>
                     </div>
                   ))}
                 </div>
 
-                <div className={`mt-5 grid gap-3 border-t border-slate-200 pt-4 ${individualFeatures.maintenanceDashboardWidgets ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-                  <div className="rounded-lg border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Loyers à encaisser</p>
-                    <p className="mt-1 text-xl font-semibold text-[#010a19]">{formatCurrencySummary(metrics.pendingTotals)}</p>
-                    <p className="mt-1 text-xs text-slate-500">{metrics.pendingPaymentCount} paiement(s) en attente</p>
+                <div className={`mt-5 grid gap-3 border-t border-slate-200 pt-4 dark:border-slate-800 ${individualFeatures.maintenanceDashboardWidgets ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+                  <div className="rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-800">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Loyers à encaisser</p>
+                    <p className="mt-1 text-xl font-semibold text-[#010a19] dark:text-white">{formatCurrencySummary(metrics.pendingTotals)}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{metrics.pendingPaymentCount} paiement(s) en attente</p>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">% de loyers payés</p>
-                    <p className="mt-1 text-xl font-semibold text-[#010a19]">{collectionRate}%</p>
-                    <p className="mt-1 text-xs text-slate-500">Part des paiements soldés</p>
+                  <div className="rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-800">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">% de loyers payés</p>
+                    <p className="mt-1 text-xl font-semibold text-[#010a19] dark:text-white">{collectionRate}%</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Part des paiements soldés</p>
                   </div>
 
                   {individualFeatures.maintenanceDashboardWidgets ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Réparations urgentes</p>
-                    <p className="mt-1 text-xl font-semibold text-amber-900">{metrics.urgentMaintenanceCount}</p>
-                    <p className="mt-1 text-xs text-amber-700">Ticket(s) urgents ouverts/en cours</p>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-500/20 dark:bg-amber-500/10">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Réparations urgentes</p>
+                    <p className="mt-1 text-xl font-semibold text-amber-900 dark:text-amber-200">{metrics.urgentMaintenanceCount}</p>
+                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Ticket(s) urgents ouverts/en cours</p>
                   </div>
                   ) : null}
                 </div>
 
-                <div className="mt-5 border-t border-slate-200 pt-4">
-                  <h3 className="text-sm font-semibold text-[#010a19]">À traiter aujourd&apos;hui</h3>
-                  <p className="mt-1 text-xs text-slate-500">Les points urgents de vos locations.</p>
+                <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <h3 className="text-sm font-semibold text-[#010a19] dark:text-white">À traiter aujourd&apos;hui</h3>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Les points urgents de vos locations.</p>
                   <div className={`mt-3 grid gap-3 ${individualFeatures.maintenanceDashboardWidgets ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                     {individualFeatures.maintenanceDashboardWidgets ? (
-                    <article className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Réparations urgentes</p>
-                      <p className="mt-1 text-xl font-semibold text-amber-900">{metrics.dailyDigest.urgentMaintenanceCount}</p>
-                      <Link href="/dashboard/maintenance" className="mt-2 inline-block text-xs font-medium text-amber-800 hover:underline">
+                    <article className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-500/20 dark:bg-amber-500/10">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Réparations urgentes</p>
+                      <p className="mt-1 text-xl font-semibold text-amber-900 dark:text-amber-200">{metrics.dailyDigest.urgentMaintenanceCount}</p>
+                      <Link href="/dashboard/maintenance" className="mt-2 inline-block text-xs font-medium text-amber-800 hover:underline dark:text-amber-300">
                         Voir les réparations
                       </Link>
                     </article>
                     ) : null}
 
-                    <article className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Loyers en retard</p>
-                      <p className="mt-1 text-xl font-semibold text-rose-900">{metrics.dailyDigest.overduePaymentCount}</p>
-                      <p className="mt-1 text-xs text-rose-700">Max retard: {metrics.dailyDigest.mostOverdueDays} jour(s)</p>
-                      <Link href="/dashboard/payments" className="mt-2 inline-block text-xs font-medium text-rose-800 hover:underline">
+                    <article className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-500/20 dark:bg-rose-500/10">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">Loyers en retard</p>
+                      <p className="mt-1 text-xl font-semibold text-rose-900 dark:text-rose-200">{metrics.dailyDigest.overduePaymentCount}</p>
+                      <p className="mt-1 text-xs text-rose-700 dark:text-rose-300">Max retard: {metrics.dailyDigest.mostOverdueDays} jour(s)</p>
+                      <Link href="/dashboard/payments" className="mt-2 inline-block text-xs font-medium text-rose-800 hover:underline dark:text-rose-300">
                         Lancer les relances
                       </Link>
                     </article>
 
-                    <article className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Contrats bientôt finis (30j)</p>
-                      <p className="mt-1 text-xl font-semibold text-blue-900">{metrics.dailyDigest.leasesEndingSoonCount}</p>
-                      <p className="mt-1 text-xs text-blue-700">
+                    <article className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/20 dark:bg-blue-500/10">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Contrats bientôt finis (30j)</p>
+                      <p className="mt-1 text-xl font-semibold text-blue-900 dark:text-blue-200">{metrics.dailyDigest.leasesEndingSoonCount}</p>
+                      <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
                         {metrics.dailyDigest.nextLeaseEndDate
                           ? `Prochaine fin: ${formatIsoDate(metrics.dailyDigest.nextLeaseEndDate)}`
                           : "Aucune fin de contrat imminente"}
                       </p>
-                      <Link href="/dashboard/leases" className="mt-2 inline-block text-xs font-medium text-blue-800 hover:underline">
+                      <Link href="/dashboard/leases" className="mt-2 inline-block text-xs font-medium text-blue-800 hover:underline dark:text-blue-300">
                         Préparer les renouvellements
                       </Link>
                     </article>
@@ -783,20 +783,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </section>
 
               {individualFeatures.financeReportsWidgets ? (
-              <section id="quick-reports" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="text-base font-semibold text-[#010a19]">Rapports rapides</h2>
-                <p className="mt-1 text-xs text-slate-500">Accédez aux détails pour agir tout de suite.</p>
+              <section id="quick-reports" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0d1526]">
+                <h2 className="text-base font-semibold text-[#010a19] dark:text-white">Rapports rapides</h2>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Accédez aux détails pour agir tout de suite.</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <Link href="/dashboard/revenues" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe]">
+                  <Link href="/dashboard/revenues" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe] dark:border-slate-800 dark:text-white">
                     Loyers détaillés
                   </Link>
-                  <Link href="/dashboard/expenses" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe]">
+                  <Link href="/dashboard/expenses" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe] dark:border-slate-800 dark:text-white">
                     Dépenses détaillées
                   </Link>
-                  <Link href="/dashboard/payments" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe]">
+                  <Link href="/dashboard/payments" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe] dark:border-slate-800 dark:text-white">
                     Paiements et relances
                   </Link>
-                  <Link href="/dashboard/maintenance" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe]">
+                  <Link href="/dashboard/maintenance" className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-[#010a19] transition hover:border-[#0063fe] hover:text-[#0063fe] dark:border-slate-800 dark:text-white">
                     File des réparations
                   </Link>
                 </div>

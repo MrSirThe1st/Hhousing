@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   experimental: {
     devtoolSegmentExplorer: false,
   },
+  devIndicators: false,
   turbopack: {
     root: workspaceRoot
   },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { SidebarAccess } from "./sidebar";
 import LogoutButton from "./logout-button";
+import ThemeToggle from "./theme-toggle";
 import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
 
 interface BottomNavigationProps {
@@ -57,13 +58,13 @@ export default function BottomNavigation({
   const navItems = [
     {
       href: "/dashboard",
-      label: "Vue d'ensemble",
+      label: "Aperçu",
       icon: (active: boolean) => (
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500"} />
-          <rect x="13.5" y="3.5" width="7" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500"} />
-          <rect x="13.5" y="11.5" width="7" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500"} />
-          <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500"} />
+        <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+          <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+          <rect x="13.5" y="3.5" width="7" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+          <rect x="13.5" y="11.5" width="7" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+          <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
         </svg>
       ),
       visible: access.dashboard,
@@ -72,9 +73,9 @@ export default function BottomNavigation({
       href: "/dashboard/properties",
       label: "Mes biens",
       icon: (active: boolean) => (
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <path d="M4 20.5V9.5L12 4l8 5.5v11" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
-          <path d="M9 20.5v-5h6v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
+        <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+          <path d="M4 20.5V9.5L12 4l8 5.5v11" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+          <path d="M9 20.5v-5h6v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
         </svg>
       ),
       visible: access.operations,
@@ -83,10 +84,10 @@ export default function BottomNavigation({
       href: financesHref,
       label: "Finances",
       icon: (active: boolean) => (
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <path d="M4 18.5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
-          <path d="M6.5 15l4-4 3 2.5 4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
-          <path d="M15.5 8.5H18v2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
+        <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+          <path d="M4 18.5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+          <path d="M6.5 15l4-4 3 2.5 4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+          <path d="M15.5 8.5H18v2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
         </svg>
       ),
       visible: access.finances,
@@ -95,9 +96,9 @@ export default function BottomNavigation({
       href: servicesHref,
       label: servicesLabel,
       icon: (active: boolean) => (
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <path d="M14.5 6.5a3 3 0 0 1 3.9 3.9l-7.8 7.8-4.6 1 1-4.6 7.5-7.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
-          <path d="M13 8l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={active ? "text-[#0063fe]" : "text-slate-500"} />
+        <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+          <path d="M14.5 6.5a3 3 0 0 1 3.9 3.9l-7.8 7.8-4.6 1 1-4.6 7.5-7.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+          <path d="M13 8l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
         </svg>
       ),
       visible: access.services,
@@ -125,7 +126,7 @@ export default function BottomNavigation({
     <>
       {/* Bottom Nav Bar */}
       <nav 
-        className="fixed bottom-0 inset-x-0 w-full max-w-full z-50 bg-white border-t border-slate-200 flex md:hidden items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] select-none"
+        className="fixed bottom-0 inset-x-0 w-full max-w-full z-50 bg-white border-t border-slate-200 flex md:hidden items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] select-none dark:bg-[#0d1526] dark:border-slate-800"
         style={{ transform: "translateZ(0)" }}
       >
         {navItems.filter((item) => isItemVisible(item.href, item.visible)).map((item) => {
@@ -141,7 +142,7 @@ export default function BottomNavigation({
               className="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
             >
               {item.icon(isActive)}
-              <span className={`text-[10px] mt-0.5 font-medium ${isActive ? "text-[#0063fe]" : "text-slate-500"}`}>
+              <span className={`w-full truncate px-0.5 text-center text-[10px] mt-1 ${isActive ? "text-[#0063fe] font-medium" : "text-slate-500 font-normal dark:text-slate-400"}`}>
                 {item.label}
               </span>
             </Link>
@@ -156,12 +157,12 @@ export default function BottomNavigation({
           aria-expanded={isDrawerOpen}
           aria-label="Ouvrir le menu de navigation"
         >
-          <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-            <circle cx="5" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" className={isDrawerOpen ? "text-[#0063fe]" : "text-slate-500"} />
-            <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" className={isDrawerOpen ? "text-[#0063fe]" : "text-slate-500"} />
-            <circle cx="19" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" className={isDrawerOpen ? "text-[#0063fe]" : "text-slate-500"} />
+          <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+            <circle cx="5" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" className={isDrawerOpen ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+            <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" className={isDrawerOpen ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
+            <circle cx="19" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" className={isDrawerOpen ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400"} />
           </svg>
-          <span className={`text-[10px] mt-0.5 font-medium ${isDrawerOpen ? "text-[#0063fe]" : "text-slate-500"}`}>
+          <span className={`text-[10px] mt-1 font-normal ${isDrawerOpen ? "text-[#0063fe] font-medium" : "text-slate-500 dark:text-slate-400"}`}>
             Menu
           </span>
         </button>
@@ -179,25 +180,25 @@ export default function BottomNavigation({
 
       {/* Slide-up Menu Drawer */}
       <div
-        className={`fixed bottom-0 inset-x-0 w-full max-w-full z-50 bg-white border-t border-slate-200 rounded-t-2xl max-h-[85vh] overflow-y-auto shadow-xl transition-transform duration-300 ease-out will-change-transform pb-[calc(4rem+env(safe-area-inset-bottom))] md:hidden ${
+        className={`fixed bottom-0 inset-x-0 w-full max-w-full z-50 bg-white border-t border-slate-200 rounded-t-2xl max-h-[85vh] overflow-y-auto shadow-xl transition-transform duration-300 ease-out will-change-transform pb-[calc(4rem+env(safe-area-inset-bottom))] md:hidden dark:bg-[#0d1526] dark:border-slate-800 ${
           isDrawerOpen ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ transform: isDrawerOpen ? "translateY(0) translateZ(0)" : "translateY(100%) translateZ(0)" }}
       >
         {/* Safe drag handle indicator */}
         <div className="flex justify-center py-2" onClick={() => setIsDrawerOpen(false)}>
-          <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+          <div className="w-12 h-1.5 bg-slate-200 rounded-full dark:bg-slate-700" />
         </div>
 
         {/* Drawer Header */}
-        <div className="px-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-5 pb-3 border-b border-slate-100 flex items-center justify-between dark:border-slate-800">
           <div>
-            <h3 className="font-semibold text-slate-900">Menu</h3>
-            <p className="text-xs text-slate-500">{currentRoleLabel}</p>
+            <h3 className="font-semibold text-slate-900 dark:text-white">Menu</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{currentRoleLabel}</p>
           </div>
           <button
             onClick={() => setIsDrawerOpen(false)}
-            className="p-2 rounded-full hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600"
+            className="p-2 rounded-full hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Fermer le menu"
           >
             ✕
@@ -224,8 +225,8 @@ export default function BottomNavigation({
                 onClick={handleLinkClick}
                 className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center min-h-[80px] active:scale-95 ${
                   isActive
-                    ? "bg-blue-50/50 border-[#0063fe]/20 text-[#0063fe] font-medium"
-                    : "border-slate-100 bg-slate-50/30 text-slate-700 hover:bg-slate-50"
+                    ? "bg-blue-50/50 border-[#0063fe]/20 text-[#0063fe] font-medium dark:bg-[#0063fe]/10"
+                    : "border-slate-100 bg-slate-50/30 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-300 dark:hover:bg-slate-800/60"
                 }`}
               >
                 <span className="mb-2">
@@ -238,10 +239,11 @@ export default function BottomNavigation({
         </div>
 
         {/* Quick actions & Logout at bottom of drawer */}
-        <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs text-slate-400">haraka property mobile v1.0</span>
-          <div className="min-h-[44px] flex items-center">
-            <LogoutButton />
+        <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-3 dark:border-slate-800">
+          <span className="text-xs text-slate-400 shrink-0">haraka property mobile v1.0</span>
+          <div className="min-h-[44px] flex items-center gap-2">
+            <ThemeToggle />
+            <LogoutButton compact />
           </div>
         </div>
       </div>
@@ -250,7 +252,7 @@ export default function BottomNavigation({
 }
 
 function MenuIcon({ name, active }: { name: string; active: boolean }): React.ReactElement | null {
-  const strokeColor = active ? "text-[#0063fe]" : "text-slate-500";
+  const strokeColor = active ? "text-[#0063fe]" : "text-slate-500 dark:text-slate-400";
   const strokeWidth = "1.8";
 
   switch (name) {

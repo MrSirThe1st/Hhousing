@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Organization } from "@hhousing/domain";
 import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
+import LogoutButton from "./logout-button";
 
 const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed_v2";
 const SIDEBAR_SET_COLLAPSED_EVENT = "hhousing.sidebar.setCollapsed";
@@ -72,7 +73,7 @@ function createEmptyBadgeCounts(): SidebarBadgeCounts {
 }
 
 function SidebarIcon({ name, active }: { name: IconName; active: boolean }): React.ReactElement {
-  const strokeClassName = active ? "stroke-current" : "stroke-slate-600 group-hover:stroke-[#010a19]";
+  const strokeClassName = active ? "stroke-current" : "stroke-slate-600 group-hover:stroke-[#010a19] dark:stroke-slate-400 dark:group-hover:stroke-white";
 
   switch (name) {
     case "dashboard":
@@ -395,44 +396,44 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
 
   return (
     <aside
-      className={`hidden md:flex h-full shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[#010a19] transition-[width] duration-300 ${shellWidthClassName}`}
+      className={`hidden md:flex h-full shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[#010a19] transition-[width] duration-300 dark:border-slate-800 dark:bg-[#0d1526] dark:text-slate-100 ${shellWidthClassName}`}
     >
       {/* Top: organisation block */}
-      <div className="border-b border-slate-200 px-3 py-3">
+      <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
         {orgSettingsHref ? (
           <Link
             href={orgSettingsHref}
-            className={`flex min-w-0 flex-1 items-center rounded-lg transition hover:bg-slate-50 ${isCollapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5"}`}
+            className={`flex min-w-0 flex-1 items-center rounded-lg transition hover:bg-slate-50 dark:hover:bg-slate-800/60 ${isCollapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5"}`}
             aria-label={isIndividualExperience ? "Paramètres" : "Organisation"}
             title={isCollapsed ? (isIndividualExperience ? "Paramètres" : "Organisation") : undefined}
           >
             {organization?.logoUrl ? (
-              <img src={organization.logoUrl} alt={organization.name} className="h-9 w-9 shrink-0 rounded-md object-contain bg-white p-1 ring-1 ring-slate-200" />
+              <img src={organization.logoUrl} alt={organization.name} className="h-9 w-9 shrink-0 rounded-md object-contain bg-white p-1 ring-1 ring-slate-200 dark:ring-slate-700" />
             ) : (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
                 {getOrganizationInitials(organization?.name)}
               </div>
             )}
             {!isCollapsed ? (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#10213d]">{organization?.name ?? "Organisation"}</p>
-                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
+                <p className="truncate text-sm font-semibold text-[#10213d] dark:text-slate-100">{organization?.name ?? "Organisation"}</p>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{organizationSubtitle}</p>
               </div>
             ) : null}
           </Link>
         ) : (
           <div className={`flex min-w-0 flex-1 items-center ${isCollapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5"}`}>
             {organization?.logoUrl ? (
-              <img src={organization.logoUrl} alt={organization.name} className="h-9 w-9 shrink-0 rounded-md object-contain bg-white p-1 ring-1 ring-slate-200" />
+              <img src={organization.logoUrl} alt={organization.name} className="h-9 w-9 shrink-0 rounded-md object-contain bg-white p-1 ring-1 ring-slate-200 dark:ring-slate-700" />
             ) : (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
                 {getOrganizationInitials(organization?.name)}
               </div>
             )}
             {!isCollapsed ? (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#10213d]">{organization?.name ?? "Organisation"}</p>
-                <p className="truncate text-xs text-slate-500">{organizationSubtitle}</p>
+                <p className="truncate text-sm font-semibold text-[#10213d] dark:text-slate-100">{organization?.name ?? "Organisation"}</p>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{organizationSubtitle}</p>
               </div>
             ) : null}
           </div>
@@ -445,11 +446,11 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
           {navSections.map((section) => (
             <div key={section.title}>
               {!isCollapsed ? (
-                <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500">
+                <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
                   {section.title}
                 </p>
               ) : (
-                <div className="mx-auto mb-3 h-px w-8 bg-slate-200" />
+                <div className="mx-auto mb-3 h-px w-8 bg-slate-200 dark:bg-slate-800" />
               )}
               <div className="space-y-1">
                 {section.items.map((item) => {
@@ -467,13 +468,13 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
                       href={item.href}
                       className={`group flex items-center ${isCollapsed ? "justify-center px-2" : "gap-3 px-3"} rounded-lg py-2.5 text-sm font-medium transition-colors ${
                         isActive
-                          ? "bg-[#f2f6fb] text-[#0f2748]"
-                          : "text-[#243b5a] hover:bg-slate-50 hover:text-[#010a19]"
+                          ? "bg-[#f2f6fb] text-[#0f2748] dark:bg-slate-800 dark:text-white"
+                          : "text-[#243b5a] hover:bg-slate-50 hover:text-[#010a19] dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-white"
                       }`}
                       aria-label={isCollapsed ? item.label : undefined}
                       title={isCollapsed ? item.label : undefined}
                     >
-                      <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition ${isActive ? "bg-white text-[#0063fe] ring-1 ring-[#d9e7ff]" : "text-slate-500"}`}>
+                      <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition ${isActive ? "bg-white text-[#0063fe] ring-1 ring-[#d9e7ff] dark:bg-slate-900 dark:ring-slate-700" : "text-slate-500 dark:text-slate-400"}`}>
                         <SidebarIcon name={item.icon} active={isActive} />
                         {isCollapsed && badgeLabel !== null ? (
                           <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-[#0063fe] px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-white">
@@ -485,7 +486,7 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
                         <>
                           <span className="min-w-0 flex-1 truncate">{item.label}</span>
                           {badgeLabel !== null ? (
-                            <span className={`rounded-full px-2 py-1 text-[11px] font-semibold leading-none ${isActive ? "bg-white text-[#0063fe] ring-1 ring-[#d9e7ff]" : "bg-slate-100 text-slate-600"}`}>
+                            <span className={`rounded-full px-2 py-1 text-[11px] font-semibold leading-none ${isActive ? "bg-white text-[#0063fe] ring-1 ring-[#d9e7ff] dark:bg-slate-900 dark:ring-slate-700" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}>
                               {badgeLabel}
                             </span>
                           ) : null}
@@ -499,6 +500,16 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
           ))}
         </div>
       </nav>
+
+      <div className={`border-t border-slate-200 py-3 dark:border-slate-800 ${isCollapsed ? "flex justify-center px-2" : "px-3"}`}>
+        {isCollapsed ? (
+          <LogoutButton compact />
+        ) : (
+          <div className="[&>div]:w-full [&_button]:w-full">
+            <LogoutButton />
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

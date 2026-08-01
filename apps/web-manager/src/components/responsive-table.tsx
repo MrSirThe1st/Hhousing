@@ -29,7 +29,7 @@ export default function ResponsiveTable<T>({
   keyExtractor,
   onRowClick,
   emptyState = (
-    <div className="px-4 py-8 text-center text-sm text-slate-400">
+    <div className="px-4 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
       Aucune donnée disponible.
     </div>
   ),
@@ -62,15 +62,15 @@ export default function ResponsiveTable<T>({
   if (!isMounted) {
     // Render desktop placeholder to avoid layout shifts/hydration mismatch
     return (
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden animate-pulse">
-        <div className="bg-slate-50 px-4 py-4 flex gap-8 border-b border-slate-200">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden animate-pulse dark:border-slate-800 dark:bg-[#0d1526]">
+        <div className="bg-slate-50 px-4 py-4 flex gap-8 border-b border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
           {columns.map((col, idx) => (
-            <div key={idx} className="h-4 bg-slate-200 rounded w-20" />
+            <div key={idx} className="h-4 bg-slate-200 rounded w-20 dark:bg-slate-700" />
           ))}
         </div>
         <div className="p-4 space-y-4">
-          <div className="h-4 bg-slate-100 rounded w-3/4" />
-          <div className="h-4 bg-slate-100 rounded w-1/2" />
+          <div className="h-4 bg-slate-100 rounded w-3/4 dark:bg-slate-800" />
+          <div className="h-4 bg-slate-100 rounded w-1/2 dark:bg-slate-800" />
         </div>
       </div>
     );
@@ -78,7 +78,7 @@ export default function ResponsiveTable<T>({
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-[#0d1526]">
         {emptyState}
       </div>
     );
@@ -93,26 +93,26 @@ export default function ResponsiveTable<T>({
   };
 
   const paginationControls = paginate && totalPages > 1 ? (
-    <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6">
+    <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 dark:border-slate-800 dark:bg-[#0d1526]">
       <div className="flex flex-1 justify-between sm:hidden">
         <button
           onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className="relative inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] transition-colors"
+          className="relative inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           Précédent
         </button>
         <button
           onClick={handleNextPage}
           disabled={currentPage === totalPages}
-          className="relative ml-3 inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] transition-colors"
+          className="relative ml-3 inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           Suivant
         </button>
       </div>
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-slate-700 dark:text-slate-300">
             Affichage de{" "}
             <span className="font-medium">
               {(currentPage - 1) * defaultPageSize + 1}
@@ -132,20 +132,20 @@ export default function ResponsiveTable<T>({
             <button
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className="relative inline-flex items-center rounded-l-md px-3 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed min-h-[38px] transition-colors"
+              className="relative inline-flex items-center rounded-l-md px-3 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed min-h-[38px] transition-colors dark:text-slate-500 dark:ring-slate-700 dark:hover:bg-slate-800"
             >
               <span className="sr-only">Précédent</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
               </svg>
             </button>
-            <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-900 ring-1 ring-inset ring-slate-300 focus:outline-offset-0">
+            <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-900 ring-1 ring-inset ring-slate-300 focus:outline-offset-0 dark:text-white dark:ring-slate-700">
               Page {currentPage} sur {totalPages}
             </span>
             <button
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className="relative inline-flex items-center rounded-r-md px-3 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed min-h-[38px] transition-colors"
+              className="relative inline-flex items-center rounded-r-md px-3 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed min-h-[38px] transition-colors dark:text-slate-500 dark:ring-slate-700 dark:hover:bg-slate-800"
             >
               <span className="sr-only">Suivant</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -166,7 +166,7 @@ export default function ResponsiveTable<T>({
             <div
               key={keyExtractor(item)}
               onClick={() => onRowClick && onRowClick(item)}
-              className={`rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition duration-150 active:scale-[0.99] active:bg-slate-50 ${
+              className={`rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition duration-150 active:scale-[0.99] active:bg-slate-50 dark:border-slate-800 dark:bg-[#0d1526] dark:active:bg-slate-800 ${
                 onRowClick ? "cursor-pointer" : ""
               } ${typeof rowClassName === "function" ? rowClassName(item) : rowClassName}`}
             >
@@ -180,10 +180,10 @@ export default function ResponsiveTable<T>({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs dark:border-slate-800 dark:bg-[#0d1526]">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 border-b border-slate-200">
+          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 border-b border-slate-200 dark:bg-slate-900/40 dark:text-slate-400 dark:border-slate-800">
             <tr>
               {columns.map((col, idx) => (
                 <th key={idx} className={`px-5 py-3 text-left ${col.className || ""}`}>
@@ -192,12 +192,12 @@ export default function ResponsiveTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {paginatedData.map((item) => (
               <tr
                 key={keyExtractor(item)}
                 onClick={() => onRowClick && onRowClick(item)}
-                className={`hover:bg-slate-50/80 transition-colors ${
+                className={`hover:bg-slate-50/80 transition-colors dark:hover:bg-slate-800/40 ${
                   onRowClick ? "cursor-pointer" : ""
                 } ${typeof rowClassName === "function" ? rowClassName(item) : rowClassName}`}
               >
