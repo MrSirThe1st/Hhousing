@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { notifyAccountDeletionChanged } from "@/lib/account-deletion-gate";
 import { clearBiometricCredentials } from "@/lib/biometrics";
+import type { Tenant } from "@/lib/domain-types";
 import { usePreferences } from "@/contexts/preferences-context";
 import { fontSize, fontWeight, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
@@ -27,6 +32,10 @@ type AccountDeletionStatus = {
 
 type DeletionOutput = {
   deletion: AccountDeletionStatus;
+};
+
+type ProfileOutput = {
+  tenant: Tenant;
 };
 
 function formatScheduledDate(iso: string | null, language: string): string {
@@ -44,6 +53,24 @@ function formatScheduledDate(iso: string | null, language: string): string {
   }
 }
 
+function normalizeName(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function namesMatch(typed: string, expected: string): boolean {
+  if (!expected) {
+    return false;
+  }
+  return normalizeName(typed) === normalizeName(expected);
+}
+
+function isEndpointUnavailable(error: string, code: string): boolean {
+  if (code === "NOT_FOUND") {
+    return true;
+  }
+  return /invalid api response \(404/i.test(error);
+}
+
 export default function DeleteAccountScreen(): React.ReactElement {
   const router = useRouter();
   const { t } = useTranslation();
@@ -52,26 +79,59 @@ export default function DeleteAccountScreen(): React.ReactElement {
   const { language, setBiometricEnabled } = usePreferences();
 
   const [status, setStatus] = useState<AccountDeletionStatus | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [typedName, setTypedName] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [endpointUnavailable, setEndpointUnavailable] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
-  const loadStatus = useCallback(async () => {
+  const loadScreen = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await getWithAuth<DeletionOutput>("/api/mobile/auth/delete-account");
-    if (!result.success) {
-      setError(result.error);
+    setEndpointUnavailable(false);
+
+    const [deletionResult, profileResult] = await Promise.all([
+      getWithAuth<DeletionOutput>("/api/mobile/auth/delete-account"),
+      getWithAuth<ProfileOutput>("/api/mobile/profile")
+    ]);
+
+    if (profileResult.success) {
+      const tenant = profileResult.data.tenant;
+      setFullName((tenant.fullName ?? "").trim());
+    }
+
+    if (!deletionResult.success) {
+      if (isEndpointUnavailable(deletionResult.error, deletionResult.code)) {
+        setEndpointUnavailable(true);
+        setStatus({
+          accountStatus: "active",
+          deletionRequestedAtIso: null,
+          scheduledDeletionAtIso: null,
+          graceDaysRemaining: null
+        });
+      } else if (deletionResult.code === "ACCOUNT_PENDING_DELETION") {
+        setStatus({
+          accountStatus: "pending_deletion",
+          deletionRequestedAtIso: null,
+          scheduledDeletionAtIso: null,
+          graceDaysRemaining: null
+        });
+      } else {
+        setError(deletionResult.error);
+      }
       setLoading(false);
       return;
     }
-    setStatus(result.data.deletion);
+
+    setStatus(deletionResult.data.deletion);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    void loadStatus();
-  }, [loadStatus]);
+    void loadScreen();
+  }, [loadScreen]);
 
   async function confirmDelete(): Promise<void> {
     setBusy(true);
@@ -79,9 +139,16 @@ export default function DeleteAccountScreen(): React.ReactElement {
     try {
       const result = await postWithAuth<DeletionOutput>("/api/mobile/auth/delete-account", {});
       if (!result.success) {
-        setError(result.error);
+        if (isEndpointUnavailable(result.error, result.code)) {
+          setEndpointUnavailable(true);
+          setConfirmVisible(false);
+        } else {
+          setError(result.error);
+        }
         return;
       }
+      setConfirmVisible(false);
+      setTypedName("");
       setStatus(result.data.deletion);
       await clearBiometricCredentials().catch(() => undefined);
       await setBiometricEnabled(false);
@@ -89,21 +156,6 @@ export default function DeleteAccountScreen(): React.ReactElement {
     } finally {
       setBusy(false);
     }
-  }
-
-  function handleDeletePress(): void {
-    Alert.alert(
-      t("deleteAccount.confirmTitle"),
-      t("deleteAccount.confirmBody"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("deleteAccount.confirmAction"),
-          style: "destructive",
-          onPress: () => { void confirmDelete(); }
-        }
-      ]
-    );
   }
 
   async function handleCancelDeletion(): Promise<void> {
@@ -120,7 +172,6 @@ export default function DeleteAccountScreen(): React.ReactElement {
       }
       setStatus(result.data.deletion);
       notifyAccountDeletionChanged();
-      Alert.alert(t("common.info"), t("deleteAccount.cancelledBody"));
     } finally {
       setBusy(false);
     }
@@ -128,6 +179,7 @@ export default function DeleteAccountScreen(): React.ReactElement {
 
   const isPending = status?.accountStatus === "pending_deletion";
   const scheduledLabel = formatScheduledDate(status?.scheduledDeletionAtIso ?? null, language);
+  const canDelete = !busy && !endpointUnavailable && namesMatch(typedName, fullName);
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
@@ -152,62 +204,121 @@ export default function DeleteAccountScreen(): React.ReactElement {
           <ActivityIndicator color={colors.brand} />
         </View>
       ) : (
-        <View style={styles.content}>
-          <View style={styles.iconWrap}>
-            <Ionicons
-              name={isPending ? "time-outline" : "trash-outline"}
-              size={32}
-              color={isPending ? colors.warning : colors.danger}
-            />
-          </View>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={[styles.iconWrap, isPending ? styles.iconWrapPending : null]}>
+              <Ionicons
+                name={isPending ? "time-outline" : "exit-outline"}
+                size={34}
+                color={isPending ? colors.warning : colors.brand}
+              />
+            </View>
 
-          <Text style={styles.heading}>
-            {isPending ? t("deleteAccount.pendingTitle") : t("deleteAccount.heading")}
-          </Text>
-          <Text style={styles.body}>
-            {isPending
-              ? t("deleteAccount.pendingBody", {
-                  date: scheduledLabel,
-                  days: status?.graceDaysRemaining ?? 0
-                })
-              : t("deleteAccount.body")}
-          </Text>
+            <Text style={styles.heading}>
+              {isPending ? t("deleteAccount.pendingTitle") : t("deleteAccount.heading")}
+            </Text>
+            <Text style={styles.body}>
+              {isPending
+                ? t("deleteAccount.pendingBody", {
+                    date: scheduledLabel || t("deleteAccount.pendingDateFallback"),
+                    days: status?.graceDaysRemaining ?? "—"
+                  })
+                : t("deleteAccount.body")}
+            </Text>
 
-          <View style={styles.bullets}>
-            <Text style={styles.bullet}>{t("deleteAccount.bulletAccess")}</Text>
-            <Text style={styles.bullet}>{t("deleteAccount.bulletLandlord")}</Text>
-            <Text style={styles.bullet}>{t("deleteAccount.bulletGrace")}</Text>
-          </View>
+            {endpointUnavailable ? (
+              <Text style={styles.error}>{t("deleteAccount.endpointUnavailable")}</Text>
+            ) : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          {isPending ? (
-            <Pressable
-              style={[styles.primaryBtn, busy ? styles.btnDisabled : null]}
-              onPress={() => { void handleCancelDeletion(); }}
-              disabled={busy}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.onBrand} />
-              ) : (
-                <Text style={styles.primaryBtnText}>{t("deleteAccount.cancelDeletion")}</Text>
-              )}
-            </Pressable>
-          ) : (
-            <Pressable
-              style={[styles.dangerBtn, busy ? styles.btnDisabled : null]}
-              onPress={handleDeletePress}
-              disabled={busy}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.onBrand} />
-              ) : (
-                <Text style={styles.dangerBtnText}>{t("deleteAccount.deleteAction")}</Text>
-              )}
-            </Pressable>
-          )}
-        </View>
+            {isPending ? (
+              <Pressable
+                style={[styles.primaryBtn, busy ? styles.btnDisabled : null]}
+                onPress={() => { void handleCancelDeletion(); }}
+                disabled={busy || endpointUnavailable}
+              >
+                {busy ? (
+                  <ActivityIndicator color={colors.onBrand} />
+                ) : (
+                  <Text style={styles.primaryBtnText}>{t("deleteAccount.cancelDeletion")}</Text>
+                )}
+              </Pressable>
+            ) : (
+              <View style={styles.confirmBlock}>
+                <Text style={styles.confirmLabel}>
+                  {t("deleteAccount.typeNameLabel", { name: fullName || "…" })}
+                </Text>
+                <TextInput
+                  value={typedName}
+                  onChangeText={setTypedName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  editable={!endpointUnavailable && Boolean(fullName)}
+                  placeholder={fullName || t("deleteAccount.typeNamePlaceholder")}
+                  placeholderTextColor={colors.textFaint}
+                  style={styles.input}
+                />
+                <Pressable
+                  style={[styles.dangerBtn, !canDelete ? styles.btnDisabled : null]}
+                  onPress={() => { setConfirmVisible(true); }}
+                  disabled={!canDelete}
+                >
+                  <Text style={styles.dangerBtnText}>{t("deleteAccount.deleteAction")}</Text>
+                </Pressable>
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
+
+      <Modal
+        visible={confirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!busy) {
+            setConfirmVisible(false);
+          }
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t("deleteAccount.confirmTitle")}</Text>
+            <Text style={styles.modalBody}>{t("deleteAccount.confirmIntro")}</Text>
+            <View style={styles.modalBullets}>
+              <Text style={styles.modalBullet}>{t("deleteAccount.bulletAccess")}</Text>
+              <Text style={styles.modalBullet}>{t("deleteAccount.bulletLandlord")}</Text>
+              <Text style={styles.modalBullet}>{t("deleteAccount.bulletGrace")}</Text>
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.modalCancel}
+                onPress={() => { setConfirmVisible(false); }}
+                disabled={busy}
+              >
+                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalConfirm, busy ? styles.btnDisabled : null]}
+                onPress={() => { void confirmDelete(); }}
+                disabled={busy}
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color={colors.onBrand} />
+                ) : (
+                  <Text style={styles.modalConfirmText}>{t("deleteAccount.confirmAction")}</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -217,6 +328,9 @@ function createStyles(colors: ThemeColors) {
     root: {
       flex: 1,
       backgroundColor: colors.background
+    },
+    flex: {
+      flex: 1
     },
     topBar: {
       minHeight: 48,
@@ -249,44 +363,63 @@ function createStyles(colors: ThemeColors) {
     },
     content: {
       paddingHorizontal: 24,
-      paddingTop: 28,
-      gap: 14
+      paddingTop: 36,
+      paddingBottom: 40,
+      gap: 12
     },
     iconWrap: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
+      width: 72,
+      height: 72,
+      borderRadius: 36,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.backgroundAlt,
-      marginBottom: 4
+              backgroundColor: colors.brandSoft,
+      marginBottom: 8,
+      alignSelf: "center"
+    },
+    iconWrapPending: {
+      backgroundColor: colors.backgroundAlt
     },
     heading: {
-      fontSize: fontSize.title,
+      fontSize: fontSize.emphasis,
       fontWeight: fontWeight.bold,
-      color: colors.text
+      color: colors.text,
+      textAlign: "center"
     },
     body: {
       fontSize: fontSize.secondary,
       lineHeight: 22,
-      color: colors.textMuted
-    },
-    bullets: {
-      gap: 8,
-      marginTop: 4,
+      color: colors.textMuted,
+      textAlign: "center",
       marginBottom: 8
     },
-    bullet: {
+    confirmBlock: {
+      marginTop: 12,
+      gap: 10
+    },
+    confirmLabel: {
       fontSize: fontSize.secondary,
-      lineHeight: 20,
-      color: colors.textSecondary
+      color: colors.textSecondary,
+      lineHeight: 20
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 14,
+      minHeight: 48,
+      fontSize: fontSize.body,
+      color: colors.text
     },
     error: {
       color: colors.danger,
-      fontSize: fontSize.secondary
+      fontSize: fontSize.secondary,
+      lineHeight: 20,
+      textAlign: "center"
     },
     dangerBtn: {
-      marginTop: 8,
+      marginTop: 6,
       minHeight: 48,
       borderRadius: 12,
       alignItems: "center",
@@ -299,7 +432,7 @@ function createStyles(colors: ThemeColors) {
       fontWeight: fontWeight.semibold
     },
     primaryBtn: {
-      marginTop: 8,
+      marginTop: 16,
       minHeight: 48,
       borderRadius: 12,
       alignItems: "center",
@@ -312,7 +445,71 @@ function createStyles(colors: ThemeColors) {
       fontWeight: fontWeight.semibold
     },
     btnDisabled: {
-      opacity: 0.65
+      opacity: 0.45
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24
+    },
+    modalCard: {
+      width: "100%",
+      maxWidth: 400,
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 20,
+      gap: 12
+    },
+    modalTitle: {
+      fontSize: fontSize.title,
+      fontWeight: fontWeight.bold,
+      color: colors.text
+    },
+    modalBody: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted,
+      lineHeight: 20
+    },
+    modalBullets: {
+      gap: 8,
+      paddingVertical: 4
+    },
+    modalBullet: {
+      fontSize: fontSize.secondary,
+      color: colors.textSecondary,
+      lineHeight: 20
+    },
+    modalActions: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 8
+    },
+    modalCancel: {
+      paddingHorizontal: 14,
+      paddingVertical: 12
+    },
+    modalCancelText: {
+      color: colors.textMuted,
+      fontSize: fontSize.secondary,
+      fontWeight: fontWeight.semibold
+    },
+    modalConfirm: {
+      minWidth: 132,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 10,
+      backgroundColor: colors.danger
+    },
+    modalConfirmText: {
+      color: colors.onBrand,
+      fontSize: fontSize.secondary,
+      fontWeight: fontWeight.bold
     }
   });
 }
