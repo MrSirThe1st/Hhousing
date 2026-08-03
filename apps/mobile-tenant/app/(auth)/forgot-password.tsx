@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 import { Stack, useRouter } from "expo-router";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -13,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { AppLoader } from "@/components/universal-loading-state";
 import { postWithoutAuth } from "@/lib/api-client";
 import {
   extractDrcNationalNumber,
@@ -82,10 +80,7 @@ export default function ForgotPasswordScreen(): React.ReactElement {
     <>
       <Stack.Screen options={{ title: t("auth.forgotTitle"), headerShown: false }} />
       <SafeAreaView style={styles.safeRoot}>
-        <KeyboardAvoidingView
-          style={styles.root}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+        <View style={styles.root}>
           <View style={styles.topBar}>
             <Pressable style={styles.backBtn} onPress={() => { router.back(); }} hitSlop={10}>
               <Ionicons name="arrow-back" size={22} color={colors.brand} />
@@ -165,7 +160,7 @@ export default function ForgotPasswordScreen(): React.ReactElement {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator size="small" color={colors.onBrand} />
+                  <AppLoader size="small" tone="onBrand" />
                 ) : (
                   <Text style={styles.buttonText}>{t("auth.forgotSubmit")}</Text>
                 )}
@@ -186,7 +181,7 @@ export default function ForgotPasswordScreen(): React.ReactElement {
               <Text style={styles.helpText}>{t("auth.forgotNoEmailAccess")}</Text>
             </View>
           )}
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
     </>
   );

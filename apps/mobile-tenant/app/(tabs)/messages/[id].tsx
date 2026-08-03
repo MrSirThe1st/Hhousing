@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,13 +7,14 @@ import {
   TextInput,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 import { ScreenShell } from "@/components/screen-shell";
-import { ListSkeleton } from "@/components/skeleton";
+import { AppLoader, ScreenLoader } from "@/components/universal-loading-state";
 import { ErrorState } from "@/components/error-state";
 import i18n from "@/i18n";
 import { formatLocaleDateTime } from "@/i18n/format";
@@ -221,21 +221,27 @@ export default function ConversationScreen(): React.ReactElement {
     });
   }, [conversationId, messageBody]);
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.loadingRoot} edges={["top"]}>
+        <ScreenLoader />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <ScreenShell
       title={detail?.conversation.organizationName ?? t("messages.conversation")}
       subtitle={detail?.conversation.propertyName ?? t("messages.conversationSubtitle")}
     >
-      {isLoading ? <ListSkeleton rows={5} /> : null}
-
-      {!isLoading && error ? (
+      {error ? (
         <ErrorState
           error={error}
           onRetry={() => { void load(); }}
         />
       ) : null}
 
-      {!isLoading && !error && detail ? (
+      {!error && detail ? (
         <>
           <ScrollView ref={scrollViewRef} style={styles.thread} showsVerticalScrollIndicator={false} onContentSizeChange={() => { scrollViewRef.current?.scrollToEnd({ animated: false }); }}>
             {messageRows.map(({ message, timeLabel }) => {
@@ -266,7 +272,7 @@ export default function ConversationScreen(): React.ReactElement {
               onPress={() => { void handleSend(); }}
               disabled={isSending || !messageBody.trim()}
             >
-              {isSending ? <ActivityIndicator size="small" color={colors.onBrand} /> : <Text style={styles.sendBtnText}>{t("messages.send")}</Text>}
+              {isSending ? <AppLoader size="small" tone="onBrand" /> : <Text style={styles.sendBtnText}>{t("messages.send")}</Text>}
             </Pressable>
           </View>
         </>
@@ -277,6 +283,10 @@ export default function ConversationScreen(): React.ReactElement {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    loadingRoot: {
+      flex: 1,
+      backgroundColor: colors.background
+    },
     info: { color: colors.textMuted, fontSize: fontSize.secondary },
     notice: {
       borderRadius: 12,

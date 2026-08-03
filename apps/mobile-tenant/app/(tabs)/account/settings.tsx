@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppLoader } from "@/components/universal-loading-state";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -52,6 +52,10 @@ type ProfileOutput = {
   tenant: Tenant;
 };
 
+type ResolvePhoneResult =
+  | { ok: true; phone: string }
+  | { ok: false; reason: "auth" | "missing" | "other"; message: string };
+
 function ToggleRow({
   icon,
   label,
@@ -64,18 +68,22 @@ function ToggleRow({
 }: ToggleRowProps): React.ReactElement {
   return (
     <View style={[styles.row, disabled ? styles.rowDisabled : null]}>
-      <Ionicons name={icon} size={22} color={colors.brand} />
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={22} color={colors.brand} />
+      </View>
       <View style={styles.rowCopy}>
         <Text style={styles.rowLabel}>{label}</Text>
         {hint ? <Text style={styles.rowHint}>{hint}</Text> : null}
       </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        disabled={disabled}
-        trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
-        thumbColor={value ? colors.brand : colors.switchThumbOff}
-      />
+      <View style={styles.rowTrailing}>
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          disabled={disabled}
+          trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
+          thumbColor={value ? colors.brand : colors.switchThumbOff}
+        />
+      </View>
     </View>
   );
 }
@@ -91,6 +99,7 @@ export default function SettingsScreen(): React.ReactElement {
     language,
     amountsSensitive,
     setBiometricEnabled,
+    markBiometricPromptShown,
     setThemeMode,
     setAmountsSensitive
   } = usePreferences();
@@ -139,18 +148,21 @@ export default function SettingsScreen(): React.ReactElement {
     }
   }, [passwordModalVisible]);
 
-  async function resolvePhoneE164(): Promise<string | null> {
+  async function resolvePhoneE164(): Promise<ResolvePhoneResult> {
     const result = await getWithAuth<ProfileOutput>("/api/mobile/profile");
     if (!result.success) {
-      return null;
+      if (result.code === "UNAUTHORIZED") {
+        return { ok: false, reason: "auth", message: t("common.sessionExpired") };
+      }
+      return { ok: false, reason: "other", message: result.error };
     }
 
     const stored = result.data.tenant.phone ?? result.data.tenant.phoneNumber ?? null;
     const national = nationalFromStoredPhone(stored);
     if (national.length !== 9) {
-      return null;
+      return { ok: false, reason: "missing", message: t("biometric.phoneMissing") };
     }
-    return toDrcE164(national);
+    return { ok: true, phone: toDrcE164(national) };
   }
 
   async function handleDisableBiometric(): Promise<void> {
@@ -181,13 +193,13 @@ export default function SettingsScreen(): React.ReactElement {
         return;
       }
 
-      const phone = await resolvePhoneE164();
-      if (!phone) {
-        Alert.alert(t("common.error"), t("biometric.phoneMissing"));
+      const phoneResult = await resolvePhoneE164();
+      if (!phoneResult.ok) {
+        Alert.alert(t("common.error"), phoneResult.message);
         return;
       }
 
-      setEnablePhoneE164(phone);
+      setEnablePhoneE164(phoneResult.phone);
       setPasswordModalVisible(true);
     } finally {
       setBiometricBusy(false);
@@ -212,6 +224,7 @@ export default function SettingsScreen(): React.ReactElement {
         password: enablePassword
       });
       await setBiometricEnabled(true);
+      await markBiometricPromptShown();
       setPasswordModalVisible(false);
     } catch {
       setEnableError(t("biometric.enableFailed"));
@@ -249,12 +262,16 @@ export default function SettingsScreen(): React.ReactElement {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               onPress={row.onPress}
             >
-              <Ionicons name={row.icon} size={22} color={colors.brand} />
+              <View style={styles.rowIcon}>
+                <Ionicons name={row.icon} size={22} color={colors.brand} />
+              </View>
               <View style={styles.rowCopy}>
                 <Text style={styles.rowLabel}>{row.label}</Text>
                 {row.hint ? <Text style={styles.rowHint}>{row.hint}</Text> : null}
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.iconMuted} />
+              <View style={styles.rowTrailing}>
+                <Ionicons name="chevron-forward" size={18} color={colors.iconMuted} />
+              </View>
             </Pressable>
             {index < links.length - 1 ? <View style={styles.separator} /> : null}
           </View>
@@ -328,7 +345,7 @@ export default function SettingsScreen(): React.ReactElement {
                 disabled={biometricBusy}
               >
                 {biometricBusy ? (
-                  <ActivityIndicator size="small" color={colors.onBrand} />
+                  <AppLoader size="small" tone="onBrand" />
                 ) : (
                   <Text style={styles.modalConfirmText}>{t("common.confirm")}</Text>
                 )}
@@ -376,10 +393,10 @@ function createStyles(colors: ThemeColors) {
     },
     row: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 14,
       paddingHorizontal: 20,
-      minHeight: 54,
+      paddingVertical: 14,
       backgroundColor: colors.background
     },
     rowPressed: {
@@ -388,24 +405,38 @@ function createStyles(colors: ThemeColors) {
     rowDisabled: {
       opacity: 0.55
     },
+    rowIcon: {
+      width: 24,
+      height: 22,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 1
+    },
     rowCopy: {
       flex: 1,
-      gap: 2
+      gap: 4,
+      paddingRight: 4
     },
     rowLabel: {
-      flex: 1,
       fontSize: fontSize.body,
+      lineHeight: 22,
       color: colors.textSecondary,
       fontWeight: "500"
     },
     rowHint: {
       fontSize: fontSize.caption,
+      lineHeight: 18,
       color: colors.textFaint
+    },
+    rowTrailing: {
+      minHeight: 22,
+      justifyContent: "center",
+      alignSelf: "center"
     },
     separator: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.border,
-      marginLeft: 56
+      marginLeft: 58
     },
     modalBackdrop: {
       flex: 1,

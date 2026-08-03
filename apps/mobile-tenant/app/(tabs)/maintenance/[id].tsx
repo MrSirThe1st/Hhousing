@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { CardSkeleton } from "@/components/skeleton";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenLoader } from "@/components/universal-loading-state";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -240,10 +241,9 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <ScreenShell title={t("maintenance.title")} subtitle={t("maintenance.detailSubtitle")}>
-        <CardSkeleton />
-        <CardSkeleton />
-      </ScreenShell>
+      <SafeAreaView style={styles.loadingRoot} edges={["top"]}>
+        <ScreenLoader />
+      </SafeAreaView>
     );
   }
 
@@ -442,6 +442,10 @@ function TimelineEvent({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
+    loadingRoot: {
+      flex: 1,
+      backgroundColor: colors.background
+    },
     centerContainer: {
       flex: 1,
       justifyContent: "center",

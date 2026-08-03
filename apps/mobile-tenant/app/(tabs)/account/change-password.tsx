@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -15,6 +11,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { AppLoader, ScreenLoader } from "@/components/universal-loading-state";
+import { useAuth } from "@/contexts/auth-context";
 import { usePreferences } from "@/contexts/preferences-context";
 import { postWithAuth } from "@/lib/api-client";
 import {
@@ -30,6 +28,9 @@ import type { ThemeColors } from "@/theme";
 
 type ChangePasswordOutput = {
   message: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 };
 
 export default function ChangePasswordScreen(): React.ReactElement {
@@ -37,6 +38,7 @@ export default function ChangePasswordScreen(): React.ReactElement {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { signInWithSession } = useAuth();
   const { biometricEnabled, setBiometricEnabled } = usePreferences();
 
   const [unlocked, setUnlocked] = useState(false);
@@ -53,6 +55,8 @@ export default function ChangePasswordScreen(): React.ReactElement {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [clearedBiometrics, setClearedBiometrics] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -114,6 +118,11 @@ export default function ChangePasswordScreen(): React.ReactElement {
     setGateError(null);
   }
 
+  function finishSuccess(): void {
+    setSuccessVisible(false);
+    router.back();
+  }
+
   async function handleSubmit(): Promise<void> {
     setError(null);
 
@@ -146,20 +155,31 @@ export default function ChangePasswordScreen(): React.ReactElement {
         return;
       }
 
+      const sessionError = await signInWithSession(
+        result.data.accessToken,
+        result.data.refreshToken
+      );
+      if (sessionError) {
+        setError(t("common.sessionExpired"));
+        return;
+      }
+
+      const hadBiometrics = biometricEnabled || (await hasBiometricCredentials());
       await clearBiometricCredentials();
       await setBiometricEnabled(false);
-
-      Alert.alert(t("common.info"), t("auth.changePasswordSuccess"), [
-        {
-          text: t("common.confirm"),
-          onPress: () => {
-            router.back();
-          }
-        }
-      ]);
+      setClearedBiometrics(hadBiometrics);
+      setSuccessVisible(true);
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (checkingGate) {
+    return (
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <ScreenLoader />
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -173,15 +193,8 @@ export default function ChangePasswordScreen(): React.ReactElement {
       </View>
       <View style={styles.headerRule} />
 
-      {checkingGate ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color={colors.brand} />
-        </View>
-      ) : unlocked ? (
-        <KeyboardAvoidingView
-          style={styles.content}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+      {unlocked ? (
+        <View style={styles.content}>
           <Text style={styles.subtitle}>{t("auth.changePasswordSubtitle")}</Text>
 
           <View style={styles.fieldGroup}>
@@ -263,12 +276,12 @@ export default function ChangePasswordScreen(): React.ReactElement {
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator size="small" color={colors.onBrand} />
+              <AppLoader size="small" tone="onBrand" />
             ) : (
               <Text style={styles.buttonText}>{t("auth.changePasswordSubmit")}</Text>
             )}
           </Pressable>
-        </KeyboardAvoidingView>
+        </View>
       ) : (
         <View style={styles.loading}>
           <Text style={styles.subtitle}>{t("auth.changePasswordGateBody")}</Text>
@@ -328,6 +341,29 @@ export default function ChangePasswordScreen(): React.ReactElement {
                 <Text style={styles.buttonText}>{t("common.confirm")}</Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={successVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={finishSuccess}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.successCard}>
+            <View style={styles.successIconWrap}>
+              <Ionicons name="checkmark-circle" size={40} color={colors.success} />
+            </View>
+            <Text style={styles.successTitle}>{t("auth.changePasswordSuccessTitle")}</Text>
+            <Text style={styles.successBody}>{t("auth.changePasswordSuccess")}</Text>
+            {clearedBiometrics ? (
+              <Text style={styles.successNote}>{t("auth.changePasswordSuccessBiometric")}</Text>
+            ) : null}
+            <Pressable style={styles.successBtn} onPress={finishSuccess}>
+              <Text style={styles.buttonText}>{t("common.done")}</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -487,6 +523,48 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.brand
+    },
+    successCard: {
+      width: "100%",
+      maxWidth: 360,
+      borderRadius: 16,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 24,
+      paddingTop: 28,
+      paddingBottom: 20,
+      alignItems: "center",
+      gap: 10
+    },
+    successIconWrap: {
+      marginBottom: 4
+    },
+    successTitle: {
+      fontSize: fontSize.title,
+      fontWeight: fontWeight.semibold,
+      color: colors.text,
+      textAlign: "center"
+    },
+    successBody: {
+      fontSize: fontSize.body,
+      color: colors.textSecondary,
+      lineHeight: 22,
+      textAlign: "center"
+    },
+    successNote: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted,
+      lineHeight: 20,
+      textAlign: "center",
+      marginTop: 2
+    },
+    successBtn: {
+      alignSelf: "stretch",
+      minHeight: 52,
+      borderRadius: 12,
+      backgroundColor: colors.brand,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 12
     }
   });
 }

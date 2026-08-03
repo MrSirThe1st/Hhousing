@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   RefreshControl,
@@ -18,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { MaintenancePriority, MaintenanceRequest } from "@hhousing/domain";
 import type { ApiResult } from "@hhousing/api-contracts";
-import { ListSkeleton } from "@/components/skeleton";
+import { AppLoader, ScreenLoader } from "@/components/universal-loading-state";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 import { EmptyState } from "@/components/empty-state";
@@ -352,7 +351,7 @@ export default function MaintenanceScreen(): React.ReactElement {
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator color={colors.onBrand} size="small" />
+              <AppLoader tone="onBrand" size="small" />
             ) : (
               <Text style={styles.submitBtnText}>{t("maintenance.submit")}</Text>
             )}
@@ -368,10 +367,8 @@ export default function MaintenanceScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
-        <View style={styles.screenPadding}>
-          <ListSkeleton rows={4} />
-        </View>
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <ScreenLoader />
       </SafeAreaView>
     );
   }

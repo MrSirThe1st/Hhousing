@@ -11,9 +11,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { CardSkeleton, ListSkeleton } from "@/components/skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { ScreenLoader } from "@/components/universal-loading-state";
 import type { ApiResult, LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
 import { formatAmount, formatLocaleDate } from "@/i18n/format";
@@ -95,11 +95,7 @@ export default function LeaseScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.root} edges={["top"]}>
-        <View style={styles.loadingWrap}>
-          <CardSkeleton />
-          <CardSkeleton />
-          <ListSkeleton rows={3} />
-        </View>
+        <ScreenLoader />
       </SafeAreaView>
     );
   }
@@ -249,12 +245,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background
     },
-    loadingWrap: {
-      flex: 1,
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      gap: 10
-    },
     topBar: {
       minHeight: 44,
       paddingHorizontal: 12,
@@ -378,7 +368,7 @@ function createStyles(colors: ThemeColors) {
     sectionTitle: {
       fontSize: fontSize.secondary,
       fontWeight: fontWeight.semibold,
-      color: colors.textFaint,
+      color: colors.textMuted,
       letterSpacing: 0.4,
       textTransform: "uppercase",
       marginBottom: 4

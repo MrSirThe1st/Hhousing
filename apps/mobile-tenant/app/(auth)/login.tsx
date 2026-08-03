@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Stack, useRouter } from "expo-router";
 import {
-  ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
   Linking,
-  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -15,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { FullScreenLoadingOverlay } from "@/components/universal-loading-state";
 import { useAuth } from "@/contexts/auth-context";
 import { usePreferences } from "@/contexts/preferences-context";
 import { postWithoutAuth } from "@/lib/api-client";
@@ -25,6 +23,7 @@ import {
   saveBiometricCredentials,
   type StoredCredentials
 } from "@/lib/biometrics";
+import { setPendingBiometricCredentials } from "@/lib/pending-biometric-credentials";
 import { env } from "@/lib/env";
 import {
   extractDrcNationalNumber,
@@ -121,11 +120,14 @@ export default function LoginScreen(): React.ReactElement {
       return;
     }
 
+    // Keep credentials in memory for post-login Face ID setup (no second password prompt).
+    setPendingBiometricCredentials(credentials);
+
     if (biometricEnabled) {
       await saveBiometricCredentials(credentials);
     }
 
-    setIsSubmitting(false);
+    // Keep the blocking overlay up until navigation replaces this screen.
   }
 
   async function handleLogin(): Promise<void> {
@@ -178,10 +180,7 @@ export default function LoginScreen(): React.ReactElement {
     <>
       <Stack.Screen options={{ title: t("auth.loginTitle"), headerShown: false }} />
       <SafeAreaView style={styles.safeRoot}>
-        <KeyboardAvoidingView
-          style={styles.root}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+        <View style={styles.root}>
           <View style={styles.brandBlock}>
             <Image
               source={require("../../assets/door_logo.png")}
@@ -246,11 +245,7 @@ export default function LoginScreen(): React.ReactElement {
               }}
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color={colors.onBrand} />
-              ) : (
-                <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
-              )}
+              <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
             </Pressable>
 
             <Pressable
@@ -258,6 +253,7 @@ export default function LoginScreen(): React.ReactElement {
                 router.push("/(auth)/forgot-password");
               }}
               style={styles.forgotWrap}
+              disabled={isSubmitting}
             >
               <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
             </Pressable>
@@ -278,7 +274,11 @@ export default function LoginScreen(): React.ReactElement {
 
           <View style={styles.marketplaceWrap}>
             <Text style={styles.marketplaceText}>{t("auth.marketplacePrompt")}</Text>
-            <Pressable onPress={handleOpenMarketplace} style={styles.marketplacePressable}>
+            <Pressable
+              onPress={handleOpenMarketplace}
+              style={styles.marketplacePressable}
+              disabled={isSubmitting}
+            >
               <Text style={styles.marketplaceLink}>{t("auth.marketplaceLink")}</Text>
               <Ionicons name="open-outline" size={14} color={colors.brand} />
             </Pressable>
@@ -288,8 +288,9 @@ export default function LoginScreen(): React.ReactElement {
             <Text style={styles.footerText}>{t("auth.noAccount")}</Text>
             <Text style={styles.footerLink}>{t("auth.inviteHint")}</Text>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
+      <FullScreenLoadingOverlay visible={isSubmitting} />
     </>
   );
 }

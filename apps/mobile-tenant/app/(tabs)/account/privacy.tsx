@@ -80,7 +80,7 @@ function createStyles(colors: ThemeColors) {
     body: {
       fontSize: fontSize.secondary,
       lineHeight: 21,
-      color: colors.textMuted
+      color: colors.textSecondary
     },
     linkBtn: {
       marginTop: 8,

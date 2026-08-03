@@ -8,7 +8,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CardSkeleton } from "@/components/skeleton";
+import { ScreenLoader } from "@/components/universal-loading-state";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -20,6 +20,7 @@ import { ErrorState } from "@/components/error-state";
 import { MobileMoneyMethodsRow } from "@/components/mobile-money-logos";
 import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
 import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
+import { useAuth } from "@/contexts/auth-context";
 import { usePreferences } from "@/contexts/preferences-context";
 import {
   formatAmount,
@@ -85,10 +86,12 @@ export default function HomeScreen(): React.ReactElement {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { amountsRevealed, toggleAmountsRevealed } = useAmountPrivacy();
+  const { amountsRevealed, amountsSensitive, toggleAmountsRevealed } = useAmountPrivacy();
+  const { signOut } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [data, setData] = useState<DashboardData>({
     tenantName: "",
@@ -101,6 +104,7 @@ export default function HomeScreen(): React.ReactElement {
   const load = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
+    setErrorCode(null);
     setIsOffline(false);
 
     try {
@@ -112,20 +116,26 @@ export default function HomeScreen(): React.ReactElement {
 
       if (!leaseRes.success) {
         if (leaseRes.code === "NETWORK_ERROR") setIsOffline(true);
+        setErrorCode(leaseRes.code);
         setError(
           leaseRes.code === "NETWORK_ERROR"
             ? t("common.offline")
-            : leaseRes.error
+            : leaseRes.code === "UNAUTHORIZED"
+              ? t("common.sessionExpired")
+              : leaseRes.error
         );
         return;
       }
 
       if (!paymentsRes.success) {
         if (paymentsRes.code === "NETWORK_ERROR") setIsOffline(true);
+        setErrorCode(paymentsRes.code);
         setError(
           paymentsRes.code === "NETWORK_ERROR"
             ? t("common.offline")
-            : paymentsRes.error
+            : paymentsRes.code === "UNAUTHORIZED"
+              ? t("common.sessionExpired")
+              : paymentsRes.error
         );
         return;
       }
@@ -161,6 +171,13 @@ export default function HomeScreen(): React.ReactElement {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (errorCode !== "UNAUTHORIZED") {
+      return;
+    }
+    void signOut();
+  }, [errorCode, signOut]);
+
   const firstName = getFirstName(data.tenantName);
   const displayName = firstName || data.tenantName || t("common.tenant");
   const initials = useMemo(
@@ -170,11 +187,8 @@ export default function HomeScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
-        <View style={styles.padded}>
-          <CardSkeleton />
-          <CardSkeleton />
-        </View>
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <ScreenLoader />
       </SafeAreaView>
     );
   }
@@ -185,6 +199,7 @@ export default function HomeScreen(): React.ReactElement {
         <View style={styles.padded}>
           <ErrorState
             offline={isOffline}
+            code={errorCode}
             error={error}
             onRetry={() => { void load(); }}
           />
@@ -242,7 +257,8 @@ export default function HomeScreen(): React.ReactElement {
               <SensitiveAmount
                 value={formatAmount(data.nextPayment.amount, data.nextPayment.currencyCode ?? "CDF")}
                 revealed={amountsRevealed}
-                onToggle={toggleAmountsRevealed}
+                onToggle={amountsSensitive ? toggleAmountsRevealed : undefined}
+                showToggle={amountsSensitive}
                 style={styles.rentAmount}
                 eyeColor={colors.brand}
               />
@@ -299,7 +315,8 @@ export default function HomeScreen(): React.ReactElement {
                 data.lease.currencyCode ?? "CDF"
               )}
               revealed={amountsRevealed}
-              onToggle={toggleAmountsRevealed}
+              onToggle={amountsSensitive ? toggleAmountsRevealed : undefined}
+              showToggle={amountsSensitive}
               style={styles.rentAmountMuted}
               eyeColor={colors.textFaint}
             />

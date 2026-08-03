@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { BiometricGlyph } from "@/components/biometric-glyph";
+import { BlockingLoadingScreen } from "@/components/universal-loading-state";
 import { usePreferences } from "@/contexts/preferences-context";
-import { authenticateWithBiometrics, getBiometricAvailability } from "@/lib/biometrics";
+import {
+  authenticateWithBiometrics,
+  biometricFailureMessage,
+  biometricMethodLabel,
+  getBiometricAvailability,
+  saveBiometricCredentials,
+  type BiometricModality
+} from "@/lib/biometrics";
+import {
+  clearPendingBiometricCredentials,
+  takePendingBiometricCredentials
+} from "@/lib/pending-biometric-credentials";
 import { fontWeight, fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
 
@@ -14,7 +26,12 @@ export default function OnboardingBiometricScreen(): React.ReactElement {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { setBiometricEnabled, markBiometricPromptShown } = usePreferences();
   const [checking, setChecking] = useState(true);
-  const [busy, setBusy] = useState(false);
+  /** Disables buttons while Face ID sheet is up — screen must stay mounted. */
+  const [prompting, setPrompting] = useState(false);
+  /** Full-screen blocker only after success, while we save + navigate away. */
+  const [completing, setCompleting] = useState(false);
+  const [modality, setModality] = useState<BiometricModality>("biometric");
+  const [enrolled, setEnrolled] = useState(false);
   const settledRef = useRef(false);
 
   useEffect(() => {
@@ -26,12 +43,15 @@ export default function OnboardingBiometricScreen(): React.ReactElement {
         return;
       }
 
-      if (!availability.available) {
+      if (!availability.hardware) {
         settledRef.current = true;
+        clearPendingBiometricCredentials();
         await markBiometricPromptShown();
         return;
       }
 
+      setModality(availability.modality);
+      setEnrolled(availability.enrolled);
       setChecking(false);
     }
 
@@ -42,63 +62,85 @@ export default function OnboardingBiometricScreen(): React.ReactElement {
   }, [markBiometricPromptShown]);
 
   async function finish(enabled: boolean): Promise<void> {
-    if (busy || settledRef.current) {
+    if (prompting || completing || settledRef.current) {
       return;
     }
-    settledRef.current = true;
-    setBusy(true);
-    try {
-      if (enabled) {
-        const auth = await authenticateWithBiometrics(t("biometric.enablePrompt"));
-        if (!auth.success) {
-          settledRef.current = false;
-          setBusy(false);
-          return;
-        }
-        await setBiometricEnabled(true);
-      }
+
+    if (!enabled) {
+      settledRef.current = true;
+      setCompleting(true);
+      clearPendingBiometricCredentials();
       await markBiometricPromptShown();
-    } finally {
-      setBusy(false);
+      return;
+    }
+
+    if (!enrolled) {
+      Alert.alert(t("common.info"), t("biometric.notEnrolled"));
+      return;
+    }
+
+    // Keep this screen mounted so iOS can present Face ID.
+    setPrompting(true);
+    try {
+      const auth = await authenticateWithBiometrics(t("biometric.enablePrompt"));
+      if (!auth.success) {
+        setPrompting(false);
+        if (!auth.cancelled) {
+          const message = biometricFailureMessage(auth);
+          Alert.alert(t("common.error"), message ?? t("biometric.failedFallback"));
+        }
+        return;
+      }
+
+      settledRef.current = true;
+      setCompleting(true);
+      const credentials = takePendingBiometricCredentials();
+      if (credentials) {
+        await saveBiometricCredentials(credentials);
+      }
+      await setBiometricEnabled(true);
+      await markBiometricPromptShown();
+    } catch {
+      settledRef.current = false;
+      setPrompting(false);
+      setCompleting(false);
+      Alert.alert(t("common.error"), t("biometric.failedFallback"));
     }
   }
 
-  if (checking) {
-    return (
-      <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color={colors.brand} />
-        </View>
-      </SafeAreaView>
-    );
+  const method = biometricMethodLabel(modality);
+  const wide = modality === "biometric";
+
+  if (checking || completing) {
+    return <BlockingLoadingScreen />;
   }
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
       <View style={styles.content}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="finger-print-outline" size={48} color={colors.brand} />
+        <View style={[styles.iconWrap, wide ? styles.iconWrapWide : null]}>
+          <BiometricGlyph modality={modality} size={48} color={colors.brand} />
         </View>
-        <Text style={styles.title}>{t("onboarding.biometricTitle")}</Text>
-        <Text style={styles.subtitle}>{t("onboarding.biometricSubtitle")}</Text>
+        <Text style={styles.title}>{t("onboarding.biometricTitle", { method })}</Text>
+        <Text style={styles.subtitle}>{t("onboarding.biometricSubtitle", { method })}</Text>
       </View>
 
       <View style={styles.footer}>
         <Pressable
-          style={[styles.primaryButton, busy ? styles.buttonDisabled : null]}
+          style={[styles.primaryButton, prompting ? styles.buttonDisabled : null]}
           onPress={() => {
             void finish(true);
           }}
-          disabled={busy}
+          disabled={prompting}
         >
-          <Text style={styles.primaryText}>{t("onboarding.biometricEnable")}</Text>
+          <Text style={styles.primaryText}>{t("onboarding.biometricEnable", { method })}</Text>
         </Pressable>
         <Pressable
-          style={[styles.secondaryButton, busy ? styles.buttonDisabled : null]}
+          style={[styles.secondaryButton, prompting ? styles.buttonDisabled : null]}
           onPress={() => {
             void finish(false);
           }}
-          disabled={busy}
+          disabled={prompting}
         >
           <Text style={styles.secondaryText}>{t("onboarding.biometricSkip")}</Text>
         </Pressable>
@@ -113,11 +155,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background
     },
-    loading: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center"
-    },
     content: {
       flex: 1,
       paddingHorizontal: 24,
@@ -131,7 +168,14 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.brandSoft,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 28
+      marginBottom: 28,
+      flexDirection: "row",
+      gap: 10
+    },
+    iconWrapWide: {
+      width: 132,
+      borderRadius: 44,
+      paddingHorizontal: 16
     },
     title: {
       fontSize: fontSize.emphasis,

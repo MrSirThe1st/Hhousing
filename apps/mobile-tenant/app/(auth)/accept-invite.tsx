@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { ScreenLoader } from "@/components/universal-loading-state";
 import { getWithoutAuth } from "@/lib/api-client";
 import { env } from "@/lib/env";
 import { fontWeight, fontSize, useTheme } from "@/theme";
@@ -58,23 +59,27 @@ export default function AcceptInviteScreen(): React.ReactElement {
       <Stack.Screen options={{ title: t("auth.inviteTitle"), headerShown: false }} />
       <View style={styles.root}>
         {isLoading ? (
-          <ActivityIndicator size="large" color={colors.brand} />
-        ) : error ? (
-          <View style={styles.card}>
-            <Text style={styles.title}>{t("auth.invalidLinkTitle")}</Text>
-            <Text style={styles.body}>{error}</Text>
-          </View>
+          <ScreenLoader />
         ) : (
-          <View style={styles.card}>
-            <Text style={styles.title}>
-              {tenantFullName
-                ? t("auth.welcomeNamed", { name: tenantFullName })
-                : t("auth.welcome")}
-            </Text>
-            <Text style={styles.body}>{t("auth.inviteBody")}</Text>
-            <Pressable style={styles.button} onPress={openWebActivation}>
-              <Text style={styles.buttonText}>{t("auth.openActivation")}</Text>
-            </Pressable>
+          <View style={styles.content}>
+            {error ? (
+              <View style={styles.card}>
+                <Text style={styles.title}>{t("auth.invalidLinkTitle")}</Text>
+                <Text style={styles.body}>{error}</Text>
+              </View>
+            ) : (
+              <View style={styles.card}>
+                <Text style={styles.title}>
+                  {tenantFullName
+                    ? t("auth.welcomeNamed", { name: tenantFullName })
+                    : t("auth.welcome")}
+                </Text>
+                <Text style={styles.body}>{t("auth.inviteBody")}</Text>
+                <Pressable style={styles.button} onPress={openWebActivation}>
+                  <Text style={styles.buttonText}>{t("auth.openActivation")}</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -86,7 +91,10 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: colors.backgroundAlt,
+      backgroundColor: colors.backgroundAlt
+    },
+    content: {
+      flex: 1,
       justifyContent: "center",
       paddingHorizontal: 20
     },

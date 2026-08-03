@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   // Alert,
   // Linking,
   Platform,
@@ -11,6 +10,7 @@ import {
   Text,
   View
 } from "react-native";
+import { AppLoader, ScreenLoader } from "@/components/universal-loading-state";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -237,10 +237,8 @@ export default function AccountScreen(): React.ReactElement {
 
   if (isLoading || isAuthLoading) {
     return (
-      <SafeAreaView style={styles.root}>
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.brand} />
-        </View>
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <ScreenLoader />
       </SafeAreaView>
     );
   }
@@ -310,7 +308,7 @@ export default function AccountScreen(): React.ReactElement {
           disabled={isSigningOut}
         >
           {isSigningOut ? (
-            <ActivityIndicator color={colors.danger} size="small" />
+            <AppLoader size="small" />
           ) : (
             <>
               <Ionicons name="log-out-outline" size={22} color={colors.danger} />
@@ -332,11 +330,6 @@ function createStyles(colors: ThemeColors) {
     container: { flex: 1 },
     content: {
       paddingBottom: 40
-    },
-    loadingWrap: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center"
     },
     profileBanner: {
       backgroundColor: colors.brand,

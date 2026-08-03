@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -17,7 +16,7 @@ import type { Tenant } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth, patchWithAuth } from "@/lib/api-client";
-import { FormSkeleton } from "@/components/skeleton";
+import { AppLoader, ScreenLoader } from "@/components/universal-loading-state";
 import { useAuth } from "@/contexts/auth-context";
 import { ErrorState } from "@/components/error-state";
 import {
@@ -150,10 +149,8 @@ export default function EditProfileScreen(): React.ReactElement {
 
   if (isLoading || isAuthLoading) {
     return (
-      <SafeAreaView style={styles.root}>
-        <View style={styles.loadingWrap}>
-          <FormSkeleton fields={2} />
-        </View>
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <ScreenLoader />
       </SafeAreaView>
     );
   }
@@ -236,7 +233,7 @@ export default function EditProfileScreen(): React.ReactElement {
           disabled={isSaving}
         >
           {isSaving
-            ? <ActivityIndicator color={colors.onBrand} size="small" />
+            ? <AppLoader tone="onBrand" size="small" />
             : <Text style={styles.saveBtnText}>{t("account.saveChanges")}</Text>}
         </Pressable>
 
@@ -257,8 +254,9 @@ function createStyles(colors: ThemeColors) {
     flex: { flex: 1 },
     loadingWrap: {
       flex: 1,
-      paddingHorizontal: 16,
-      paddingTop: 16
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 16
     },
     topBar: {
       minHeight: 48,

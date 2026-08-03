@@ -1,5 +1,9 @@
+import { Platform } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
-import type { LocalAuthenticationError } from "expo-local-authentication";
+import {
+  AuthenticationType,
+  type LocalAuthenticationError
+} from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import i18n from "@/i18n";
 
@@ -18,10 +22,15 @@ export type StoredCredentials = {
   password: string;
 };
 
+/** How we present biometrics in UI for this device. */
+export type BiometricModality = "face" | "fingerprint" | "biometric";
+
 export type BiometricAvailability = {
   hardware: boolean;
   enrolled: boolean;
   available: boolean;
+  modality: BiometricModality;
+  types: AuthenticationType[];
 };
 
 export type BiometricAuthResult = {
@@ -31,13 +40,74 @@ export type BiometricAuthResult = {
   error: LocalAuthenticationError | null;
 };
 
+export type BiometricIconName =
+  | "scan-outline"
+  | "finger-print-outline"
+  | "shield-checkmark-outline";
+
+export function resolveBiometricModality(types: AuthenticationType[]): BiometricModality {
+  const hasFingerprint = types.includes(AuthenticationType.FINGERPRINT);
+  const hasFace = types.includes(AuthenticationType.FACIAL_RECOGNITION);
+  if (hasFace && hasFingerprint) {
+    return "biometric";
+  }
+  if (hasFace) {
+    return "face";
+  }
+  if (hasFingerprint) {
+    return "fingerprint";
+  }
+  // Iris-only or unknown — keep copy generic.
+  return "biometric";
+}
+
+/** Primary glyph for a modality. Prefer `biometricIconsForModality` when both apply. */
+export function biometricIconForModality(modality: BiometricModality): BiometricIconName {
+  switch (modality) {
+    case "face":
+      return "scan-outline";
+    case "fingerprint":
+      return "finger-print-outline";
+    default:
+      return "shield-checkmark-outline";
+  }
+}
+
+/** Icons to show — two glyphs when the device supports face + fingerprint. */
+export function biometricIconsForModality(modality: BiometricModality): BiometricIconName[] {
+  if (modality === "biometric") {
+    return ["scan-outline", "finger-print-outline"];
+  }
+  return [biometricIconForModality(modality)];
+}
+
+/** Localized short name: Face ID, Touch ID, Fingerprint, Biometrics, etc. */
+export function biometricMethodLabel(modality: BiometricModality): string {
+  if (modality === "face") {
+    return Platform.OS === "ios"
+      ? i18n.t("biometric.methodFaceId")
+      : i18n.t("biometric.methodFace");
+  }
+  if (modality === "fingerprint") {
+    return Platform.OS === "ios"
+      ? i18n.t("biometric.methodTouchId")
+      : i18n.t("biometric.methodFingerprint");
+  }
+  return i18n.t("biometric.methodBiometric");
+}
+
 export async function getBiometricAvailability(): Promise<BiometricAvailability> {
   const hardware = await LocalAuthentication.hasHardwareAsync();
+  const types = hardware
+    ? await LocalAuthentication.supportedAuthenticationTypesAsync()
+    : [];
   const enrolled = hardware ? await LocalAuthentication.isEnrolledAsync() : false;
   return {
     hardware,
     enrolled,
-    available: hardware && enrolled
+    available: hardware && enrolled,
+    modality: resolveBiometricModality(types),
+    types
   };
 }
 

@@ -3,6 +3,7 @@
     "retry": "Retry",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "done": "Done",
     "save": "Save",
     "loading": "Loading",
     "error": "Error",
@@ -87,7 +88,9 @@
     "newPasswordLabel": "New password",
     "confirmPasswordLabel": "Confirm new password",
     "changePasswordSubmit": "Update password",
-    "changePasswordSuccess": "Password updated. Biometric sign-in was cleared — re-enable it in Settings if you want.",
+    "changePasswordSuccessTitle": "Password updated",
+    "changePasswordSuccess": "Your password has been changed successfully.",
+    "changePasswordSuccessBiometric": "Biometric sign-in was turned off for security. You can enable it again in Settings.",
     "passwordMismatch": "Passwords do not match.",
     "passwordMustDiffer": "New password must be different from the current one."
   },
@@ -109,15 +112,20 @@
     "lockout": "Too many attempts. Use your password instead.",
     "wrongPassword": "Incorrect password. Try again.",
     "passwordUnlockTitle": "Enter your password",
-    "passwordUnlockBody": "Biometrics unavailable or cancelled. Unlock with your account password."
+    "passwordUnlockBody": "Biometrics unavailable or cancelled. Unlock with your account password.",
+    "methodFaceId": "Face ID",
+    "methodTouchId": "Touch ID",
+    "methodFace": "Face unlock",
+    "methodFingerprint": "Fingerprint",
+    "methodBiometric": "Biometrics"
   },
   "onboarding": {
     "languageTitle": "Choose your language",
     "languageSubtitle": "You can change this later in Settings.",
     "continue": "Continue",
-    "biometricTitle": "Unlock with biometrics",
-    "biometricSubtitle": "Use Face ID or your fingerprint to unlock the app and sign in faster. You can change this later in Settings.",
-    "biometricEnable": "Enable biometrics",
+    "biometricTitle": "Unlock with {{method}}",
+    "biometricSubtitle": "Use {{method}} to unlock the app and sign in faster. You can change this later in Settings.",
+    "biometricEnable": "Enable {{method}}",
     "biometricSkip": "Not now"
   },
   "home": {

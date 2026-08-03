@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Redirect, Slot, useSegments } from "expo-router";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Slot, useRouter, useSegments } from "expo-router";
+import { Appearance, Text, TextInput } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -11,18 +11,20 @@ import { InboxProvider } from "@/contexts/inbox-context";
 import { AmountPrivacyProvider } from "@/contexts/amount-privacy-context";
 import { PreferencesProvider, usePreferences } from "@/contexts/preferences-context";
 import { BiometricLockScreen } from "@/components/biometric-lock-screen";
+import { BlockingLoadingScreen } from "@/components/universal-loading-state";
 import { getWithAuth } from "@/lib/api-client";
 import { subscribeAccountDeletionChanged } from "@/lib/account-deletion-gate";
+import { clearPendingBiometricCredentials } from "@/lib/pending-biometric-credentials";
 import { maxFontSizeMultiplier, useTheme } from "@/theme";
 
-// Keep the native splash up on cold start until auth + prefs are ready.
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({
   duration: 200,
   fade: true
 });
+// Prefer light splash immediately; prefs may switch to dark before hide.
+Appearance.setColorScheme("light");
 
-// Keep Dynamic Type from blowing up form layouts.
 const TextWithDefaults = Text as typeof Text & {
   defaultProps?: { maxFontSizeMultiplier?: number };
 };
@@ -38,114 +40,159 @@ TextInputWithDefaults.defaultProps = {
   maxFontSizeMultiplier
 };
 
+/**
+ * Single source of truth for where the user should be.
+ * No intermediate “gate ready” flags — those caused login/home/loader to fight.
+ */
 function RootNavigator(): React.ReactElement {
   const { session, isLoading } = useAuth();
-  const { languageSelected, biometricPromptShown } = usePreferences();
+  const { languageSelected, biometricPromptShown, isReady } = usePreferences();
   const segments = useSegments();
-  const isAuthRoute = segments[0] === "(auth)";
-  const isOnboardingRoute = segments[0] === "(onboarding)";
-  const onboardingStep = isOnboardingRoute ? segments[1] : undefined;
-  const isDeleteAccountRoute =
-    segments[0] === "(tabs)"
-    && segments[1] === "account"
-    && segments[2] === "delete-account";
+  const router = useRouter();
 
+  const group = segments[0];
+  const leaf = segments[1];
+  const isAuthRoute = group === "(auth)";
+  const isOnboardingRoute = group === "(onboarding)";
+  const isDeleteAccountRoute =
+    group === "(tabs)" && leaf === "account" && segments[2] === "delete-account";
+
+  const sessionUserId = session?.user?.id ?? null;
   const [pendingDeletion, setPendingDeletion] = useState(false);
-  const [deletionChecked, setDeletionChecked] = useState(false);
+  const pendingDeletionRef = useRef(false);
 
   useEffect(() => {
-    if (isLoading) return;
+    // Keep the native splash up until prefs + auth are ready and the color
+    // scheme matches the in-app theme (light by default).
+    if (!isReady || isLoading) {
+      return;
+    }
     void SplashScreen.hideAsync();
-  }, [isLoading]);
+  }, [isReady, isLoading]);
 
+  // Soft deletion check — only redirects when true; never blanks the UI.
   useEffect(() => {
     let cancelled = false;
-    let revision = 0;
 
     async function checkDeletion(): Promise<void> {
-      const currentRevision = ++revision;
-      if (!session) {
-        if (!cancelled) {
+      if (!sessionUserId) {
+        if (!cancelled && pendingDeletionRef.current) {
+          pendingDeletionRef.current = false;
           setPendingDeletion(false);
-          setDeletionChecked(true);
         }
         return;
       }
 
-      setDeletionChecked(false);
       const result = await getWithAuth<{
         deletion: { accountStatus: string };
       }>("/api/mobile/auth/delete-account");
 
-      if (cancelled || currentRevision !== revision) {
+      if (cancelled) {
         return;
       }
 
-      if (result.success) {
-        setPendingDeletion(result.data.deletion.accountStatus === "pending_deletion");
-      } else if (result.code === "ACCOUNT_PENDING_DELETION") {
-        setPendingDeletion(true);
-      } else {
-        setPendingDeletion(false);
+      const next =
+        (result.success && result.data.deletion.accountStatus === "pending_deletion")
+        || result.code === "ACCOUNT_PENDING_DELETION";
+
+      if (next !== pendingDeletionRef.current) {
+        pendingDeletionRef.current = next;
+        setPendingDeletion(next);
+        if (next) {
+          clearPendingBiometricCredentials();
+        }
       }
-      setDeletionChecked(true);
     }
 
     void checkDeletion();
-    const unsubscribe = subscribeAccountDeletionChanged(() => {
+    return subscribeAccountDeletionChanged(() => {
       void checkDeletion();
     });
+  }, [sessionUserId]);
 
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [session]);
-
-  if (isLoading || (session && !deletionChecked)) {
-    // Native splash still covers this; avoid a spinner flash underneath.
-    return <View style={styles.loadingRoot} />;
-  }
-
-  if (!languageSelected) {
-    if (onboardingStep !== "language") {
-      return <Redirect href="/(onboarding)/language" />;
+  // Imperative replace avoids stacked Redirect + Modal races.
+  useEffect(() => {
+    if (isLoading) {
+      return;
     }
-    return <Slot />;
-  }
 
-  if (!biometricPromptShown) {
-    if (onboardingStep !== "biometric") {
-      return <Redirect href="/(onboarding)/biometric" />;
+    if (!languageSelected) {
+      if (!(isOnboardingRoute && leaf === "language")) {
+        router.replace("/(onboarding)/language");
+      }
+      return;
     }
-    return <Slot />;
+
+    if (!sessionUserId) {
+      if (!isAuthRoute) {
+        router.replace("/(auth)/login");
+      }
+      return;
+    }
+
+    if (pendingDeletion) {
+      if (!isDeleteAccountRoute) {
+        router.replace("/(tabs)/account/delete-account");
+      }
+      return;
+    }
+
+    if (!biometricPromptShown) {
+      if (!(isOnboardingRoute && leaf === "biometric")) {
+        router.replace("/(onboarding)/biometric");
+      }
+      return;
+    }
+
+    if (isAuthRoute || isOnboardingRoute) {
+      router.replace("/(tabs)");
+    }
+  }, [
+    isLoading,
+    languageSelected,
+    sessionUserId,
+    pendingDeletion,
+    biometricPromptShown,
+    isAuthRoute,
+    isOnboardingRoute,
+    isDeleteAccountRoute,
+    leaf,
+    router
+  ]);
+
+  if (isLoading) {
+    return <BlockingLoadingScreen />;
   }
 
-  if (isOnboardingRoute) {
-    return <Redirect href={session ? "/(tabs)" : "/(auth)/login"} />;
+  // While logged-in routing settles, show one blocker — never login+home together.
+  if (sessionUserId && !pendingDeletion && !biometricPromptShown && !(isOnboardingRoute && leaf === "biometric")) {
+    return <BlockingLoadingScreen />;
   }
 
-  if (!session && !isAuthRoute) {
-    return <Redirect href="/(auth)/login" />;
+  if (sessionUserId && biometricPromptShown && !pendingDeletion && (isAuthRoute || isOnboardingRoute)) {
+    return <BlockingLoadingScreen />;
   }
 
-  if (session && isAuthRoute) {
-    return <Redirect href={pendingDeletion ? "/(tabs)/account/delete-account" : "/(tabs)"} />;
-  }
-
-  if (session && pendingDeletion && !isDeleteAccountRoute) {
-    return <Redirect href="/(tabs)/account/delete-account" />;
+  if (!sessionUserId && !isAuthRoute && languageSelected) {
+    return <BlockingLoadingScreen />;
   }
 
   return <Slot />;
 }
 
 function ThemedApp(): React.ReactElement {
-  const { isReady } = usePreferences();
+  const { isReady, themeMode } = usePreferences();
   const { colors } = useTheme();
 
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+    Appearance.setColorScheme(themeMode);
+  }, [isReady, themeMode]);
+
   if (!isReady) {
-    return <View style={styles.loadingRoot} />;
+    return <BlockingLoadingScreen />;
   }
 
   return (
@@ -174,9 +221,3 @@ export default function RootLayout(): React.ReactElement {
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingRoot: {
-    flex: 1
-  }
-});

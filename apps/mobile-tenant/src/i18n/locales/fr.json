@@ -3,6 +3,7 @@
     "retry": "Réessayer",
     "cancel": "Annuler",
     "confirm": "Confirmer",
+    "done": "Terminé",
     "save": "Enregistrer",
     "loading": "Chargement",
     "error": "Erreur",
@@ -87,7 +88,9 @@
     "newPasswordLabel": "Nouveau mot de passe",
     "confirmPasswordLabel": "Confirmer le nouveau mot de passe",
     "changePasswordSubmit": "Mettre à jour le mot de passe",
-    "changePasswordSuccess": "Mot de passe mis à jour. La connexion biométrique a été désactivée — réactivez-la dans les Paramètres si besoin.",
+    "changePasswordSuccessTitle": "Mot de passe mis à jour",
+    "changePasswordSuccess": "Votre mot de passe a été modifié avec succès.",
+    "changePasswordSuccessBiometric": "La connexion biométrique a été désactivée pour des raisons de sécurité. Vous pouvez la réactiver dans les Paramètres.",
     "passwordMismatch": "Les mots de passe ne correspondent pas.",
     "passwordMustDiffer": "Le nouveau mot de passe doit être différent de l'actuel."
   },
@@ -109,15 +112,20 @@
     "lockout": "Trop de tentatives. Utilisez votre mot de passe.",
     "wrongPassword": "Mot de passe incorrect. Réessayez.",
     "passwordUnlockTitle": "Entrez votre mot de passe",
-    "passwordUnlockBody": "Biométrie indisponible ou annulée. Déverrouillez avec votre mot de passe."
+    "passwordUnlockBody": "Biométrie indisponible ou annulée. Déverrouillez avec votre mot de passe.",
+    "methodFaceId": "Face ID",
+    "methodTouchId": "Touch ID",
+    "methodFace": "la reconnaissance faciale",
+    "methodFingerprint": "l'empreinte",
+    "methodBiometric": "la biométrie"
   },
   "onboarding": {
     "languageTitle": "Choisissez votre langue",
     "languageSubtitle": "Vous pourrez la modifier plus tard dans les Paramètres.",
     "continue": "Continuer",
-    "biometricTitle": "Déverrouillage biométrique",
-    "biometricSubtitle": "Utilisez Face ID ou votre empreinte pour déverrouiller l'application et vous connecter plus rapidement. Vous pourrez modifier cela plus tard dans les Paramètres.",
-    "biometricEnable": "Activer la biométrie",
+    "biometricTitle": "Déverrouillage avec {{method}}",
+    "biometricSubtitle": "Utilisez {{method}} pour déverrouiller l'application et vous connecter plus rapidement. Vous pourrez modifier cela plus tard dans les Paramètres.",
+    "biometricEnable": "Activer {{method}}",
     "biometricSkip": "Pas maintenant"
   },
   "home": {

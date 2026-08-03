@@ -16,11 +16,10 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { Payment } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
-import { ListSkeleton } from "@/components/skeleton";
+import { ScreenLoader, FullScreenLoadingOverlay } from "@/components/universal-loading-state";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
-import { FullScreenLoadingOverlay } from "@/components/universal-loading-state";
 import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
 import { usePreferences } from "@/contexts/preferences-context";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
@@ -166,7 +165,7 @@ export default function PaymentsScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
   const params = useLocalSearchParams<{ pay?: string }>();
   const { colors } = useTheme();
-  const { amountsRevealed, toggleAmountsRevealed } = useAmountPrivacy();
+  const { amountsRevealed, amountsSensitive, toggleAmountsRevealed } = useAmountPrivacy();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const statusBadgeBg = useMemo(() => getStatusBadgeBg(colors), [colors]);
   const statusBadgeText = useMemo(() => getStatusBadgeText(colors), [colors]);
@@ -395,9 +394,7 @@ export default function PaymentsScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.root} edges={["top"]}>
-        <View style={styles.content}>
-          <ListSkeleton rows={6} />
-        </View>
+        <ScreenLoader />
       </SafeAreaView>
     );
   }
@@ -437,7 +434,8 @@ export default function PaymentsScreen(): React.ReactElement {
             <SensitiveAmount
               value={formatAmount(totalDue, currencyCode)}
               revealed={amountsRevealed}
-              onToggle={toggleAmountsRevealed}
+              onToggle={amountsSensitive ? toggleAmountsRevealed : undefined}
+              showToggle={amountsSensitive}
               style={styles.balanceAmount}
               eyeColor={colors.textMuted}
             />

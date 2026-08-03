@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { AppLoader, ScreenLoader } from "@/components/universal-loading-state";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { notifyAccountDeletionChanged } from "@/lib/account-deletion-gate";
 import { clearBiometricCredentials } from "@/lib/biometrics";
@@ -182,6 +180,14 @@ export default function DeleteAccountScreen(): React.ReactElement {
   const scheduledLabel = formatScheduledDate(status?.scheduledDeletionAtIso ?? null, language);
   const canDelete = !busy && !endpointUnavailable && namesMatch(typedName, fullName);
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <ScreenLoader />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
       <View style={styles.topBar}>
@@ -208,15 +214,7 @@ export default function DeleteAccountScreen(): React.ReactElement {
       </View>
       <View style={styles.headerRule} />
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.brand} />
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+      <View style={styles.flex}>
           <ScrollView
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
@@ -253,7 +251,7 @@ export default function DeleteAccountScreen(): React.ReactElement {
                 disabled={busy || endpointUnavailable}
               >
                 {busy ? (
-                  <ActivityIndicator color={colors.onBrand} />
+                  <AppLoader tone="onBrand" />
                 ) : (
                   <Text style={styles.primaryBtnText}>{t("deleteAccount.cancelDeletion")}</Text>
                 )}
@@ -283,8 +281,7 @@ export default function DeleteAccountScreen(): React.ReactElement {
               </View>
             )}
           </ScrollView>
-        </KeyboardAvoidingView>
-      )}
+        </View>
 
       <Modal
         visible={confirmVisible}
@@ -307,7 +304,7 @@ export default function DeleteAccountScreen(): React.ReactElement {
                 disabled={busy}
               >
                 {busy ? (
-                  <ActivityIndicator size="small" color={colors.onBrand} />
+                  <AppLoader size="small" tone="onBrand" />
                 ) : (
                   <Text style={styles.modalConfirmText}>{t("deleteAccount.confirmAction")}</Text>
                 )}

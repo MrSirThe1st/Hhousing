@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { clearPendingBiometricCredentials } from "@/lib/pending-biometric-credentials";
 import { supabase } from "@/lib/supabase";
 
 type AuthContextValue = {
@@ -52,10 +53,15 @@ export function AuthProvider({ children }: PropsWithChildren): React.ReactElemen
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, updatedSession) => {
-      if (mounted) {
-        setSession(updatedSession);
+    } = supabase.auth.onAuthStateChange((event, updatedSession) => {
+      if (!mounted) {
+        return;
       }
+      // Ignore transient nulls during token refresh — they caused login↔home blinks.
+      if (!updatedSession && event === "TOKEN_REFRESHED") {
+        return;
+      }
+      setSession(updatedSession);
     });
 
     return () => {
@@ -93,6 +99,7 @@ export function AuthProvider({ children }: PropsWithChildren): React.ReactElemen
         return null;
       },
       signOut: async (): Promise<void> => {
+        clearPendingBiometricCredentials();
         await supabase.auth.signOut();
       }
     }),

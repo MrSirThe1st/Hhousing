@@ -204,7 +204,7 @@ function createStyles(colors: ThemeColors) {
     cardLabel: {
       fontSize: fontSize.caption,
       fontWeight: fontWeight.semibold,
-      color: colors.textFaint,
+      color: colors.textMuted,
       textTransform: "uppercase",
       letterSpacing: 0.4
     },

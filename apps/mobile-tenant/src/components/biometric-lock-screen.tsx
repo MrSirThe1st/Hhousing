@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { AppLoader } from "@/components/universal-loading-state";
+import { BiometricGlyph } from "@/components/biometric-glyph";
 import { useAuth } from "@/contexts/auth-context";
 import { useBiometricLock } from "@/contexts/biometric-lock-context";
+import {
+  getBiometricAvailability,
+  type BiometricModality
+} from "@/lib/biometrics";
 import { fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
 
@@ -26,13 +31,25 @@ export function BiometricLockScreen(): React.ReactElement | null {
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [modality, setModality] = useState<BiometricModality>("biometric");
 
   useEffect(() => {
     if (!isLocked) {
       setPasswordModalVisible(false);
       setPassword("");
       setPasswordError(null);
+      return;
     }
+
+    let mounted = true;
+    void getBiometricAvailability().then((availability) => {
+      if (mounted) {
+        setModality(availability.modality);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
   }, [isLocked]);
 
   if (!isLocked) {
@@ -72,10 +89,20 @@ export function BiometricLockScreen(): React.ReactElement | null {
           disabled={isAuthenticating}
         >
           {isAuthenticating && !passwordModalVisible ? (
-            <ActivityIndicator size="small" color={colors.onBrand} />
+            <AppLoader size="small" tone="onBrand" />
           ) : (
             <>
-              <Ionicons name="finger-print-outline" size={22} color={colors.onBrand} />
+              <BiometricGlyph
+                modality={
+                  modality === "biometric"
+                    ? Platform.OS === "ios"
+                      ? "face"
+                      : "fingerprint"
+                    : modality
+                }
+                size={22}
+                color={colors.onBrand}
+              />
               <Text style={styles.buttonText}>{t("biometric.unlockCta")}</Text>
             </>
           )}
@@ -144,7 +171,7 @@ export function BiometricLockScreen(): React.ReactElement | null {
                 disabled={isAuthenticating}
               >
                 {isAuthenticating ? (
-                  <ActivityIndicator size="small" color={colors.onBrand} />
+                  <AppLoader size="small" tone="onBrand" />
                 ) : (
                   <Text style={styles.modalConfirmText}>{t("biometric.unlockCta")}</Text>
                 )}

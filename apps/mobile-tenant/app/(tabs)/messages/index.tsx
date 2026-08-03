@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { ListSkeleton } from "@/components/skeleton";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenLoader } from "@/components/universal-loading-state";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -103,11 +104,17 @@ export default function InboxScreen(): React.ReactElement {
     }, [markAllRead])
   );
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.loadingRoot} edges={["top"]}>
+        <ScreenLoader />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <ScreenShell title={t("messages.title")} subtitle={t("messages.subtitle")}>
-      {isLoading ? <ListSkeleton rows={4} /> : null}
-
-      {!isLoading && error ? (
+      {error ? (
         <ErrorState
           offline={isOffline}
           error={error}
@@ -115,7 +122,7 @@ export default function InboxScreen(): React.ReactElement {
         />
       ) : null}
 
-      {!isLoading && !error && conversations.length === 0 ? (
+      {!error && conversations.length === 0 ? (
         <EmptyState
           illustration="house"
           title={t("messages.emptyTitle")}
@@ -123,7 +130,7 @@ export default function InboxScreen(): React.ReactElement {
         />
       ) : null}
 
-      {!isLoading && !error && conversationRows.length > 0 ? (
+      {!error && conversationRows.length > 0 ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
           style={styles.list}
@@ -151,6 +158,10 @@ export default function InboxScreen(): React.ReactElement {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    loadingRoot: {
+      flex: 1,
+      backgroundColor: colors.background
+    },
     info: { color: colors.textMuted, fontSize: fontSize.secondary },
     notice: {
       borderRadius: 12,

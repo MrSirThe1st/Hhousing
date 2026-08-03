@@ -108,7 +108,7 @@ function createStyles(colors: ThemeColors) {
     body: {
       fontSize: fontSize.secondary,
       lineHeight: 21,
-      color: colors.textMuted
+      color: colors.textSecondary
     },
     contactCard: {
       flexDirection: "row",
@@ -138,7 +138,7 @@ function createStyles(colors: ThemeColors) {
     },
     contactLabel: {
       fontSize: fontSize.caption,
-      color: colors.textFaint,
+      color: colors.textMuted,
       fontWeight: fontWeight.semibold,
       textTransform: "uppercase",
       letterSpacing: 0.3

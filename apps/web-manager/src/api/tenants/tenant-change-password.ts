@@ -7,12 +7,12 @@ function buildSyntheticEmail(phoneNormalized: string): string {
   return `${phoneNormalized}@phone.tenant.harakaproperty.local`;
 }
 
-async function verifyPassword(params: {
+async function createPasswordSession(params: {
   supabaseUrl: string;
   supabaseAnonKey: string;
   email: string;
   password: string;
-}): Promise<boolean> {
+}): Promise<{ accessToken: string; refreshToken: string; expiresIn: number } | null> {
   const response = await fetch(`${params.supabaseUrl}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: {
@@ -24,7 +24,26 @@ async function verifyPassword(params: {
       password: params.password
     })
   });
-  return response.ok;
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+  };
+
+  if (!payload.access_token || !payload.refresh_token) {
+    return null;
+  }
+
+  return {
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token,
+    expiresIn: payload.expires_in ?? 3600
+  };
 }
 
 async function updateUserPassword(params: {
@@ -59,10 +78,17 @@ export interface ChangeTenantPasswordDeps {
   organizationId: string;
 }
 
+type ChangePasswordSuccess = {
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+};
+
 export async function changeTenantPassword(
   body: unknown,
   deps: ChangeTenantPasswordDeps
-): Promise<{ status: number; body: ApiResult<{ message: string }> }> {
+): Promise<{ status: number; body: ApiResult<ChangePasswordSuccess> }> {
   if (typeof body !== "object" || body === null) {
     return {
       status: 400,
@@ -137,20 +163,21 @@ export async function changeTenantPassword(
     phoneNormalized ? buildSyntheticEmail(phoneNormalized) : null
   ].filter((value, index, list): value is string => Boolean(value) && list.indexOf(value) === index);
 
-  let currentOk = false;
+  let verifiedEmail: string | null = null;
   for (const email of emailsToTry) {
-    currentOk = await verifyPassword({
+    const currentSession = await createPasswordSession({
       supabaseUrl: deps.supabaseUrl,
       supabaseAnonKey: deps.supabaseAnonKey,
       email,
       password: currentPassword
     });
-    if (currentOk) {
+    if (currentSession) {
+      verifiedEmail = email;
       break;
     }
   }
 
-  if (!currentOk) {
+  if (!verifiedEmail) {
     return {
       status: 401,
       body: {
@@ -179,11 +206,36 @@ export async function changeTenantPassword(
     };
   }
 
+  // Password updates revoke existing refresh tokens. Issue a fresh session so the
+  // mobile client does not keep calling APIs with a now-invalid JWT.
+  const nextSession = await createPasswordSession({
+    supabaseUrl: deps.supabaseUrl,
+    supabaseAnonKey: deps.supabaseAnonKey,
+    email: verifiedEmail,
+    password: newPassword
+  });
+
+  if (!nextSession) {
+    return {
+      status: 500,
+      body: {
+        success: false,
+        code: "INTERNAL_ERROR",
+        error: "Password updated, but we could not refresh your session. Please sign in again."
+      }
+    };
+  }
+
   return {
     status: 200,
     body: {
       success: true,
-      data: { message: "Password updated successfully" }
+      data: {
+        message: "Password updated successfully",
+        accessToken: nextSession.accessToken,
+        refreshToken: nextSession.refreshToken,
+        expiresIn: nextSession.expiresIn
+      }
     }
   };
 }

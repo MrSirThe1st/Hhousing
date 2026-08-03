@@ -37,6 +37,18 @@ export function userFacingError(input: UserFacingErrorInput): UserFacingErrorCop
     };
   }
 
+  if (
+    error
+    && /authentication required|not authenticated|session expired|jwt expired|invalid jwt/i.test(
+      error
+    )
+  ) {
+    return {
+      title: t("errors.sessionTitle"),
+      body: t("errors.sessionBody")
+    };
+  }
+
   if (code === "NOT_FOUND") {
     return {
       title: t("errors.notFoundTitle"),

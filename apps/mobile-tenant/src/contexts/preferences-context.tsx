@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
+import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import i18n from "@/i18n";
 import { detectDeviceLanguage, isAppLanguage, type AppLanguage } from "@/i18n/types";
@@ -14,6 +15,15 @@ const NOTIFY_RENT_DUE_KEY = "hhousing.prefs.notifyRentDue";
 const AMOUNTS_SENSITIVE_KEY = "hhousing.prefs.amountsSensitive";
 
 export type ThemeMode = "light" | "dark";
+
+function applyNativeColorScheme(mode: ThemeMode): void {
+  // Keep splash / system chrome in sync with the in-app theme (default light),
+  // instead of following the OS appearance when the app theme differs.
+  Appearance.setColorScheme(mode);
+}
+
+// Default to light before prefs hydrate so the splash does not stay on a dark OS theme.
+applyNativeColorScheme("light");
 
 type PreferencesContextValue = {
   isReady: boolean;
@@ -90,9 +100,10 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
         setNotifyRentDueState(parseBoolean(rentDueRaw, false));
         setAmountsSensitiveState(parseBoolean(amountsSensitiveRaw, true));
 
-        // Existing installs that already chose biometrics in settings skip the prompt.
+        // Only skip the post-login offer when it was explicitly dismissed/completed,
+        // or biometrics are already enabled.
         setBiometricPromptShownState(
-          biometricPromptRaw === "true" || biometricRaw !== null
+          biometricPromptRaw === "true" || biometricRaw === "true"
         );
 
         // Existing installs that already persisted a language skip the picker.
@@ -102,6 +113,9 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
 
         if (themeRaw === "light" || themeRaw === "dark") {
           setThemeModeState(themeRaw);
+          applyNativeColorScheme(themeRaw);
+        } else {
+          applyNativeColorScheme("light");
         }
 
         const nextLanguage: AppLanguage = isAppLanguage(languageRaw)
@@ -141,6 +155,7 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
 
   const setThemeMode = useCallback(async (mode: ThemeMode): Promise<void> => {
     setThemeModeState(mode);
+    applyNativeColorScheme(mode);
     await AsyncStorage.setItem(THEME_KEY, mode);
   }, []);
 

@@ -41,8 +41,21 @@ export function BiometricLockProvider({ children }: PropsWithChildren): React.Re
   const [lastError, setLastError] = useState<string | null>(null);
   const backgroundedAtRef = useRef<number | null>(null);
   const promptedForSessionRef = useRef(false);
+  /** True once this session was usable without a biometric gate (e.g. just logged in). */
+  const hadUnlockedSessionRef = useRef(false);
 
   const shouldLock = Boolean(session && biometricEnabled && prefsReady && !isAuthLoading);
+
+  useEffect(() => {
+    if (!session) {
+      hadUnlockedSessionRef.current = false;
+      return;
+    }
+    if (!isAuthLoading && prefsReady && !biometricEnabled) {
+      // User is in the app without biometrics required — enabling later must not lock immediately.
+      hadUnlockedSessionRef.current = true;
+    }
+  }, [session, isAuthLoading, prefsReady, biometricEnabled]);
 
   useEffect(() => {
     if (!shouldLock) {
@@ -52,10 +65,11 @@ export function BiometricLockProvider({ children }: PropsWithChildren): React.Re
       return;
     }
 
-    // Cold start / first session with biometrics on: lock until verified.
+    // Cold start with biometrics already on: lock until verified.
+    // Mid-session enable (post-login / Settings): stay unlocked until next background.
     if (!promptedForSessionRef.current) {
       promptedForSessionRef.current = true;
-      setIsLocked(true);
+      setIsLocked(!hadUnlockedSessionRef.current);
     }
   }, [shouldLock]);
 
