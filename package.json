@@ -8,15 +8,12 @@
     "test": "pnpm -C apps/web-manager test",
     "build": "pnpm -C apps/web-manager build",
     "mobile:dev": "pnpm -C apps/mobile-tenant dev",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "android": "pnpm -C apps/mobile-tenant android",
+    "ios": "pnpm -C apps/mobile-tenant ios"
   },
   "dependencies": {
     "@types/pg": "^8.20.0",
-    "pg": "^8.20.0",
-    "expo": "~53.0.27",
-    "react": "19.0.0",
-    "react-native": "0.79.6"
+    "pg": "^8.20.0"
   },
   "pnpm": {
     "overrides": {
