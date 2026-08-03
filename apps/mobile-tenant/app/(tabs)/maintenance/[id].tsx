@@ -8,6 +8,7 @@ import type { TFunction } from "i18next";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
+import { ErrorState } from "@/components/error-state";
 import i18n from "@/i18n";
 import { formatLocaleDate, formatLocaleDateTime } from "@/i18n/format";
 import { fontWeight, fontSize, useTheme } from "@/theme";
@@ -249,12 +250,10 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
   if (error || !data) {
     return (
       <ScreenShell title={t("common.error")} subtitle={t("maintenance.loadErrorSubtitle")}>
-        <View style={styles.notice}>
-          <Text style={styles.errorText}>{error ?? t("maintenance.unknownError")}</Text>
-          <Pressable style={styles.retry} onPress={() => { void load(); }}>
-            <Text style={styles.retryText}>{t("common.retry")}</Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          error={error ?? t("maintenance.unknownError")}
+          onRetry={() => { void load(); }}
+        />
       </ScreenShell>
     );
   }

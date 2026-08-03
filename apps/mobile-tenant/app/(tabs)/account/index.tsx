@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Linking,
+  // Alert,
+  // Linking,
   Platform,
   Pressable,
   RefreshControl,
@@ -20,7 +20,7 @@ import type { Tenant } from "@/lib/domain-types";
 import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
-import { NetworkError } from "@/components/network-error";
+import { ErrorState } from "@/components/error-state";
 import { formatDrcNationalDisplay, nationalFromStoredPhone } from "@/lib/phone-input";
 import i18n from "@/i18n";
 import { fontWeight, fontSize, useTheme } from "@/theme";
@@ -75,6 +75,9 @@ function appVersionLabel(): string {
   return build ? `V ${version} (${build})` : `V ${version}`;
 }
 
+// Rate-the-app is hidden until store listings are live (no real App Store ID yet).
+// Uncomment openRateUs + the menu item when published, and replace id0000000000.
+/*
 async function openRateUs(): Promise<void> {
   const iosUrl = "https://apps.apple.com/app/id0000000000";
   const androidUrl = "https://play.google.com/store/apps/details?id=com.hhousing.tenant";
@@ -92,6 +95,7 @@ async function openRateUs(): Promise<void> {
 
   Alert.alert(i18n.t("account.rateComingSoonTitle"), i18n.t("account.rateComingSoonBody"));
 }
+*/
 
 export default function AccountScreen(): React.ReactElement {
   const router = useRouter();
@@ -211,12 +215,6 @@ export default function AccountScreen(): React.ReactElement {
       onPress: () => { router.push("/(tabs)/account/lease"); }
     },
     {
-      key: "terms",
-      label: t("account.terms"),
-      icon: "document-text-outline",
-      onPress: () => { router.push("/(tabs)/account/terms"); }
-    },
-    {
       key: "settings",
       label: t("account.settings"),
       icon: "settings-outline",
@@ -227,13 +225,14 @@ export default function AccountScreen(): React.ReactElement {
       label: t("account.about"),
       icon: "information-circle-outline",
       onPress: () => { router.push("/(tabs)/account/about"); }
-    },
-    {
-      key: "rate",
-      label: t("account.rateApp"),
-      icon: "star-outline",
-      onPress: () => { void openRateUs(); }
     }
+    // Hidden until App Store / Play listings are live — see openRateUs above.
+    // {
+    //   key: "rate",
+    //   label: t("account.rateApp"),
+    //   icon: "star-outline",
+    //   onPress: () => { void openRateUs(); }
+    // }
   ];
 
   if (isLoading || isAuthLoading) {
@@ -280,18 +279,13 @@ export default function AccountScreen(): React.ReactElement {
         </Pressable>
 
         {error ? (
-          isOffline ? (
-            <View style={styles.errorWrap}>
-              <NetworkError onRetry={() => { void loadProfile(); }} />
-            </View>
-          ) : (
-            <View style={styles.notice}>
-              <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.retry} onPress={() => { void loadProfile(); }}>
-                <Text style={styles.retryText}>{t("common.retry")}</Text>
-              </Pressable>
-            </View>
-          )
+          <View style={styles.errorWrap}>
+            <ErrorState
+              offline={isOffline}
+              error={error}
+              onRetry={() => { void loadProfile(); }}
+            />
+          </View>
         ) : null}
 
         <View style={styles.menuList}>

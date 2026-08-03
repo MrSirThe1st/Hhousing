@@ -21,7 +21,9 @@ import type { ApiResult } from "@hhousing/api-contracts";
 import { ListSkeleton } from "@/components/skeleton";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
-import { NetworkError } from "@/components/network-error";
+import { EmptyState } from "@/components/empty-state";
+import { ErrorState } from "@/components/error-state";
+import { userFacingErrorMessage } from "@/lib/user-facing-error";
 import { formatLocaleDate } from "@/i18n/format";
 import { fontWeight, fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
@@ -253,7 +255,9 @@ export default function MaintenanceScreen(): React.ReactElement {
     setIsSubmitting(false);
 
     if (!result.success) {
-      setSubmitError(result.error);
+      setSubmitError(
+        userFacingErrorMessage({ code: result.code, error: result.error, t })
+      );
       return;
     }
 
@@ -376,16 +380,11 @@ export default function MaintenanceScreen(): React.ReactElement {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.screenPadding}>
-          {isOffline ? (
-            <NetworkError onRetry={() => { void loadRequests(); }} />
-          ) : (
-            <View style={styles.notice}>
-              <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.retry} onPress={() => { void loadRequests(); }}>
-                <Text style={styles.retryText}>{t("common.retry")}</Text>
-              </Pressable>
-            </View>
-          )}
+          <ErrorState
+            offline={isOffline}
+            error={error}
+            onRetry={() => { void loadRequests(); }}
+          />
         </View>
       </SafeAreaView>
     );
@@ -431,10 +430,22 @@ export default function MaintenanceScreen(): React.ReactElement {
         </View>
 
         {requestRows.length === 0 ? (
-          <View style={styles.notice}>
-            <Text style={styles.emptyTitle}>{t("maintenance.emptyTitle")}</Text>
-            <Text style={styles.emptyText}>{t("maintenance.emptyText")}</Text>
-          </View>
+          <EmptyState
+            illustration={filter === "all" ? "house" : undefined}
+            icon={filter === "all" ? undefined : "construct-outline"}
+            title={
+              filter === "all"
+                ? t("maintenance.emptyTitle")
+                : t("maintenance.emptyFilterTitle")
+            }
+            body={
+              filter === "all"
+                ? t("maintenance.emptyText")
+                : t("maintenance.emptyFilterText")
+            }
+            actionLabel={filter === "all" ? t("maintenance.newRequest") : undefined}
+            onAction={filter === "all" ? () => { setView("form"); } : undefined}
+          />
         ) : (
           requestRows.map(({ request, category, dateLabel, status }) => (
             <Pressable

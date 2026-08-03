@@ -184,7 +184,7 @@ export default function LoginScreen(): React.ReactElement {
         >
           <View style={styles.brandBlock}>
             <Image
-              source={require("../../assets/icon.png")}
+              source={require("../../assets/door_logo.png")}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -319,7 +319,7 @@ function createStyles(colors: ThemeColors) {
     },
     logo: {
       width: 72,
-      height: 72,
+      height: 108,
       marginBottom: 4
     },
     subtitle: {

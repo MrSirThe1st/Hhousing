@@ -70,6 +70,13 @@ export function MobileMoneyMethodsRow(): React.ReactElement {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [expanded, setExpanded] = useState(false);
 
+  // Live pay off for public launch: show as upcoming methods, not "accepted" yet.
+  // When EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED=true, switch back to acceptedMethods* keys.
+  const headingKey = "shared.methodsComingSoon";
+  const a11yKey = "shared.methodsComingSoonA11y";
+  // const headingKey = "shared.acceptedMethods";
+  // const a11yKey = "shared.acceptedMethodsA11y";
+
   return (
     <View style={styles.block}>
       <Pressable
@@ -77,9 +84,9 @@ export function MobileMoneyMethodsRow(): React.ReactElement {
         onPress={() => { setExpanded((prev) => !prev); }}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={t("shared.acceptedMethodsA11y")}
+        accessibilityLabel={t(a11yKey)}
       >
-        <Text style={styles.heading}>{t("shared.acceptedMethods")}</Text>
+        <Text style={styles.heading}>{t(headingKey)}</Text>
         <Ionicons
           name={expanded ? "chevron-up" : "chevron-down"}
           size={16}

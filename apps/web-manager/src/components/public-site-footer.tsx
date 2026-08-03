@@ -40,6 +40,7 @@ export default function PublicSiteFooter(): React.ReactElement {
             <Link href="/politique-de-confidentialite" className="block hover:text-white">Politique de confidentialité</Link>
             <Link href="/conditions-utilisation" className="block hover:text-white">Conditions d&apos;utilisation</Link>
             <Link href="/suppression-donnees" className="block hover:text-white">Suppression des données</Link>
+            <Link href="/support" className="block hover:text-white">Support</Link>
           </div>
         </div>
         <div>

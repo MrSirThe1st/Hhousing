@@ -15,6 +15,7 @@ import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 import { ScreenShell } from "@/components/screen-shell";
 import { ListSkeleton } from "@/components/skeleton";
+import { ErrorState } from "@/components/error-state";
 import i18n from "@/i18n";
 import { formatLocaleDateTime } from "@/i18n/format";
 import { fontSize, useTheme } from "@/theme";
@@ -228,12 +229,10 @@ export default function ConversationScreen(): React.ReactElement {
       {isLoading ? <ListSkeleton rows={5} /> : null}
 
       {!isLoading && error ? (
-        <View style={styles.notice}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-            <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          error={error}
+          onRetry={() => { void load(); }}
+        />
       ) : null}
 
       {!isLoading && !error && detail ? (

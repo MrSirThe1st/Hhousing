@@ -12,7 +12,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://limhbsmlftgiaqxpoxkf.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_PmSGTspOd7_mCMHxBa5RWQ_tLPIrslN",
-        "EXPO_PUBLIC_API_BASE_URL": "https://www.harakaproperty.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.harakaproperty.com",
+        "EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED": "false"
       }
     },
     "production": {
@@ -22,7 +23,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://limhbsmlftgiaqxpoxkf.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_PmSGTspOd7_mCMHxBa5RWQ_tLPIrslN",
-        "EXPO_PUBLIC_API_BASE_URL": "https://www.harakaproperty.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.harakaproperty.com",
+        "EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED": "false"
       }
     }
   }

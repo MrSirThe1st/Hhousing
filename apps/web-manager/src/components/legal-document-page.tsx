@@ -46,6 +46,9 @@ export default function LegalDocumentPage({
             <Link href="/suppression-donnees" className="text-[#0063fe] hover:underline">
               Suppression des données
             </Link>
+            <Link href="/support" className="text-[#0063fe] hover:underline">
+              Support
+            </Link>
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ import { LEGAL_URLS } from "@/lib/legal";
 import { fontWeight, fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
 
-export default function TermsScreen(): React.ReactElement {
+export default function PrivacyScreen(): React.ReactElement {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -20,21 +20,21 @@ export default function TermsScreen(): React.ReactElement {
         <Pressable style={styles.backBtn} onPress={() => { router.back(); }} hitSlop={10}>
           <Ionicons name="arrow-back" size={22} color={colors.brand} />
         </Pressable>
-        <Text style={styles.topTitle}>{t("account.terms")}</Text>
+        <Text style={styles.topTitle}>{t("account.privacy")}</Text>
         <View style={styles.topSpacer} />
       </View>
       <View style={styles.headerRule} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.body}>{t("account.termsBody1")}</Text>
-        <Text style={styles.body}>{t("account.termsBody2")}</Text>
+        <Text style={styles.body}>{t("account.privacyBody1")}</Text>
+        <Text style={styles.body}>{t("account.privacyBody2")}</Text>
 
         <Pressable
           style={styles.linkBtn}
-          onPress={() => { void Linking.openURL(LEGAL_URLS.terms); }}
+          onPress={() => { void Linking.openURL(LEGAL_URLS.privacy); }}
         >
           <Ionicons name="open-outline" size={18} color={colors.brand} />
-          <Text style={styles.linkBtnText}>{t("account.viewFullTerms")}</Text>
+          <Text style={styles.linkBtnText}>{t("account.viewFullPrivacy")}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

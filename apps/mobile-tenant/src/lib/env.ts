@@ -62,6 +62,15 @@ function resolveApiBaseUrl(): string {
 
 const apiBaseUrl = resolveApiBaseUrl();
 
+/**
+ * In-app Mobile Money checkout (PawaPay). Off by default for honest public launch.
+ * Set EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED=true when production payments are ready.
+ */
+function resolveMobilePaymentsEnabled(): boolean {
+  const raw = process.env.EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
 if (!supabaseUrl) {
   throw new Error("EXPO_PUBLIC_SUPABASE_URL is required");
 }
@@ -74,5 +83,6 @@ export const env = {
   supabaseUrl,
   supabasePublishableKey,
   apiBaseUrl,
-  hostedApiBaseUrl
+  hostedApiBaseUrl,
+  mobilePaymentsEnabled: resolveMobilePaymentsEnabled()
 };

@@ -15,7 +15,8 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { Lease, Payment, Tenant } from "@/lib/domain-types";
 import { getWithAuth } from "@/lib/api-client";
-import { NetworkError } from "@/components/network-error";
+import { EmptyState } from "@/components/empty-state";
+import { ErrorState } from "@/components/error-state";
 import { MobileMoneyMethodsRow } from "@/components/mobile-money-logos";
 import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
 import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
@@ -28,6 +29,7 @@ import {
 } from "@/i18n/format";
 import { fontWeight, fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
+import { env } from "@/lib/env";
 
 type LeaseOutput = {
   lease: Lease | null;
@@ -181,16 +183,11 @@ export default function HomeScreen(): React.ReactElement {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.padded}>
-          {isOffline ? (
-            <NetworkError onRetry={() => { void load(); }} />
-          ) : (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-                <Text style={styles.retryText}>{t("common.retry")}</Text>
-              </Pressable>
-            </View>
-          )}
+          <ErrorState
+            offline={isOffline}
+            error={error}
+            onRetry={() => { void load(); }}
+          />
         </View>
       </SafeAreaView>
     );
@@ -257,6 +254,29 @@ export default function HomeScreen(): React.ReactElement {
               </Text>
             </View>
 
+            {/* Live in-app pay — gated until PawaPay production is ready.
+                Re-enable with EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED=true */}
+            {env.mobilePaymentsEnabled ? (
+              <>
+                <Pressable
+                  style={styles.payBtn}
+                  onPress={() => { router.push("/(tabs)/payments?pay=1"); }}
+                >
+                  <Text style={styles.payBtnText}>{t("home.payNow")}</Text>
+                </Pressable>
+
+                <View style={styles.trustRow}>
+                  <Ionicons name="shield-checkmark-outline" size={13} color={colors.textFaint} />
+                  <Text style={styles.trustText}>{t("home.securePayment")}</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.payComingSoonBox}>
+                <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+                <Text style={styles.payComingSoonText}>{t("home.payComingSoon")}</Text>
+              </View>
+            )}
+            {/*
             <Pressable
               style={styles.payBtn}
               onPress={() => { router.push("/(tabs)/payments?pay=1"); }}
@@ -268,6 +288,7 @@ export default function HomeScreen(): React.ReactElement {
               <Ionicons name="shield-checkmark-outline" size={13} color={colors.textFaint} />
               <Text style={styles.trustText}>{t("home.securePayment")}</Text>
             </View>
+            */}
           </>
         ) : data.lease ? (
           <View style={styles.rentCard}>
@@ -286,10 +307,11 @@ export default function HomeScreen(): React.ReactElement {
             <Text style={styles.dueText}>{t("home.noRentDue")}</Text>
           </View>
         ) : (
-          <View style={styles.rentCard}>
-            <Text style={styles.rentLabel}>{t("home.welcome")}</Text>
-            <Text style={styles.emptyHelp}>{t("home.noLeaseLinked")}</Text>
-          </View>
+          <EmptyState
+            illustration="house"
+            title={t("home.welcome")}
+            body={t("home.noLeaseLinked")}
+          />
         )}
 
         <View style={styles.methodsBlock}>
@@ -306,9 +328,12 @@ export default function HomeScreen(): React.ReactElement {
           </View>
 
           {data.recentPayments.length === 0 ? (
-            <View style={styles.historyCard}>
-              <Text style={styles.emptyHelp}>{t("home.noPaymentsYet")}</Text>
-            </View>
+            <EmptyState
+              icon="receipt-outline"
+              title={t("home.noPaymentsTitle")}
+              body={t("home.noPaymentsYet")}
+              compact
+            />
           ) : (
             data.recentPayments.map((payment) => {
               const paid = payment.status === "paid";
@@ -483,6 +508,25 @@ function createStyles(colors: ThemeColors) {
     trustText: {
       fontSize: fontSize.caption,
       color: colors.textFaint
+    },
+    payComingSoonBox: {
+      marginHorizontal: 20,
+      marginTop: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10
+    },
+    payComingSoonText: {
+      flex: 1,
+      fontSize: fontSize.secondary,
+      lineHeight: 20,
+      color: colors.textMuted
     },
 
     methodsBlock: {

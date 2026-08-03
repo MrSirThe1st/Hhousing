@@ -86,6 +86,7 @@ export default function DeleteAccountScreen(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [endpointUnavailable, setEndpointUnavailable] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [infoVisible, setInfoVisible] = useState(false);
 
   const loadScreen = useCallback(async () => {
     setLoading(true);
@@ -195,7 +196,15 @@ export default function DeleteAccountScreen(): React.ReactElement {
           ) : null}
         </Pressable>
         <Text style={styles.topTitle}>{t("deleteAccount.title")}</Text>
-        <View style={styles.topSpacer} />
+        <Pressable
+          style={styles.infoBtn}
+          onPress={() => { setInfoVisible(true); }}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("deleteAccount.infoTitle")}
+        >
+          <Ionicons name="information-circle-outline" size={24} color={colors.brand} />
+        </Pressable>
       </View>
       <View style={styles.headerRule} />
 
@@ -290,20 +299,8 @@ export default function DeleteAccountScreen(): React.ReactElement {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t("deleteAccount.confirmTitle")}</Text>
-            <Text style={styles.modalBody}>{t("deleteAccount.confirmIntro")}</Text>
-            <View style={styles.modalBullets}>
-              <Text style={styles.modalBullet}>{t("deleteAccount.bulletAccess")}</Text>
-              <Text style={styles.modalBullet}>{t("deleteAccount.bulletLandlord")}</Text>
-              <Text style={styles.modalBullet}>{t("deleteAccount.bulletGrace")}</Text>
-            </View>
+            <Text style={styles.modalBody}>{t("deleteAccount.confirmBody")}</Text>
             <View style={styles.modalActions}>
-              <Pressable
-                style={styles.modalCancel}
-                onPress={() => { setConfirmVisible(false); }}
-                disabled={busy}
-              >
-                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
-              </Pressable>
               <Pressable
                 style={[styles.modalConfirm, busy ? styles.btnDisabled : null]}
                 onPress={() => { void confirmDelete(); }}
@@ -315,7 +312,39 @@ export default function DeleteAccountScreen(): React.ReactElement {
                   <Text style={styles.modalConfirmText}>{t("deleteAccount.confirmAction")}</Text>
                 )}
               </Pressable>
+              <Pressable
+                style={styles.modalCancel}
+                onPress={() => { setConfirmVisible(false); }}
+                disabled={busy}
+              >
+                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+              </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={infoVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { setInfoVisible(false); }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t("deleteAccount.infoTitle")}</Text>
+            <View style={styles.infoBullets}>
+              <Text style={styles.infoBullet}>• {t("deleteAccount.infoAccess")}</Text>
+              <Text style={styles.infoBullet}>• {t("deleteAccount.infoLandlord")}</Text>
+              <Text style={styles.infoBullet}>• {t("deleteAccount.infoGrace")}</Text>
+              <Text style={styles.infoBullet}>• {t("deleteAccount.infoRecover")}</Text>
+            </View>
+            <Pressable
+              style={styles.infoDismiss}
+              onPress={() => { setInfoVisible(false); }}
+            >
+              <Text style={styles.infoDismissText}>{t("deleteAccount.infoGotIt")}</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -351,7 +380,12 @@ function createStyles(colors: ThemeColors) {
       fontWeight: fontWeight.semibold,
       color: colors.text
     },
-    topSpacer: { width: 40 },
+    infoBtn: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center"
+    },
     headerRule: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.border
@@ -472,24 +506,34 @@ function createStyles(colors: ThemeColors) {
       color: colors.textMuted,
       lineHeight: 20
     },
-    modalBullets: {
-      gap: 8,
-      paddingVertical: 4
+    infoBullets: {
+      gap: 10
     },
-    modalBullet: {
+    infoBullet: {
       fontSize: fontSize.secondary,
       color: colors.textSecondary,
       lineHeight: 20
     },
-    modalActions: {
-      flexDirection: "row",
-      justifyContent: "flex-end",
+    infoDismiss: {
       alignItems: "center",
-      gap: 10,
+      justifyContent: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 10,
+      backgroundColor: colors.brand,
+      marginTop: 8
+    },
+    infoDismissText: {
+      color: colors.onBrand,
+      fontSize: fontSize.secondary,
+      fontWeight: fontWeight.bold
+    },
+    modalActions: {
+      gap: 4,
       marginTop: 8
     },
     modalCancel: {
-      paddingHorizontal: 14,
+      alignItems: "center",
       paddingVertical: 12
     },
     modalCancelText: {
@@ -498,7 +542,6 @@ function createStyles(colors: ThemeColors) {
       fontWeight: fontWeight.semibold
     },
     modalConfirm: {
-      minWidth: 132,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: 16,

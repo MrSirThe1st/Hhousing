@@ -12,7 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { CardSkeleton, ListSkeleton } from "@/components/skeleton";
-import { NetworkError } from "@/components/network-error";
+import { EmptyState } from "@/components/empty-state";
+import { ErrorState } from "@/components/error-state";
 import type { ApiResult, LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
 import { formatAmount, formatLocaleDate } from "@/i18n/format";
@@ -132,25 +133,22 @@ export default function LeaseScreen(): React.ReactElement {
         }
       >
         {error ? (
-          isOffline ? (
-            <NetworkError onRetry={() => { void load(); }} />
-          ) : (
-            <View style={styles.notice}>
-              <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.retryButton} onPress={() => { void load(); }}>
-                <Text style={styles.retryButtonText}>{t("common.retry")}</Text>
-              </Pressable>
-            </View>
-          )
+          <ErrorState
+            offline={isOffline}
+            error={error}
+            onRetry={() => { void load(); }}
+          />
         ) : null}
 
-        {!lease ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="home-outline" size={36} color={colors.iconMuted} />
-            <Text style={styles.emptyTitle}>{t("account.noLeaseTitle")}</Text>
-            <Text style={styles.emptyText}>{t("account.noLeaseBody")}</Text>
-          </View>
-        ) : (
+        {!error && !lease ? (
+          <EmptyState
+            illustration="house"
+            title={t("account.noLeaseTitle")}
+            body={t("account.noLeaseBody")}
+          />
+        ) : null}
+
+        {!error && lease ? (
           <>
             <View style={styles.summaryCard}>
               <View style={styles.avatarWrap}>
@@ -222,7 +220,7 @@ export default function LeaseScreen(): React.ReactElement {
               />
             </View>
           </>
-        )}
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

@@ -8,7 +8,8 @@ import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
 import { useInbox } from "@/contexts/inbox-context";
-import { NetworkError } from "@/components/network-error";
+import { EmptyState } from "@/components/empty-state";
+import { ErrorState } from "@/components/error-state";
 import { formatLocaleDate } from "@/i18n/format";
 import { fontWeight, fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
@@ -107,23 +108,19 @@ export default function InboxScreen(): React.ReactElement {
       {isLoading ? <ListSkeleton rows={4} /> : null}
 
       {!isLoading && error ? (
-        isOffline ? (
-          <NetworkError onRetry={() => { void load(); }} />
-        ) : (
-          <View style={styles.notice}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-              <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
-            </Pressable>
-          </View>
-        )
+        <ErrorState
+          offline={isOffline}
+          error={error}
+          onRetry={() => { void load(); }}
+        />
       ) : null}
 
       {!isLoading && !error && conversations.length === 0 ? (
-        <View style={styles.notice}>
-          <Text style={styles.emptyTitle}>{t("messages.emptyTitle")}</Text>
-          <Text style={styles.emptyText}>{t("messages.emptyText")}</Text>
-        </View>
+        <EmptyState
+          illustration="house"
+          title={t("messages.emptyTitle")}
+          body={t("messages.emptyText")}
+        />
       ) : null}
 
       {!isLoading && !error && conversationRows.length > 0 ? (

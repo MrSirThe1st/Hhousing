@@ -11,6 +11,8 @@ export default function AccountLayout(): React.ReactElement {
       <Stack.Screen name="edit-profile" />
       <Stack.Screen name="lease" />
       <Stack.Screen name="terms" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="support" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="change-password" />
       <Stack.Screen name="notifications" />

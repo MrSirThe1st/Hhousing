@@ -19,7 +19,7 @@ import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth, patchWithAuth } from "@/lib/api-client";
 import { FormSkeleton } from "@/components/skeleton";
 import { useAuth } from "@/contexts/auth-context";
-import { NetworkError } from "@/components/network-error";
+import { ErrorState } from "@/components/error-state";
 import {
   extractDrcNationalNumber,
   formatDrcNationalDisplay,
@@ -162,16 +162,11 @@ export default function EditProfileScreen(): React.ReactElement {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.loadingWrap}>
-          {isOffline ? (
-            <NetworkError onRetry={() => { void load(); }} />
-          ) : (
-            <View style={styles.notice}>
-              <Text style={styles.errorText}>{error ?? t("account.profileNotFound")}</Text>
-              <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-                <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
-              </Pressable>
-            </View>
-          )}
+          <ErrorState
+            offline={isOffline}
+            error={error ?? t("account.profileNotFound")}
+            onRetry={() => { void load(); }}
+          />
         </View>
       </SafeAreaView>
     );

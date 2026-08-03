@@ -24,7 +24,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0063FE"
+        "backgroundColor": "#000000"
       },
       "intentFilters": [
         {

@@ -17,12 +17,14 @@ import type { TFunction } from "i18next";
 import type { Payment } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import { ListSkeleton } from "@/components/skeleton";
-import { NetworkError } from "@/components/network-error";
+import { EmptyState } from "@/components/empty-state";
+import { ErrorState } from "@/components/error-state";
 import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
 import { FullScreenLoadingOverlay } from "@/components/universal-loading-state";
 import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
 import { usePreferences } from "@/contexts/preferences-context";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
+import { userFacingErrorMessage } from "@/lib/user-facing-error";
 import {
   MobileMoneyLogo,
   MOBILE_MONEY_PROVIDERS,
@@ -36,6 +38,7 @@ import {
 } from "@/i18n/format";
 import { fontWeight, fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
+import { env } from "@/lib/env";
 
 type MobilePaymentsOutput = { payments: Payment[] };
 
@@ -288,6 +291,8 @@ export default function PaymentsScreen(): React.ReactElement {
   }, []);
 
   useEffect(() => {
+    // Live pay auto-open from Accueil (?pay=1) — gated until PawaPay is production-ready.
+    if (!env.mobilePaymentsEnabled) return;
     if (autoOpenedPayRef.current) return;
     if (params.pay !== "1") return;
     if (isLoading || totalDue <= 0) return;
@@ -295,6 +300,17 @@ export default function PaymentsScreen(): React.ReactElement {
     autoOpenedPayRef.current = true;
     void openPayModal();
   }, [isLoading, openPayModal, params.pay, totalDue]);
+
+  /*
+  useEffect(() => {
+    if (autoOpenedPayRef.current) return;
+    if (params.pay !== "1") return;
+    if (isLoading || totalDue <= 0) return;
+
+    autoOpenedPayRef.current = true;
+    void openPayModal();
+  }, [isLoading, openPayModal, params.pay, totalDue]);
+  */
 
   const handlePayBalance = useCallback(async (): Promise<void> => {
     if (!phoneNumber.trim()) {
@@ -317,7 +333,9 @@ export default function PaymentsScreen(): React.ReactElement {
     if (!result.success) {
       setIsPaying(false);
       setPayStatusMessage(null);
-      setPayError(result.error);
+      setPayError(
+        userFacingErrorMessage({ code: result.code, error: result.error, t })
+      );
       return;
     }
 
@@ -388,16 +406,11 @@ export default function PaymentsScreen(): React.ReactElement {
     return (
       <SafeAreaView style={styles.root} edges={["top"]}>
         <View style={styles.content}>
-          {isOffline ? (
-            <NetworkError onRetry={() => { void load(); }} />
-          ) : (
-            <View style={styles.notice}>
-              <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.retry} onPress={() => { void load(); }}>
-                <Text style={styles.retryText}>{t("common.retry")}</Text>
-              </Pressable>
-            </View>
-          )}
+          <ErrorState
+            offline={isOffline}
+            error={error}
+            onRetry={() => { void load(); }}
+          />
         </View>
       </SafeAreaView>
     );
@@ -428,10 +441,25 @@ export default function PaymentsScreen(): React.ReactElement {
               style={styles.balanceAmount}
               eyeColor={colors.textMuted}
             />
+            {/* Live in-app pay CTA — gated until PawaPay production is ready.
+                Re-enable with EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED=true */}
+            {env.mobilePaymentsEnabled ? (
+              <Pressable style={styles.payCta} onPress={() => { void openPayModal(); }}>
+                <Ionicons name="phone-portrait-outline" size={18} color={colors.onBrand} />
+                <Text style={styles.payCtaText}>{t("payments.payNow")}</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.payComingSoonBox}>
+                <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+                <Text style={styles.payComingSoonText}>{t("payments.payComingSoon")}</Text>
+              </View>
+            )}
+            {/*
             <Pressable style={styles.payCta} onPress={() => { void openPayModal(); }}>
               <Ionicons name="phone-portrait-outline" size={18} color={colors.onBrand} />
               <Text style={styles.payCtaText}>{t("payments.payNow")}</Text>
             </Pressable>
+            */}
           </View>
         ) : null}
 
@@ -463,15 +491,18 @@ export default function PaymentsScreen(): React.ReactElement {
         ) : null}
 
         {payments.length === 0 ? (
-          <View style={styles.notice}>
-            <Text style={styles.emptyTitle}>{t("payments.emptyTitle")}</Text>
-            <Text style={styles.emptyText}>{t("payments.emptyText")}</Text>
-          </View>
+          <EmptyState
+            illustration="house"
+            title={t("payments.emptyTitle")}
+            body={t("payments.emptyText")}
+          />
         ) : groups.length === 0 ? (
-          <View style={styles.notice}>
-            <Text style={styles.emptyTitle}>{t("payments.noResultsTitle")}</Text>
-            <Text style={styles.emptyText}>{t("payments.noResultsText")}</Text>
-          </View>
+          <EmptyState
+            icon="search-outline"
+            title={t("payments.noResultsTitle")}
+            body={t("payments.noResultsText")}
+            compact
+          />
         ) : (
           groups.map((group) => (
             <View key={group.monthKey} style={styles.monthBlock}>
@@ -536,6 +567,8 @@ export default function PaymentsScreen(): React.ReactElement {
         )}
       </ScrollView>
 
+      {/* Live Mobile Money pay modal — gated until PawaPay production is ready. */}
+      {env.mobilePaymentsEnabled ? (
       <Modal
         visible={isPayModalVisible}
         animationType="slide"
@@ -623,11 +656,17 @@ export default function PaymentsScreen(): React.ReactElement {
           </View>
         </View>
       </Modal>
+      ) : null}
+      {/*
+      <Modal ... live pay modal preserved above behind env.mobilePaymentsEnabled />
+      */}
 
+      {env.mobilePaymentsEnabled ? (
       <FullScreenLoadingOverlay
         visible={isPaying}
         message={t("payments.processing")}
       />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -684,6 +723,24 @@ function createStyles(colors: ThemeColors) {
       color: colors.onBrand,
       fontSize: fontSize.body,
       fontWeight: "700"
+    },
+    payComingSoonBox: {
+      marginTop: 4,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10
+    },
+    payComingSoonText: {
+      flex: 1,
+      fontSize: fontSize.secondary,
+      lineHeight: 20,
+      color: colors.textMuted
     },
     searchRow: {
       flexDirection: "row",
