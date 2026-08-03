@@ -10,7 +10,7 @@ export type { Property, PropertyManagementContext, PropertyOwnerType, PropertySt
 export type { Listing, ListingStatus, ListingVisibility } from "./entities/listing.types";
 export type { ListingApplication, ListingApplicationStatus } from "./entities/listing-application.types";
 export type { Unit, UnitStatus } from "./entities/unit.types";
-export type { Tenant } from "./entities/tenant.types";
+export type { Tenant, TenantAccountStatus } from "./entities/tenant.types";
 export type { WhatsAppMessage, WhatsAppMessageStatus } from "./entities/whatsapp-message.types";
 export type { Lease, LeaseStatus, LeaseTermType, LeasePaymentFrequency, LeaseSigningMethod, LeaseMoveInMode, SkippableInitialChargeType } from "./entities/lease.types";
 export type { LeaseChargeTemplate, LeaseChargeType, LeaseChargeFrequency } from "./entities/lease-charge.types";

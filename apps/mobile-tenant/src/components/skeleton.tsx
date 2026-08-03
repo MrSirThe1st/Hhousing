@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
+import { useTheme } from "@/theme";
 
 interface SkeletonBoxProps {
   width?: number | `${number}%`;
@@ -9,6 +10,7 @@ interface SkeletonBoxProps {
 }
 
 export function SkeletonBox({ width = "100%", height = 16, borderRadius = 8, style }: SkeletonBoxProps): React.ReactElement {
+  const { colors } = useTheme();
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -24,16 +26,18 @@ export function SkeletonBox({ width = "100%", height = 16, borderRadius = 8, sty
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius, backgroundColor: "#E5E7EB", opacity }, style]}
+      style={[{ width, height, borderRadius, backgroundColor: colors.skeleton, opacity }, style]}
     />
   );
 }
 
 export function ListSkeleton({ rows = 4 }: { rows?: number }): React.ReactElement {
+  const { colors } = useTheme();
+
   return (
     <View style={listStyles.container}>
       {Array.from({ length: rows }).map((_, i) => (
-        <View key={i} style={listStyles.row}>
+        <View key={i} style={[listStyles.row, { borderBottomColor: colors.border }]}>
           <View style={listStyles.rowMain}>
             <SkeletonBox width="55%" height={14} />
             <SkeletonBox width="35%" height={12} style={{ marginTop: 6 }} />
@@ -46,8 +50,10 @@ export function ListSkeleton({ rows = 4 }: { rows?: number }): React.ReactElemen
 }
 
 export function CardSkeleton(): React.ReactElement {
+  const { colors } = useTheme();
+
   return (
-    <View style={cardStyles.card}>
+    <View style={[cardStyles.card, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
       <SkeletonBox width="40%" height={13} />
       <SkeletonBox width="60%" height={28} style={{ marginTop: 8 }} />
       <SkeletonBox width="50%" height={13} style={{ marginTop: 8 }} />
@@ -56,6 +62,8 @@ export function CardSkeleton(): React.ReactElement {
 }
 
 export function ProfileSkeleton(): React.ReactElement {
+  const { colors } = useTheme();
+
   return (
     <View style={profileStyles.container}>
       <View style={profileStyles.header}>
@@ -66,7 +74,7 @@ export function ProfileSkeleton(): React.ReactElement {
         </View>
       </View>
       {Array.from({ length: 4 }).map((_, i) => (
-        <View key={i} style={profileStyles.row}>
+        <View key={i} style={[profileStyles.row, { borderBottomColor: colors.border }]}>
           <SkeletonBox width={20} height={20} borderRadius={4} />
           <SkeletonBox width="60%" height={14} style={{ marginLeft: 12 }} />
         </View>
@@ -95,8 +103,7 @@ const listStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6"
+    borderBottomWidth: 1
   },
   rowMain: { flex: 1, marginRight: 12 }
 });
@@ -106,9 +113,7 @@ const cardStyles = StyleSheet.create({
     margin: 16,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB"
+    borderWidth: 1
   }
 });
 
@@ -120,8 +125,7 @@ const profileStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6"
+    borderBottomWidth: 1
   }
 });
 

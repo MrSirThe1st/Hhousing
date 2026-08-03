@@ -12,17 +12,30 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { Payment } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import { ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
+import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
 import { FullScreenLoadingOverlay } from "@/components/universal-loading-state";
+import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
+import { usePreferences } from "@/contexts/preferences-context";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import {
   MobileMoneyLogo,
   MOBILE_MONEY_PROVIDERS,
   type MobileMoneyProviderCode
 } from "@/components/mobile-money-logos";
+import {
+  formatAmount,
+  formatNumericDate,
+  monthGroupLabel,
+  monthNameFromYmd
+} from "@/i18n/format";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type MobilePaymentsOutput = { payments: Payment[] };
 
@@ -59,35 +72,28 @@ type MonthGroup = {
   items: Payment[];
 };
 
-const STATUS_BADGE_LABEL: Record<Payment["status"], string> = {
-  pending: "À PAYER",
-  paid: "PAYÉ",
-  overdue: "À PAYER",
-  cancelled: "ANNULÉ"
-};
+function statusBadgeLabel(status: Payment["status"], t: TFunction): string {
+  if (status === "paid") return t("payments.status.paid");
+  if (status === "cancelled") return t("payments.status.cancelled");
+  return t("payments.status.toPay");
+}
 
-const STATUS_BADGE_BG: Record<Payment["status"], string> = {
-  pending: "#FEF3C7",
-  paid: "#DBEAFE",
-  overdue: "#FEF3C7",
-  cancelled: "#F3F4F6"
-};
+function getStatusBadgeBg(colors: ThemeColors): Record<Payment["status"], string> {
+  return {
+    pending: colors.surfaceMuted,
+    paid: colors.brandSoft,
+    overdue: colors.surfaceMuted,
+    cancelled: colors.surfaceMuted
+  };
+}
 
-const STATUS_BADGE_TEXT: Record<Payment["status"], string> = {
-  pending: "#D97706",
-  paid: "#2563EB",
-  overdue: "#D97706",
-  cancelled: "#6B7280"
-};
-
-const MONTHS_LONG = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-];
-
-function formatAmount(amount: number, currency: string): string {
-  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount);
-  return `${formatted.replace(/\u00A0|\s/g, ".")} ${currency}`;
+function getStatusBadgeText(colors: ThemeColors): Record<Payment["status"], string> {
+  return {
+    pending: colors.warning,
+    paid: colors.brand,
+    overdue: colors.warning,
+    cancelled: colors.textMuted
+  };
 }
 
 function parseYmd(value: string): { year: number; month: number; day: number } {
@@ -99,33 +105,26 @@ function parseYmd(value: string): { year: number; month: number; day: number } {
   };
 }
 
-function formatNumericDate(value: string): string {
-  const { year, month, day } = parseYmd(value);
-  return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
-}
-
-function monthLabelFromYmd(value: string): string {
-  const { month } = parseYmd(value);
-  return MONTHS_LONG[Math.max(0, Math.min(11, month - 1))] ?? "";
-}
-
-function paymentTitle(payment: Payment): string {
+function paymentTitle(payment: Payment, t: TFunction): string {
   if (payment.paymentKind === "rent") {
     const { year } = parseYmd(payment.dueDate);
-    return `Loyer ${monthLabelFromYmd(payment.dueDate)} ${year}`;
+    return t("payments.kind.rent", {
+      month: monthNameFromYmd(payment.dueDate),
+      year
+    });
   }
-  if (payment.paymentKind === "deposit") return "Garantie";
-  if (payment.paymentKind === "prorated_rent") return "Loyer (prorata)";
-  if (payment.paymentKind === "fee") return "Frais";
-  return "Paiement";
+  if (payment.paymentKind === "deposit") return t("payments.kind.deposit");
+  if (payment.paymentKind === "prorated_rent") return t("payments.kind.proratedRent");
+  if (payment.paymentKind === "fee") return t("payments.kind.fee");
+  return t("payments.kind.payment");
 }
 
-function paymentMeta(payment: Payment): string {
+function paymentMeta(payment: Payment, t: TFunction): string {
   const date = formatNumericDate(payment.paidDate ?? payment.dueDate);
-  if (payment.status === "paid") return `${date} • Payé`;
-  if (payment.status === "overdue") return `${date} • En attente`;
-  if (payment.status === "pending") return `${date} • En attente`;
-  return `${date} • Annulé`;
+  if (payment.status === "paid") return t("payments.metaPaid", { date });
+  if (payment.status === "overdue") return t("payments.metaPending", { date });
+  if (payment.status === "pending") return t("payments.metaPending", { date });
+  return t("payments.metaCancelled", { date });
 }
 
 function sortPaymentsDesc(left: Payment, right: Payment): number {
@@ -150,19 +149,24 @@ function getMonthGroups(payments: Payment[]): MonthGroup[] {
   return [...map.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([monthKey, items]) => {
-      const year = monthKey.slice(0, 4);
+      const year = Number(monthKey.slice(0, 4));
       const monthValue = Number(monthKey.slice(5, 7));
-      const monthName = MONTHS_LONG[Math.max(0, Math.min(11, monthValue - 1))] ?? "";
       return {
         monthKey,
-        monthLabel: `${monthName.toUpperCase()} ${year}`,
+        monthLabel: monthGroupLabel(year, monthValue),
         items
       };
     });
 }
 
 export default function PaymentsScreen(): React.ReactElement {
+  const { t, i18n } = useTranslation();
   const params = useLocalSearchParams<{ pay?: string }>();
+  const { colors } = useTheme();
+  const { amountsRevealed, toggleAmountsRevealed } = useAmountPrivacy();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const statusBadgeBg = useMemo(() => getStatusBadgeBg(colors), [colors]);
+  const statusBadgeText = useMemo(() => getStatusBadgeText(colors), [colors]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -193,7 +197,7 @@ export default function PaymentsScreen(): React.ReactElement {
       }
       setError(
         result.code === "NETWORK_ERROR"
-          ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+          ? t("common.offline")
           : result.error
       );
     } else {
@@ -201,7 +205,7 @@ export default function PaymentsScreen(): React.ReactElement {
     }
 
     setIsLoading(false);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -252,7 +256,7 @@ export default function PaymentsScreen(): React.ReactElement {
       if (result.data.status === "completed") {
         stopPolling();
         setIsPaying(false);
-        setPayStatusMessage("Paiement confirmé. Merci !");
+        setPayStatusMessage(t("payments.confirmed"));
         setIsPayModalVisible(false);
         await load();
         return;
@@ -261,7 +265,7 @@ export default function PaymentsScreen(): React.ReactElement {
       if (result.data.status === "failed") {
         stopPolling();
         setIsPaying(false);
-        setPayError(result.data.failureMessage ?? "Le paiement a échoué.");
+        setPayError(result.data.failureMessage ?? t("payments.failed"));
         setPayStatusMessage(null);
       }
     };
@@ -270,7 +274,7 @@ export default function PaymentsScreen(): React.ReactElement {
     pollTimerRef.current = setInterval(() => {
       void checkOnce();
     }, 3000);
-  }, [load, stopPolling]);
+  }, [load, stopPolling, t]);
 
   const openPayModal = useCallback(async (): Promise<void> => {
     setPayError(null);
@@ -294,13 +298,13 @@ export default function PaymentsScreen(): React.ReactElement {
 
   const handlePayBalance = useCallback(async (): Promise<void> => {
     if (!phoneNumber.trim()) {
-      setPayError("Veuillez saisir votre numéro mobile money.");
+      setPayError(t("payments.phoneRequired"));
       return;
     }
 
     setIsPaying(true);
     setPayError(null);
-    setPayStatusMessage("Traitement du paiement en cours...");
+    setPayStatusMessage(t("payments.processing"));
 
     const result: ApiResult<PayBalanceOutput> = await postWithAuth<PayBalanceOutput>(
       "/api/mobile/payments/pay-balance",
@@ -318,7 +322,7 @@ export default function PaymentsScreen(): React.ReactElement {
     }
 
     pollTransactionStatus(result.data.transactionId);
-  }, [phoneNumber, pollTransactionStatus, selectedProvider]);
+  }, [phoneNumber, pollTransactionStatus, selectedProvider, t]);
 
   const filteredPayments = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -337,16 +341,19 @@ export default function PaymentsScreen(): React.ReactElement {
 
       const haystack = [
         payment.dueDate,
-        paymentTitle(payment),
-        paymentMeta(payment),
-        STATUS_BADGE_LABEL[payment.status]
+        paymentTitle(payment, t),
+        paymentMeta(payment, t),
+        statusBadgeLabel(payment.status, t)
       ].join(" ").toLowerCase();
 
       return haystack.includes(normalized);
     });
-  }, [filter, payments, search]);
+  }, [filter, i18n.language, payments, search, t]);
 
-  const groups = useMemo(() => getMonthGroups(filteredPayments), [filteredPayments]);
+  const groups = useMemo(
+    () => getMonthGroups(filteredPayments),
+    [filteredPayments, i18n.language]
+  );
 
   const cycleFilter = useCallback((): void => {
     if (filter === "all") {
@@ -361,7 +368,11 @@ export default function PaymentsScreen(): React.ReactElement {
   }, [filter]);
 
   const filterHint =
-    filter === "pending" ? "À payer" : filter === "paid" ? "Payés" : "Tous";
+    filter === "pending"
+      ? t("payments.filterPending")
+      : filter === "paid"
+        ? t("payments.filterPaid")
+        : t("payments.filterAll");
 
   if (isLoading) {
     return (
@@ -383,7 +394,7 @@ export default function PaymentsScreen(): React.ReactElement {
             <View style={styles.notice}>
               <Text style={styles.errorText}>{error}</Text>
               <Pressable style={styles.retry} onPress={() => { void load(); }}>
-                <Text style={styles.retryText}>Réessayer</Text>
+                <Text style={styles.retryText}>{t("common.retry")}</Text>
               </Pressable>
             </View>
           )}
@@ -403,29 +414,35 @@ export default function PaymentsScreen(): React.ReactElement {
           <RefreshControl
             refreshing={false}
             onRefresh={() => { void load(); }}
-            tintColor="#0063FE"
+            tintColor={colors.brand}
           />
         }
       >
         {totalDue > 0 ? (
           <View style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>SOLDE TOTAL DÛ</Text>
-            <Text style={styles.balanceAmount}>{formatAmount(totalDue, currencyCode)}</Text>
+            <Text style={styles.balanceLabel}>{t("payments.totalDue")}</Text>
+            <SensitiveAmount
+              value={formatAmount(totalDue, currencyCode)}
+              revealed={amountsRevealed}
+              onToggle={toggleAmountsRevealed}
+              style={styles.balanceAmount}
+              eyeColor={colors.textMuted}
+            />
             <Pressable style={styles.payCta} onPress={() => { void openPayModal(); }}>
-              <Ionicons name="phone-portrait-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.payCtaText}>Payer maintenant</Text>
+              <Ionicons name="phone-portrait-outline" size={18} color={colors.onBrand} />
+              <Text style={styles.payCtaText}>{t("payments.payNow")}</Text>
             </Pressable>
           </View>
         ) : null}
 
         <View style={styles.searchRow}>
           <View style={styles.searchInputWrap}>
-            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+            <Ionicons name="search-outline" size={18} color={colors.iconMuted} />
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Rechercher un paiement..."
-              placeholderTextColor="#9CA3AF"
+              placeholder={t("payments.searchPlaceholder")}
+              placeholderTextColor={colors.textFaint}
               style={styles.searchInput}
             />
           </View>
@@ -436,26 +453,24 @@ export default function PaymentsScreen(): React.ReactElement {
             <Ionicons
               name="options-outline"
               size={18}
-              color={filter === "all" ? "#6B7280" : "#0063FE"}
+              color={filter === "all" ? colors.textMuted : colors.brand}
             />
           </Pressable>
         </View>
 
         {filter !== "all" ? (
-          <Text style={styles.filterHint}>Filtre : {filterHint}</Text>
+          <Text style={styles.filterHint}>{t("payments.filterHint", { filter: filterHint })}</Text>
         ) : null}
 
         {payments.length === 0 ? (
           <View style={styles.notice}>
-            <Text style={styles.emptyTitle}>Aucun paiement</Text>
-            <Text style={styles.emptyText}>
-              Quand votre bailleur enregistrera un loyer, il apparaîtra ici.
-            </Text>
+            <Text style={styles.emptyTitle}>{t("payments.emptyTitle")}</Text>
+            <Text style={styles.emptyText}>{t("payments.emptyText")}</Text>
           </View>
         ) : groups.length === 0 ? (
           <View style={styles.notice}>
-            <Text style={styles.emptyTitle}>Aucun résultat</Text>
-            <Text style={styles.emptyText}>Essayez une autre recherche ou un autre filtre.</Text>
+            <Text style={styles.emptyTitle}>{t("payments.noResultsTitle")}</Text>
+            <Text style={styles.emptyText}>{t("payments.noResultsText")}</Text>
           </View>
         ) : (
           groups.map((group) => (
@@ -476,36 +491,40 @@ export default function PaymentsScreen(): React.ReactElement {
                       <Ionicons
                         name={paid ? "checkmark-circle" : "time-outline"}
                         size={18}
-                        color={paid ? "#2563EB" : "#D97706"}
+                        color={paid ? colors.brand : colors.warning}
                       />
                     </View>
 
                     <View style={styles.paymentInfo}>
                       <Text style={styles.paymentTitle} numberOfLines={1}>
-                        {paymentTitle(payment)}
+                        {paymentTitle(payment, t)}
                       </Text>
                       <Text style={styles.paymentMeta} numberOfLines={1}>
-                        {paymentMeta(payment)}
+                        {paymentMeta(payment, t)}
                       </Text>
                     </View>
 
                     <View style={styles.paymentRight}>
                       <Text style={styles.paymentAmount}>
-                        {formatAmount(payment.amount, payment.currencyCode ?? "CDF")}
+                        {amountsRevealed
+                          ? formatAmount(payment.amount, payment.currencyCode ?? "CDF")
+                          : maskSensitiveAmount(
+                            formatAmount(payment.amount, payment.currencyCode ?? "CDF")
+                          )}
                       </Text>
                       <View
                         style={[
                           styles.badge,
-                          { backgroundColor: STATUS_BADGE_BG[payment.status] }
+                          { backgroundColor: statusBadgeBg[payment.status] }
                         ]}
                       >
                         <Text
                           style={[
                             styles.badgeText,
-                            { color: STATUS_BADGE_TEXT[payment.status] }
+                            { color: statusBadgeText[payment.status] }
                           ]}
                         >
-                          {STATUS_BADGE_LABEL[payment.status]}
+                          {statusBadgeLabel(payment.status, t)}
                         </Text>
                       </View>
                     </View>
@@ -529,12 +548,16 @@ export default function PaymentsScreen(): React.ReactElement {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Payer par mobile money</Text>
+            <Text style={styles.modalTitle}>{t("payments.modalTitle")}</Text>
             <Text style={styles.modalSubtitle}>
-              Montant total : {formatAmount(totalDue, currencyCode)}
+              {t("payments.modalAmount", {
+                amount: amountsRevealed
+                  ? formatAmount(totalDue, currencyCode)
+                  : maskSensitiveAmount(formatAmount(totalDue, currencyCode))
+              })}
             </Text>
 
-            <Text style={styles.fieldLabel}>Opérateur</Text>
+            <Text style={styles.fieldLabel}>{t("payments.operator")}</Text>
             <View style={styles.providerRow}>
               {MOBILE_MONEY_PROVIDERS.map((option) => {
                 const active = selectedProvider === option.code;
@@ -554,12 +577,12 @@ export default function PaymentsScreen(): React.ReactElement {
               })}
             </View>
 
-            <Text style={styles.fieldLabel}>Numéro mobile money</Text>
+            <Text style={styles.fieldLabel}>{t("payments.phoneLabel")}</Text>
             <TextInput
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               placeholder="243973456789"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textFaint}
               keyboardType="phone-pad"
               style={styles.phoneInput}
               editable={!isPaying}
@@ -585,7 +608,7 @@ export default function PaymentsScreen(): React.ReactElement {
                   setPayError(null);
                 }}
               >
-                <Text style={styles.cancelBtnText}>Annuler</Text>
+                <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
               </Pressable>
               <Pressable
                 style={[styles.confirmBtn, isPaying && styles.confirmBtnDisabled]}
@@ -593,7 +616,7 @@ export default function PaymentsScreen(): React.ReactElement {
                 onPress={() => { void handlePayBalance(); }}
               >
                 <Text style={styles.confirmBtnText}>
-                  {isPaying ? "En cours..." : "Confirmer"}
+                  {isPaying ? t("common.inProgress") : t("common.confirm")}
                 </Text>
               </Pressable>
             </View>
@@ -603,322 +626,325 @@ export default function PaymentsScreen(): React.ReactElement {
 
       <FullScreenLoadingOverlay
         visible={isPaying}
-        message="Traitement du paiement en cours..."
+        message={t("payments.processing")}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#FFFFFF"
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16
-  },
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 36,
-    gap: 12
-  },
-  balanceCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#F8FAFC",
-    padding: 16,
-    gap: 10
-  },
-  balanceLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#6B7280",
-    letterSpacing: 0.4
-  },
-  balanceAmount: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  payCta: {
-    marginTop: 4,
-    borderRadius: 10,
-    backgroundColor: "#0063FE",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8
-  },
-  payCtaText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700"
-  },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8
-  },
-  searchInputWrap: {
-    flex: 1,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: "#111827",
-    paddingVertical: 0
-  },
-  filterBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF"
-  },
-  filterBtnActive: {
-    borderColor: "#93C5FD",
-    backgroundColor: "#EFF6FF"
-  },
-  filterHint: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "600",
-    marginTop: -4
-  },
-  monthBlock: {
-    gap: 8
-  },
-  monthTitle: {
-    fontSize: 11,
-    letterSpacing: 0.8,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    marginTop: 6
-  },
-  paymentCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12
-  },
-  paymentIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  paymentIconPaid: {
-    backgroundColor: "#DBEAFE"
-  },
-  paymentIconPending: {
-    backgroundColor: "#FEF3C7"
-  },
-  paymentInfo: {
-    flex: 1,
-    gap: 2
-  },
-  paymentTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  paymentMeta: {
-    fontSize: 12,
-    color: "#9CA3AF"
-  },
-  paymentRight: {
-    alignItems: "flex-end",
-    gap: 4
-  },
-  paymentAmount: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  badge: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.2
-  },
-  notice: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-    padding: 14,
-    gap: 8,
-    marginTop: 8
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#6B7280",
-    lineHeight: 20
-  },
-  errorText: {
-    color: "#B91C1C",
-    fontSize: 14
-  },
-  retry: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    backgroundColor: "#0063FE",
-    paddingHorizontal: 12,
-    paddingVertical: 8
-  },
-  retryText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 13
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(1, 10, 25, 0.45)",
-    justifyContent: "flex-end"
-  },
-  modalCard: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    padding: 18,
-    gap: 12
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontWeight: "600"
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#374151"
-  },
-  providerRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8
-  },
-  providerChip: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    gap: 6,
-    minWidth: 100
-  },
-  providerChipActive: {
-    borderColor: "#0063FE",
-    backgroundColor: "#EFF6FF"
-  },
-  providerChipText: {
-    color: "#374151",
-    fontSize: 12,
-    fontWeight: "600"
-  },
-  providerChipTextActive: {
-    color: "#0063FE"
-  },
-  phoneInput: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#111827"
-  },
-  statusNotice: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#BFD7FF",
-    backgroundColor: "#EFF6FF",
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8
-  },
-  statusNoticeText: {
-    flex: 1,
-    color: "#1E3A8A",
-    fontSize: 13,
-    fontWeight: "600"
-  },
-  payErrorText: {
-    color: "#B91C1C",
-    fontSize: 13,
-    fontWeight: "600"
-  },
-  modalActions: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 4
-  },
-  cancelBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center"
-  },
-  cancelBtnText: {
-    color: "#374151",
-    fontWeight: "700"
-  },
-  confirmBtn: {
-    flex: 1,
-    backgroundColor: "#0063FE",
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center"
-  },
-  confirmBtnDisabled: {
-    opacity: 0.7
-  },
-  confirmBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700"
-  }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16
+    },
+    scroll: { flex: 1 },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 36,
+      gap: 12
+    },
+    balanceCard: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+      padding: 16,
+      gap: 10
+    },
+    balanceLabel: {
+      fontSize: fontSize.caption,
+      fontWeight: "700",
+      color: colors.textMuted,
+      letterSpacing: 0.4
+    },
+    balanceAmount: {
+      fontSize: fontSize.display,
+      fontWeight: "700",
+      color: colors.text
+    },
+    payCta: {
+      marginTop: 4,
+      borderRadius: 10,
+      backgroundColor: colors.brand,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    },
+    payCtaText: {
+      color: colors.onBrand,
+      fontSize: fontSize.body,
+      fontWeight: "700"
+    },
+    searchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8
+    },
+    searchInputWrap: {
+      flex: 1,
+      height: 44,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: fontSize.body,
+      color: colors.text,
+      paddingVertical: 0
+    },
+    filterBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface
+    },
+    filterBtnActive: {
+      borderColor: colors.brandMuted,
+      backgroundColor: colors.brandSoft
+    },
+    filterHint: {
+      fontSize: fontSize.caption,
+      color: colors.textMuted,
+      fontWeight: "600",
+      marginTop: -4
+    },
+    monthBlock: {
+      gap: 8
+    },
+    monthTitle: {
+      fontSize: fontSize.caption,
+      letterSpacing: 0.8,
+      fontWeight: "700",
+      color: colors.textFaint,
+      marginTop: 6
+    },
+    paymentCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12
+    },
+    paymentIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    paymentIconPaid: {
+      backgroundColor: colors.brandSoft
+    },
+    paymentIconPending: {
+      backgroundColor: colors.surfaceMuted
+    },
+    paymentInfo: {
+      flex: 1,
+      gap: 2
+    },
+    paymentTitle: {
+      fontSize: fontSize.secondary,
+      fontWeight: "700",
+      color: colors.text
+    },
+    paymentMeta: {
+      fontSize: fontSize.caption,
+      color: colors.textFaint
+    },
+    paymentRight: {
+      alignItems: "flex-end",
+      gap: 4
+    },
+    paymentAmount: {
+      fontSize: fontSize.secondary,
+      fontWeight: "700",
+      color: colors.text
+    },
+    badge: {
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 3
+    },
+    badgeText: {
+      fontSize: fontSize.caption,
+      fontWeight: "700",
+      letterSpacing: 0.2
+    },
+    notice: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 8,
+      marginTop: 8
+    },
+    emptyTitle: {
+      fontSize: fontSize.body,
+      fontWeight: fontWeight.semibold,
+      color: colors.text
+    },
+    emptyText: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted,
+      lineHeight: 20
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: fontSize.secondary
+    },
+    retry: {
+      alignSelf: "flex-start",
+      borderRadius: 8,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+    retryText: {
+      color: colors.onBrand,
+      fontWeight: "700",
+      fontSize: fontSize.secondary
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: "flex-end"
+    },
+    modalCard: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 18,
+      borderTopRightRadius: 18,
+      padding: 18,
+      gap: 12
+    },
+    modalTitle: {
+      fontSize: fontSize.title,
+      fontWeight: "700",
+      color: colors.text
+    },
+    modalSubtitle: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted,
+      fontWeight: "600"
+    },
+    fieldLabel: {
+      fontSize: fontSize.secondary,
+      fontWeight: fontWeight.semibold,
+      color: colors.textSecondary
+    },
+    providerRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8
+    },
+    providerChip: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      gap: 6,
+      minWidth: 100
+    },
+    providerChipActive: {
+      borderColor: colors.brand,
+      backgroundColor: colors.brandSoft
+    },
+    providerChipText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.caption,
+      fontWeight: "600"
+    },
+    providerChipTextActive: {
+      color: colors.brand
+    },
+    phoneInput: {
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      fontSize: fontSize.body,
+      color: colors.text,
+      backgroundColor: colors.inputBg
+    },
+    statusNotice: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.brandMuted,
+      backgroundColor: colors.brandSoft,
+      padding: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8
+    },
+    statusNoticeText: {
+      flex: 1,
+      color: colors.brand,
+      fontSize: fontSize.secondary,
+      fontWeight: "600"
+    },
+    payErrorText: {
+      color: colors.danger,
+      fontSize: fontSize.secondary,
+      fontWeight: "600"
+    },
+    modalActions: {
+      flexDirection: "row",
+      gap: 10,
+      marginTop: 4
+    },
+    cancelBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: "center"
+    },
+    cancelBtnText: {
+      color: colors.textSecondary,
+      fontWeight: "700"
+    },
+    confirmBtn: {
+      flex: 1,
+      backgroundColor: colors.brand,
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: "center"
+    },
+    confirmBtnDisabled: {
+      opacity: 0.7
+    },
+    confirmBtnText: {
+      color: colors.onBrand,
+      fontWeight: "700"
+    }
+  });
+}

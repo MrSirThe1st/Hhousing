@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -9,11 +9,16 @@ import {
   View
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 import { ScreenShell } from "@/components/screen-shell";
 import { ListSkeleton } from "@/components/skeleton";
+import i18n from "@/i18n";
+import { formatLocaleDateTime } from "@/i18n/format";
+import { fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type SenderSide = "tenant" | "manager";
 
@@ -70,8 +75,8 @@ function normalizeDetail(value: unknown): ConversationDetailView {
 
   return {
     conversation: {
-      organizationName: asString(rawConversation.organizationName, "Conversation"),
-      propertyName: asString(rawConversation.propertyName, "Messages avec votre gestion"),
+      organizationName: asString(rawConversation.organizationName, i18n.t("messages.conversation")),
+      propertyName: asString(rawConversation.propertyName, i18n.t("messages.conversationSubtitle")),
       lastMessagePreview: asString(rawConversation.lastMessagePreview) || undefined,
       lastMessageAtIso: asString(rawConversation.lastMessageAtIso || rawLastMessage.createdAt) || undefined
     },
@@ -88,6 +93,9 @@ function normalizeSendMessage(value: unknown): SendMessageView {
 }
 
 export default function ConversationScreen(): React.ReactElement {
+  const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id?: string }>();
   const conversationId = typeof params.id === "string" ? params.id : null;
 
@@ -98,9 +106,18 @@ export default function ConversationScreen(): React.ReactElement {
   const [isSending, setIsSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  const messageRows = useMemo(
+    () =>
+      (detail?.messages ?? []).map((message) => ({
+        message,
+        timeLabel: formatLocaleDateTime(message.createdAtIso)
+      })),
+    [detail?.messages, i18n.language]
+  );
+
   const load = useCallback(async (): Promise<void> => {
     if (!conversationId) {
-      setError("Conversation introuvable.");
+      setError(t("messages.notFound"));
       setIsLoading(false);
       return;
     }
@@ -121,7 +138,7 @@ export default function ConversationScreen(): React.ReactElement {
     }
 
     setIsLoading(false);
-  }, [conversationId]);
+  }, [conversationId, t]);
 
   useEffect(() => {
     void load();
@@ -205,8 +222,8 @@ export default function ConversationScreen(): React.ReactElement {
 
   return (
     <ScreenShell
-      title={detail?.conversation.organizationName ?? "Conversation"}
-      subtitle={detail?.conversation.propertyName ?? "Messages avec votre gestion"}
+      title={detail?.conversation.organizationName ?? t("messages.conversation")}
+      subtitle={detail?.conversation.propertyName ?? t("messages.conversationSubtitle")}
     >
       {isLoading ? <ListSkeleton rows={5} /> : null}
 
@@ -214,7 +231,7 @@ export default function ConversationScreen(): React.ReactElement {
         <View style={styles.notice}>
           <Text style={styles.errorText}>{error}</Text>
           <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-            <Text style={styles.retryBtnText}>Réessayer</Text>
+            <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -222,14 +239,14 @@ export default function ConversationScreen(): React.ReactElement {
       {!isLoading && !error && detail ? (
         <>
           <ScrollView ref={scrollViewRef} style={styles.thread} showsVerticalScrollIndicator={false} onContentSizeChange={() => { scrollViewRef.current?.scrollToEnd({ animated: false }); }}>
-            {detail.messages.map((message) => {
+            {messageRows.map(({ message, timeLabel }) => {
               const isMine = message.senderSide === "tenant";
 
               return (
                 <View key={message.id} style={[styles.messageBubble, isMine ? styles.messageMine : styles.messageTheirs]}>
                   <Text style={[styles.messageBody, isMine && styles.messageBodyMine]}>{message.body}</Text>
                   <Text style={[styles.messageMeta, isMine && styles.messageMetaMine]}>
-                    {new Date(message.createdAtIso).toLocaleString("fr-FR")}
+                    {timeLabel}
                   </Text>
                 </View>
               );
@@ -241,8 +258,8 @@ export default function ConversationScreen(): React.ReactElement {
               style={styles.composerInput}
               value={messageBody}
               onChangeText={setMessageBody}
-              placeholder="Écrire un message"
-              placeholderTextColor="#9CA3AF"
+              placeholder={t("messages.placeholder")}
+              placeholderTextColor={colors.textFaint}
               multiline
             />
             <Pressable
@@ -250,7 +267,7 @@ export default function ConversationScreen(): React.ReactElement {
               onPress={() => { void handleSend(); }}
               disabled={isSending || !messageBody.trim()}
             >
-              {isSending ? <ActivityIndicator size="small" color="#ffffff" /> : <Text style={styles.sendBtnText}>Envoyer</Text>}
+              {isSending ? <ActivityIndicator size="small" color={colors.onBrand} /> : <Text style={styles.sendBtnText}>{t("messages.send")}</Text>}
             </Pressable>
           </View>
         </>
@@ -259,61 +276,63 @@ export default function ConversationScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  info: { color: "#6B7280", fontSize: 14 },
-  notice: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    gap: 10
-  },
-  errorText: { color: "#B91C1C", fontSize: 14 },
-  retryBtn: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    backgroundColor: "#0063FE",
-    paddingHorizontal: 12,
-    paddingVertical: 8
-  },
-  retryBtnText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
-  thread: { flex: 1, minHeight: 260, marginBottom: 10 },
-  messageBubble: {
-    maxWidth: "86%",
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginBottom: 8,
-    gap: 4
-  },
-  messageMine: { alignSelf: "flex-end", backgroundColor: "#0063FE" },
-  messageTheirs: { alignSelf: "flex-start", backgroundColor: "#F3F4F6" },
-  messageBody: { color: "#111827", fontSize: 14 },
-  messageBodyMine: { color: "#ffffff" },
-  messageMeta: { color: "#6B7280", fontSize: 11 },
-  messageMetaMine: { color: "#DBEAFE" },
-  composerRow: { flexDirection: "row", gap: 8, alignItems: "flex-end" },
-  composerInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#010A19",
-    backgroundColor: "#ffffff",
-    maxHeight: 120
-  },
-  sendBtn: {
-    borderRadius: 10,
-    backgroundColor: "#0063FE",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    minWidth: 82,
-    alignItems: "center"
-  },
-  sendBtnDisabled: { backgroundColor: "#93C5FD" },
-  sendBtnText: { color: "#ffffff", fontSize: 13, fontWeight: "700" }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    info: { color: colors.textMuted, fontSize: fontSize.secondary },
+    notice: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 10
+    },
+    errorText: { color: colors.danger, fontSize: fontSize.secondary },
+    retryBtn: {
+      alignSelf: "flex-start",
+      borderRadius: 8,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+    retryBtnText: { color: colors.onBrand, fontWeight: "600", fontSize: fontSize.secondary },
+    thread: { flex: 1, minHeight: 260, marginBottom: 10 },
+    messageBubble: {
+      maxWidth: "86%",
+      borderRadius: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      marginBottom: 8,
+      gap: 4
+    },
+    messageMine: { alignSelf: "flex-end", backgroundColor: colors.brand },
+    messageTheirs: { alignSelf: "flex-start", backgroundColor: colors.surfaceMuted },
+    messageBody: { color: colors.text, fontSize: fontSize.secondary },
+    messageBodyMine: { color: colors.onBrand },
+    messageMeta: { color: colors.textMuted, fontSize: fontSize.caption },
+    messageMetaMine: { color: colors.onBrand },
+    composerRow: { flexDirection: "row", gap: 8, alignItems: "flex-end" },
+    composerInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: fontSize.secondary,
+      color: colors.text,
+      backgroundColor: colors.inputBg,
+      maxHeight: 120
+    },
+    sendBtn: {
+      borderRadius: 10,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      minWidth: 82,
+      alignItems: "center"
+    },
+    sendBtnDisabled: { backgroundColor: colors.brandMuted },
+    sendBtnText: { color: colors.onBrand, fontSize: fontSize.secondary, fontWeight: "700" }
+  });
+}

@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ListSkeleton } from "@/components/skeleton";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
 import { useInbox } from "@/contexts/inbox-context";
 import { NetworkError } from "@/components/network-error";
+import { formatLocaleDate } from "@/i18n/format";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type ConversationItem = {
   conversationId: string;
@@ -27,14 +32,14 @@ function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
-function normalizeConversation(value: unknown, index: number): ConversationItem {
+function normalizeConversation(value: unknown, index: number, t: TFunction): ConversationItem {
   const raw = isRecord(value) ? value : {};
   const lastMessage = isRecord(raw.lastMessage) ? raw.lastMessage : {};
 
   return {
     conversationId: asString(raw.conversationId || raw.id, `conversation-${index}`),
-    organizationName: asString(raw.organizationName, "Gestion"),
-    propertyName: asString(raw.propertyName, "Propriété"),
+    organizationName: asString(raw.organizationName, t("messages.fallbackOrg")),
+    propertyName: asString(raw.propertyName, t("messages.fallbackProperty")),
     lastMessageAtIso: asString(raw.lastMessageAtIso || lastMessage.createdAt, new Date().toISOString()),
     lastMessagePreview: asString(raw.lastMessagePreview || lastMessage.text, ""),
     lastMessageSenderSide: asString(raw.lastMessageSenderSide || lastMessage.senderSide, "manager")
@@ -42,6 +47,9 @@ function normalizeConversation(value: unknown, index: number): ConversationItem 
 }
 
 export default function InboxScreen(): React.ReactElement {
+  const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { setConversations: setInboxConversations, markAllRead } = useInbox();
   const [isLoading, setIsLoading] = useState(true);
@@ -63,17 +71,29 @@ export default function InboxScreen(): React.ReactElement {
       setError(result.error);
       setConversations([]);
     } else {
-      const normalized = result.data.conversations.map((conversation, index) => normalizeConversation(conversation, index));
+      const normalized = result.data.conversations.map((conversation, index) =>
+        normalizeConversation(conversation, index, t)
+      );
       setConversations(normalized);
       setInboxConversations(normalized);
     }
 
     setIsLoading(false);
-  }, [setInboxConversations]);
+  }, [setInboxConversations, t]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Format dates with the active locale.
+  const conversationRows = useMemo(
+    () =>
+      conversations.map((conversation) => ({
+        conversation,
+        dateLabel: formatLocaleDate(conversation.lastMessageAtIso)
+      })),
+    [conversations, i18n.language]
+  );
 
   // Reset badge when user focuses this screen
   useFocusEffect(
@@ -83,7 +103,7 @@ export default function InboxScreen(): React.ReactElement {
   );
 
   return (
-    <ScreenShell title="Inbox" subtitle="Messages de votre gestion.">
+    <ScreenShell title={t("messages.title")} subtitle={t("messages.subtitle")}>
       {isLoading ? <ListSkeleton rows={4} /> : null}
 
       {!isLoading && error ? (
@@ -93,7 +113,7 @@ export default function InboxScreen(): React.ReactElement {
           <View style={styles.notice}>
             <Text style={styles.errorText}>{error}</Text>
             <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-              <Text style={styles.retryBtnText}>Réessayer</Text>
+              <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
             </Pressable>
           </View>
         )
@@ -101,18 +121,18 @@ export default function InboxScreen(): React.ReactElement {
 
       {!isLoading && !error && conversations.length === 0 ? (
         <View style={styles.notice}>
-          <Text style={styles.emptyTitle}>Aucun message</Text>
-          <Text style={styles.emptyText}>Votre gestion vous contactera ici.</Text>
+          <Text style={styles.emptyTitle}>{t("messages.emptyTitle")}</Text>
+          <Text style={styles.emptyText}>{t("messages.emptyText")}</Text>
         </View>
       ) : null}
 
-      {!isLoading && !error && conversations.length > 0 ? (
+      {!isLoading && !error && conversationRows.length > 0 ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
           style={styles.list}
-          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => { void load(); }} tintColor="#0063FE" />}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => { void load(); }} tintColor={colors.brand} />}
         >
-          {conversations.map((conversation) => (
+          {conversationRows.map(({ conversation, dateLabel }) => (
             <Pressable
               key={conversation.conversationId}
               style={styles.item}
@@ -120,7 +140,7 @@ export default function InboxScreen(): React.ReactElement {
             >
               <View style={styles.itemHeader}>
                 <Text style={styles.itemSender}>{conversation.organizationName}</Text>
-                <Text style={styles.itemDate}>{new Date(conversation.lastMessageAtIso).toLocaleDateString("fr-FR")}</Text>
+                <Text style={styles.itemDate}>{dateLabel}</Text>
               </View>
               <Text style={styles.itemProperty}>{conversation.propertyName}</Text>
               <Text style={styles.itemPreview} numberOfLines={2}>{conversation.lastMessagePreview}</Text>
@@ -132,40 +152,42 @@ export default function InboxScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  info: { color: "#6B7280", fontSize: 14 },
-  notice: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    gap: 10
-  },
-  errorText: { color: "#B91C1C", fontSize: 14 },
-  retryBtn: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    backgroundColor: "#0063FE",
-    paddingHorizontal: 12,
-    paddingVertical: 8
-  },
-  retryBtnText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#010A19" },
-  emptyText: { fontSize: 14, color: "#4B5563" },
-  list: { flex: 1 },
-  item: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    gap: 6,
-    marginBottom: 10
-  },
-  itemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
-  itemSender: { fontSize: 15, fontWeight: "700", color: "#010A19", flex: 1 },
-  itemDate: { fontSize: 12, color: "#6B7280" },
-  itemProperty: { fontSize: 13, fontWeight: "600", color: "#0063FE" },
-  itemPreview: { fontSize: 13, color: "#4B5563" }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    info: { color: colors.textMuted, fontSize: fontSize.secondary },
+    notice: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 10
+    },
+    errorText: { color: colors.danger, fontSize: fontSize.secondary },
+    retryBtn: {
+      alignSelf: "flex-start",
+      borderRadius: 8,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+    retryBtnText: { color: colors.onBrand, fontWeight: "600", fontSize: fontSize.secondary },
+    emptyTitle: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, color: colors.text },
+    emptyText: { fontSize: fontSize.secondary, color: colors.textSecondary },
+    list: { flex: 1 },
+    item: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 6,
+      marginBottom: 10
+    },
+    itemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+    itemSender: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, color: colors.text, flex: 1 },
+    itemDate: { fontSize: fontSize.caption, color: colors.textMuted },
+    itemProperty: { fontSize: fontSize.secondary, fontWeight: "600", color: colors.brand },
+    itemPreview: { fontSize: fontSize.secondary, color: colors.textSecondary }
+  });
+}

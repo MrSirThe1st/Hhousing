@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View
@@ -13,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import type { Tenant } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
 import type { LeaseWithTenantView } from "@/lib/api-contracts-types";
@@ -27,12 +27,17 @@ import {
   toDrcE164,
   validateDrcPhoneInput
 } from "@/lib/phone-input";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type ProfileOutput = { tenant: Tenant };
 type LeaseOutput = { lease: LeaseWithTenantView | null };
 
 export default function EditProfileScreen(): React.ReactElement {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, isLoading: isAuthLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,12 +47,11 @@ export default function EditProfileScreen(): React.ReactElement {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
-  const [isBiometricEnabled, setIsBiometricEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const load = useCallback(async (): Promise<void> => {
     if (!session?.access_token) {
-      setError("Session expirée. Veuillez vous reconnecter.");
+      setError(t("common.sessionExpired"));
       setIsOffline(false);
       setIsLoading(false);
       return;
@@ -95,7 +99,7 @@ export default function EditProfileScreen(): React.ReactElement {
     }
 
     setIsLoading(false);
-  }, [session?.access_token]);
+  }, [session?.access_token, t]);
 
   useEffect(() => {
     if (isAuthLoading) {
@@ -103,23 +107,23 @@ export default function EditProfileScreen(): React.ReactElement {
     }
 
     if (!session?.access_token) {
-      setError("Session expirée. Veuillez vous reconnecter.");
+      setError(t("common.sessionExpired"));
       setIsLoading(false);
       return;
     }
 
     void load();
-  }, [isAuthLoading, load, session?.access_token]);
+  }, [isAuthLoading, load, session?.access_token, t]);
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!fullName.trim()) {
-      Alert.alert("Erreur", "Le nom complet est requis.");
+      Alert.alert(t("common.error"), t("account.fullNameRequired"));
       return;
     }
 
     const phoneError = validateDrcPhoneInput(phone);
     if (phoneError) {
-      Alert.alert("Erreur", phoneError);
+      Alert.alert(t("common.error"), phoneError);
       return;
     }
 
@@ -134,15 +138,15 @@ export default function EditProfileScreen(): React.ReactElement {
     if (!result.success) {
       const profileUnavailable = result.code === "NOT_FOUND" || (result.code === "INTERNAL_ERROR" && result.error.includes("404"));
       if (profileUnavailable) {
-        Alert.alert("Indisponible", "Le service de modification du profil est temporairement indisponible.");
+        Alert.alert(t("account.profileUnavailableTitle"), t("account.profileUnavailableBody"));
       } else {
-        Alert.alert("Erreur", result.error);
+        Alert.alert(t("common.error"), result.error);
       }
     } else {
       setTenant(result.data.tenant);
       router.back();
     }
-  }, [fullName, phone, whatsappOptIn, router]);
+  }, [fullName, phone, whatsappOptIn, router, t]);
 
   if (isLoading || isAuthLoading) {
     return (
@@ -162,9 +166,9 @@ export default function EditProfileScreen(): React.ReactElement {
             <NetworkError onRetry={() => { void load(); }} />
           ) : (
             <View style={styles.notice}>
-              <Text style={styles.errorText}>{error ?? "Profil introuvable."}</Text>
+              <Text style={styles.errorText}>{error ?? t("account.profileNotFound")}</Text>
               <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-                <Text style={styles.retryBtnText}>Réessayer</Text>
+                <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
               </Pressable>
             </View>
           )}
@@ -176,45 +180,33 @@ export default function EditProfileScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.topBar}>
-        <Pressable style={styles.backBtn} onPress={() => { router.back(); }}>
-          <Ionicons name="arrow-back" size={21} color="#0063FE" />
-          <Text style={styles.topTitle}>Modifier le profil</Text>
+        <Pressable style={styles.backBtn} onPress={() => { router.back(); }} hitSlop={10}>
+          <Ionicons name="arrow-back" size={22} color={colors.brand} />
         </Pressable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.flex} contentContainerStyle={styles.content}>
-        <View style={styles.avatarWrap}>
-          <View style={styles.avatarCircle}>
-            <Ionicons name="person-outline" size={38} color="#6B7280" />
-          </View>
-          <View style={styles.avatarBadge}>
-            <Ionicons name="camera-outline" size={14} color="#ffffff" />
-          </View>
-        </View>
-
-        <Text style={styles.title}>Modifier le profil</Text>
-        <Text style={styles.subtitle}>Mettez à jour vos informations personnelles</Text>
-
         <View style={styles.field}>
-          <Text style={styles.label}>Nom complet</Text>
+          <Text style={styles.label}>{t("account.fullName")}</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="person-outline" size={16} color="#6B7280" />
+            <Ionicons name="person-outline" size={16} color={colors.textMuted} />
             <TextInput
               value={fullName}
               onChangeText={setFullName}
               style={styles.input}
               autoCapitalize="words"
               autoCorrect={false}
-              placeholder="Votre nom complet"
-              placeholderTextColor="#9CA3AF"
+              placeholder={t("account.fullNamePlaceholder")}
+              placeholderTextColor={colors.textFaint}
+              maxFontSizeMultiplier={1.15}
             />
           </View>
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Téléphone</Text>
+          <Text style={styles.label}>{t("account.phone")}</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="call-outline" size={16} color="#6B7280" />
+            <Ionicons name="call-outline" size={16} color={colors.textMuted} />
             <Text style={styles.prefix}>+243</Text>
             <TextInput
               value={formatDrcNationalDisplay(phone)}
@@ -223,63 +215,21 @@ export default function EditProfileScreen(): React.ReactElement {
               keyboardType="phone-pad"
               autoCorrect={false}
               placeholder="990 000 000"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textFaint}
               maxLength={11}
+              maxFontSizeMultiplier={1.15}
             />
           </View>
-          <Text style={styles.hint}>9 chiffres après +243</Text>
+          <Text style={styles.hint}>{t("account.phoneHint")}</Text>
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Email (non modifiable)</Text>
+          <Text style={styles.label}>{t("account.emailReadonly")}</Text>
           <View style={[styles.inputWrap, styles.readonlyField]}>
-            <Ionicons name="mail-outline" size={16} color="#9CA3AF" />
-            <Text style={styles.readonlyValue}>{tenant.email ?? "—"}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.securityTitle}>Notifications</Text>
-        <View style={styles.securityCard}>
-          <View style={styles.securityRow}>
-            <View style={styles.securityLeft}>
-              <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
-              <View>
-                <Text style={styles.securityText}>Notifications WhatsApp</Text>
-                <Text style={styles.securityHint}>Invitations et confirmations de paiement</Text>
-              </View>
-            </View>
-            <Switch
-              value={whatsappOptIn}
-              onValueChange={setWhatsappOptIn}
-              trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
-              thumbColor={whatsappOptIn ? "#25D366" : "#F3F4F6"}
-            />
-          </View>
-        </View>
-
-        <Text style={styles.securityTitle}>Sécurité</Text>
-        <View style={styles.securityCard}>
-          <Pressable style={styles.securityRow} onPress={() => { Alert.alert("Info", "Bientôt disponible"); }}>
-            <View style={styles.securityLeft}>
-              <Ionicons name="lock-closed-outline" size={16} color="#0063FE" />
-              <Text style={styles.securityText}>Changer le mot de passe</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-          </Pressable>
-
-          <View style={styles.securityDivider} />
-
-          <View style={styles.securityRow}>
-            <View style={styles.securityLeft}>
-              <Ionicons name="finger-print-outline" size={16} color="#0063FE" />
-              <Text style={styles.securityText}>Authentification biométrique</Text>
-            </View>
-            <Switch
-              value={isBiometricEnabled}
-              onValueChange={setIsBiometricEnabled}
-              trackColor={{ false: "#D1D5DB", true: "#93C5FD" }}
-              thumbColor={isBiometricEnabled ? "#0063FE" : "#F3F4F6"}
-            />
+            <Ionicons name="mail-outline" size={16} color={colors.iconMuted} />
+            <Text style={styles.readonlyValue} numberOfLines={1} ellipsizeMode="tail">
+              {tenant.email ?? "—"}
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -291,198 +241,138 @@ export default function EditProfileScreen(): React.ReactElement {
           disabled={isSaving}
         >
           {isSaving
-            ? <ActivityIndicator color="#ffffff" size="small" />
-            : <Text style={styles.saveBtnText}>Enregistrer les modifications</Text>}
+            ? <ActivityIndicator color={colors.onBrand} size="small" />
+            : <Text style={styles.saveBtnText}>{t("account.saveChanges")}</Text>}
         </Pressable>
 
         <Pressable style={styles.cancelBtn} onPress={() => { router.back(); }}>
-          <Text style={styles.cancelBtnText}>Annuler</Text>
+          <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#F5F6FA"
-  },
-  flex: { flex: 1 },
-  loadingWrap: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16
-  },
-  topBar: {
-    minHeight: 48,
-    borderBottomWidth: 1,
-    borderBottomColor: "#D4DAE7",
-    paddingHorizontal: 12,
-    justifyContent: "center"
-  },
-  backBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8
-  },
-  topTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#0063FE"
-  },
-  content: {
-    paddingHorizontal: 12,
-    paddingTop: 14,
-    paddingBottom: 20,
-    gap: 12
-  },
-  avatarWrap: {
-    alignSelf: "center",
-    position: "relative"
-  },
-  avatarCircle: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    borderWidth: 2,
-    borderColor: "#0063FE",
-    backgroundColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  avatarBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#0063FE",
-    position: "absolute",
-    right: -2,
-    bottom: 6,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  title: {
-    textAlign: "center",
-    fontSize: 21,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  subtitle: {
-    textAlign: "center",
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: -6
-  },
-  notice: {
-    borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff", padding: 14, gap: 10
-  },
-  errorText: { color: "#B91C1C", fontSize: 14 },
-  retryBtn: {
-    alignSelf: "flex-start", borderRadius: 8, backgroundColor: "#0063FE",
-    paddingHorizontal: 12, paddingVertical: 8
-  },
-  retryBtnText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
-  field: { gap: 6, marginTop: 4 },
-  label: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#6B7280",
-    textTransform: "uppercase"
-  },
-  inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#C5CCD9",
-    borderRadius: 10,
-    backgroundColor: "#F5F6FA",
-    minHeight: 44,
-    paddingHorizontal: 10
-  },
-  prefix: {
-    color: "#010A19",
-    fontSize: 15,
-    fontWeight: "700"
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: "#010A19",
-    paddingVertical: 0
-  },
-  hint: {
-    color: "#9CA3AF",
-    fontSize: 12
-  },
-  readonlyField: {
-    backgroundColor: "#ECEEF7"
-  },
-  readonlyValue: { fontSize: 15, color: "#9CA3AF" },
-  securityTitle: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: "#010A19",
-    marginTop: 8
-  },
-  securityCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#C5CCD9",
-    backgroundColor: "#ffffff",
-    overflow: "hidden"
-  },
-  securityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-    minHeight: 52
-  },
-  securityLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10
-  },
-  securityText: {
-    fontSize: 18,
-    color: "#374151",
-    fontWeight: "500"
-  },
-  securityHint: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 2,
-    maxWidth: 220
-  },
-  securityDivider: {
-    height: 1,
-    backgroundColor: "#E5E7EB"
-  },
-  footerActions: {
-    borderTopWidth: 1,
-    borderTopColor: "#D4DAE7",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-    backgroundColor: "#F5F6FA"
-  },
-  saveBtn: {
-    borderRadius: 10, backgroundColor: "#0063FE",
-    paddingVertical: 14, alignItems: "center"
-  },
-  saveBtnDisabled: { backgroundColor: "#93C5FD" },
-  saveBtnText: { color: "#ffffff", fontSize: 17, fontWeight: "700" },
-  cancelBtn: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 34
-  },
-  cancelBtnText: {
-    color: "#6B7280",
-    fontSize: 14,
-    fontWeight: "600"
-  }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.backgroundAlt
+    },
+    flex: { flex: 1 },
+    loadingWrap: {
+      flex: 1,
+      paddingHorizontal: 16,
+      paddingTop: 16
+    },
+    topBar: {
+      minHeight: 48,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+      paddingHorizontal: 12,
+      justifyContent: "center"
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    content: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 20,
+      gap: 12
+    },
+    notice: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 10
+    },
+    errorText: { color: colors.danger, fontSize: fontSize.secondary },
+    retryBtn: {
+      alignSelf: "flex-start",
+      borderRadius: 8,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+    retryBtnText: { color: colors.onBrand, fontWeight: "600", fontSize: fontSize.secondary },
+    field: { gap: 6 },
+    label: {
+      fontSize: fontSize.caption,
+      fontWeight: fontWeight.semibold,
+      color: colors.textMuted,
+      textTransform: "uppercase"
+    },
+    inputWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 10,
+      backgroundColor: colors.inputBg,
+      minHeight: 44,
+      paddingHorizontal: 10
+    },
+    prefix: {
+      color: colors.text,
+      fontSize: fontSize.body,
+      fontWeight: fontWeight.semibold
+    },
+    input: {
+      flex: 1,
+      fontSize: fontSize.body,
+      color: colors.text,
+      paddingVertical: 0,
+      fontWeight: fontWeight.regular
+    },
+    hint: {
+      color: colors.textFaint,
+      fontSize: fontSize.caption
+    },
+    readonlyField: {
+      backgroundColor: colors.readonlyBg
+    },
+    readonlyValue: {
+      flex: 1,
+      fontSize: fontSize.body,
+      color: colors.textFaint,
+      fontWeight: fontWeight.regular
+    },
+    footerActions: {
+      borderTopWidth: 1,
+      borderTopColor: colors.borderStrong,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 8,
+      backgroundColor: colors.backgroundAlt
+    },
+    saveBtn: {
+      borderRadius: 10,
+      backgroundColor: colors.brand,
+      paddingVertical: 12,
+      alignItems: "center"
+    },
+    saveBtnDisabled: { backgroundColor: colors.brandMuted },
+    saveBtnText: {
+      color: colors.onBrand,
+      fontSize: fontSize.body,
+      fontWeight: fontWeight.semibold
+    },
+    cancelBtn: {
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 34
+    },
+    cancelBtnText: {
+      color: colors.textMuted,
+      fontSize: fontSize.secondary,
+      fontWeight: fontWeight.medium
+    }
+  });
+}

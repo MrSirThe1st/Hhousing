@@ -1,3 +1,5 @@
+export type TenantAccountStatus = "active" | "pending_deletion" | "deleted";
+
 export interface Tenant {
   id: string;
   organizationId: string;
@@ -13,5 +15,8 @@ export interface Tenant {
   jobTitle: string | null;
   monthlyIncome: number | null;
   numberOfOccupants: number | null;
+  accountStatus: TenantAccountStatus;
+  deletionRequestedAtIso: string | null;
+  deletedAtIso: string | null;
   createdAtIso: string;
 }

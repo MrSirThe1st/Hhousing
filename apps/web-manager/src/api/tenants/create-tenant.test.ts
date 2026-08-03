@@ -46,7 +46,7 @@ function createTeamFunctionsRepositoryMock(permissions: string[]): TeamPermissio
 
 describe("createTenant", () => {
   it("creates tenant with profile fields", async () => {
-    const repository: TenantLeaseRepository = {
+    const repository = {
       createTenant: vi.fn().mockResolvedValue({
         id: "ten-1",
         organizationId: "org-1",
@@ -56,6 +56,15 @@ describe("createTenant", () => {
         phone: "+243000000",
         dateOfBirth: "1995-04-20",
         photoUrl: "https://cdn.test/tenant.jpg",
+        whatsappNumber: null,
+        whatsappOptIn: true,
+        employmentStatus: null,
+        jobTitle: null,
+        monthlyIncome: null,
+        numberOfOccupants: null,
+        accountStatus: "active",
+        deletionRequestedAtIso: null,
+        deletedAtIso: null,
         createdAtIso: "2026-03-31T00:00:00.000Z"
       }),
       createLease: vi.fn(),
@@ -69,6 +78,7 @@ describe("createTenant", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn(),
       findTenantByNormalizedPhone: vi.fn(),
+      findTenantByEmail: vi.fn(),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -78,9 +88,10 @@ describe("createTenant", () => {
       closeMoveOut: vi.fn(),
       replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
+      updateTenantMobileProfile: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
-    };
+    } as unknown as TenantLeaseRepository;
 
     const response = await createTenant(
       {
@@ -120,7 +131,7 @@ describe("createTenant", () => {
   });
 
   it("rejects members without tenant management permission", async () => {
-    const repository: TenantLeaseRepository = {
+    const repository = {
       createTenant: vi.fn(),
       createLease: vi.fn(),
       revokeActiveTenantInvitations: vi.fn(),
@@ -133,6 +144,7 @@ describe("createTenant", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn(),
       findTenantByNormalizedPhone: vi.fn(),
+      findTenantByEmail: vi.fn(),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -142,9 +154,10 @@ describe("createTenant", () => {
       closeMoveOut: vi.fn(),
       replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
+      updateTenantMobileProfile: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
-    };
+    } as unknown as TenantLeaseRepository;
 
     const response = await createTenant(
       {

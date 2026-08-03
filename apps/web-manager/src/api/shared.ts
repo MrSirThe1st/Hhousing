@@ -99,7 +99,7 @@ export function mapErrorCodeToHttpStatus(code: string): number {
     return 401;
   }
 
-  if (code === "FORBIDDEN") {
+  if (code === "FORBIDDEN" || code === "ACCOUNT_PENDING_DELETION") {
     return 403;
   }
 
@@ -109,6 +109,14 @@ export function mapErrorCodeToHttpStatus(code: string): number {
 
   if (code === "NOT_FOUND") {
     return 404;
+  }
+
+  if (code === "GONE") {
+    return 410;
+  }
+
+  if (code === "CONFLICT") {
+    return 409;
   }
 
   return 422;

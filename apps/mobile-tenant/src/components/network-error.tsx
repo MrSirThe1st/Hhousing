@@ -1,20 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { fontSize, useTheme } from "@/theme";
 
 type NetworkErrorProps = {
   onRetry: () => void;
 };
 
 export function NetworkError({ onRetry }: NetworkErrorProps): React.ReactElement {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
-      <Ionicons name="wifi-outline" size={48} color="#9CA3AF" />
-      <Text style={styles.title}>Pas de connexion</Text>
-      <Text style={styles.message}>
-        Le réseau est faible ou coupé. Vérifiez votre connexion, puis réessayez.
+      <Ionicons name="wifi-outline" size={48} color={colors.iconMuted} />
+      <Text style={[styles.title, { color: colors.textSecondary }]}>{t("errors.networkTitle")}</Text>
+      <Text style={[styles.message, { color: colors.textMuted }]}>
+        {t("errors.networkBody")}
       </Text>
-      <Pressable style={styles.retryBtn} onPress={onRetry}>
-        <Text style={styles.retryBtnText}>Réessayer</Text>
+      <Pressable style={[styles.retryBtn, { backgroundColor: colors.brand }]} onPress={onRetry}>
+        <Text style={[styles.retryBtnText, { color: colors.onBrand }]}>{t("common.retry")}</Text>
       </Pressable>
     </View>
   );
@@ -29,26 +34,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#374151"
+    fontSize: fontSize.title,
+    fontWeight: "600"
   },
   message: {
-    fontSize: 14,
-    color: "#6B7280",
+    fontSize: fontSize.secondary,
     textAlign: "center",
     lineHeight: 20
   },
   retryBtn: {
     marginTop: 8,
-    backgroundColor: "#0063FE",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8
   },
   retryBtnText: {
-    color: "#ffffff",
     fontWeight: "600",
-    fontSize: 14
+    fontSize: fontSize.secondary
   }
 });

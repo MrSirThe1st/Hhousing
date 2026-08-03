@@ -1,7 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
+import {
+  createAuthRepositoryFromEnv,
+  createTenantLeaseRepositoryFromEnv
+} from "@hhousing/data-access";
 import type { ApiResult, AuthSession, UserRole } from "@hhousing/api-contracts";
 
 const VALID_ROLES: readonly UserRole[] = ["tenant", "landlord", "property_manager", "platform_admin"];
@@ -140,7 +143,8 @@ export async function extractAuthSessionFromRequest(request: Request): Promise<A
 }
 
 export async function extractTenantSessionFromRequest(
-  request: Request
+  request: Request,
+  options?: { allowPendingDeletion?: boolean }
 ): Promise<ApiResult<AuthSession>> {
   const token = getBearerToken(request.headers);
   if (token === null) {
@@ -213,6 +217,29 @@ export async function extractTenantSessionFromRequest(
         success: false,
         code: "FORBIDDEN",
         error: "Organization context is required"
+      };
+    }
+
+    const tenantRepo = createTenantLeaseRepositoryFromEnv(process.env);
+    const tenant = await tenantRepo.getTenantByAuthUserId(userId);
+
+    if (tenant?.accountStatus === "deleted") {
+      return {
+        success: false,
+        code: "FORBIDDEN",
+        error: "This account has been deleted"
+      };
+    }
+
+    const isPendingDeletion =
+      tenant?.accountStatus === "pending_deletion"
+      || primary.status === "inactive";
+
+    if (isPendingDeletion && !options?.allowPendingDeletion) {
+      return {
+        success: false,
+        code: "ACCOUNT_PENDING_DELETION",
+        error: "Account deletion is pending. Cancel deletion to continue using the app."
       };
     }
 

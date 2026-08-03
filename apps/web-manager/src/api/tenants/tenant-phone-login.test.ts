@@ -5,7 +5,8 @@ describe("loginTenantWithPhonePassword", () => {
   it("rejects invalid body", async () => {
     const result = await loginTenantWithPhonePassword(null, {
       tenantRepository: {
-        findTenantByNormalizedPhone: vi.fn()
+        findTenantByNormalizedPhone: vi.fn(),
+        findTenantByEmail: vi.fn()
       } as never,
       supabaseUrl: "https://example.supabase.co",
       supabaseAnonKey: "anon"
@@ -20,7 +21,8 @@ describe("loginTenantWithPhonePassword", () => {
       { phone: "+243990000000", password: "password1" },
       {
         tenantRepository: {
-          findTenantByNormalizedPhone: vi.fn().mockResolvedValue(null)
+          findTenantByNormalizedPhone: vi.fn().mockResolvedValue(null),
+          findTenantByEmail: vi.fn()
         } as never,
         supabaseUrl: "https://example.supabase.co",
         supabaseAnonKey: "anon"
@@ -53,7 +55,8 @@ describe("loginTenantWithPhonePassword", () => {
             organizationId: "org-1",
             authUserId: "user-1",
             email: "tenant@example.com"
-          })
+          }),
+          findTenantByEmail: vi.fn()
         } as never,
         supabaseUrl: "https://example.supabase.co",
         supabaseAnonKey: "anon"

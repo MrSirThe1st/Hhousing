@@ -92,7 +92,7 @@ export async function loginTenantWithPhonePassword(
   }
 
   const tenant = await deps.tenantRepository.findTenantByNormalizedPhone(phoneNormalized);
-  if (!tenant || !tenant.authUserId) {
+  if (!tenant || !tenant.authUserId || tenant.accountStatus === "deleted") {
     return {
       status: 401,
       body: {

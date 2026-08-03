@@ -1,4 +1,9 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 export type MobileMoneyProviderCode = "AIRTEL_COD" | "ORANGE_COD" | "VODACOM_MPESA_COD";
 
@@ -60,62 +65,91 @@ export function MobileMoneyLogo({
 }
 
 export function MobileMoneyMethodsRow(): React.ReactElement {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <View style={styles.block}>
-      <Text style={styles.heading}>MÉTHODES ACCEPTÉES :</Text>
-      <View style={styles.row}>
-        {MOBILE_MONEY_PROVIDERS.map((provider) => (
-          <View key={provider.code} style={styles.chip}>
-            <View style={styles.logoWrap}>
-              <MobileMoneyLogo code={provider.code} />
+      <Pressable
+        style={styles.header}
+        onPress={() => { setExpanded((prev) => !prev); }}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={t("shared.acceptedMethodsA11y")}
+      >
+        <Text style={styles.heading}>{t("shared.acceptedMethods")}</Text>
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={colors.iconMuted}
+        />
+      </Pressable>
+      {expanded ? (
+        <View style={styles.row}>
+          {MOBILE_MONEY_PROVIDERS.map((provider) => (
+            <View key={provider.code} style={styles.chip}>
+              <View style={styles.logoWrap}>
+                <MobileMoneyLogo code={provider.code} />
+              </View>
+              <Text style={styles.label} numberOfLines={1}>
+                {provider.label}
+              </Text>
             </View>
-            <Text style={styles.label} numberOfLines={1}>
-              {provider.label}
-            </Text>
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  block: {
-    gap: 10
-  },
-  heading: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    color: "#9CA3AF"
-  },
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8
-  },
-  chip: {
-    flexGrow: 1,
-    flexBasis: "30%",
-    minWidth: 96,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    alignItems: "center",
-    gap: 8
-  },
-  logoWrap: {
-    minHeight: 36,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#374151",
-    textAlign: "center"
-  }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    block: {
+      gap: 10
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      paddingVertical: 2
+    },
+    heading: {
+      fontSize: fontSize.caption,
+      fontWeight: fontWeight.semibold,
+      letterSpacing: 0.6,
+      color: colors.textFaint
+    },
+    row: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8
+    },
+    chip: {
+      flexGrow: 1,
+      flexBasis: "30%",
+      minWidth: 96,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      alignItems: "center",
+      gap: 8
+    },
+    logoWrap: {
+      minHeight: 36,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    label: {
+      fontSize: fontSize.caption,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      textAlign: "center"
+    }
+  });
+}

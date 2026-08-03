@@ -213,6 +213,7 @@ export interface TenantLeaseRepository {
   listTenantsByOrganization(organizationId: string): Promise<Tenant[]>;
   getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null>;
   findTenantByNormalizedPhone(phoneNormalized: string): Promise<Tenant | null>;
+  findTenantByEmail(email: string): Promise<Tenant | null>;
   getLeaseById(leaseId: string, organizationId: string): Promise<LeaseWithTenantView | null>;
   listMoveOutsByOrganization(organizationId: string): Promise<MoveOutListItem[]>;
   getLatestLedgerEventId(organizationId: string): Promise<number | null>;
@@ -225,4 +226,29 @@ export interface TenantLeaseRepository {
   updateTenantMobileProfile(input: UpdateTenantMobileProfileInput): Promise<Tenant | null>;
   updateLease(input: UpdateLeaseRecordInput): Promise<Lease | null>;
   deleteTenant(tenantId: string, organizationId: string): Promise<boolean>;
+  getTenantByAuthUserId(authUserId: string): Promise<Tenant | null>;
+  requestTenantAccountDeletion(
+    tenantId: string,
+    organizationId: string
+  ): Promise<Tenant | null>;
+  cancelTenantAccountDeletion(
+    tenantId: string,
+    organizationId: string
+  ): Promise<Tenant | null>;
+  listTenantsPendingFinalization(cutoffIso: string): Promise<Tenant[]>;
+  listTenantsNeedingDeletionReminder(
+    reminderBeforeIso: string,
+    finalizeBeforeIso: string
+  ): Promise<Tenant[]>;
+  markTenantDeletionReminderSent(
+    tenantId: string,
+    organizationId: string
+  ): Promise<void>;
+  finalizeTenantAccountDeletion(input: {
+    tenantId: string;
+    organizationId: string;
+    emailHash: string | null;
+    phoneHash: string | null;
+    anonymizedFullName: string;
+  }): Promise<{ authUserId: string | null; phoneNormalized: string | null } | null>;
 }

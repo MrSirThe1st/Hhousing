@@ -11,10 +11,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CardSkeleton } from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { Lease, Payment, Tenant } from "@/lib/domain-types";
 import { getWithAuth } from "@/lib/api-client";
 import { NetworkError } from "@/components/network-error";
 import { MobileMoneyMethodsRow } from "@/components/mobile-money-logos";
+import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
+import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
+import { usePreferences } from "@/contexts/preferences-context";
+import {
+  formatAmount,
+  formatDueDate,
+  formatHistoryDate,
+  monthNameFromYmd
+} from "@/i18n/format";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type LeaseOutput = {
   lease: Lease | null;
@@ -25,45 +38,6 @@ type LeaseOutput = {
 };
 type PaymentsOutput = { payments: Payment[] };
 type ProfileOutput = { tenant: Tenant };
-
-const MONTH_NAMES_FR = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-];
-
-const MONTH_SHORT_FR = [
-  "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-  "Juil", "Août", "Sep", "Oct", "Nov", "Déc"
-];
-
-function getMonthFromDate(dateStr: string): string {
-  const parts = dateStr.split("-");
-  const monthIndex = parseInt(parts[1] ?? "1", 10) - 1;
-  return MONTH_NAMES_FR[monthIndex] ?? "";
-}
-
-function formatAmount(amount: number, currency: string): string {
-  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount);
-  return `${formatted.replace(/\u00A0|\s/g, ".")} ${currency}`;
-}
-
-function formatDueDate(dateStr: string): string {
-  const parts = dateStr.split("-");
-  const day = parts[2] ?? "01";
-  const monthIndex = parseInt(parts[1] ?? "1", 10) - 1;
-  const year = parts[0] ?? "";
-  const month = MONTH_NAMES_FR[monthIndex] ?? "";
-  return `${parseInt(day, 10)} ${month} ${year}`;
-}
-
-function formatHistoryDate(dateStr: string): string {
-  const parts = dateStr.split("-");
-  const day = parts[2] ?? "01";
-  const monthIndex = parseInt(parts[1] ?? "1", 10) - 1;
-  const year = parts[0] ?? "";
-  const month = MONTH_SHORT_FR[monthIndex] ?? "";
-  return `${String(parseInt(day, 10)).padStart(2, "0")} ${month} ${year}`;
-}
 
 function getFirstName(fullName: string): string {
   return fullName.trim().split(" ")[0] ?? fullName;
@@ -77,24 +51,24 @@ function getInitials(name: string): string {
   return (parts[0]?.slice(0, 2) ?? "LO").toUpperCase();
 }
 
-function paymentTitle(payment: Payment): string {
-  if (payment.paymentKind === "deposit") return "Garantie";
-  if (payment.paymentKind === "fee") return "Frais";
-  if (payment.paymentKind === "prorated_rent") return "Loyer (prorata)";
-  const month = getMonthFromDate(payment.dueDate);
-  return month ? `Loyer ${month}` : "Loyer";
+function paymentTitle(payment: Payment, t: TFunction): string {
+  if (payment.paymentKind === "deposit") return t("home.kind.deposit");
+  if (payment.paymentKind === "fee") return t("home.kind.fee");
+  if (payment.paymentKind === "prorated_rent") return t("home.kind.proratedRent");
+  const month = monthNameFromYmd(payment.dueDate);
+  return month ? t("home.kind.rentMonth", { month }) : t("home.kind.rent");
 }
 
-function statusLabel(status: Payment["status"]): string {
-  if (status === "paid") return "PAYÉ";
-  if (status === "cancelled") return "ANNULÉ";
-  return "À PAYER";
+function statusLabel(status: Payment["status"], t: TFunction): string {
+  if (status === "paid") return t("home.status.paid");
+  if (status === "cancelled") return t("home.status.cancelled");
+  return t("home.status.toPay");
 }
 
-function statusColor(status: Payment["status"]): string {
-  if (status === "paid") return "#9CA3AF";
-  if (status === "cancelled") return "#9CA3AF";
-  return "#D97706";
+function statusColor(status: Payment["status"], colors: ThemeColors): string {
+  if (status === "paid") return colors.textFaint;
+  if (status === "cancelled") return colors.textFaint;
+  return colors.warning;
 }
 
 interface DashboardData {
@@ -107,6 +81,10 @@ interface DashboardData {
 
 export default function HomeScreen(): React.ReactElement {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const { amountsRevealed, toggleAmountsRevealed } = useAmountPrivacy();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -134,7 +112,7 @@ export default function HomeScreen(): React.ReactElement {
         if (leaseRes.code === "NETWORK_ERROR") setIsOffline(true);
         setError(
           leaseRes.code === "NETWORK_ERROR"
-            ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+            ? t("common.offline")
             : leaseRes.error
         );
         return;
@@ -144,7 +122,7 @@ export default function HomeScreen(): React.ReactElement {
         if (paymentsRes.code === "NETWORK_ERROR") setIsOffline(true);
         setError(
           paymentsRes.code === "NETWORK_ERROR"
-            ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+            ? t("common.offline")
             : paymentsRes.error
         );
         return;
@@ -175,14 +153,14 @@ export default function HomeScreen(): React.ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const firstName = getFirstName(data.tenantName);
-  const displayName = firstName || data.tenantName || "Locataire";
+  const displayName = firstName || data.tenantName || t("common.tenant");
   const initials = useMemo(
     () => getInitials(data.tenantName || displayName),
     [data.tenantName, displayName]
@@ -209,7 +187,7 @@ export default function HomeScreen(): React.ReactElement {
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
               <Pressable style={styles.retryBtn} onPress={() => { void load(); }}>
-                <Text style={styles.retryText}>Réessayer</Text>
+                <Text style={styles.retryText}>{t("common.retry")}</Text>
               </Pressable>
             </View>
           )}
@@ -227,7 +205,7 @@ export default function HomeScreen(): React.ReactElement {
           <RefreshControl
             refreshing={false}
             onRefresh={() => { void load(); }}
-            tintColor="#0063FE"
+            tintColor={colors.brand}
           />
         }
       >
@@ -238,9 +216,9 @@ export default function HomeScreen(): React.ReactElement {
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
             <View style={styles.headerCopy}>
-              <Text style={styles.greeting}>Bonjour {displayName}</Text>
+              <Text style={styles.greeting}>{t("home.greeting", { name: displayName })}</Text>
               <Text style={styles.address} numberOfLines={1}>
-                {data.rentalAddress || "Votre espace locataire"}
+                {data.rentalAddress || t("home.defaultAddress")}
               </Text>
             </View>
           </View>
@@ -249,7 +227,7 @@ export default function HomeScreen(): React.ReactElement {
             hitSlop={10}
             style={styles.gearBtn}
           >
-            <Ionicons name="settings-outline" size={22} color="#6B7280" />
+            <Ionicons name="settings-outline" size={22} color={colors.textMuted} />
           </Pressable>
         </View>
         <View style={styles.headerRule} />
@@ -259,17 +237,23 @@ export default function HomeScreen(): React.ReactElement {
           <>
             <View style={styles.rentCard}>
               <Text style={styles.rentLabel}>
-                LOYER {getMonthFromDate(data.nextPayment.dueDate).toUpperCase()}
+                {t("home.rentLabel", {
+                  month: monthNameFromYmd(data.nextPayment.dueDate).toUpperCase()
+                })}
               </Text>
 
-              <Text style={styles.rentAmount}>
-                {formatAmount(data.nextPayment.amount, data.nextPayment.currencyCode ?? "CDF")}
-              </Text>
+              <SensitiveAmount
+                value={formatAmount(data.nextPayment.amount, data.nextPayment.currencyCode ?? "CDF")}
+                revealed={amountsRevealed}
+                onToggle={toggleAmountsRevealed}
+                style={styles.rentAmount}
+                eyeColor={colors.brand}
+              />
 
               <View style={styles.cardRule} />
 
               <Text style={styles.dueText}>
-                À payer le {formatDueDate(data.nextPayment.dueDate)}
+                {t("home.dueOn", { date: formatDueDate(data.nextPayment.dueDate) })}
               </Text>
             </View>
 
@@ -277,32 +261,34 @@ export default function HomeScreen(): React.ReactElement {
               style={styles.payBtn}
               onPress={() => { router.push("/(tabs)/payments?pay=1"); }}
             >
-              <Text style={styles.payBtnText}>Payer maintenant</Text>
+              <Text style={styles.payBtnText}>{t("home.payNow")}</Text>
             </Pressable>
 
             <View style={styles.trustRow}>
-              <Ionicons name="shield-checkmark-outline" size={13} color="#9CA3AF" />
-              <Text style={styles.trustText}>Paiement sécurisé</Text>
+              <Ionicons name="shield-checkmark-outline" size={13} color={colors.textFaint} />
+              <Text style={styles.trustText}>{t("home.securePayment")}</Text>
             </View>
           </>
         ) : data.lease ? (
           <View style={styles.rentCard}>
-            <Text style={styles.rentLabel}>LOYER DU MOIS</Text>
-            <Text style={styles.rentAmountMuted}>
-              {formatAmount(
+            <Text style={styles.rentLabel}>{t("home.rentOfMonth")}</Text>
+            <SensitiveAmount
+              value={formatAmount(
                 data.lease.monthlyRentAmount ?? data.lease.monthlyRent ?? 0,
                 data.lease.currencyCode ?? "CDF"
               )}
-            </Text>
+              revealed={amountsRevealed}
+              onToggle={toggleAmountsRevealed}
+              style={styles.rentAmountMuted}
+              eyeColor={colors.textFaint}
+            />
             <View style={styles.cardRule} />
-            <Text style={styles.dueText}>Aucun loyer à payer ce mois.</Text>
+            <Text style={styles.dueText}>{t("home.noRentDue")}</Text>
           </View>
         ) : (
           <View style={styles.rentCard}>
-            <Text style={styles.rentLabel}>BIENVENUE</Text>
-            <Text style={styles.emptyHelp}>
-              Votre logement n&apos;est pas encore lié. Contactez votre bailleur pour activer votre compte.
-            </Text>
+            <Text style={styles.rentLabel}>{t("home.welcome")}</Text>
+            <Text style={styles.emptyHelp}>{t("home.noLeaseLinked")}</Text>
           </View>
         )}
 
@@ -313,15 +299,15 @@ export default function HomeScreen(): React.ReactElement {
         {/* History */}
         <View style={styles.historyBlock}>
           <View style={styles.historyHeader}>
-            <Text style={styles.historyTitle}>Derniers paiements</Text>
+            <Text style={styles.historyTitle}>{t("home.recentPayments")}</Text>
             <Pressable onPress={() => { router.push("/(tabs)/payments"); }}>
-              <Text style={styles.historyLink}>Tout voir</Text>
+              <Text style={styles.historyLink}>{t("home.seeAll")}</Text>
             </Pressable>
           </View>
 
           {data.recentPayments.length === 0 ? (
             <View style={styles.historyCard}>
-              <Text style={styles.emptyHelp}>Aucun paiement pour le moment.</Text>
+              <Text style={styles.emptyHelp}>{t("home.noPaymentsYet")}</Text>
             </View>
           ) : (
             data.recentPayments.map((payment) => {
@@ -337,21 +323,25 @@ export default function HomeScreen(): React.ReactElement {
                     <Ionicons
                       name={paid ? "checkmark" : "document-text-outline"}
                       size={16}
-                      color={paid ? "#9CA3AF" : "#D97706"}
+                      color={paid ? colors.textFaint : colors.warning}
                     />
                   </View>
                   <View style={styles.historyInfo}>
-                    <Text style={styles.historyName}>{paymentTitle(payment)}</Text>
+                    <Text style={styles.historyName}>{paymentTitle(payment, t)}</Text>
                     <Text style={styles.historyDate}>
                       {formatHistoryDate(payment.paidDate ?? payment.dueDate)}
                     </Text>
                   </View>
                   <View style={styles.historyRight}>
                     <Text style={styles.historyAmount}>
-                      {formatAmount(payment.amount, payment.currencyCode ?? "CDF")}
+                      {amountsRevealed
+                        ? formatAmount(payment.amount, payment.currencyCode ?? "CDF")
+                        : maskSensitiveAmount(
+                          formatAmount(payment.amount, payment.currencyCode ?? "CDF")
+                        )}
                     </Text>
-                    <Text style={[styles.historyStatus, { color: statusColor(payment.status) }]}>
-                      {statusLabel(payment.status)}
+                    <Text style={[styles.historyStatus, { color: statusColor(payment.status, colors) }]}>
+                      {statusLabel(payment.status, t)}
                     </Text>
                   </View>
                 </View>
@@ -364,233 +354,235 @@ export default function HomeScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#FFFFFF"
-  },
-  padded: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 16
-  },
-  scrollContent: {
-    paddingBottom: 40
-  },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background
+    },
+    padded: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      gap: 16
+    },
+    scrollContent: {
+      paddingBottom: 40
+    },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 14
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#E8EEF7",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  avatarText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#374151"
-  },
-  headerCopy: {
-    flex: 1,
-    gap: 2
-  },
-  greeting: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  address: {
-    fontSize: 13,
-    color: "#9CA3AF"
-  },
-  gearBtn: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  headerRule: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#E5E7EB",
-    marginBottom: 14
-  },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 14
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      flex: 1
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.avatarBg,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    avatarText: {
+      fontSize: fontSize.body,
+      fontWeight: "700",
+      color: colors.textSecondary
+    },
+    headerCopy: {
+      flex: 1,
+      gap: 2
+    },
+    greeting: {
+      fontSize: fontSize.title,
+      fontWeight: fontWeight.semibold,
+      color: colors.text
+    },
+    address: {
+      fontSize: fontSize.secondary,
+      color: colors.textFaint
+    },
+    gearBtn: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    headerRule: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+      marginBottom: 14
+    },
 
-  rentCard: {
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
-    gap: 8
-  },
-  rentLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: "#9CA3AF"
-  },
-  rentAmount: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0063FE",
-    letterSpacing: -0.3
-  },
-  rentAmountMuted: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#9CA3AF"
-  },
-  cardRule: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#E5E7EB"
-  },
-  dueText: {
-    fontSize: 13,
-    color: "#6B7280"
-  },
+    rentCard: {
+      marginHorizontal: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      paddingBottom: 12,
+      gap: 8
+    },
+    rentLabel: {
+      fontSize: fontSize.caption,
+      fontWeight: fontWeight.semibold,
+      letterSpacing: 0.5,
+      color: colors.textFaint
+    },
+    rentAmount: {
+      fontSize: fontSize.display,
+      fontWeight: "700",
+      color: colors.brand,
+      letterSpacing: -0.3
+    },
+    rentAmountMuted: {
+      fontSize: fontSize.display,
+      fontWeight: "700",
+      color: colors.textFaint
+    },
+    cardRule: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border
+    },
+    dueText: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted
+    },
 
-  payBtn: {
-    marginHorizontal: 20,
-    marginTop: 10,
-    backgroundColor: "#0063FE",
-    borderRadius: 10,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  payBtnText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700"
-  },
-  trustRow: {
-    marginTop: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5
-  },
-  trustText: {
-    fontSize: 12,
-    color: "#9CA3AF"
-  },
+    payBtn: {
+      marginHorizontal: 20,
+      marginTop: 10,
+      backgroundColor: colors.brand,
+      borderRadius: 10,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    payBtnText: {
+      color: colors.onBrand,
+      fontSize: fontSize.body,
+      fontWeight: "700"
+    },
+    trustRow: {
+      marginTop: 8,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5
+    },
+    trustText: {
+      fontSize: fontSize.caption,
+      color: colors.textFaint
+    },
 
-  methodsBlock: {
-    marginTop: 22,
-    paddingHorizontal: 20
-  },
+    methodsBlock: {
+      marginTop: 22,
+      paddingHorizontal: 20
+    },
 
-  historyBlock: {
-    marginTop: 26,
-    paddingHorizontal: 20,
-    gap: 10
-  },
-  historyHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
-  historyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  historyLink: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0063FE"
-  },
-  historyCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 12
-  },
-  historyIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  historyIconPaid: {
-    backgroundColor: "#F3F4F6"
-  },
-  historyIconPending: {
-    backgroundColor: "#FEF3C7"
-  },
-  historyInfo: {
-    flex: 1,
-    gap: 2
-  },
-  historyName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  historyDate: {
-    fontSize: 12,
-    color: "#9CA3AF"
-  },
-  historyRight: {
-    alignItems: "flex-end",
-    gap: 2
-  },
-  historyAmount: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  historyStatus: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.3
-  },
+    historyBlock: {
+      marginTop: 26,
+      paddingHorizontal: 20,
+      gap: 10
+    },
+    historyHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
+    historyTitle: {
+      fontSize: fontSize.body,
+      fontWeight: "700",
+      color: colors.text
+    },
+    historyLink: {
+      fontSize: fontSize.secondary,
+      fontWeight: "600",
+      color: colors.brand
+    },
+    historyCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 12,
+      paddingVertical: 12
+    },
+    historyIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    historyIconPaid: {
+      backgroundColor: colors.surfaceMuted
+    },
+    historyIconPending: {
+      backgroundColor: colors.surfaceMuted
+    },
+    historyInfo: {
+      flex: 1,
+      gap: 2
+    },
+    historyName: {
+      fontSize: fontSize.secondary,
+      fontWeight: "700",
+      color: colors.text
+    },
+    historyDate: {
+      fontSize: fontSize.caption,
+      color: colors.textFaint
+    },
+    historyRight: {
+      alignItems: "flex-end",
+      gap: 2
+    },
+    historyAmount: {
+      fontSize: fontSize.secondary,
+      fontWeight: "700",
+      color: colors.text
+    },
+    historyStatus: {
+      fontSize: fontSize.caption,
+      fontWeight: "700",
+      letterSpacing: 0.3
+    },
 
-  emptyHelp: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#6B7280"
-  },
-  errorBox: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    gap: 10
-  },
-  errorText: { color: "#B91C1C", fontSize: 14 },
-  retryBtn: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    backgroundColor: "#0063FE",
-    paddingHorizontal: 14,
-    paddingVertical: 8
-  },
-  retryText: { color: "#FFFFFF", fontWeight: "600", fontSize: 13 }
-});
+    emptyHelp: {
+      fontSize: fontSize.secondary,
+      lineHeight: 20,
+      color: colors.textMuted
+    },
+    errorBox: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 16,
+      gap: 10
+    },
+    errorText: { color: colors.danger, fontSize: fontSize.secondary },
+    retryBtn: {
+      alignSelf: "flex-start",
+      borderRadius: 8,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 14,
+      paddingVertical: 8
+    },
+    retryText: { color: colors.onBrand, fontWeight: "600", fontSize: fontSize.secondary }
+  });
+}

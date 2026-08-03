@@ -3,6 +3,10 @@
     {
       "path": "/api/internal/payments/generate-recurring",
       "schedule": "5 0 1 * *"
+    },
+    {
+      "path": "/api/internal/tenants/finalize-account-deletions",
+      "schedule": "20 3 * * *"
     }
   ]
 }

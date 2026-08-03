@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { CardSkeleton } from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth } from "@/lib/api-client";
 import { ScreenShell } from "@/components/screen-shell";
+import i18n from "@/i18n";
+import { formatLocaleDate, formatLocaleDateTime } from "@/i18n/format";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type MaintenanceStatus = "open" | "in_progress" | "resolved" | "cancelled";
 
@@ -36,34 +42,67 @@ interface DetailOutput {
   timeline: MaintenanceTimelineEventView[];
 }
 
-const STATUS_LABEL: Record<MaintenanceStatus, string> = {
-  open: "Ouvert",
-  in_progress: "En cours",
-  resolved: "Résolu",
-  cancelled: "Annulé"
-};
+function statusLabel(status: MaintenanceStatus, t: TFunction): string {
+  switch (status) {
+    case "open":
+      return t("maintenance.status.open");
+    case "in_progress":
+      return t("maintenance.status.inProgress");
+    case "resolved":
+      return t("maintenance.status.resolved");
+    case "cancelled":
+      return t("maintenance.status.cancelled");
+  }
+}
 
-const STATUS_COLOR: Record<MaintenanceStatus, string> = {
-  open: "#D97706",
-  in_progress: "#2563EB",
-  resolved: "#16A34A",
-  cancelled: "#6B7280"
-};
+function priorityLabel(priority: MaintenanceRequestView["priority"], t: TFunction): string {
+  switch (priority) {
+    case "low":
+      return t("maintenance.priority.low");
+    case "medium":
+      return t("maintenance.priority.medium");
+    case "high":
+      return t("maintenance.priority.high");
+    case "urgent":
+      return t("maintenance.priority.urgent");
+  }
+}
 
-const PRIORITY_LABEL: Record<MaintenanceRequestView["priority"], string> = {
-  low: "Basse",
-  medium: "Moyenne",
-  high: "Haute",
-  urgent: "Urgente"
-};
+function eventLabel(eventType: MaintenanceTimelineEventView["eventType"], t: TFunction): string {
+  switch (eventType) {
+    case "created":
+      return t("maintenance.event.created");
+    case "status_changed":
+      return t("maintenance.event.statusChanged");
+    case "assigned":
+      return t("maintenance.event.assigned");
+    case "internal_note_updated":
+      return t("maintenance.event.internalNote");
+    case "resolution_note_updated":
+      return t("maintenance.event.resolutionNote");
+  }
+}
 
-const EVENT_LABEL: Record<MaintenanceTimelineEventView["eventType"], string> = {
-  created: "Créée",
-  status_changed: "Statut modifié",
-  assigned: "Assignée",
-  internal_note_updated: "Note interne ajoutée",
-  resolution_note_updated: "Note de résolution"
-};
+function statusLabelFromRaw(value: string | undefined, t: TFunction): string {
+  switch (value) {
+    case "open":
+    case "in_progress":
+    case "resolved":
+    case "cancelled":
+      return statusLabel(value, t);
+    default:
+      return value ?? "";
+  }
+}
+
+function getStatusColor(colors: ThemeColors): Record<MaintenanceStatus, string> {
+  return {
+    open: colors.warning,
+    in_progress: colors.brand,
+    resolved: colors.success,
+    cancelled: colors.textMuted
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -117,7 +156,7 @@ function normalizeRequest(value: unknown): MaintenanceRequestView {
 
   return {
     id: asString(raw.id, ""),
-    title: asString(raw.title, "Demande de maintenance"),
+    title: asString(raw.title, i18n.t("maintenance.defaultTitle")),
     description: asString(raw.description, ""),
     priority: normalizePriority(raw.priority),
     status: normalizeStatus(raw.status),
@@ -147,16 +186,27 @@ function normalizeTimeline(value: unknown): MaintenanceTimelineEventView[] {
   });
 }
 
+type DetailStyles = ReturnType<typeof createStyles>;
+
 export default function MaintenanceDetailScreen(): React.ReactElement {
+  const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const statusColor = useMemo(() => getStatusColor(colors), [colors]);
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DetailOutput | null>(null);
 
+  const createdDateLabel = useMemo(
+    () => (data ? formatLocaleDate(data.request.createdAtIso) : ""),
+    [data, i18n.language]
+  );
+
   const load = useCallback(async (): Promise<void> => {
     if (!id) {
-      setError("Invalid request ID");
+      setError(t("maintenance.invalidRequestId"));
       return;
     }
     setIsLoading(true);
@@ -173,7 +223,7 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
       });
     }
     setIsLoading(false);
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
@@ -181,15 +231,15 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
 
   if (!id) {
     return (
-      <ScreenShell title="Erreur" subtitle="ID manquant">
-        <Text style={styles.errorText}>Impossible de charger la demande.</Text>
+      <ScreenShell title={t("common.error")} subtitle={t("maintenance.invalidId")}>
+        <Text style={styles.errorText}>{t("maintenance.loadError")}</Text>
       </ScreenShell>
     );
   }
 
   if (isLoading) {
     return (
-      <ScreenShell title="Maintenance" subtitle="Détail de la demande">
+      <ScreenShell title={t("maintenance.title")} subtitle={t("maintenance.detailSubtitle")}>
         <CardSkeleton />
         <CardSkeleton />
       </ScreenShell>
@@ -198,11 +248,11 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
 
   if (error || !data) {
     return (
-      <ScreenShell title="Erreur" subtitle="Impossible de charger">
+      <ScreenShell title={t("common.error")} subtitle={t("maintenance.loadErrorSubtitle")}>
         <View style={styles.notice}>
-          <Text style={styles.errorText}>{error ?? "Unknown error"}</Text>
+          <Text style={styles.errorText}>{error ?? t("maintenance.unknownError")}</Text>
           <Pressable style={styles.retry} onPress={() => { void load(); }}>
-            <Text style={styles.retryText}>Réessayer</Text>
+            <Text style={styles.retryText}>{t("common.retry")}</Text>
           </Pressable>
         </View>
       </ScreenShell>
@@ -212,7 +262,7 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
   const { request, timeline } = data;
 
   return (
-    <ScreenShell title={request.title} subtitle={PRIORITY_LABEL[request.priority]}>
+    <ScreenShell title={request.title} subtitle={priorityLabel(request.priority, t)}>
       <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
         {/* Request Header Card */}
         <View style={styles.headerCard}>
@@ -221,20 +271,20 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
               <View
                 style={[
                   styles.statusDot,
-                  { backgroundColor: STATUS_COLOR[request.status] }
+                  { backgroundColor: statusColor[request.status] }
                 ]}
               />
               <Text
                 style={[
                   styles.statusLabel,
-                  { color: STATUS_COLOR[request.status] }
+                  { color: statusColor[request.status] }
                 ]}
               >
-                {STATUS_LABEL[request.status]}
+                {statusLabel(request.status, t)}
               </Text>
             </View>
             <Text style={styles.createdDate}>
-              {new Date(request.createdAtIso).toLocaleDateString("fr-FR")}
+              {createdDateLabel}
             </Text>
           </View>
 
@@ -242,21 +292,21 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
 
           {request.assignedToName ? (
             <View style={styles.assignedRow}>
-              <Text style={styles.fieldLabel}>Assignée à</Text>
+              <Text style={styles.fieldLabel}>{t("maintenance.assignedTo")}</Text>
               <Text style={styles.fieldValue}>{request.assignedToName}</Text>
             </View>
           ) : null}
 
           {request.resolutionNotes ? (
             <View style={styles.resolutionSection}>
-              <Text style={styles.fieldLabel}>Résolution</Text>
+              <Text style={styles.fieldLabel}>{t("maintenance.resolution")}</Text>
               <Text style={styles.resolutionNotes}>{request.resolutionNotes}</Text>
             </View>
           ) : null}
 
           {request.photoUrls.length > 0 ? (
             <View style={styles.photosSection}>
-              <Text style={styles.fieldLabel}>Photos</Text>
+              <Text style={styles.fieldLabel}>{t("maintenance.photos")}</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -278,13 +328,15 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
         {/* Timeline Section */}
         {timeline.length > 0 ? (
           <View style={styles.timelineSection}>
-            <Text style={styles.sectionTitle}>Historique</Text>
+            <Text style={styles.sectionTitle}>{t("maintenance.history")}</Text>
             <View style={styles.timeline}>
               {timeline.map((event, index) => (
                 <TimelineEvent
                   key={event.id}
                   event={event}
                   isLast={index === timeline.length - 1}
+                  styles={styles}
+                  iconColor={colors.iconMuted}
                 />
               ))}
             </View>
@@ -293,7 +345,7 @@ export default function MaintenanceDetailScreen(): React.ReactElement {
 
         {/* Back Button */}
         <Pressable style={styles.backButton} onPress={() => { router.back(); }}>
-          <Text style={styles.backButtonText}>Retour à la liste</Text>
+          <Text style={styles.backButtonText}>{t("maintenance.backToList")}</Text>
         </Pressable>
       </ScrollView>
     </ScreenShell>
@@ -304,11 +356,17 @@ type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 function TimelineEvent({
   event,
-  isLast
+  isLast,
+  styles,
+  iconColor
 }: {
   event: MaintenanceTimelineEventView;
   isLast: boolean;
+  styles: DetailStyles;
+  iconColor: string;
 }): React.ReactElement {
+  const { t, i18n } = useTranslation();
+
   const getEventIcon = (type: MaintenanceTimelineEventView["eventType"]): IoniconName => {
     switch (type) {
       case "created":
@@ -331,19 +389,35 @@ function TimelineEvent({
   ): string => {
     switch (event.eventType) {
       case "created":
-        return "Demande créée";
+        return t("maintenance.event.createdDesc");
       case "status_changed":
-        return `Statut changé de ${event.statusFrom} à ${event.statusTo}`;
+        return t("maintenance.event.statusChangedDesc", {
+          from: statusLabelFromRaw(event.statusFrom, t),
+          to: statusLabelFromRaw(event.statusTo, t)
+        });
       case "assigned":
-        return `Assignée à ${event.assignedToName || "quelqu'un"}`;
+        return t("maintenance.event.assignedDesc", {
+          name: event.assignedToName || t("maintenance.event.someone")
+        });
       case "internal_note_updated":
-        return event.note ?? "Note interne ajoutée";
+        return event.note ?? t("maintenance.event.internalNote");
       case "resolution_note_updated":
-        return event.note ?? "Note de résolution";
+        return event.note ?? t("maintenance.event.resolutionNote");
       default:
-        return EVENT_LABEL[event.eventType];
+        return eventLabel(event.eventType, t);
     }
   };
+
+  const eventTimeLabel = useMemo(
+    () =>
+      formatLocaleDateTime(event.createdAtIso, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }),
+    [event.createdAtIso, i18n.language]
+  );
 
   return (
     <View style={styles.timelineItem}>
@@ -353,16 +427,11 @@ function TimelineEvent({
       </View>
       <View style={styles.timelineContent}>
         <View style={styles.eventHeader}>
-          <Ionicons name={getEventIcon(event.eventType)} size={16} color="#6B7280" style={styles.eventIcon} />
+          <Ionicons name={getEventIcon(event.eventType)} size={16} color={iconColor} style={styles.eventIcon} />
           <View style={{ flex: 1 }}>
             <Text style={styles.eventDescription}>{getEventDescription(event)}</Text>
             <Text style={styles.eventTime}>
-              {new Date(event.createdAtIso).toLocaleString("fr-FR", {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit"
-              })}
+              {eventTimeLabel}
             </Text>
           </View>
         </View>
@@ -371,175 +440,177 @@ function TimelineEvent({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  notice: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    gap: 10
-  },
-  errorText: { color: "#B91C1C", fontSize: 14 },
-  retry: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    backgroundColor: "#0063FE",
-    paddingHorizontal: 12,
-    paddingVertical: 8
-  },
-  retryText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
-  headerCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    gap: 12,
-    marginBottom: 16
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4
-  },
-  statusLabel: {
-    fontSize: 13,
-    fontWeight: "600"
-  },
-  createdDate: {
-    fontSize: 12,
-    color: "#6B7280"
-  },
-  description: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 20
-  },
-  assignedRow: {
-    gap: 4,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB"
-  },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#6B7280"
-  },
-  fieldValue: {
-    fontSize: 13,
-    color: "#010A19",
-    fontWeight: "500"
-  },
-  resolutionSection: {
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    gap: 4
-  },
-  resolutionNotes: {
-    fontSize: 13,
-    color: "#16A34A",
-    lineHeight: 18
-  },
-  timelineSection: {
-    marginBottom: 20,
-    gap: 12
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  timeline: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    overflow: "hidden"
-  },
-  timelineItem: {
-    flexDirection: "row",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6"
-  },
-  timelineConnector: {
-    width: 32,
-    alignItems: "center",
-    marginRight: 12
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#0063FE"
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: "#E5E7EB",
-    marginTop: 6
-  },
-  timelineContent: {
-    flex: 1,
-    justifyContent: "center"
-  },
-  eventHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8
-  },
-  eventIcon: {
-    marginTop: 1
-  },
-  eventDescription: {
-    fontSize: 13,
-    color: "#010A19",
-    fontWeight: "500"
-  },
-  eventTime: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    marginTop: 2
-  },
-  backButton: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    paddingVertical: 12,
-    alignItems: "center",
-    marginBottom: 30
-  },
-  backButtonText: {
-    color: "#374151",
-    fontWeight: "600",
-    fontSize: 14
-  },
-  photosSection: { marginTop: 12 },
-  photosRow: { gap: 10, paddingVertical: 4 },
-  photoThumb: {
-    width: 90,
-    height: 90,
-    borderRadius: 8,
-    backgroundColor: "#F3F4F6"
-  }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    centerContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center"
+    },
+    notice: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 10
+    },
+    errorText: { color: colors.danger, fontSize: fontSize.secondary },
+    retry: {
+      alignSelf: "flex-start",
+      borderRadius: 8,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+    retryText: { color: colors.onBrand, fontWeight: "600", fontSize: fontSize.secondary },
+    headerCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 12,
+      marginBottom: 16
+    },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center"
+    },
+    statusBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4
+    },
+    statusLabel: {
+      fontSize: fontSize.secondary,
+      fontWeight: "600"
+    },
+    createdDate: {
+      fontSize: fontSize.caption,
+      color: colors.textMuted
+    },
+    description: {
+      fontSize: fontSize.secondary,
+      color: colors.textSecondary,
+      lineHeight: 20
+    },
+    assignedRow: {
+      gap: 4,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.border
+    },
+    fieldLabel: {
+      fontSize: fontSize.caption,
+      fontWeight: "600",
+      color: colors.textMuted
+    },
+    fieldValue: {
+      fontSize: fontSize.secondary,
+      color: colors.text,
+      fontWeight: "500"
+    },
+    resolutionSection: {
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      gap: 4
+    },
+    resolutionNotes: {
+      fontSize: fontSize.secondary,
+      color: colors.success,
+      lineHeight: 18
+    },
+    timelineSection: {
+      marginBottom: 20,
+      gap: 12
+    },
+    sectionTitle: {
+      fontSize: fontSize.body,
+      fontWeight: fontWeight.semibold,
+      color: colors.text
+    },
+    timeline: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      overflow: "hidden"
+    },
+    timelineItem: {
+      flexDirection: "row",
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceMuted
+    },
+    timelineConnector: {
+      width: 32,
+      alignItems: "center",
+      marginRight: 12
+    },
+    timelineDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.brand
+    },
+    timelineLine: {
+      width: 2,
+      flex: 1,
+      backgroundColor: colors.border,
+      marginTop: 6
+    },
+    timelineContent: {
+      flex: 1,
+      justifyContent: "center"
+    },
+    eventHeader: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8
+    },
+    eventIcon: {
+      marginTop: 1
+    },
+    eventDescription: {
+      fontSize: fontSize.secondary,
+      color: colors.text,
+      fontWeight: "500"
+    },
+    eventTime: {
+      fontSize: fontSize.caption,
+      color: colors.textFaint,
+      marginTop: 2
+    },
+    backButton: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      paddingVertical: 12,
+      alignItems: "center",
+      marginBottom: 30
+    },
+    backButtonText: {
+      color: colors.textSecondary,
+      fontWeight: "600",
+      fontSize: fontSize.secondary
+    },
+    photosSection: { marginTop: 12 },
+    photosRow: { gap: 10, paddingVertical: 4 },
+    photoThumb: {
+      width: 90,
+      height: 90,
+      borderRadius: 8,
+      backgroundColor: colors.surfaceMuted
+    }
+  });
+}

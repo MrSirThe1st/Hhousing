@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -10,17 +10,23 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { CardSkeleton, ListSkeleton } from "@/components/skeleton";
 import { NetworkError } from "@/components/network-error";
 import type { ApiResult, LeaseWithTenantView } from "@/lib/api-contracts-types";
 import { getWithAuth } from "@/lib/api-client";
+import { formatAmount, formatLocaleDate } from "@/i18n/format";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type TenantLeaseOutput = {
   lease: LeaseWithTenantView | null;
 };
 
+type Styles = ReturnType<typeof createStyles>;
+
 function formatDateNumeric(value: string): string {
-  return new Date(value).toLocaleDateString("fr-FR", {
+  return formatLocaleDate(value, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric"
@@ -28,24 +34,18 @@ function formatDateNumeric(value: string): string {
 }
 
 function formatDateReadable(value: string): string {
-  return new Date(value).toLocaleDateString("fr-FR", {
+  return formatLocaleDate(value, {
     day: "numeric",
     month: "short",
     year: "numeric"
   });
 }
 
-function formatAmount(amount: number, currencyCode: string): string {
-  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount);
-  return `${formatted.replace(/\u00A0|\s/g, ".")} ${currencyCode}`;
-}
-
-function badgeLeaseId(leaseId: string): string {
-  return `N° ${leaseId.slice(0, 8).toUpperCase()}`;
-}
-
 export default function LeaseScreen(): React.ReactElement {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function LeaseScreen(): React.ReactElement {
         setLease(null);
         setError(
           leaseResult.code === "NETWORK_ERROR"
-            ? "Pas de connexion. Vérifiez votre réseau et réessayez."
+            ? t("common.offline")
             : leaseResult.error
         );
       } else {
@@ -85,7 +85,7 @@ export default function LeaseScreen(): React.ReactElement {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -103,11 +103,18 @@ export default function LeaseScreen(): React.ReactElement {
     );
   }
 
+  const paymentFrequencyLabel =
+    lease?.paymentFrequency === "monthly"
+      ? t("account.freqMonthly")
+      : lease?.paymentFrequency === "quarterly"
+        ? t("account.freqQuarterly")
+        : t("account.freqYearly");
+
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
       <View style={styles.topBar}>
         <Pressable style={styles.backBtn} onPress={() => { router.back(); }} hitSlop={10}>
-          <Ionicons name="arrow-back" size={22} color="#0063FE" />
+          <Ionicons name="arrow-back" size={22} color={colors.brand} />
         </Pressable>
       </View>
       <View style={styles.headerRule} />
@@ -120,7 +127,7 @@ export default function LeaseScreen(): React.ReactElement {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => { void load(true); }}
-            tintColor="#0063FE"
+            tintColor={colors.brand}
           />
         }
       >
@@ -131,7 +138,7 @@ export default function LeaseScreen(): React.ReactElement {
             <View style={styles.notice}>
               <Text style={styles.errorText}>{error}</Text>
               <Pressable style={styles.retryButton} onPress={() => { void load(); }}>
-                <Text style={styles.retryButtonText}>Réessayer</Text>
+                <Text style={styles.retryButtonText}>{t("common.retry")}</Text>
               </Pressable>
             </View>
           )
@@ -139,50 +146,55 @@ export default function LeaseScreen(): React.ReactElement {
 
         {!lease ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="home-outline" size={36} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>Pas encore de logement</Text>
-            <Text style={styles.emptyText}>
-              Votre compte n&apos;est pas encore lié. Contactez votre bailleur pour activer votre location.
-            </Text>
+            <Ionicons name="home-outline" size={36} color={colors.iconMuted} />
+            <Text style={styles.emptyTitle}>{t("account.noLeaseTitle")}</Text>
+            <Text style={styles.emptyText}>{t("account.noLeaseBody")}</Text>
           </View>
         ) : (
           <>
             <View style={styles.summaryCard}>
               <View style={styles.avatarWrap}>
-                <Ionicons name="home-outline" size={22} color="#6B7280" />
+                <Ionicons name="home-outline" size={22} color={colors.textMuted} />
               </View>
               <View style={styles.summaryCopy}>
-                <Text style={styles.tenantName}>{lease.tenantFullName ?? "Locataire"}</Text>
+                <Text style={styles.tenantName}>{lease.tenantFullName ?? t("common.tenant")}</Text>
                 <Text style={styles.tenantSince}>
-                  Locataire depuis {formatDateReadable(lease.startDate)}
+                  {t("account.tenantSince", { date: formatDateReadable(lease.startDate) })}
                 </Text>
                 <View style={styles.profileBadges}>
                   <View style={styles.statusPill}>
-                    <Text style={styles.statusPillText}>Contrat actif</Text>
+                    <Text style={styles.statusPillText}>{t("account.activeContract")}</Text>
                   </View>
                   <View style={styles.idPill}>
-                    <Text style={styles.idPillText}>{badgeLeaseId(lease.id)}</Text>
+                    <Text style={styles.idPillText}>
+                      {t("account.leaseNumber", { id: lease.id.slice(0, 8).toUpperCase() })}
+                    </Text>
                   </View>
                 </View>
               </View>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Contrat</Text>
-              <DetailRow label="Début" value={formatDateNumeric(lease.startDate)} />
-              <View style={styles.divider} />
-              <DetailRow label="Fin" value={lease.endDate ? formatDateNumeric(lease.endDate) : "-"} />
+              <Text style={styles.sectionTitle}>{t("account.contract")}</Text>
+              <DetailRow label={t("account.start")} value={formatDateNumeric(lease.startDate)} styles={styles} />
               <View style={styles.divider} />
               <DetailRow
-                label="Type"
-                value={lease.termType === "fixed" ? "Durée fixe" : "Mois à mois"}
+                label={t("account.end")}
+                value={lease.endDate ? formatDateNumeric(lease.endDate) : "-"}
+                styles={styles}
+              />
+              <View style={styles.divider} />
+              <DetailRow
+                label={t("account.type")}
+                value={lease.termType === "fixed" ? t("account.termFixed") : t("account.termMonthToMonth")}
+                styles={styles}
               />
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Loyer</Text>
+              <Text style={styles.sectionTitle}>{t("account.rent")}</Text>
               <View style={styles.rentAmountRow}>
-                <Text style={styles.rowLabel}>Montant mensuel</Text>
+                <Text style={styles.rowLabel}>{t("account.monthlyAmount")}</Text>
                 <View style={styles.rentRight}>
                   <Text style={styles.rentAmount} numberOfLines={1}>
                     {formatAmount(
@@ -190,27 +202,23 @@ export default function LeaseScreen(): React.ReactElement {
                       lease.currencyCode ?? "USD"
                     )}
                   </Text>
-                  <Text style={styles.rentSuffix}>/ mois</Text>
+                  <Text style={styles.rentSuffix}>{t("account.perMonth")}</Text>
                 </View>
               </View>
               <View style={styles.divider} />
               <DetailRow
-                label="Garantie"
+                label={t("account.deposit")}
                 value={formatAmount(
                   lease.depositAmount ?? lease.securityDeposit ?? 0,
                   lease.currencyCode ?? "USD"
                 )}
+                styles={styles}
               />
               <View style={styles.divider} />
               <DetailRow
-                label="Fréquence"
-                value={
-                  lease.paymentFrequency === "monthly"
-                    ? "Chaque mois"
-                    : lease.paymentFrequency === "quarterly"
-                      ? "Tous les 3 mois"
-                      : "Chaque année"
-                }
+                label={t("account.frequency")}
+                value={paymentFrequencyLabel}
+                styles={styles}
               />
             </View>
           </>
@@ -220,7 +228,15 @@ export default function LeaseScreen(): React.ReactElement {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }): React.ReactElement {
+function DetailRow({
+  label,
+  value,
+  styles
+}: {
+  label: string;
+  value: string;
+  styles: Styles;
+}): React.ReactElement {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -229,185 +245,187 @@ function DetailRow({ label, value }: { label: string; value: string }): React.Re
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#FFFFFF"
-  },
-  loadingWrap: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 10
-  },
-  topBar: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    justifyContent: "center"
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  headerRule: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#E5E7EB"
-  },
-  scroll: { flex: 1 },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 32,
-    gap: 12
-  },
-  notice: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    gap: 10
-  },
-  errorText: { color: "#B91C1C", fontSize: 14 },
-  retryButton: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    backgroundColor: "#0063FE",
-    paddingHorizontal: 12,
-    paddingVertical: 8
-  },
-  retryButtonText: { color: "#ffffff", fontWeight: "600", fontSize: 13 },
-  emptyCard: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 20,
-    alignItems: "center",
-    gap: 8
-  },
-  emptyTitle: { fontSize: 15, fontWeight: "700", color: "#374151" },
-  emptyText: { fontSize: 13, color: "#6B7280", textAlign: "center", lineHeight: 19 },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background
+    },
+    loadingWrap: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      gap: 10
+    },
+    topBar: {
+      minHeight: 44,
+      paddingHorizontal: 12,
+      justifyContent: "center"
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    headerRule: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border
+    },
+    scroll: { flex: 1 },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 14,
+      paddingBottom: 32,
+      gap: 12
+    },
+    notice: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      gap: 10
+    },
+    errorText: { color: colors.danger, fontSize: fontSize.secondary },
+    retryButton: {
+      alignSelf: "flex-start",
+      borderRadius: 8,
+      backgroundColor: colors.brand,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+    retryButtonText: { color: colors.onBrand, fontWeight: "600", fontSize: fontSize.secondary },
+    emptyCard: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 20,
+      alignItems: "center",
+      gap: 8
+    },
+    emptyTitle: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, color: colors.textSecondary },
+    emptyText: { fontSize: fontSize.secondary, color: colors.textMuted, textAlign: "center", lineHeight: 19 },
 
-  summaryCard: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12
-  },
-  avatarWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  summaryCopy: {
-    flex: 1,
-    gap: 2
-  },
-  tenantName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827"
-  },
-  tenantSince: {
-    fontSize: 12,
-    color: "#9CA3AF"
-  },
-  profileBadges: {
-    marginTop: 6,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6
-  },
-  statusPill: {
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
-  },
-  statusPillText: {
-    color: "#0063FE",
-    fontSize: 10,
-    fontWeight: "700"
-  },
-  idPill: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
-  },
-  idPillText: {
-    color: "#6B7280",
-    fontSize: 10,
-    fontWeight: "700"
-  },
+    summaryCard: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      padding: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12
+    },
+    avatarWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.surfaceMuted,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    summaryCopy: {
+      flex: 1,
+      gap: 2
+    },
+    tenantName: {
+      fontSize: fontSize.body,
+      fontWeight: fontWeight.semibold,
+      color: colors.text
+    },
+    tenantSince: {
+      fontSize: fontSize.caption,
+      color: colors.textFaint
+    },
+    profileBadges: {
+      marginTop: 6,
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6
+    },
+    statusPill: {
+      backgroundColor: colors.brandSoft,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6
+    },
+    statusPillText: {
+      color: colors.brand,
+      fontSize: fontSize.caption,
+      fontWeight: "700"
+    },
+    idPill: {
+      backgroundColor: colors.surfaceMuted,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6
+    },
+    idPillText: {
+      color: colors.textMuted,
+      fontSize: fontSize.caption,
+      fontWeight: "700"
+    },
 
-  card: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 4
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    marginBottom: 4
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 11
-  },
-  rowLabel: {
-    color: "#6B7280",
-    fontSize: 14
-  },
-  rowValue: {
-    color: "#111827",
-    fontSize: 14,
-    fontWeight: "700"
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#E5E7EB"
-  },
+    card: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      paddingBottom: 4
+    },
+    sectionTitle: {
+      fontSize: fontSize.secondary,
+      fontWeight: fontWeight.semibold,
+      color: colors.textFaint,
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      marginBottom: 4
+    },
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 11
+    },
+    rowLabel: {
+      color: colors.textMuted,
+      fontSize: fontSize.secondary
+    },
+    rowValue: {
+      color: colors.text,
+      fontSize: fontSize.secondary,
+      fontWeight: "700"
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border
+    },
 
-  rentAmountRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 11
-  },
-  rentRight: {
-    alignItems: "flex-end",
-    flexShrink: 1,
-    maxWidth: "58%"
-  },
-  rentAmount: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0063FE",
-    textAlign: "right"
-  },
-  rentSuffix: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    marginTop: 1
-  }
-});
+    rentAmountRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 11
+    },
+    rentRight: {
+      alignItems: "flex-end",
+      flexShrink: 1,
+      maxWidth: "58%"
+    },
+    rentAmount: {
+      fontSize: fontSize.display,
+      fontWeight: "700",
+      color: colors.brand,
+      textAlign: "right"
+    },
+    rentSuffix: {
+      fontSize: fontSize.caption,
+      color: colors.textFaint,
+      marginTop: 1
+    }
+  });
+}

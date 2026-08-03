@@ -87,9 +87,10 @@ export default function DataDeletionPage(): React.ReactElement {
 
       <h2>6. Suppression depuis l&apos;application locataire</h2>
       <p>
-        Si vous êtes locataire, vous pouvez également désactiver les notifications WhatsApp depuis votre profil dans
-        l&apos;application mobile. Cela retire votre consentement pour les futurs messages WhatsApp sans supprimer
-        automatiquement l&apos;historique des baux gérés par votre organisation.
+        Si vous êtes locataire, vous pouvez demander la suppression de votre compte depuis Paramètres dans l'application mobile.
+        Votre accès est alors planifié pour fermeture après un délai de grâce de 30 jours, pendant lequel vous pouvez annuler.
+        Les historiques de baux et de paiements restent chez votre organisation, avec anonymisation des données personnelles
+        lorsque la suppression est finalisée. Vous pouvez également désactiver les notifications WhatsApp depuis votre profil.
       </p>
 
       <h2>7. Comptes gestionnaires et organisations</h2>

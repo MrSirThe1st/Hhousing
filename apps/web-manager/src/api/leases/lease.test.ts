@@ -86,12 +86,15 @@ const sampleTenantWithPhone = {
   jobTitle: null,
   monthlyIncome: null,
   numberOfOccupants: null,
+  accountStatus: "active" as const,
+  deletionRequestedAtIso: null,
+  deletedAtIso: null,
   createdAtIso: "2026-03-31T00:00:00.000Z"
 };
 
 describe("createLease", () => {
   it("creates lease successfully", async () => {
-    const repository: TenantLeaseRepository = {
+    const repository = {
       createLease: vi.fn().mockResolvedValue({
         id: "lease-1",
         organizationId: "org-1",
@@ -139,6 +142,7 @@ describe("createLease", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       findTenantByNormalizedPhone: vi.fn(),
+      findTenantByEmail: vi.fn(),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -148,9 +152,10 @@ describe("createLease", () => {
       closeMoveOut: vi.fn(),
       replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
+      updateTenantMobileProfile: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
-    };
+    } as unknown as TenantLeaseRepository;
     const paymentRepository = createPaymentRepositoryMock();
 
     const response = await createLease(
@@ -212,7 +217,7 @@ describe("createLease", () => {
   });
 
   it("creates an active existing-tenant lease with external deposit payment", async () => {
-    const repository: TenantLeaseRepository = {
+    const repository = {
       createLease: vi.fn().mockResolvedValue({
         id: "lease-2",
         organizationId: "org-1",
@@ -249,6 +254,7 @@ describe("createLease", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       findTenantByNormalizedPhone: vi.fn(),
+      findTenantByEmail: vi.fn(),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -258,9 +264,10 @@ describe("createLease", () => {
       closeMoveOut: vi.fn(),
       replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
+      updateTenantMobileProfile: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
-    };
+    } as unknown as TenantLeaseRepository;
     const paymentRepository = createPaymentRepositoryMock();
 
     const response = await createLease(
@@ -312,7 +319,7 @@ describe("createLease", () => {
   });
 
   it("returns validation error when unit is not vacant", async () => {
-    const repository: TenantLeaseRepository = {
+    const repository = {
       createLease: vi.fn().mockRejectedValue(new Error("UNIT_NOT_AVAILABLE")),
       createTenant: vi.fn(),
       revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
@@ -325,6 +332,7 @@ describe("createLease", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       findTenantByNormalizedPhone: vi.fn(),
+      findTenantByEmail: vi.fn(),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -334,9 +342,10 @@ describe("createLease", () => {
       closeMoveOut: vi.fn(),
       replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
+      updateTenantMobileProfile: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
-    };
+    } as unknown as TenantLeaseRepository;
     const paymentRepository = createPaymentRepositoryMock();
 
     const response = await createLease(
@@ -370,7 +379,7 @@ describe("createLease", () => {
   });
 
   it("forbids create when property_manager lacks create_lease permission", async () => {
-    const repository: TenantLeaseRepository = {
+    const repository = {
       createLease: vi.fn(),
       createTenant: vi.fn(),
       revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
@@ -383,6 +392,7 @@ describe("createLease", () => {
       listTenantsByOrganization: vi.fn(),
       getTenantById: vi.fn().mockResolvedValue(sampleTenantWithPhone),
       findTenantByNormalizedPhone: vi.fn(),
+      findTenantByEmail: vi.fn(),
       getLeaseById: vi.fn(),
       getMoveOutByLeaseId: vi.fn(),
       listMoveOutsByOrganization: vi.fn(),
@@ -392,9 +402,10 @@ describe("createLease", () => {
       closeMoveOut: vi.fn(),
       replaceMoveOutCharges: vi.fn(),
       updateTenant: vi.fn(),
+      updateTenantMobileProfile: vi.fn(),
       updateLease: vi.fn(),
       deleteTenant: vi.fn()
-    };
+    } as unknown as TenantLeaseRepository;
     const paymentRepository = createPaymentRepositoryMock();
 
     const response = await createLease(

@@ -388,6 +388,9 @@ function mapTenant(row: ListingApplicationViewRow): Tenant | null {
     jobTitle: row.tenant_job_title ?? null,
     monthlyIncome: row.tenant_monthly_income === null || row.tenant_monthly_income === undefined ? null : Number(row.tenant_monthly_income),
     numberOfOccupants: row.tenant_number_of_occupants ?? null,
+    accountStatus: "active",
+    deletionRequestedAtIso: null,
+    deletedAtIso: null,
     createdAtIso: toIso(row.tenant_created_at)
   };
 }

@@ -51,6 +51,12 @@ export interface AuthRepository {
   getMembershipByUserAndOrg(userId: string, organizationId: string): Promise<OrganizationMembership | null>;
   getMembershipById(membershipId: string): Promise<OrganizationMembership | null>;
   createOrganizationMembership(input: CreateOrganizationMembershipRecordInput): Promise<OrganizationMembership>;
+  updateMembershipStatus(
+    userId: string,
+    organizationId: string,
+    status: "active" | "invited" | "inactive"
+  ): Promise<OrganizationMembership | null>;
+  deleteMembershipsByUserId(userId: string): Promise<number>;
   listTeamMemberInvitationsByOrganization(organizationId: string): Promise<TeamMemberInvitation[]>;
   revokeActiveTeamMemberInvitations(email: string, organizationId: string): Promise<void>;
   createTeamMemberInvitation(input: CreateTeamMemberInvitationRecordInput): Promise<TeamMemberInvitation>;

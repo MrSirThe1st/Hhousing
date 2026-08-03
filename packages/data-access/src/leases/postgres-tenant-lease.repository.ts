@@ -37,8 +37,13 @@ interface TenantRow extends QueryResultRow {
   job_title: string | null;
   monthly_income: string | number | null;
   number_of_occupants: number | null;
+  account_status?: "active" | "pending_deletion" | "deleted";
+  deletion_requested_at?: Date | string | null;
+  deleted_at?: Date | string | null;
   created_at: Date | string;
 }
+
+const TENANT_COLUMNS = `id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, account_status, deletion_requested_at, deleted_at, created_at`;
 
 interface LeaseRow extends QueryResultRow {
   id: string;
@@ -201,6 +206,9 @@ function mapTenant(row: TenantRow): Tenant {
     jobTitle: row.job_title ?? null,
     monthlyIncome: row.monthly_income === null || row.monthly_income === undefined ? null : Number(row.monthly_income),
     numberOfOccupants: row.number_of_occupants ?? null,
+    accountStatus: row.account_status ?? "active",
+    deletionRequestedAtIso: row.deletion_requested_at ? toIso(row.deletion_requested_at) : null,
+    deletedAtIso: row.deleted_at ? toIso(row.deleted_at) : null,
     createdAtIso: toIso(row.created_at)
   };
 }
@@ -388,7 +396,7 @@ export function createPostgresTenantLeaseRepository(
            date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants
          )
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+         returning ${TENANT_COLUMNS}`,
         [
           input.id,
           input.organizationId,
@@ -516,7 +524,8 @@ export function createPostgresTenantLeaseRepository(
              phone = coalesce($2, phone),
              phone_normalized = coalesce($3, phone_normalized)
          where id = $4 and organization_id = $5 and auth_user_id is null
-         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+           and account_status = 'active'
+         returning ${TENANT_COLUMNS}`,
         [authUserId, phone, phoneNormalized, tenantId, organizationId]
       );
 
@@ -723,7 +732,7 @@ export function createPostgresTenantLeaseRepository(
 
     async listTenantsByOrganization(organizationId: string): Promise<Tenant[]> {
       const result = await client.query<TenantRow>(
-        `select id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
+        `select ${TENANT_COLUMNS}
          from tenants
          where organization_id = $1
          order by full_name asc`,
@@ -734,7 +743,7 @@ export function createPostgresTenantLeaseRepository(
 
     async getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null> {
       const result = await client.query<TenantRow>(
-        `select id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
+        `select ${TENANT_COLUMNS}
          from tenants
          where id = $1 and organization_id = $2`,
         [tenantId, organizationId]
@@ -744,17 +753,40 @@ export function createPostgresTenantLeaseRepository(
 
     async findTenantByNormalizedPhone(phoneNormalized: string): Promise<Tenant | null> {
       const result = await client.query<TenantRow>(
-        `select id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at
+        `select ${TENANT_COLUMNS}
          from tenants
-         where phone_normalized = $1
-            or regexp_replace(coalesce(whatsapp_number, ''), '\\D', '', 'g') = $1
-            or regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = $1
-            or regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = ('0' || substr($1, 4))
+         where account_status <> 'deleted'
+           and (
+             phone_normalized = $1
+             or regexp_replace(coalesce(whatsapp_number, ''), '\\D', '', 'g') = $1
+             or regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = $1
+             or regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = ('0' || substr($1, 4))
+           )
          order by
            case when auth_user_id is not null then 0 else 1 end,
            created_at desc
          limit 1`,
         [phoneNormalized]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async findTenantByEmail(email: string): Promise<Tenant | null> {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) {
+        return null;
+      }
+
+      const result = await client.query<TenantRow>(
+        `select ${TENANT_COLUMNS}
+         from tenants
+         where account_status <> 'deleted'
+           and lower(trim(coalesce(email, ''))) = $1
+         order by
+           case when auth_user_id is not null then 0 else 1 end,
+           created_at desc
+         limit 1`,
+        [normalizedEmail]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
     },
@@ -994,7 +1026,7 @@ export function createPostgresTenantLeaseRepository(
         `update tenants
          set full_name = $1, email = $2, phone = $3, phone_normalized = $4, date_of_birth = $5, photo_url = $6, employment_status = $7, job_title = $8, monthly_income = $9, number_of_occupants = $10
          where id = $11 and organization_id = $12
-         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+         returning ${TENANT_COLUMNS}`,
         [input.fullName, input.email, input.phone, phoneNormalized, input.dateOfBirth, input.photoUrl, input.employmentStatus, input.jobTitle, input.monthlyIncome, input.numberOfOccupants, input.id, input.organizationId]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
@@ -1014,7 +1046,7 @@ export function createPostgresTenantLeaseRepository(
              whatsapp_opt_in = $4,
              phone_normalized = coalesce($5, phone_normalized)
          where id = $6 and organization_id = $7
-         returning id, organization_id, auth_user_id, full_name, email, phone, whatsapp_number, whatsapp_opt_in, date_of_birth, photo_url, employment_status, job_title, monthly_income, number_of_occupants, created_at`,
+         returning ${TENANT_COLUMNS}`,
         [input.fullName, input.phone, input.whatsappNumber, input.whatsappOptIn, phoneNormalized, input.id, input.organizationId]
       );
       return result.rows[0] ? mapTenant(result.rows[0]) : null;
@@ -1074,6 +1106,190 @@ export function createPostgresTenantLeaseRepository(
         [tenantId, organizationId]
       );
       return (result.rowCount ?? 0) > 0;
+    },
+
+    async getTenantByAuthUserId(authUserId: string): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `select ${TENANT_COLUMNS}
+         from tenants
+         where auth_user_id = $1
+         limit 1`,
+        [authUserId]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async requestTenantAccountDeletion(
+      tenantId: string,
+      organizationId: string
+    ): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `update tenants
+         set account_status = 'pending_deletion',
+             deletion_requested_at = now(),
+             deletion_reminder_sent_at = null
+         where id = $1
+           and organization_id = $2
+           and account_status = 'active'
+           and auth_user_id is not null
+         returning ${TENANT_COLUMNS}`,
+        [tenantId, organizationId]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async cancelTenantAccountDeletion(
+      tenantId: string,
+      organizationId: string
+    ): Promise<Tenant | null> {
+      const result = await client.query<TenantRow>(
+        `update tenants
+         set account_status = 'active',
+             deletion_requested_at = null,
+             deletion_reminder_sent_at = null
+         where id = $1
+           and organization_id = $2
+           and account_status = 'pending_deletion'
+         returning ${TENANT_COLUMNS}`,
+        [tenantId, organizationId]
+      );
+      return result.rows[0] ? mapTenant(result.rows[0]) : null;
+    },
+
+    async listTenantsPendingFinalization(cutoffIso: string): Promise<Tenant[]> {
+      const result = await client.query<TenantRow>(
+        `select ${TENANT_COLUMNS}
+         from tenants
+         where account_status = 'pending_deletion'
+           and deletion_requested_at is not null
+           and deletion_requested_at <= $1::timestamptz
+         order by deletion_requested_at asc`,
+        [cutoffIso]
+      );
+      return result.rows.map(mapTenant);
+    },
+
+    async listTenantsNeedingDeletionReminder(
+      reminderBeforeIso: string,
+      finalizeBeforeIso: string
+    ): Promise<Tenant[]> {
+      const result = await client.query<TenantRow>(
+        `select ${TENANT_COLUMNS}
+         from tenants
+         where account_status = 'pending_deletion'
+           and deletion_requested_at is not null
+           and deletion_reminder_sent_at is null
+           and deletion_requested_at <= $1::timestamptz
+           and deletion_requested_at > $2::timestamptz
+         order by deletion_requested_at asc`,
+        [reminderBeforeIso, finalizeBeforeIso]
+      );
+      return result.rows.map(mapTenant);
+    },
+
+    async markTenantDeletionReminderSent(
+      tenantId: string,
+      organizationId: string
+    ): Promise<void> {
+      await client.query(
+        `update tenants
+         set deletion_reminder_sent_at = now()
+         where id = $1
+           and organization_id = $2
+           and account_status = 'pending_deletion'`,
+        [tenantId, organizationId]
+      );
+    },
+
+    async finalizeTenantAccountDeletion(input: {
+      tenantId: string;
+      organizationId: string;
+      emailHash: string | null;
+      phoneHash: string | null;
+      anonymizedFullName: string;
+    }): Promise<{ authUserId: string | null; phoneNormalized: string | null } | null> {
+      return withTransaction(transactionCapableClient, async (queryable) => {
+        const existing = await queryable.query<{
+          auth_user_id: string | null;
+          phone_normalized: string | null;
+        }>(
+          `select auth_user_id, phone_normalized
+           from tenants
+           where id = $1
+             and organization_id = $2
+             and account_status = 'pending_deletion'
+           for update`,
+          [input.tenantId, input.organizationId]
+        );
+
+        const row = existing.rows[0];
+        if (!row) {
+          return null;
+        }
+
+        const authUserId = row.auth_user_id;
+        const phoneNormalized = row.phone_normalized;
+
+        await queryable.query(
+          `update tenants
+           set account_status = 'deleted',
+               deleted_at = now(),
+               auth_user_id = null,
+               full_name = $3,
+               email = null,
+               phone = null,
+               phone_normalized = null,
+               whatsapp_number = null,
+               whatsapp_opt_in = false,
+               date_of_birth = null,
+               photo_url = null,
+               employment_status = null,
+               job_title = null,
+               monthly_income = null,
+               number_of_occupants = null,
+               email_hash = $4,
+               phone_hash = $5
+           where id = $1
+             and organization_id = $2
+             and account_status = 'pending_deletion'`,
+          [
+            input.tenantId,
+            input.organizationId,
+            input.anonymizedFullName,
+            input.emailHash,
+            input.phoneHash
+          ]
+        );
+
+        if (phoneNormalized) {
+          await queryable.query(
+            `delete from tenant_login_otps where phone_normalized = $1`,
+            [phoneNormalized]
+          );
+        }
+
+        await queryable.query(
+          `update tenant_invitations
+           set revoked_at = coalesce(revoked_at, now())
+           where tenant_id = $1
+             and organization_id = $2
+             and used_at is null
+             and revoked_at is null`,
+          [input.tenantId, input.organizationId]
+        );
+
+        if (authUserId) {
+          await queryable.query(
+            `update messages
+             set sender_user_id = null
+             where sender_user_id = $1
+               and organization_id = $2`,
+            [authUserId, input.organizationId]
+          );
+        }
+
+        return { authUserId, phoneNormalized };
+      });
     }
   };
 }

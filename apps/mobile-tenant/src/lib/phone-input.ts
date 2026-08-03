@@ -2,6 +2,8 @@
  * Client-side DRC phone helpers for the mobile tenant app.
  */
 
+import i18n from "@/i18n";
+
 export const DRC_COUNTRY_CODE = "243";
 export const DRC_NATIONAL_LENGTH = 9;
 
@@ -52,10 +54,10 @@ export function isCompleteDrcNational(nationalDigits: string): boolean {
 export function validateDrcPhoneInput(rawOrNational: string): string | null {
   const national = extractDrcNationalNumber(rawOrNational);
   if (national.length === 0) {
-    return "Entrez votre numéro de téléphone.";
+    return i18n.t("errors.phoneRequired");
   }
   if (!isCompleteDrcNational(national)) {
-    return "Entrez un numéro congolais à 9 chiffres (ex. 990 000 000).";
+    return i18n.t("errors.phoneInvalid");
   }
   return null;
 }

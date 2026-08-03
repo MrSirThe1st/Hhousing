@@ -313,6 +313,41 @@ export function createPostgresAuthRepository(pool: Pool): AuthRepository {
       });
     },
 
+    async updateMembershipStatus(
+      userId: string,
+      organizationId: string,
+      status: "active" | "invited" | "inactive"
+    ): Promise<OrganizationMembership | null> {
+      const result = await pool.query<OrganizationMembershipRow>(
+        `update organization_memberships membership
+         set status = $3
+         from organizations organization
+         where membership.organization_id = organization.id
+           and membership.user_id = $1
+           and membership.organization_id = $2
+         returning
+           membership.id,
+           membership.user_id,
+           membership.organization_id,
+           organization.name as organization_name,
+           membership.role,
+           membership.status,
+           membership.can_own_properties,
+           membership.created_at`,
+        [userId, organizationId, status]
+      );
+
+      return result.rows[0] ? mapMembership(result.rows[0]) : null;
+    },
+
+    async deleteMembershipsByUserId(userId: string): Promise<number> {
+      const result = await pool.query(
+        `delete from organization_memberships where user_id = $1`,
+        [userId]
+      );
+      return result.rowCount ?? 0;
+    },
+
     async listTeamMemberInvitationsByOrganization(organizationId: string): Promise<TeamMemberInvitation[]> {
       const result = await pool.query<TeamMemberInvitationRow>(
         `select

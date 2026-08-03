@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { env } from "./env";
 import { supabase } from "./supabase";
 
@@ -48,19 +49,28 @@ async function parseResponse<T>(response: Response): Promise<ApiResult<T>> {
 
   const responseText = await response.text();
   const responsePreview = responseText.trim().slice(0, 120);
+  const contentTypeLabel = contentType || i18n.t("errors.withoutContentType");
+  const previewSuffix = responsePreview ? `: ${responsePreview}` : "";
 
   if (!response.ok) {
     return {
       success: false,
       code: "INTERNAL_ERROR",
-      error: `Réponse API invalide (${response.status}, ${contentType || "sans content-type"})${responsePreview ? `: ${responsePreview}` : ""}`
+      error: i18n.t("errors.apiInvalidResponse", {
+        status: response.status,
+        contentType: contentTypeLabel,
+        preview: previewSuffix
+      })
     };
   }
 
   return {
     success: false,
     code: "INTERNAL_ERROR",
-    error: `Réponse serveur inattendue (${contentType || "sans content-type"})${responsePreview ? `: ${responsePreview}` : ""}`
+    error: i18n.t("errors.apiUnexpectedResponse", {
+      contentType: contentTypeLabel,
+      preview: previewSuffix
+    })
   };
 }
 
@@ -77,7 +87,7 @@ async function request<T>(
     } = await supabase.auth.getSession();
 
     if (!session?.access_token) {
-      return { success: false, code: "UNAUTHORIZED", error: "Not authenticated" };
+      return { success: false, code: "UNAUTHORIZED", error: i18n.t("errors.notAuthenticated") };
     }
 
     authorizationHeader = `Bearer ${session.access_token}`;
@@ -101,11 +111,18 @@ async function request<T>(
 
       if (!response.ok && !isJsonResponse(response)) {
         const location = response.headers.get("location");
-        const locationSuffix = location ? `, redirection: ${location}` : "";
+        const locationSuffix = location
+          ? i18n.t("errors.redirectPrefix", { location })
+          : "";
         lastHttpError = {
           success: false,
           code: "INTERNAL_ERROR",
-          error: `Réponse API invalide (${response.status}, ${response.headers.get("content-type") ?? "sans content-type"}) depuis ${baseUrl}${path}${locationSuffix}`
+          error: i18n.t("errors.apiInvalidFrom", {
+            status: response.status,
+            contentType: response.headers.get("content-type") ?? i18n.t("errors.withoutContentType"),
+            url: `${baseUrl}${path}`,
+            location: locationSuffix
+          })
         };
         continue;
       }
@@ -123,7 +140,7 @@ async function request<T>(
   return {
     success: false,
     code: "NETWORK_ERROR",
-    error: "Impossible de joindre le serveur. Vérifiez la connexion internet ou réessayez dans quelques instants."
+    error: i18n.t("errors.networkUnreachable")
   };
 }
 

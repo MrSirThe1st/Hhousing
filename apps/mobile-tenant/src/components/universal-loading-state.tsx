@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing, Modal, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import animationDataSource from "./material-wave-loading.json";
+import { fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type MaterialWaveKeyframe = {
   t: number;
@@ -140,12 +143,15 @@ export function UniversalLoadingState({
   size?: "default" | "compact";
   message?: string;
 }): React.ReactElement {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const dots = useMemo(() => getLoaderDots(size), [size]);
   const durationMs = (animationData.op / animationData.fr) * 1000;
   const travel = size === "compact" ? 18 : 28;
 
   return (
-    <View style={styles.center} accessibilityRole="progressbar" accessibilityLabel={message ?? "Chargement"}>
+    <View style={styles.center} accessibilityRole="progressbar" accessibilityLabel={message ?? t("common.loading")}>
       <View style={styles.row}>
         {dots.map((dot) => (
           <WaveDot
@@ -170,6 +176,9 @@ export function FullScreenLoadingOverlay({
   visible: boolean;
   message?: string;
 }): React.ReactElement | null {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!visible) {
     return null;
   }
@@ -183,28 +192,30 @@ export function FullScreenLoadingOverlay({
   );
 }
 
-const styles = StyleSheet.create({
-  center: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 10
-  },
-  message: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    paddingHorizontal: 24
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(1, 10, 25, 0.35)",
-    alignItems: "center",
-    justifyContent: "center"
-  }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    center: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 16
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 10
+    },
+    message: {
+      color: colors.onBrand,
+      fontSize: fontSize.secondary,
+      fontWeight: "600",
+      textAlign: "center",
+      paddingHorizontal: 24
+    },
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  });
+}

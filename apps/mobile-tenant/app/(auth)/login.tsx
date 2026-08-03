@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Stack } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { Stack, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
@@ -14,15 +14,27 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/auth-context";
+import { usePreferences } from "@/contexts/preferences-context";
 import { postWithoutAuth } from "@/lib/api-client";
+import {
+  authenticateWithBiometrics,
+  biometricFailureMessage,
+  getBiometricCredentials,
+  saveBiometricCredentials,
+  type StoredCredentials
+} from "@/lib/biometrics";
 import { env } from "@/lib/env";
 import {
   extractDrcNationalNumber,
   formatDrcNationalDisplay,
+  nationalFromStoredPhone,
   toDrcE164,
   validateDrcPhoneInput
 } from "@/lib/phone-input";
+import { fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type PhonePasswordLoginOutput = {
   accessToken: string;
@@ -33,12 +45,51 @@ type PhonePasswordLoginOutput = {
 };
 
 export default function LoginScreen(): React.ReactElement {
+  const { t } = useTranslation();
+  const router = useRouter();
   const { signInWithSession } = useAuth();
+  const { biometricEnabled } = usePreferences();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [phoneNational, setPhoneNational] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBiometricReady, setIsBiometricReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function bootstrapBiometric(): Promise<void> {
+      if (!biometricEnabled) {
+        if (mounted) {
+          setIsBiometricReady(false);
+        }
+        return;
+      }
+
+      const credentials = await getBiometricCredentials();
+      if (!mounted) {
+        return;
+      }
+
+      if (credentials) {
+        const national = nationalFromStoredPhone(credentials.phone);
+        if (national) {
+          setPhoneNational(national);
+        }
+        setIsBiometricReady(true);
+      } else {
+        setIsBiometricReady(false);
+      }
+    }
+
+    void bootstrapBiometric();
+    return () => {
+      mounted = false;
+    };
+  }, [biometricEnabled]);
 
   function handleOpenMarketplace(): void {
     const url = `${env.apiBaseUrl}/marketplace`;
@@ -51,24 +102,10 @@ export default function LoginScreen(): React.ReactElement {
     setPhoneNational(extractDrcNationalNumber(nextValue));
   }
 
-  async function handleLogin(): Promise<void> {
-    const phoneError = validateDrcPhoneInput(phoneNational);
-    if (phoneError) {
-      setError(phoneError);
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
+  async function completeLogin(credentials: StoredCredentials): Promise<void> {
     const result = await postWithoutAuth<PhonePasswordLoginOutput>("/api/mobile/auth/login", {
-      phone: toDrcE164(phoneNational),
-      password
+      phone: credentials.phone,
+      password: credentials.password
     });
 
     if (!result.success) {
@@ -79,17 +116,67 @@ export default function LoginScreen(): React.ReactElement {
 
     const signInError = await signInWithSession(result.data.accessToken, result.data.refreshToken);
     if (signInError) {
-      setError("Connexion impossible. Réessayez.");
+      setError(t("auth.signInFailed"));
       setIsSubmitting(false);
       return;
+    }
+
+    if (biometricEnabled) {
+      await saveBiometricCredentials(credentials);
     }
 
     setIsSubmitting(false);
   }
 
+  async function handleLogin(): Promise<void> {
+    const phoneError = validateDrcPhoneInput(phoneNational);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError(t("auth.passwordTooShort"));
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    await completeLogin({
+      phone: toDrcE164(phoneNational),
+      password
+    });
+  }
+
+  async function handleBiometricLogin(): Promise<void> {
+    setIsSubmitting(true);
+    setError(null);
+
+    const result = await authenticateWithBiometrics(t("biometric.signInPrompt"));
+    if (!result.success) {
+      const message = biometricFailureMessage(result);
+      if (message) {
+        setError(message);
+      }
+      setIsSubmitting(false);
+      return;
+    }
+
+    const credentials = await getBiometricCredentials();
+    if (!credentials) {
+      setError(t("biometric.credentialsMissing"));
+      setIsBiometricReady(false);
+      setIsSubmitting(false);
+      return;
+    }
+
+    await completeLogin(credentials);
+  }
+
   return (
     <>
-      <Stack.Screen options={{ title: "Connexion", headerShown: false }} />
+      <Stack.Screen options={{ title: t("auth.loginTitle"), headerShown: false }} />
       <SafeAreaView style={styles.safeRoot}>
         <KeyboardAvoidingView
           style={styles.root}
@@ -101,15 +188,15 @@ export default function LoginScreen(): React.ReactElement {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.brandName}>Mon Espace</Text>
-            <Text style={styles.subtitle}>Connectez-vous avec votre numéro et votre mot de passe.</Text>
+            <Text style={styles.brandName}>{t("common.appName")}</Text>
+            <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
           </View>
 
           <View style={styles.card}>
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Numéro de téléphone</Text>
+              <Text style={styles.label}>{t("auth.phoneLabel")}</Text>
               <View style={styles.inputWrap}>
-                <Ionicons name="call-outline" size={18} color="#9CA3AF" />
+                <Ionicons name="call-outline" size={18} color={colors.iconMuted} />
                 <Text style={styles.prefix}>+243</Text>
                 <TextInput
                   value={formatDrcNationalDisplay(phoneNational)}
@@ -119,17 +206,17 @@ export default function LoginScreen(): React.ReactElement {
                   autoCorrect={false}
                   style={styles.input}
                   placeholder="990 000 000"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textFaint}
                   maxLength={11}
                 />
               </View>
-              <Text style={styles.hint}>9 chiffres après +243</Text>
+              <Text style={styles.hint}>{t("auth.phoneHint")}</Text>
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Mot de passe</Text>
+              <Text style={styles.label}>{t("auth.passwordLabel")}</Text>
               <View style={styles.inputWrap}>
-                <Ionicons name="lock-closed-outline" size={18} color="#9CA3AF" />
+                <Ionicons name="lock-closed-outline" size={18} color={colors.iconMuted} />
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
@@ -137,14 +224,14 @@ export default function LoginScreen(): React.ReactElement {
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={styles.input}
-                  placeholder="Votre mot de passe"
-                  placeholderTextColor="#9CA3AF"
+                  placeholder={t("auth.passwordPlaceholder")}
+                  placeholderTextColor={colors.textFaint}
                 />
                 <Pressable onPress={() => setShowPassword((value) => !value)} hitSlop={8}>
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                     size={18}
-                    color="#9CA3AF"
+                    color={colors.iconMuted}
                   />
                 </Pressable>
               </View>
@@ -160,26 +247,46 @@ export default function LoginScreen(): React.ReactElement {
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+                <ActivityIndicator size="small" color={colors.onBrand} />
               ) : (
-                <Text style={styles.buttonText}>Se connecter</Text>
+                <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
               )}
             </Pressable>
+
+            <Pressable
+              onPress={() => {
+                router.push("/(auth)/forgot-password");
+              }}
+              style={styles.forgotWrap}
+            >
+              <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
+            </Pressable>
+
+            {isBiometricReady ? (
+              <Pressable
+                style={[styles.biometricButton, isSubmitting ? styles.buttonDisabled : null]}
+                onPress={() => {
+                  void handleBiometricLogin();
+                }}
+                disabled={isSubmitting}
+              >
+                <Ionicons name="finger-print-outline" size={20} color={colors.brand} />
+                <Text style={styles.biometricButtonText}>{t("auth.signInBiometric")}</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={styles.marketplaceWrap}>
-            <Text style={styles.marketplaceText}>Vous cherchez un logement ?</Text>
+            <Text style={styles.marketplaceText}>{t("auth.marketplacePrompt")}</Text>
             <Pressable onPress={handleOpenMarketplace} style={styles.marketplacePressable}>
-              <Text style={styles.marketplaceLink}>Explorer les annonces</Text>
-              <Ionicons name="open-outline" size={14} color="#0063FE" />
+              <Text style={styles.marketplaceLink}>{t("auth.marketplaceLink")}</Text>
+              <Ionicons name="open-outline" size={14} color={colors.brand} />
             </Pressable>
           </View>
 
           <View style={styles.footerWrap}>
-            <Text style={styles.footerText}>Pas encore de compte ?</Text>
-            <Text style={styles.footerLink}>
-              Activez-le via le lien d&apos;invitation reçu par e-mail ou WhatsApp.
-            </Text>
+            <Text style={styles.footerText}>{t("auth.noAccount")}</Text>
+            <Text style={styles.footerLink}>{t("auth.inviteHint")}</Text>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -187,136 +294,163 @@ export default function LoginScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  safeRoot: {
-    flex: 1,
-    backgroundColor: "#F3F4FA"
-  },
-  root: {
-    flex: 1,
-    backgroundColor: "#F3F4FA",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    gap: 18
-  },
-  brandBlock: {
-    alignItems: "center",
-    gap: 8,
-    marginTop: -8
-  },
-  brandName: {
-    color: "#0063FE",
-    fontSize: 28,
-    fontWeight: "700"
-  },
-  logo: {
-    width: 72,
-    height: 72,
-    marginBottom: 4
-  },
-  subtitle: {
-    color: "#6B7280",
-    fontSize: 18,
-    lineHeight: 24,
-    textAlign: "center"
-  },
-  card: {
-    backgroundColor: "#F3F4F6",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#C9CFDA",
-    padding: 20,
-    gap: 16
-  },
-  fieldGroup: {
-    gap: 6
-  },
-  label: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "600"
-  },
-  inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#C9CFDA",
-    borderRadius: 10,
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 12,
-    minHeight: 52
-  },
-  prefix: {
-    color: "#010A19",
-    fontSize: 15,
-    fontWeight: "700"
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 0,
-    fontSize: 15,
-    color: "#010A19",
-    backgroundColor: "transparent"
-  },
-  hint: {
-    color: "#9CA3AF",
-    fontSize: 12,
-    marginTop: 2
-  },
-  error: {
-    color: "#B91C1C",
-    fontSize: 14
-  },
-  button: {
-    marginTop: 4,
-    borderRadius: 10,
-    minHeight: 58,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0063FE"
-  },
-  buttonDisabled: {
-    opacity: 0.65
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontSize: 22,
-    fontWeight: "700"
-  },
-  footerWrap: {
-    alignItems: "center",
-    gap: 2,
-    marginTop: 8
-  },
-  footerText: {
-    color: "#6B7280",
-    fontSize: 14
-  },
-  footerLink: {
-    color: "#0063FE",
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center"
-  },
-  marketplaceWrap: {
-    alignItems: "center",
-    gap: 4,
-    marginTop: 12
-  },
-  marketplaceText: {
-    color: "#6B7280",
-    fontSize: 14
-  },
-  marketplacePressable: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4
-  },
-  marketplaceLink: {
-    color: "#0063FE",
-    fontSize: 14,
-    fontWeight: "600",
-    textDecorationLine: "underline"
-  }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeRoot: {
+      flex: 1,
+      backgroundColor: colors.backgroundAlt
+    },
+    root: {
+      flex: 1,
+      backgroundColor: colors.backgroundAlt,
+      justifyContent: "center",
+      paddingHorizontal: 12,
+      gap: 18
+    },
+    brandBlock: {
+      alignItems: "center",
+      gap: 8,
+      marginTop: -8
+    },
+    brandName: {
+      color: colors.brand,
+      fontSize: fontSize.display,
+      fontWeight: "700"
+    },
+    logo: {
+      width: 72,
+      height: 72,
+      marginBottom: 4
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: fontSize.title,
+      lineHeight: 24,
+      textAlign: "center"
+    },
+    card: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      padding: 20,
+      gap: 16
+    },
+    fieldGroup: {
+      gap: 6
+    },
+    label: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted,
+      fontWeight: "600"
+    },
+    inputWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 10,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 12,
+      minHeight: 52
+    },
+    prefix: {
+      color: colors.text,
+      fontSize: fontSize.body,
+      fontWeight: "700"
+    },
+    input: {
+      flex: 1,
+      paddingVertical: 0,
+      fontSize: fontSize.body,
+      color: colors.text,
+      backgroundColor: "transparent"
+    },
+    hint: {
+      color: colors.textFaint,
+      fontSize: fontSize.caption,
+      marginTop: 2
+    },
+    error: {
+      color: colors.danger,
+      fontSize: fontSize.secondary
+    },
+    button: {
+      marginTop: 4,
+      borderRadius: 10,
+      minHeight: 58,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.brand
+    },
+    buttonDisabled: {
+      opacity: 0.65
+    },
+    buttonText: {
+      color: colors.onBrand,
+      fontSize: fontSize.emphasis,
+      fontWeight: "700"
+    },
+    forgotWrap: {
+      alignItems: "center",
+      paddingTop: 4
+    },
+    forgotText: {
+      color: colors.brand,
+      fontSize: fontSize.secondary,
+      fontWeight: "600"
+    },
+    biometricButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      borderRadius: 10,
+      minHeight: 52,
+      borderWidth: 1,
+      borderColor: colors.brand,
+      backgroundColor: colors.surfaceMuted
+    },
+    biometricButtonText: {
+      color: colors.brand,
+      fontSize: fontSize.body,
+      fontWeight: "700"
+    },
+    footerWrap: {
+      alignItems: "center",
+      gap: 2,
+      marginTop: 8
+    },
+    footerText: {
+      color: colors.textMuted,
+      fontSize: fontSize.secondary
+    },
+    footerLink: {
+      color: colors.brand,
+      fontSize: fontSize.secondary,
+      fontWeight: "600",
+      textAlign: "center"
+    },
+    marketplaceWrap: {
+      alignItems: "center",
+      gap: 4,
+      marginTop: 12
+    },
+    marketplaceText: {
+      color: colors.textMuted,
+      fontSize: fontSize.secondary
+    },
+    marketplacePressable: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4
+    },
+    marketplaceLink: {
+      color: colors.brand,
+      fontSize: fontSize.secondary,
+      fontWeight: "600",
+      textDecorationLine: "underline"
+    }
+  });
+}

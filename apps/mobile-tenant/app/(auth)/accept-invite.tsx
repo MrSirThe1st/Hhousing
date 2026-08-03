@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { getWithoutAuth } from "@/lib/api-client";
 import { env } from "@/lib/env";
+import { fontWeight, fontSize, useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type InvitationValidateData = {
   invitation: {
@@ -11,8 +14,11 @@ type InvitationValidateData = {
 };
 
 export default function AcceptInviteScreen(): React.ReactElement {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ token?: string }>();
   const token = typeof params.token === "string" ? params.token : "";
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tenantFullName, setTenantFullName] = useState<string | null>(null);
@@ -20,7 +26,7 @@ export default function AcceptInviteScreen(): React.ReactElement {
   useEffect(() => {
     async function loadInvitation(): Promise<void> {
       if (!token) {
-        setError("Lien d'invitation invalide.");
+        setError(t("auth.invalidLink"));
         setIsLoading(false);
         return;
       }
@@ -40,7 +46,7 @@ export default function AcceptInviteScreen(): React.ReactElement {
     }
 
     void loadInvitation();
-  }, [token]);
+  }, [t, token]);
 
   function openWebActivation(): void {
     const url = `${env.apiBaseUrl}/invite?token=${encodeURIComponent(token)}`;
@@ -49,24 +55,25 @@ export default function AcceptInviteScreen(): React.ReactElement {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Invitation", headerShown: false }} />
+      <Stack.Screen options={{ title: t("auth.inviteTitle"), headerShown: false }} />
       <View style={styles.root}>
         {isLoading ? (
-          <ActivityIndicator size="large" color="#0063FE" />
+          <ActivityIndicator size="large" color={colors.brand} />
         ) : error ? (
           <View style={styles.card}>
-            <Text style={styles.title}>Lien invalide</Text>
+            <Text style={styles.title}>{t("auth.invalidLinkTitle")}</Text>
             <Text style={styles.body}>{error}</Text>
           </View>
         ) : (
           <View style={styles.card}>
-            <Text style={styles.title}>Bienvenue{tenantFullName ? `, ${tenantFullName}` : ""}</Text>
-            <Text style={styles.body}>
-              Créez votre mot de passe sur la page web sécurisée, puis reconnectez-vous ici avec votre
-              numéro et ce mot de passe.
+            <Text style={styles.title}>
+              {tenantFullName
+                ? t("auth.welcomeNamed", { name: tenantFullName })
+                : t("auth.welcome")}
             </Text>
+            <Text style={styles.body}>{t("auth.inviteBody")}</Text>
             <Pressable style={styles.button} onPress={openWebActivation}>
-              <Text style={styles.buttonText}>Ouvrir la page d&apos;activation</Text>
+              <Text style={styles.buttonText}>{t("auth.openActivation")}</Text>
             </Pressable>
           </View>
         )}
@@ -75,42 +82,44 @@ export default function AcceptInviteScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#F3F4FA",
-    justifyContent: "center",
-    paddingHorizontal: 20
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#C9CFDA",
-    padding: 24,
-    gap: 14
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#010A19"
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#6B7280"
-  },
-  button: {
-    marginTop: 8,
-    borderRadius: 10,
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0063FE"
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700"
-  }
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.backgroundAlt,
+      justifyContent: "center",
+      paddingHorizontal: 20
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      padding: 24,
+      gap: 14
+    },
+    title: {
+      fontSize: fontSize.emphasis,
+      fontWeight: fontWeight.semibold,
+      color: colors.text
+    },
+    body: {
+      fontSize: fontSize.body,
+      lineHeight: 22,
+      color: colors.textMuted
+    },
+    button: {
+      marginTop: 8,
+      borderRadius: 10,
+      minHeight: 52,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.brand
+    },
+    buttonText: {
+      color: colors.onBrand,
+      fontSize: fontSize.body,
+      fontWeight: "700"
+    }
+  });
+}
