@@ -1,9 +1,9 @@
 import { createAuthRepo, createTenantLeaseRepo, jsonResponse } from "../../../shared";
-import { finalizeTenantAccountDeletions } from "../../../../api/tenants/tenant-delete-account";
+import { finalizeTenantAccountDeletions } from "../../../../../api/tenants/tenant-delete-account";
 import {
   createAccountDeletionNotifierFromEnv,
   createSupabaseUserDeleterFromEnv
-} from "../../../../lib/notifications/account-deletion-notifiers";
+} from "../../../../../lib/notifications/account-deletion-notifiers";
 
 function getBearerToken(headers: Headers): string | null {
   const authorization = headers.get("authorization");
