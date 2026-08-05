@@ -7,6 +7,7 @@ import type { CreateLeaseOutput, PropertyWithUnitsView } from "@hhousing/api-con
 import { calculateMonthlyProration, type Tenant } from "@hhousing/domain";
 import { postWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
+import posthog from "posthog-js";
 
 type ChargeFrequency = "one_time" | "monthly" | "quarterly" | "annually";
 type ChargeType = "deposit" | "fee" | "other";
@@ -356,6 +357,14 @@ export default function LeaseMoveInForm({
       setBusy(false);
       return;
     }
+
+    posthog.capture("lease_created", {
+      move_in_mode: moveInMode,
+      payment_frequency: paymentFrequency,
+      term_type: termType,
+      activated_immediately: moveInMode === "existing_tenant" && activateImmediately,
+      created_from_onboarding: fromOnboarding
+    });
 
     router.push(fromOnboarding ? "/onboarding" : `/dashboard/leases/${result.data.id}`);
     router.refresh();

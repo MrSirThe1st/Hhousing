@@ -8,6 +8,7 @@ import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { postWithAuth, patchWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
 import ResponsiveTable from "./responsive-table";
+import posthog from "posthog-js";
 
 const STATUS_LABELS: Record<PaymentStatus, string> = {
   pending: "En attente",
@@ -250,6 +251,11 @@ export default function PaymentManagementPanel({
       return;
     }
 
+    posthog.capture("payment_recorded", {
+      payment_kind: "manual",
+      currency_code: paymentForm.currencyCode.trim().toUpperCase()
+    });
+
     setPaymentForm({
       leaseId: "",
       amount: "",
@@ -276,6 +282,10 @@ export default function PaymentManagementPanel({
       setMarkingPaid(null);
       return;
     }
+
+    posthog.capture("payment_marked_paid", {
+      payment_status: "paid"
+    });
 
     setMessage("Paiement marqué comme payé.");
     setMarkingPaid(null);
