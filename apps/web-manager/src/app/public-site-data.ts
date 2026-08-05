@@ -64,16 +64,29 @@ export const FAQS = [
   {
     question: "Comment fonctionne la tarification ?",
     answer:
-      "La grille ci-dessous présente nos offres. Nous proposons un tarif clair et transparent de 5$ par logement et par mois pour les professionnels de la gestion immobilière."
+      "Gratuit sous 2 biens. À partir de 2 biens, le tarif est de 5$ par logement et par mois. Vous réglez par Mobile Money en fin de mois — sans prélèvement automatique."
   }
 ] as const;
 
 export const PRICING_TIERS = [
   {
+    name: "Gratuit",
+    price: "0$ / mois",
+    description: "Idéal pour démarrer : jusqu'à 1 bien (maison ou immeuble) sans frais d'abonnement.",
+    features: ["Moins de 2 biens", "Tous les outils de gestion", "Support chat", "Sans carte bancaire"]
+  },
+  {
     name: "Professionnel",
     price: "5$ / logement / mois",
-    description: "Tarif simple, transparent et sans engagement pour tous les gestionnaires immobiliers et bailleurs.",
-    features: ["Logements illimités", "Suivi automatisé des paiements", "Gestion complète des réparations", "Invitations d'équipe"]
+    description:
+      "À partir de 2 biens : tarif simple au logement. Paiement Mobile Money en fin de mois — pas de prélèvement automatique.",
+    features: [
+      "Facturation au logement",
+      "Paiement Mobile Money mensuel",
+      "Suivi automatisé des loyers",
+      "Gestion complète des réparations",
+      "Invitations d'équipe"
+    ]
   }
 ] as const;
 

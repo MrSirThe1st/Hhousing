@@ -35,6 +35,7 @@ export type SidebarAccess = {
   services: boolean;
   organization: boolean;
   audit: boolean;
+  billing: boolean;
   manageOrganization: boolean;
 };
 
@@ -262,6 +263,7 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
       title: "Organisation",
       items: [
         { href: "/dashboard/team", label: "Équipe", icon: "team" },
+        { href: "/dashboard/billing", label: "Abonnement", icon: "payments" },
         { href: "/dashboard/audit", label: "Audit", icon: "audit" }
       ]
     }
@@ -288,6 +290,10 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
       const items = section.items.filter((item) => {
         if (item.href === "/dashboard/team") {
           return access.organization;
+        }
+
+        if (item.href === "/dashboard/billing") {
+          return access.billing;
         }
 
         if (item.href === "/dashboard/audit") {

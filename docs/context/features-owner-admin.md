@@ -51,6 +51,14 @@ Implemented as `/owner-portal` inside `web-manager` (not a separate app). First 
 - Operator/public support via **Tawk.to** chat (root layout widget; hidden on `/admin`)
 - Product analytics stay in PostHog (not mirrored in the admin feed)
 
+### Slice 3 — SaaS billing (shipped)
+
+- Usage-based subscription: free under 2 properties; then `$price × unit_count` / month (default $5/logement)
+- Platform admin: billing settings, Mobile Money payment methods, invoice generate/confirm/void (`/admin/billing`)
+- Operator Facturation page (`/dashboard/billing`) — estimate, pay instructions, signal payment
+- Soft overdue banner (no hard lock); platform admin confirms paid (no live PawaPay yet)
+- Monthly cron: `/api/internal/billing/generate-saas-invoices`
+
 ### Support model
 
 - **Not** an in-app ticket system. Operators chat via Tawk.to; Hhousing ops answer in the Tawk dashboard.
@@ -58,7 +66,8 @@ Implemented as `/owner-portal` inside `web-manager` (not a separate app). First 
 
 ### Deferred
 
-- SaaS billing / plans / usage
+- Live PawaPay settlement for SaaS invoices
+- Hard lock / auto-suspend for unpaid SaaS invoices
 - Feature flags
 - Regional DRC config beyond existing product rules
 - Lightweight domain intake (`reports` / `contact_requests`)
@@ -79,3 +88,7 @@ Implemented as `/owner-portal` inside `web-manager` (not a separate app). First 
 
 **Platform audit:**
 - Admin action history
+
+**SaaS billing (`/admin/billing`):**
+- Pricing settings + Mobile Money payment methods
+- Subscription invoices (generate, confirm paid, void)

@@ -73,5 +73,14 @@ export type {
   TeamMemberInvitation,
   TeamMemberInvitationRole
 } from "./entities/team-member-invitation.types";
+export type {
+  PlatformBillingSettings,
+  PlatformPaymentMethod,
+  PlatformPaymentProvider,
+  PlatformSubscriptionInvoice,
+  PlatformSubscriptionInvoiceStatus,
+  OrganizationUsageSnapshot,
+  PlatformBillingEstimate
+} from "./entities/platform-billing.types";
 export type { MonthlyProrationInput, MonthlyProrationResult } from "./proration/monthly-proration.types";
 export { calculateMonthlyProration } from "./proration/calculate-monthly-proration";

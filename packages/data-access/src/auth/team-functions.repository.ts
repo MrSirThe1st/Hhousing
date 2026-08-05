@@ -109,7 +109,7 @@ export class TeamFunctionsRepository {
        from (
          values
            ('LEASING_AGENT', 'Property Manager', 'Operations locatives: portefeuille, listings, locataires et baux.', '["view_properties", "manage_properties", "create_lease", "edit_lease", "view_lease", "manage_tenants", "view_tenants", "message_tenants", "view_documents", "upload_documents"]'),
-           ('ACCOUNTANT', 'Accountant', 'Finances: paiements, factures, revenus, depenses et rapports.', '["view_lease", "view_payments", "record_payment", "export_payment_reports", "view_documents", "view_income_reports"]'),
+           ('ACCOUNTANT', 'Accountant', 'Finances: paiements, factures, revenus, depenses et rapports.', '["view_lease", "view_payments", "record_payment", "export_payment_reports", "view_documents", "view_income_reports", "view_org_billing", "manage_org_billing"]'),
            ('MAINTENANCE_MANAGER', 'Maintenance Technician', 'Services: maintenance, documents et suivi des interventions.', '["manage_maintenance", "assign_vendors", "view_maintenance", "update_maintenance_status", "view_documents"]'),
            ('ADMIN', 'Admin', 'Acces complet sur l''espace manager.', '["*"]')
        ) as defaults(function_code, display_name, description, permissions)

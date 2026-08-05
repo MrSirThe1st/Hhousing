@@ -5,12 +5,14 @@ import Sidebar from "../../components/sidebar";
 import SidebarToggleButton from "../../components/sidebar-toggle-button";
 import BottomNavigation from "../../components/bottom-navigation";
 import FloatingActionButton from "../../components/floating-action-button";
+import SaasBillingOverdueBanner from "../../components/saas-billing-overdue-banner";
 import { getServerAuthSession } from "../../lib/session";
 import { resolveDashboardAccess } from "../../lib/dashboard-access";
 import { getServerOperatorContext } from "../../lib/operator-context";
 import { isIndividualExperience } from "../../lib/platform-experience";
 import DashboardTour from "../../components/dashboard-tour";
 import ThemeToggle from "../../components/theme-toggle";
+import { createPlatformBillingRepositoryFromEnv } from "@hhousing/data-access";
 
 export const metadata: Metadata = {
   title: "hhousing — Tableau de bord",
@@ -59,6 +61,16 @@ export default async function DashboardLayout({
   const operatorContext = await getServerOperatorContext(session);
   const isIndividual = isIndividualExperience(operatorContext.experience);
 
+  let overdueInvoice = null;
+  if (sidebarAccess.billing) {
+    try {
+      const billingRepo = createPlatformBillingRepositoryFromEnv(process.env);
+      overdueInvoice = await billingRepo.getOpenOverdueInvoiceForOrganization(session.organizationId);
+    } catch {
+      overdueInvoice = null;
+    }
+  }
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden w-full max-w-full dark:bg-[#0a1120]">
       <Sidebar
@@ -98,6 +110,7 @@ export default async function DashboardLayout({
             </div>
           </div>
         </div>
+        {overdueInvoice ? <SaasBillingOverdueBanner invoice={overdueInvoice} /> : null}
         {children}
         <DashboardTour access={sidebarAccess} />
       </main>

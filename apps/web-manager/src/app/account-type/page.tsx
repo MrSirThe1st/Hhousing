@@ -102,6 +102,14 @@ export default function AccountTypePage(): React.ReactElement {
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-slate-900">Configurez votre compte</h1>
             <p className="mt-2 text-sm text-slate-600">Choisissez l&apos;expérience qui correspond à votre usage</p>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-700">
+              <p className="font-semibold text-slate-900">Tarification</p>
+              <p className="mt-1 leading-relaxed">
+                Gratuit si vous gérez moins de 2 biens. Au-delà :{" "}
+                <span className="font-semibold">5$ / logement / mois</span>, payé en Mobile Money en fin de
+                mois. Pas de prélèvement automatique.
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">

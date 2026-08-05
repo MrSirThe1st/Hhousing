@@ -216,21 +216,31 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="pricing" className="bg-slate-50 py-12 md:py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Un tarif simple et unique</h2>
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Tarification simple</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Pas d'abonnement complexe ni de frais cachés. Payez uniquement pour ce que vous gérez.
+              Gratuit sous 2 biens. Ensuite, 5$ par logement et par mois — payé en Mobile Money, sans
+              prélèvement automatique.
             </p>
           </div>
-          <div className="mt-16 flex justify-center">
+          <div className="mt-16 grid gap-6 md:grid-cols-2 md:justify-center md:max-w-4xl md:mx-auto">
             {PRICING_TIERS.map((tier) => (
-              <article key={tier.name} className="relative max-w-md w-full overflow-hidden rounded-2xl border-2 border-blue-500 bg-white p-8 shadow-lg ring-4 ring-blue-100/50">
-                <div className="absolute right-6 top-6 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold text-white">
-                  Tarif unique
-                </div>
+              <article
+                key={tier.name}
+                className={`relative w-full overflow-hidden rounded-2xl border bg-white p-8 shadow-lg ${
+                  tier.name === "Professionnel"
+                    ? "border-2 border-blue-500 ring-4 ring-blue-100/50"
+                    : "border-slate-200"
+                }`}
+              >
+                {tier.name === "Professionnel" ? (
+                  <div className="absolute right-6 top-6 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold text-white">
+                    Usage
+                  </div>
+                ) : null}
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">{tier.name}</h3>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-5xl font-bold tracking-tight text-slate-900">{tier.price}</span>
+                    <span className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">{tier.price}</span>
                   </div>
                   <p className="mt-4 text-sm text-slate-600 leading-relaxed">{tier.description}</p>
                 </div>

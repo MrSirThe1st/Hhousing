@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createPlatformAdminRepositoryFromEnv } from "@hhousing/data-access";
+import {
+  createPlatformAdminRepositoryFromEnv,
+  createPlatformBillingRepositoryFromEnv
+} from "@hhousing/data-access";
 import AdminOrganizationStatusForm from "../../../../components/admin-organization-status-form";
 import { getPlatformAuditActionLabel } from "../../../../lib/admin-labels";
 
@@ -17,11 +20,17 @@ export default async function AdminOrganizationDetailPage({
 }): Promise<React.ReactElement> {
   const { id } = await params;
   const repo = createPlatformAdminRepositoryFromEnv(process.env);
+  const billingRepo = createPlatformBillingRepositoryFromEnv(process.env);
   const organization = await repo.getOrganizationDetail(id);
 
   if (organization === null) {
     notFound();
   }
+
+  const [estimate, saasInvoices] = await Promise.all([
+    billingRepo.estimateOrganizationBilling(id),
+    billingRepo.listInvoicesForOrganization(id, 6)
+  ]);
 
   const healthCards = [
     { label: "Membres", value: organization.health.memberCount },
@@ -67,6 +76,55 @@ export default async function AdminOrganizationDetailPage({
         organizationId={organization.id}
         currentStatus={organization.status}
       />
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Abonnement SaaS</h3>
+          <Link href="/admin/billing" className="text-sm text-[#0063fe] hover:underline">
+            Facturation
+          </Link>
+        </div>
+        {estimate ? (
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            Estimation période en cours :{" "}
+            {estimate.isFreeTier ? (
+              <span className="font-semibold text-emerald-600">Gratuit</span>
+            ) : (
+              <span className="font-semibold">
+                {estimate.amountDue.toLocaleString("fr-FR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}{" "}
+                {estimate.currencyCode}
+              </span>
+            )}{" "}
+            ({estimate.propertyCount} biens · {estimate.unitCount} logements)
+          </p>
+        ) : null}
+        {saasInvoices.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">Aucune facture SaaS.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
+            {saasInvoices.map((invoice) => (
+              <li key={invoice.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <Link
+                  href={`/admin/billing/invoices/${invoice.id}`}
+                  className="font-medium text-[#010a19] hover:underline dark:text-white"
+                >
+                  {invoice.period}
+                </Link>
+                <span className="text-slate-500">
+                  {invoice.amountDue.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}{" "}
+                  {invoice.currencyCode} · {invoice.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">
         <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Membres</h3>

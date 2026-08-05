@@ -9,7 +9,7 @@ All users have exactly one role per organization. Roles are stored in the databa
 | **tenant** | Mobile app only | Own lease, payments, requests, messages, documents | Created automatically when user is linked to a lease. NEVER granted access to web-manager. |
 | **property_manager** | web-manager (operator system) | Full CRUD: properties, units, tenants, leases, payments, maintenance, messages, documents within own organization | Primary operator role. Can own properties if `canOwnProperties` capability is true. |
 | **landlord** | web-manager (operator system) | Full CRUD: properties, units, tenants, leases, payments, maintenance, messages, documents within own organization | Property owner who may self-manage or hire manager. Functionally identical to property_manager. |
-| **platform_admin** | web-manager `/admin` | Cross-organization SaaS ops (users, orgs, suspend/activate, platform audit, org health). Operator support is via Tawk.to (not in-app tickets). | Stored in `platform_admins` table (not org membership). Same `/login` as operators; middleware routes to `/admin`. Seed: `seed-platform-admin.mjs`; grant existing user: `grant-platform-admin.mjs`. |
+| **platform_admin** | web-manager `/admin` | Cross-organization SaaS ops (users, orgs, suspend/activate, platform audit, org health, SaaS billing). Operator support is via Tawk.to (not in-app tickets). | Stored in `platform_admins` table (not org membership). Same `/login` as operators; middleware routes to `/admin`. Seed: `seed-platform-admin.mjs`; grant existing user: `grant-platform-admin.mjs`. |
 
 ## Role Assignment Flow
 

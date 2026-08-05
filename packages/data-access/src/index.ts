@@ -210,25 +210,20 @@ export {
   createPostgresPlatformAdminRepository,
   createPlatformAdminRepositoryFromEnv
 } from "./platform-admin/postgres-platform-admin.repository";
+export {
+  createPostgresPlatformBillingRepository,
+  createPlatformBillingRepositoryFromEnv
+} from "./platform-billing/postgres-platform-billing.repository";
 export type {
-  PlatformAdminRepository,
-  PlatformAdminRecord,
-  PlatformUserStatusRecord,
-  PlatformAuditLogRecord,
-  PlatformUserListItem,
-  PlatformUserDetail,
-  PlatformOrganizationListItem,
-  PlatformOrganizationDetail,
-  PlatformOrganizationHealth,
-  PlatformOverviewStats,
-  ListPlatformAuditLogsInput,
-  CreatePlatformAuditLogInput,
-  GrantPlatformAdminInput,
-  ListPlatformUsersInput,
-  ListPlatformOrganizationsInput,
-  UpsertPlatformUserStatusInput,
-  SetOrganizationStatusInput,
-  PlatformAdminStatus,
-  PlatformUserAccountStatus,
-  OrganizationPlatformStatus
-} from "./platform-admin/platform-admin-record.types";
+  PlatformBillingRepository,
+  UpdatePlatformBillingSettingsInput,
+  CreatePlatformPaymentMethodInput,
+  UpdatePlatformPaymentMethodInput,
+  ListPlatformSubscriptionInvoicesInput,
+  PlatformSubscriptionInvoiceListItem,
+  CreatePlatformSubscriptionInvoiceInput,
+  ReportPlatformInvoicePaymentInput,
+  ConfirmPlatformInvoicePaidInput,
+  VoidPlatformInvoiceInput,
+  GenerateSaasInvoicesResult
+} from "./platform-billing/platform-billing-record.types";

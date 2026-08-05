@@ -1,12 +1,19 @@
-import { redirect } from "next/navigation";
 import { Permission, type AuthSession, type MembershipAuthSession } from "@hhousing/api-contracts";
 import {
   createAuthRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv
 } from "@hhousing/data-access";
+import { redirect } from "next/navigation";
 import { getServerAuthSession } from "./session";
 
-export type DashboardSection = "dashboard" | "operations" | "finances" | "services" | "organization" | "audit";
+export type DashboardSection =
+  | "dashboard"
+  | "operations"
+  | "finances"
+  | "services"
+  | "organization"
+  | "audit"
+  | "billing";
 
 export interface DashboardAccess {
   dashboard: boolean;
@@ -15,11 +22,13 @@ export interface DashboardAccess {
   services: boolean;
   organization: boolean;
   audit: boolean;
+  billing: boolean;
   manageOrganization: boolean;
   isFoundingManager: boolean;
   operationsWritable: boolean;
   financesWritable: boolean;
   servicesWritable: boolean;
+  billingWritable: boolean;
 }
 
 function hasPermission(permissions: string[], permission: Permission): boolean {
@@ -34,11 +43,13 @@ function getEmptyAccess(): DashboardAccess {
     services: false,
     organization: false,
     audit: false,
+    billing: false,
     manageOrganization: false,
     isFoundingManager: false,
     operationsWritable: false,
     financesWritable: false,
-    servicesWritable: false
+    servicesWritable: false,
+    billingWritable: false
   };
 }
 
@@ -50,11 +61,13 @@ function getFullOperatorAccess(isAccountOwner: boolean): DashboardAccess {
     services: true,
     organization: true,
     audit: isAccountOwner,
+    billing: true,
     manageOrganization: isAccountOwner,
     isFoundingManager: isAccountOwner,
     operationsWritable: true,
     financesWritable: true,
-    servicesWritable: true
+    servicesWritable: true,
+    billingWritable: true
   };
 }
 
@@ -80,6 +93,14 @@ function getAccessFromPermissions(permissions: string[], isAccountOwner: boolean
     hasPermission(permissions, Permission.UPDATE_MAINTENANCE_STATUS) ||
     hasPermission(permissions, Permission.UPLOAD_DOCUMENTS);
 
+  const billingWritable =
+    isAccountOwner || hasPermission(permissions, Permission.MANAGE_ORG_BILLING);
+
+  const billing =
+    isAccountOwner ||
+    billingWritable ||
+    hasPermission(permissions, Permission.VIEW_ORG_BILLING);
+
   return {
     dashboard: isOperator,
     operations: isOperator,
@@ -87,11 +108,13 @@ function getAccessFromPermissions(permissions: string[], isAccountOwner: boolean
     services: isOperator,
     organization: isOperator,
     audit: isAccountOwner,
+    billing,
     manageOrganization,
     isFoundingManager: isAccountOwner,
     operationsWritable,
     financesWritable,
-    servicesWritable
+    servicesWritable,
+    billingWritable
   };
 }
 
@@ -156,3 +179,5 @@ export async function requireDashboardSectionAccess(section: DashboardSection): 
 
   return { session, access };
 }
+
+export type { AuthSession };

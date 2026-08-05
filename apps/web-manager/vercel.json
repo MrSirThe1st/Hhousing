@@ -5,6 +5,10 @@
       "schedule": "5 0 1 * *"
     },
     {
+      "path": "/api/internal/billing/generate-saas-invoices",
+      "schedule": "15 0 1 * *"
+    },
+    {
       "path": "/api/internal/tenants/finalize-account-deletions",
       "schedule": "20 3 * * *"
     }

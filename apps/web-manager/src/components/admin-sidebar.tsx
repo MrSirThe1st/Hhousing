@@ -8,6 +8,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; exact?: boolean }> = [
   { href: "/admin", label: "Vue d'ensemble", exact: true },
   { href: "/admin/users", label: "Utilisateurs" },
   { href: "/admin/organizations", label: "Organisations" },
+  { href: "/admin/billing", label: "Facturation" },
   { href: "/admin/audit", label: "Audit" }
 ];
 

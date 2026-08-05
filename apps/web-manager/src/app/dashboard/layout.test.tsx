@@ -33,6 +33,34 @@ vi.mock("../../lib/sidebar-badge-counts", () => ({
   })
 }));
 
+vi.mock("../../lib/dashboard-access", () => ({
+  resolveDashboardAccess: vi.fn().mockResolvedValue({
+    dashboard: true,
+    operations: true,
+    finances: true,
+    services: true,
+    organization: true,
+    audit: true,
+    billing: true,
+    manageOrganization: true,
+    isFoundingManager: true,
+    operationsWritable: true,
+    financesWritable: true,
+    servicesWritable: true,
+    billingWritable: true
+  })
+}));
+
+vi.mock("@hhousing/data-access", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@hhousing/data-access")>();
+  return {
+    ...actual,
+    createPlatformBillingRepositoryFromEnv: vi.fn(() => ({
+      getOpenOverdueInvoiceForOrganization: vi.fn().mockResolvedValue(null)
+    }))
+  };
+});
+
 vi.mock("../../components/sidebar", () => ({
   default: () => "sidebar"
 }));

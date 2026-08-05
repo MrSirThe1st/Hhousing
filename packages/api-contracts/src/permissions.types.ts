@@ -39,6 +39,10 @@ export enum Permission {
   MANAGE_TEAM = 'manage_team',
   VIEW_REPORTS = 'view_reports',
   MANAGE_ORG = 'manage_org',
+
+  // Organization SaaS billing (Hhousing subscription)
+  VIEW_ORG_BILLING = 'view_org_billing',
+  MANAGE_ORG_BILLING = 'manage_org_billing',
 }
 
 /**
