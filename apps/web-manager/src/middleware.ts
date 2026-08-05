@@ -1,4 +1,3 @@
-
 // DEBUG: Add logging for production routing issues
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
@@ -54,9 +53,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   async function hasMembership(userId: string): Promise<boolean> {
     try {
       const { data } = await supabase
-        .from   ('organization_memberships')
-        .select('id')
-        .eq('user_id', userId)
+        .from("organization_memberships")
+        .select("id")
+        .eq("user_id", userId)
         .limit(1);
       return (data?.length ?? 0) > 0;
     } catch {
@@ -67,10 +66,24 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   async function hasOwnerPortalAccess(userId: string): Promise<boolean> {
     try {
       const { data } = await supabase
-        .from('owner_portal_accesses')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('status', 'active')
+        .from("owner_portal_accesses")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .limit(1);
+      return (data?.length ?? 0) > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  async function hasPlatformAdmin(userId: string): Promise<boolean> {
+    try {
+      const { data } = await supabase
+        .from("platform_admins")
+        .select("user_id")
+        .eq("user_id", userId)
+        .eq("status", "active")
         .limit(1);
       return (data?.length ?? 0) > 0;
     } catch {
@@ -81,6 +94,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // Public pages
   if (pathname === "/login" || pathname === "/signup" || pathname === "/invite") {
     if (user !== null) {
+      const platformAdminExists = await hasPlatformAdmin(user.id);
+      debugLogs.push(`[middleware] /login: platformAdminExists=${platformAdminExists}`);
+      if (platformAdminExists) {
+        debugLogs.push(`[middleware] /login: redirecting to /admin`);
+        logDebug(debugLogs);
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+
       const membershipExists = await hasMembership(user.id);
       debugLogs.push(`[middleware] /login: membershipExists=${membershipExists}`);
       if (membershipExists) {
@@ -111,18 +132,35 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-  // Onboarding/account-type: only for authenticated users
+  // Onboarding/account-type: only for authenticated users; platform admins skip to /admin
   if (pathname === "/account-type" || pathname === "/onboarding") {
     if (user === null) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
+    if (await hasPlatformAdmin(user.id)) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
     return response;
   }
 
-  // Dashboard: only for authenticated users
+  // Platform admin console
+  if (pathname.startsWith("/admin")) {
+    if (user === null) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (!(await hasPlatformAdmin(user.id))) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return response;
+  }
+
+  // Dashboard: operators only (platform admins go to /admin)
   if (pathname.startsWith("/dashboard")) {
     if (user === null) {
       return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (await hasPlatformAdmin(user.id)) {
+      return NextResponse.redirect(new URL("/admin", request.url));
     }
     return response;
   }
@@ -134,6 +172,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   if (pathname === "/owner-portal/login") {
     if (user !== null) {
+      if (await hasPlatformAdmin(user.id)) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
       const ownerAccessExists = await hasOwnerPortalAccess(user.id);
       debugLogs.push(`[middleware] /owner-portal/login: ownerAccessExists=${ownerAccessExists}`);
       if (ownerAccessExists) {
@@ -151,6 +192,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   if (pathname.startsWith("/owner-portal/dashboard")) {
     if (user === null) {
       return NextResponse.redirect(new URL("/owner-portal/login", request.url));
+    }
+    if (await hasPlatformAdmin(user.id)) {
+      return NextResponse.redirect(new URL("/admin", request.url));
     }
 
     const ownerAccessExists = await hasOwnerPortalAccess(user.id);
@@ -181,6 +225,8 @@ export const config = {
     "/account-type",
     "/onboarding",
     "/dashboard/:path*",
+    "/admin",
+    "/admin/:path*",
     "/owner-portal/:path*",
     "/api/mobile/:path*"
   ]

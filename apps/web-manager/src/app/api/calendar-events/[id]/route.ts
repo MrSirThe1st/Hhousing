@@ -1,19 +1,17 @@
 import { parseUpdateCalendarEventInput } from "@hhousing/api-contracts";
 import { logOperatorAuditEvent } from "../../../../api/audit-log";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { filterCalendarEventsByScope, getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { validateWorkflowEntitySelection } from "../../../../lib/workflow-entity-validation";
 import { createCalendarEventRepo, jsonResponse, parseJsonBody } from "../../shared";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
-  if (session === null) {
-    return jsonResponse(401, { success: false, code: "UNAUTHORIZED", error: "Authentication required" });
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
-
-  if (session.role === "tenant") {
-    return jsonResponse(403, { success: false, code: "FORBIDDEN", error: "Operator access required" });
-  }
+  const session = access.data;
 
   const { id } = await params;
   const repository = createCalendarEventRepo();
@@ -82,14 +80,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
-  if (session === null) {
-    return jsonResponse(401, { success: false, code: "UNAUTHORIZED", error: "Authentication required" });
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
-
-  if (session.role === "tenant") {
-    return jsonResponse(403, { success: false, code: "FORBIDDEN", error: "Operator access required" });
-  }
+  const session = access.data;
 
   const { id } = await params;
   const deleted = await createCalendarEventRepo().deleteCalendarEvent(id, session.organizationId);

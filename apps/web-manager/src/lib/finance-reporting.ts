@@ -1,4 +1,4 @@
-import type { AuthSession } from "@hhousing/api-contracts";
+import type { AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
 import { listExpenses, listPayments } from "../api";
 import { createExpenseRepo, createPaymentRepo, createTeamFunctionsRepo } from "../app/api/shared";
 import type { Expense, ExpenseCategory, Payment } from "@hhousing/domain";
@@ -452,7 +452,7 @@ export function buildFinanceReportCsv(
 }
 
 export async function loadScopedFinanceData(
-  session: AuthSession
+  session: MembershipAuthSession
 ): Promise<{ payments: Payment[]; expenses: Expense[]; scopedPortfolio: ScopedPortfolioData }> {
   const paymentRepo = createPaymentRepo();
   const expenseRepo = createExpenseRepo();
@@ -480,7 +480,7 @@ export async function loadScopedFinanceData(
   };
 }
 
-export async function loadScopedPayments(session: AuthSession): Promise<{ payments: Payment[]; scopedPortfolio: ScopedPortfolioData }> {
+export async function loadScopedPayments(session: MembershipAuthSession): Promise<{ payments: Payment[]; scopedPortfolio: ScopedPortfolioData }> {
   const data = await loadScopedFinanceData(session);
   return { payments: data.payments, scopedPortfolio: data.scopedPortfolio };
 }

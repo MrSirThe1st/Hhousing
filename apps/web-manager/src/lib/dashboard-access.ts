@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Permission, type AuthSession } from "@hhousing/api-contracts";
+import { Permission, type AuthSession, type MembershipAuthSession } from "@hhousing/api-contracts";
 import {
   createAuthRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv
@@ -95,7 +95,7 @@ function getAccessFromPermissions(permissions: string[], isAccountOwner: boolean
   };
 }
 
-export async function resolveDashboardAccess(session: AuthSession): Promise<DashboardAccess> {
+export async function resolveDashboardAccess(session: MembershipAuthSession): Promise<DashboardAccess> {
   if (session.role === "tenant") {
     return getEmptyAccess();
   }
@@ -136,18 +136,19 @@ export async function resolveDashboardAccess(session: AuthSession): Promise<Dash
 }
 
 export async function requireDashboardSectionAccess(section: DashboardSection): Promise<{
-  session: AuthSession;
+  session: MembershipAuthSession;
   access: DashboardAccess;
 }> {
-  const session = await getServerAuthSession();
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.role === "tenant") {
+  const { requireOperatorSession } = await import("../api/shared");
+  const accessResult = requireOperatorSession(await getServerAuthSession());
+  if (!accessResult.success) {
+    if (accessResult.code === "UNAUTHORIZED") {
+      redirect("/login");
+    }
     redirect("/account-type");
   }
 
+  const session = accessResult.data;
   const access = await resolveDashboardAccess(session);
   if (!access[section]) {
     redirect("/dashboard");

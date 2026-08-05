@@ -1,4 +1,4 @@
-import type { AuthSession, LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { AuthSession, MembershipAuthSession, LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { Tenant } from "@hhousing/domain";
 import { getScopedPortfolioData } from "./operator-scope-portfolio";
 
@@ -59,7 +59,7 @@ export function createRelatedOptions(
 }
 
 export async function validateWorkflowEntitySelection(
-  session: AuthSession,
+  session: MembershipAuthSession,
   selection: WorkflowEntitySelection
 ): Promise<WorkflowEntityValidationResult> {
   const scopedPortfolio = await getScopedPortfolioData(session);

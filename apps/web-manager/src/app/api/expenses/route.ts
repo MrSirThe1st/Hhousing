@@ -1,4 +1,5 @@
 import { createExpense, listExpenses } from "../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { filterExpensesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
@@ -10,7 +11,11 @@ function getPayloadText(payload: Record<string, unknown>, key: string): string |
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
     return experienceDenied;
@@ -28,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  if (session !== null && typeof body === "object" && body !== null) {
+  if (typeof body === "object" && body !== null) {
     const payload = body as Record<string, unknown>;
     const propertyId = getPayloadText(payload, "propertyId");
     const unitId = getPayloadText(payload, "unitId");
@@ -82,7 +87,11 @@ export async function POST(request: Request): Promise<Response> {
 
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
     return experienceDenied;

@@ -8,6 +8,7 @@ import type {
   AcceptTeamMemberInvitationOutput,
   ApiResult,
   AuthSession,
+  MembershipAuthSession,
   InvitePropertyManagerOutput,
   ListOrganizationMembersOutput,
   ListTeamMemberInvitationsOutput,
@@ -17,7 +18,7 @@ import type {
 } from "@hhousing/api-contracts";
 import { createAuditLogRepositoryFromEnv, type AuthRepository, TeamFunctionsRepository } from "@hhousing/data-access";
 import { createHash, randomBytes } from "crypto";
-import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
+import { mapErrorCodeToHttpStatus, requireOperatorSession, type OperatorAuthSession } from "../shared";
 
 type SupabaseAdminUser = {
   id: string;
@@ -42,7 +43,7 @@ function createAuditId(): string {
 }
 
 async function logTeamAuditEvent(params: {
-  session: AuthSession;
+  session: OperatorAuthSession;
   repository: AuthRepository;
   actionKey: string;
   entityType: string;
@@ -231,7 +232,7 @@ function memberHasPermission(permissions: string[], permission: Permission): boo
 }
 
 async function memberHasStrictTeamPermission(
-  session: AuthSession,
+  session: MembershipAuthSession,
   repository: AuthRepository,
   teamFunctionsRepository: TeamFunctionsRepository,
   permission: Permission
@@ -260,10 +261,10 @@ async function memberHasStrictTeamPermission(
 }
 
 async function requireTeamInviteAuthority(
-  session: AuthSession,
+  session: MembershipAuthSession,
   repository: AuthRepository,
   teamFunctionsRepository?: TeamFunctionsRepository
-): Promise<ApiResult<AuthSession>> {
+): Promise<ApiResult<MembershipAuthSession>> {
   if (session.role !== "landlord" && session.role !== "property_manager") {
     return {
       success: false,

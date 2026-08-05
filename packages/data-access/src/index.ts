@@ -206,3 +206,27 @@ export type {
   TenantWithPhoneLookup
 } from "./auth/tenant-otp-record.types";
 export { normalizeTenantPhoneNumber } from "./phone/normalize-phone";
+export {
+  createPostgresPlatformAdminRepository,
+  createPlatformAdminRepositoryFromEnv
+} from "./platform-admin/postgres-platform-admin.repository";
+export type {
+  PlatformAdminRepository,
+  PlatformAdminRecord,
+  PlatformUserStatusRecord,
+  PlatformAuditLogRecord,
+  PlatformUserListItem,
+  PlatformUserDetail,
+  PlatformOrganizationListItem,
+  PlatformOrganizationDetail,
+  PlatformOverviewStats,
+  CreatePlatformAuditLogInput,
+  GrantPlatformAdminInput,
+  ListPlatformUsersInput,
+  ListPlatformOrganizationsInput,
+  UpsertPlatformUserStatusInput,
+  SetOrganizationStatusInput,
+  PlatformAdminStatus,
+  PlatformUserAccountStatus,
+  OrganizationPlatformStatus
+} from "./platform-admin/platform-admin-record.types";

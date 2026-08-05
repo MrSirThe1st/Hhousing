@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import PlatformLogoLink from "../../components/platform-logo-link";
 
@@ -20,7 +21,7 @@ export default function LoginPage(): React.ReactElement {
     setLoading(true);
 
     const supabase = createSupabaseBrowserClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     });
@@ -31,6 +32,15 @@ export default function LoginPage(): React.ReactElement {
       return;
     }
 
+    if (data.user) {
+      posthog.identify(data.user.id, {
+        email: data.user.email ?? email
+      });
+      posthog.capture("user_logged_in", {
+        method: "password"
+      });
+    }
+
     // Route back through /login so middleware can redirect by access type.
     router.replace("/login");
     router.refresh();
@@ -39,6 +49,9 @@ export default function LoginPage(): React.ReactElement {
   async function handleGoogleSignIn(): Promise<void> {
     setError(null);
     setLoading(true);
+    posthog.capture("google_oauth_started", {
+      source: "login"
+    });
     const supabase = createSupabaseBrowserClient();
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -48,6 +61,7 @@ export default function LoginPage(): React.ReactElement {
     });
 
     if (authError) {
+      posthog.captureException(authError);
       setError(authError.message || "Erreur lors de l'authentification avec Google");
       setLoading(false);
     }

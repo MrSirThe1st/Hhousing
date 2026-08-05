@@ -20,7 +20,11 @@ export default async function DashboardProfilePage({
     redirect("/login");
   }
 
-  if (session.role === "tenant") {
+  if (session.role === "platform_admin") {
+    redirect("/admin");
+  }
+
+  if (session.role === "tenant" || !session.organizationId) {
     redirect("/account-type");
   }
 

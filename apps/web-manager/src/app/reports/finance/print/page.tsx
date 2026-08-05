@@ -21,6 +21,8 @@ type PrintReportPageProps = {
 export default async function PrintReportPage({ searchParams }: PrintReportPageProps): Promise<React.ReactElement> {
   const session = await getServerAuthSession();
   if (!session) redirect("/login");
+  if (session.role === "platform_admin") redirect("/admin");
+  if (session.role === "tenant" || !session.organizationId) redirect("/account-type");
 
   const params = await searchParams;
   const filters = normalizeFinanceFilters(params);

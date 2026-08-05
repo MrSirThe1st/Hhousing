@@ -32,12 +32,14 @@ Hhousing should adapt the model for DRC realities (French-first UX, local paymen
    - This is the primary operator interface
 
 3. **Property Owner (Investor) side**
-   - Deferred
-   - Read-only performance view (income, occupancy, statements)
+   - Read-only performance view in `web-manager` `/owner-portal` (first slice live)
+   - Income, occupancy, statements
 
 4. **Platform Admin side (internal SaaS ops)**
-   - Deferred
-   - Cross-organization control (subscriptions, support, disputes, feature flags, audit)
+   - Role-gated routes in `web-manager` at `/admin` (not a separate app)
+   - Source of truth: `platform_admins` table + role `platform_admin`
+   - MVP: cross-org users/orgs, suspend/activate, platform audit
+   - Deferred: tickets, billing/plans, feature flags
 
 ## Core Data Backbone
 
@@ -72,12 +74,13 @@ Priority now:
 - Rent and payments
 - Maintenance lifecycle
 - Messaging and documents
-- Admin SaaS controls
+- Platform admin SaaS control plane (users/orgs/suspend/audit) — deepen tickets/billing later
 
 Not current priority:
 - Marketplace-style listing growth work
 - Cosmetic listing enhancements disconnected from operations
 - AI recommendations
+- Separate `apps/web-admin` Next app (unused stub; admin lives in web-manager `/admin`)
 - Mortgage tooling
 
 ## Fixed Technical Decisions
@@ -119,5 +122,5 @@ Use these focused docs only when the task needs them:
 - `docs/context/features-tenant.md` — tenant mobile features and screens
 - `docs/context/features-manager.md` — manager web features and screens
 - `docs/context/finance-controls.md` — finance invariants, ledger/source-of-truth rules, reconciliation controls
-- `docs/context/features-owner-admin.md` — deferred owner/admin portals
+- `docs/context/features-owner-admin.md` — owner portal + platform admin (`/admin` in web-manager)
 - `docs/context/brand.md` — colors, typography, localization

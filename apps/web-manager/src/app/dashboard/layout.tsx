@@ -46,6 +46,15 @@ export default async function DashboardLayout({
     redirect("/account-type");
   }
 
+  // Platform admins use /admin, not the operator dashboard
+  if (session.role === "platform_admin") {
+    redirect("/admin");
+  }
+
+  if (!session.organizationId) {
+    redirect("/account-type");
+  }
+
   const sidebarAccess = await resolveDashboardAccess(session);
   const operatorContext = await getServerOperatorContext(session);
   const isIndividual = isIndividualExperience(operatorContext.experience);

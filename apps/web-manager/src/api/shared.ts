@@ -1,12 +1,13 @@
-import type { ApiResult, AuthSession } from "@hhousing/api-contracts";
+import type { ApiResult, AuthSession, MembershipAuthSession, PlatformAdminAuthSession } from "@hhousing/api-contracts";
+
+export type OperatorAuthSession = MembershipAuthSession & {
+  role: "landlord" | "property_manager";
+};
 
 /**
  * Require authenticated user with operator role (landlord or property_manager)
- * Returns 401 if not authenticated
- * Returns 403 if tenant (tenants use mobile app only)
- * Returns 403 if no organization context
  */
-export function requireOperatorSession(session: AuthSession | null): ApiResult<AuthSession> {
+export function requireOperatorSession(session: AuthSession | null): ApiResult<OperatorAuthSession> {
   if (session === null) {
     return {
       success: false,
@@ -23,11 +24,47 @@ export function requireOperatorSession(session: AuthSession | null): ApiResult<A
     };
   }
 
-  if (!session.organizationId) {
+  if (session.role === "platform_admin") {
     return {
       success: false,
       code: "FORBIDDEN",
-      error: "Organization context is required"
+      error: "Platform admins must use the admin console"
+    };
+  }
+
+  if (session.role !== "landlord" && session.role !== "property_manager") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Operator access required"
+    };
+  }
+
+  return {
+    success: true,
+    data: session as OperatorAuthSession
+  };
+}
+
+/**
+ * Require authenticated platform admin session (SaaS ops, cross-org).
+ */
+export function requirePlatformAdminSession(
+  session: AuthSession | null
+): ApiResult<PlatformAdminAuthSession> {
+  if (session === null) {
+    return {
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    };
+  }
+
+  if (session.role !== "platform_admin") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Platform admin access required"
     };
   }
 
@@ -40,7 +77,9 @@ export function requireOperatorSession(session: AuthSession | null): ApiResult<A
 /**
  * Require authenticated tenant session for mobile app APIs.
  */
-export function requireTenantSession(session: AuthSession | null): ApiResult<AuthSession> {
+export function requireTenantSession(
+  session: AuthSession | null
+): ApiResult<MembershipAuthSession & { role: "tenant" }> {
   if (session === null) {
     return {
       success: false,
@@ -57,39 +96,20 @@ export function requireTenantSession(session: AuthSession | null): ApiResult<Aut
     };
   }
 
-  if (!session.organizationId) {
-    return {
-      success: false,
-      code: "FORBIDDEN",
-      error: "Organization context is required"
-    };
-  }
-
   return {
     success: true,
-    data: session
+    data: session as MembershipAuthSession & { role: "tenant" }
   };
 }
 
-/**
- * Require write access (landlord or property_manager can write)
- * Returns error if session fails requireOperatorSession
- */
-export function requireWriteAccess(session: AuthSession | null): ApiResult<AuthSession> {
+export function requireWriteAccess(session: AuthSession | null): ApiResult<OperatorAuthSession> {
   return requireOperatorSession(session);
 }
 
-/**
- * Require read access (landlord, property_manager, or platform_admin can read; property_owner deferred)
- * Returns error if session fails requireOperatorSession
- */
-export function requireReadAccess(session: AuthSession | null): ApiResult<AuthSession> {
+export function requireReadAccess(session: AuthSession | null): ApiResult<OperatorAuthSession> {
   return requireOperatorSession(session);
 }
 
-/**
- * Helper to check if user can own properties (has capability flag)
- */
 export function canOwnProperties(session: AuthSession): boolean {
   return session.capabilities?.canOwnProperties ?? false;
 }

@@ -1,12 +1,24 @@
 import { createLease, listLeases } from "../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { createTenantInvitationNotificationDepsFromEnv } from "../../../lib/notifications/tenant-invitation-notifiers";
 import { filterLeasesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
+import {
+  captureServerEvent,
+  captureServerException,
+  readPostHogDistinctId
+} from "../../../lib/posthog-server";
 import { createId, createPaymentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
+  let distinctId: string | null = null;
   try {
-    const session = await extractAuthSessionFromCookies();
+    const access = requireOperatorSession(await extractAuthSessionFromCookies());
+    if (!access.success) {
+      return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+    }
+    const session = access.data;
+    distinctId = readPostHogDistinctId(request, session.userId);
     let body: unknown;
     try {
       body = await parseJsonBody(request);
@@ -18,7 +30,7 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    if (session !== null && typeof body === "object" && body !== null) {
+    if (typeof body === "object" && body !== null) {
       const payload = body as Record<string, unknown>;
       const unitId = typeof payload.unitId === "string" ? payload.unitId : null;
 
@@ -60,9 +72,23 @@ export async function POST(request: Request): Promise<Response> {
       }
     );
 
+    if (result.body.success) {
+      await captureServerEvent({
+        distinctId,
+        event: "lease_created",
+        properties: {
+          organization_id: session.organizationId,
+          source: "api"
+        }
+      });
+    }
+
     return jsonResponse(result.status, result.body);
   } catch (error) {
     console.error("Unhandled error in POST /api/leases", error);
+    if (distinctId !== null) {
+      await captureServerException(error, distinctId);
+    }
     return jsonResponse(500, {
       success: false,
       code: "INTERNAL_ERROR",
@@ -74,7 +100,11 @@ export async function POST(request: Request): Promise<Response> {
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get("organizationId");
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
 
   const result = await listLeases(
     {

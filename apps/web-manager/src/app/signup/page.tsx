@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import PlatformLogoLink from "../../components/platform-logo-link";
 
@@ -20,6 +21,9 @@ export default function SignupPage(): React.ReactElement {
   async function handleGoogleSignIn(): Promise<void> {
     setError(null);
     setLoading(true);
+    posthog.capture("google_oauth_started", {
+      source: "signup"
+    });
     const supabase = createSupabaseBrowserClient();
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -29,6 +33,7 @@ export default function SignupPage(): React.ReactElement {
     });
 
     if (authError) {
+      posthog.captureException(authError);
       setError(authError.message || "Erreur lors de l'authentification avec Google");
       setLoading(false);
     }
@@ -51,7 +56,7 @@ export default function SignupPage(): React.ReactElement {
     setLoading(true);
 
     const supabase = createSupabaseBrowserClient();
-    const { error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -62,9 +67,20 @@ export default function SignupPage(): React.ReactElement {
     });
 
     if (authError) {
+      posthog.captureException(authError);
       setError(authError.message || "Erreur lors de l'inscription");
       setLoading(false);
       return;
+    }
+
+    if (data.user) {
+      posthog.identify(data.user.id, {
+        email,
+        name
+      });
+      posthog.capture("user_signed_up", {
+        method: "email"
+      });
     }
 
     // Redirect to account type picker

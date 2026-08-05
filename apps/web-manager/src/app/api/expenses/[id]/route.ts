@@ -1,4 +1,5 @@
 import { deleteExpense, updateExpense } from "../../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
 import { createExpenseRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../../shared";
@@ -30,27 +31,29 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const repository = createExpenseRepo();
 
-  if (session !== null) {
-    const existingExpense = await repository.getExpenseById(id, session.organizationId);
-    if (!existingExpense) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Expense not found"
-      });
-    }
+  const existingExpense = await repository.getExpenseById(id, session.organizationId);
+  if (!existingExpense) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Expense not found"
+    });
+  }
 
-    const scopedPortfolio = await getScopedPortfolioData(session);
-    if (!isExpenseInScope(existingExpense.propertyId, existingExpense.unitId, scopedPortfolio.propertyIds, scopedPortfolio.unitIds)) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Expense not found"
-      });
-    }
+  const scopedPortfolio = await getScopedPortfolioData(session);
+  if (!isExpenseInScope(existingExpense.propertyId, existingExpense.unitId, scopedPortfolio.propertyIds, scopedPortfolio.unitIds)) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Expense not found"
+    });
   }
 
   let body: unknown;
@@ -64,11 +67,10 @@ export async function PATCH(
     });
   }
 
-  if (session !== null && typeof body === "object" && body !== null) {
+  if (typeof body === "object" && body !== null) {
     const payload = body as Record<string, unknown>;
     const propertyId = getPayloadText(payload, "propertyId");
     const unitId = getPayloadText(payload, "unitId");
-    const scopedPortfolio = await getScopedPortfolioData(session);
 
     if (propertyId !== null) {
       if (!scopedPortfolio.propertyIds.has(propertyId)) {
@@ -121,27 +123,29 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const repository = createExpenseRepo();
 
-  if (session !== null) {
-    const existingExpense = await repository.getExpenseById(id, session.organizationId);
-    if (!existingExpense) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Expense not found"
-      });
-    }
+  const existingExpense = await repository.getExpenseById(id, session.organizationId);
+  if (!existingExpense) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Expense not found"
+    });
+  }
 
-    const scopedPortfolio = await getScopedPortfolioData(session);
-    if (!isExpenseInScope(existingExpense.propertyId, existingExpense.unitId, scopedPortfolio.propertyIds, scopedPortfolio.unitIds)) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Expense not found"
-      });
-    }
+  const scopedPortfolio = await getScopedPortfolioData(session);
+  if (!isExpenseInScope(existingExpense.propertyId, existingExpense.unitId, scopedPortfolio.propertyIds, scopedPortfolio.unitIds)) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Expense not found"
+    });
   }
 
   const result = await deleteExpense(

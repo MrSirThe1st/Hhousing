@@ -1,4 +1,5 @@
 import { getManagerConversationDetail } from "../../../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../../lib/operator-scope-portfolio";
 import {
@@ -13,7 +14,11 @@ interface RouteParams {
 
 export async function GET(request: Request, { params }: RouteParams): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
 
   const result = await getManagerConversationDetail(
     {
@@ -26,7 +31,7 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Re
     }
   );
 
-  if (result.body.success && session !== null) {
+  if (result.body.success) {
     const scopedPortfolio = await getScopedPortfolioData(session);
     if (!scopedPortfolio.propertyIds.has(result.body.data.context.unit.propertyId)) {
       return jsonResponse(404, {

@@ -9,7 +9,7 @@ All users have exactly one role per organization. Roles are stored in the databa
 | **tenant** | Mobile app only | Own lease, payments, requests, messages, documents | Created automatically when user is linked to a lease. NEVER granted access to web-manager. |
 | **property_manager** | web-manager (operator system) | Full CRUD: properties, units, tenants, leases, payments, maintenance, messages, documents within own organization | Primary operator role. Can own properties if `canOwnProperties` capability is true. |
 | **landlord** | web-manager (operator system) | Full CRUD: properties, units, tenants, leases, payments, maintenance, messages, documents within own organization | Property owner who may self-manage or hire manager. Functionally identical to property_manager. |
-| **platform_admin** | Internal/reserved | Cross-organization SaaS ops | Deferred to future phase. Not assigned during operator onboarding. |
+| **platform_admin** | web-manager `/admin` | Cross-organization SaaS ops (users, orgs, suspend/activate, platform audit) | Stored in `platform_admins` table (not org membership). Same `/login` as operators; middleware routes to `/admin`. Seed: `seed-platform-admin.mjs`; grant existing user: `grant-platform-admin.mjs`. |
 
 ## Role Assignment Flow
 
@@ -48,13 +48,18 @@ organization_memberships (
 
 ## Authorization Rules
 
-- **Source of truth:** `organization_memberships` table. No Supabase metadata.
+- **Source of truth for operators/tenants:** `organization_memberships` table. No Supabase metadata for org roles.
+- **Source of truth for platform admins:** `platform_admins` table (`user_id` → `auth.users`). Org membership is not required.
+- **Account-level suspend:** `platform_user_statuses` — suspended users cannot obtain a session on any surface.
+- **Org-level suspend:** `organizations.status = suspended` — operators of only-suspended orgs cannot obtain an operator session.
 - **Unauthenticated users:** Redirected to landing -> login.
-- **Authenticated users with no membership:** Redirected to account type picker or onboarding.
+- **Authenticated platform admins:** Redirected to `/admin` (never `/dashboard` or owner portal).
+- **Authenticated users with no membership and not platform admin:** Redirected to account type picker or onboarding.
 - **Authenticated users in a membership:** Role and capabilities enforced on every request.
 - **Tenant role in web-manager:** Always rejected with 403. Tenants use mobile app only.
 - **property_manager / landlord:** Can perform write operations on their organization's data.
-- **Cross-org requests:** Show org switcher or redirect to primary org.
+- **platform_admin:** Cross-org read/suspend via `/admin` and `/api/admin/*` only (`requirePlatformAdminSession`).
+- **Cross-org requests (operators):** Show org switcher or redirect to primary org.
 - **All authorization checks:** Enforced server-side (middleware, server actions, API routes). Never trust client.
 
 ## Application Roles For Team Members

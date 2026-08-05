@@ -20,7 +20,8 @@
     "driver.js": "^1.4.0",
     "next": "^15.5.14",
     "postcss": "^8.5.8",
-    "posthog-js": "^1.407.2",
+    "posthog-js": "^1.412.0",
+    "posthog-node": "^5.47.11",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwindcss": "^4.2.2"

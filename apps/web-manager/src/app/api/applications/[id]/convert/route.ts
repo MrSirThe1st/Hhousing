@@ -1,5 +1,9 @@
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { logOperatorAuditEvent } from "../../../../../api/audit-log";
+import {
+  captureServerEvent,
+  readPostHogDistinctId
+} from "../../../../../lib/posthog-server";
 import { createId, createListingRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../../shared";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../api/shared";
 
@@ -113,6 +117,16 @@ export async function POST(
     metadata: {
       listingId: updatedApplication.listingId,
       tenantId: tenant.id
+    }
+  });
+
+  await captureServerEvent({
+    distinctId: readPostHogDistinctId(request, sessionResult.data.userId),
+    event: "application_converted",
+    properties: {
+      organization_id: organizationId,
+      listing_id: updatedApplication.listingId,
+      source: "api"
     }
   });
 

@@ -5,16 +5,12 @@ import { getServerOperatorContext, isAccountOwner } from "../../../lib/operator-
 import { createRepositoryFromEnv, jsonResponse, parseJsonBody } from "../shared";
 
 export async function GET(): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
-  if (session === null) {
-    return jsonResponse(401, {
-      success: false,
-      code: "UNAUTHORIZED",
-      error: "Authentication required"
-    });
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
 
-  const context = await getServerOperatorContext(session);
+  const context = await getServerOperatorContext(access.data);
 
   return jsonResponse(200, {
     success: true,

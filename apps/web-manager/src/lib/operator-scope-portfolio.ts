@@ -1,4 +1,4 @@
-import type { AuthSession, LeaseWithTenantView, ManagerConversationListItem } from "@hhousing/api-contracts";
+import type { MembershipAuthSession, LeaseWithTenantView, ManagerConversationListItem } from "@hhousing/api-contracts";
 import {
   createOrganizationPropertyUnitRepositoryFromEnv,
   createTenantLeaseRepositoryFromEnv,
@@ -16,7 +16,7 @@ export interface ScopedPortfolioData {
   tenantIds: Set<string>;
 }
 
-export async function getScopedPortfolioData(session: AuthSession): Promise<ScopedPortfolioData> {
+export async function getScopedPortfolioData(session: MembershipAuthSession): Promise<ScopedPortfolioData> {
   const propertyRepository = createOrganizationPropertyUnitRepositoryFromEnv(process.env);
 
   if (!propertyRepository.success) {

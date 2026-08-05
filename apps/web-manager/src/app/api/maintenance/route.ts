@@ -2,16 +2,25 @@ import {
   createMaintenanceRequest,
   listMaintenanceRequests
 } from "../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import {
   filterMaintenanceRequestsByScope,
   getScopedPortfolioData
 } from "../../../lib/operator-scope-portfolio";
+import {
+  captureServerEvent,
+  readPostHogDistinctId
+} from "../../../lib/posthog-server";
 import { createId, createMaintenanceRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
     return experienceDenied;
@@ -28,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  if (session !== null && typeof body === "object" && body !== null) {
+  if (typeof body === "object" && body !== null) {
     const payload = body as Record<string, unknown>;
     const unitId = typeof payload.unitId === "string" ? payload.unitId : null;
 
@@ -56,12 +65,33 @@ export async function POST(request: Request): Promise<Response> {
     }
   );
 
+  if (result.body.success) {
+    const priority =
+      typeof body === "object" && body !== null && typeof (body as { priority?: unknown }).priority === "string"
+        ? (body as { priority: string }).priority
+        : undefined;
+
+    await captureServerEvent({
+      distinctId: readPostHogDistinctId(request, session.userId),
+      event: "maintenance_request_created",
+      properties: {
+        organization_id: session.organizationId,
+        priority,
+        source: "api"
+      }
+    });
+  }
+
   return jsonResponse(result.status, result.body);
 }
 
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
     return experienceDenied;

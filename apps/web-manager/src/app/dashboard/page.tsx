@@ -9,7 +9,7 @@ import { createRepositoryFromEnv, createTenantLeaseRepo, createMaintenanceRepo }
 import { buildDashboardWorkflowData } from "../../lib/dashboard-workflow";
 import DashboardCalendar from "../../components/dashboard-calendar";
 import { formatCurrencySummary, loadScopedFinanceData, subtractCurrencyTotals } from "../../lib/finance-reporting";
-import type { AuthSession } from "@hhousing/api-contracts";
+import type { AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
 import type { Expense, MaintenanceRequest, Payment, PlatformExperience } from "@hhousing/domain";
 import { getNow } from "../../lib/time";
 
@@ -276,7 +276,7 @@ function getVariantHeader(experience: PlatformExperience): { title: string; subt
 }
 
 async function fetchDashboardMetrics(
-  session: AuthSession,
+  session: MembershipAuthSession,
   selectedCurrency: string
 ): Promise<DashboardMetrics> {
   const propertyRepo = createRepositoryFromEnv();

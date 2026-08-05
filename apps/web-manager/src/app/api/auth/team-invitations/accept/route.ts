@@ -1,5 +1,9 @@
 import { acceptTeamMemberInvitation } from "../../../../../api";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
+import {
+  captureServerEvent,
+  readPostHogDistinctId
+} from "../../../../../lib/posthog-server";
 import { createAuthRepo, createId, jsonResponse, parseJsonBody } from "../../../shared";
 
 export async function POST(request: Request): Promise<Response> {
@@ -24,10 +28,11 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
+  const session = await extractAuthSessionFromCookies();
   const result = await acceptTeamMemberInvitation(
     {
       body,
-      session: await extractAuthSessionFromCookies()
+      session
     },
     {
       repository: createAuthRepo(),
@@ -36,6 +41,17 @@ export async function POST(request: Request): Promise<Response> {
       supabaseServiceRoleKey
     }
   );
+
+  if (result.body.success && session !== null) {
+    await captureServerEvent({
+      distinctId: readPostHogDistinctId(request, session.userId),
+      event: "team_invitation_accepted",
+      properties: {
+        organization_id: "organizationId" in session ? session.organizationId : undefined,
+        source: "api"
+      }
+    });
+  }
 
   return jsonResponse(result.status, result.body);
 }

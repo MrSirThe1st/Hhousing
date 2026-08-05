@@ -2,6 +2,7 @@ import {
   listManagerConversations,
   startManagerConversation
 } from "../../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import {
   filterManagerConversationsByScope,
@@ -17,7 +18,11 @@ import {
 
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
 
   const result = await listManagerConversations(
     {
@@ -45,7 +50,11 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   let body: unknown;
 
   try {
@@ -58,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  if (session !== null && typeof body === "object" && body !== null) {
+  if (typeof body === "object" && body !== null) {
     const payload = body as Record<string, unknown>;
     const tenantId = typeof payload.tenantId === "string" ? payload.tenantId : null;
 

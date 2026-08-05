@@ -1,4 +1,5 @@
 import { sendManagerMessage } from "../../../../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../../../auth/session-adapter";
 import { getScopedPortfolioData } from "../../../../../../lib/operator-scope-portfolio";
 import {
@@ -15,7 +16,11 @@ interface RouteParams {
 
 export async function POST(request: Request, { params }: RouteParams): Promise<Response> {
   const { id } = await params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const messageRepo = createMessageRepo();
 
   let body: unknown;
@@ -30,24 +35,22 @@ export async function POST(request: Request, { params }: RouteParams): Promise<R
     });
   }
 
-  if (session !== null) {
-    const detail = await messageRepo.getManagerConversationDetail(id, session.organizationId);
-    if (!detail) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Conversation not found"
-      });
-    }
+  const detail = await messageRepo.getManagerConversationDetail(id, session.organizationId);
+  if (!detail) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Conversation not found"
+    });
+  }
 
-    const scopedPortfolio = await getScopedPortfolioData(session);
-    if (!scopedPortfolio.propertyIds.has(detail.context.unit.propertyId)) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Conversation not found"
-      });
-    }
+  const scopedPortfolio = await getScopedPortfolioData(session);
+  if (!scopedPortfolio.propertyIds.has(detail.context.unit.propertyId)) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Conversation not found"
+    });
   }
 
   const result = await sendManagerMessage(

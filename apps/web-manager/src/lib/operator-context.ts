@@ -1,4 +1,4 @@
-import type { AuthSession } from "@hhousing/api-contracts";
+import type { AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 import { createRepositoryFromEnv } from "../app/api/shared";
 import type { OperatorContext } from "./operator-context.types";
@@ -6,7 +6,11 @@ import type { OperatorContext } from "./operator-context.types";
 export type { OperatorContext, PlatformExperience } from "./operator-context.types";
 export { isEntrepriseExperience, isIndividualExperience } from "./platform-experience";
 
-export async function isAccountOwner(session: AuthSession): Promise<boolean> {
+export async function isAccountOwner(session: MembershipAuthSession): Promise<boolean> {
+  if (!session.organizationId) {
+    return false;
+  }
+
   const currentMembership = session.memberships.find(
     (membership) => membership.organizationId === session.organizationId
   );
@@ -25,7 +29,11 @@ export async function isAccountOwner(session: AuthSession): Promise<boolean> {
   return accountOwnerMembership?.id === currentMembership.id;
 }
 
-export async function getServerOperatorContext(session: AuthSession): Promise<OperatorContext> {
+export async function getServerOperatorContext(session: MembershipAuthSession): Promise<OperatorContext> {
+  if (!session.organizationId) {
+    return { experience: "entreprise" };
+  }
+
   const repositoryResult = createRepositoryFromEnv();
   if (!repositoryResult.success) {
     return { experience: "entreprise" };
@@ -41,6 +49,6 @@ export function getOperatorScopeLabel(): string {
   return "Tous mes biens";
 }
 
-export function canEditOrganizationDetails(session: AuthSession): boolean {
+export function canEditOrganizationDetails(session: MembershipAuthSession): boolean {
   return session.role === "property_manager";
 }

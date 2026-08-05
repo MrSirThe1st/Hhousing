@@ -1,5 +1,5 @@
 export type { ApiResult } from "./api-result.types";
-export type { AuthSession, UserRole } from "./auth.types";
+export type { AuthSession, MembershipAuthSession, PlatformAdminAuthSession, UserRole } from "./auth.types";
 export type {
   ListOrganizationMembersOutput,
   ListTeamMemberInvitationsOutput,

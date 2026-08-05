@@ -1,4 +1,4 @@
-import type { AuthSession, ListingApplicationView, ManagerConversationListItem } from "@hhousing/api-contracts";
+import type { AuthSession, MembershipAuthSession, ListingApplicationView, ManagerConversationListItem } from "@hhousing/api-contracts";
 import type { MaintenanceRequest, Payment } from "@hhousing/domain";
 import { createRepositoryFromEnv, createListingRepo, createMaintenanceRepo, createMessageRepo, createPaymentRepo, createTenantLeaseRepo } from "../app/api/shared";
 import { getNow } from "./time";
@@ -27,7 +27,7 @@ function isActiveMaintenanceRequest(request: MaintenanceRequest): boolean {
   return request.status === "open" || request.status === "in_progress";
 }
 
-export async function getSidebarBadgeCounts(session: AuthSession): Promise<SidebarBadgeCounts> {
+export async function getSidebarBadgeCounts(session: MembershipAuthSession): Promise<SidebarBadgeCounts> {
   if (!session.organizationId) {
     return createEmptyCounts();
   }

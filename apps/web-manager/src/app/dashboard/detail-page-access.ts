@@ -1,9 +1,9 @@
-import type { AuthSession } from "@hhousing/api-contracts";
+import type { AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
 import { redirect } from "next/navigation";
-import { requireOperatorSession } from "../../api/shared";
+import { requireOperatorSession, type OperatorAuthSession } from "../../api/shared";
 import { getServerAuthSession } from "../../lib/session";
 
-export async function getDashboardOperatorSession(): Promise<AuthSession> {
+export async function getDashboardOperatorSession(): Promise<OperatorAuthSession> {
   const access = requireOperatorSession(await getServerAuthSession());
 
   if (!access.success) {
@@ -15,4 +15,9 @@ export async function getDashboardOperatorSession(): Promise<AuthSession> {
   }
 
   return access.data;
+}
+
+/** @deprecated Prefer getDashboardOperatorSession — kept for callers expecting AuthSession. */
+export async function getDashboardAuthSession(): Promise<MembershipAuthSession> {
+  return getDashboardOperatorSession();
 }

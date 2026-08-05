@@ -3,6 +3,11 @@ import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import {
+  captureServerEvent,
+  captureServerException,
+  readPostHogDistinctId
+} from "../../../../lib/posthog-server";
 
 function mapErrorCodeToHttpStatus(code: string): number {
   if (code === "UNAUTHORIZED") {
@@ -95,6 +100,15 @@ export async function POST(request: Request): Promise<Response> {
       canOwnProperties: true
     });
 
+    await captureServerEvent({
+      distinctId: readPostHogDistinctId(request, userId),
+      event: "operator_account_created",
+      properties: {
+        platform_experience: parsed.data.platformExperience,
+        source: "api"
+      }
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -104,6 +118,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   } catch (error) {
     console.error("Failed to create operator account", error);
+    await captureServerException(error, readPostHogDistinctId(request, userId));
     if (error instanceof Error && error.message === "ORGANIZATION_ALREADY_EXISTS") {
       return new Response(
         JSON.stringify({

@@ -27,6 +27,14 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
     redirect("/login");
   }
 
+  if (session.role === "platform_admin") {
+    redirect("/admin");
+  }
+
+  if (!session.organizationId) {
+    redirect("/account-type");
+  }
+
   const params = await searchParams;
   const operatorContext = await getServerOperatorContext(session);
   const experience = resolveExperience(params?.flow, operatorContext.experience);

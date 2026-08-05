@@ -3,11 +3,11 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import {
   createAuthRepositoryFromEnv,
+  createPlatformAdminRepositoryFromEnv,
   createTenantLeaseRepositoryFromEnv
 } from "@hhousing/data-access";
-import type { ApiResult, AuthSession, UserRole } from "@hhousing/api-contracts";
-
-const VALID_ROLES: readonly UserRole[] = ["tenant", "landlord", "property_manager", "platform_admin"];
+import type { ApiResult, AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
+import { resolveAuthSessionForUserId } from "./resolve-session";
 
 type SupabaseLikeUser = {
   id: string;
@@ -56,13 +56,6 @@ function createSupabaseClientFromEnv(): SupabaseAuthLikeClient | null {
 /**
  * Lightweight auth validation for onboarding/account creation.
  * Validates Supabase token and returns userId WITHOUT checking memberships.
- *
- * Use this for endpoints that create the first membership.
- *
- * Returns null if:
- * - No Authorization header
- * - Token invalid
- * - User not found in Supabase
  */
 export async function extractUserIdFromRequest(request: Request): Promise<string | null> {
   const token = getBearerToken(request.headers);
@@ -84,17 +77,7 @@ export async function extractUserIdFromRequest(request: Request): Promise<string
 }
 
 /**
- * Extract auth session from request by:
- * 1. Getting Bearer token from Authorization header
- * 2. Validating token with Supabase
- * 3. Querying DB for user's memberships
- * 4. Building AuthSession with first membership as primary (if available)
- *
- * Returns null if:
- * - No Authorization header
- * - Token invalid
- * - User not found in Supabase
- * - User has no memberships in DB (not yet onboarded)
+ * Extract auth session from Bearer token (memberships or platform admin).
  */
 export async function extractAuthSessionFromRequest(request: Request): Promise<AuthSession | null> {
   const token = getBearerToken(request.headers);
@@ -112,40 +95,13 @@ export async function extractAuthSessionFromRequest(request: Request): Promise<A
     return null;
   }
 
-  const userId = data.user.id;
-
-  try {
-    const authRepo = createAuthRepositoryFromEnv(process.env);
-    const memberships = await authRepo.listMembershipsByUserId(userId);
-
-    // User must have at least one membership to access web-manager
-    if (memberships.length === 0) {
-      return null;
-    }
-
-    // Use first (most recent) membership as primary org context
-    const primary = memberships[0];
-    if (!primary) {
-      return null;
-    }
-
-    return {
-      userId,
-      role: primary.role,
-      organizationId: primary.organizationId,
-      capabilities: primary.capabilities,
-      memberships
-    };
-  } catch (error) {
-    console.error("Failed to extract auth session", error);
-    return null;
-  }
+  return resolveAuthSessionForUserId(data.user.id);
 }
 
 export async function extractTenantSessionFromRequest(
   request: Request,
   options?: { allowPendingDeletion?: boolean }
-): Promise<ApiResult<AuthSession>> {
+): Promise<ApiResult<MembershipAuthSession & { role: "tenant" }>> {
   const token = getBearerToken(request.headers);
   if (token === null) {
     return {
@@ -176,6 +132,15 @@ export async function extractTenantSessionFromRequest(
   const userId = data.user.id;
 
   try {
+    const platformRepo = createPlatformAdminRepositoryFromEnv(process.env);
+    if (await platformRepo.isUserSuspended(userId)) {
+      return {
+        success: false,
+        code: "FORBIDDEN",
+        error: "This account has been suspended"
+      };
+    }
+
     const authRepo = createAuthRepositoryFromEnv(process.env);
     const memberships = await authRepo.listMembershipsByUserId(userId);
 
@@ -196,15 +161,7 @@ export async function extractTenantSessionFromRequest(
       };
     }
 
-    const session: AuthSession = {
-      userId,
-      role: primary.role,
-      organizationId: primary.organizationId,
-      capabilities: primary.capabilities,
-      memberships
-    };
-
-    if (session.role !== "tenant") {
+    if (primary.role !== "tenant") {
       return {
         success: false,
         code: "FORBIDDEN",
@@ -212,13 +169,13 @@ export async function extractTenantSessionFromRequest(
       };
     }
 
-    if (!session.organizationId) {
-      return {
-        success: false,
-        code: "FORBIDDEN",
-        error: "Organization context is required"
-      };
-    }
+    const session: MembershipAuthSession & { role: "tenant" } = {
+      userId,
+      role: "tenant",
+      organizationId: primary.organizationId,
+      capabilities: primary.capabilities,
+      memberships
+    };
 
     const tenantRepo = createTenantLeaseRepositoryFromEnv(process.env);
     const tenant = await tenantRepo.getTenantByAuthUserId(userId);
@@ -259,15 +216,6 @@ export async function extractTenantSessionFromRequest(
 
 /**
  * Extract auth session from request cookies (for API routes).
- *
- * 1. Creates Supabase client with cookie support
- * 2. Gets authenticated user from cookies
- * 3. Queries DB for user's memberships
- * 4. Builds AuthSession with first membership as primary
- *
- * Returns null if:
- * - User not authenticated
- * - User has no memberships (not yet onboarded)
  */
 export async function extractAuthSessionFromCookies(): Promise<AuthSession | null> {
   const cookieStore = await cookies();
@@ -296,32 +244,5 @@ export async function extractAuthSessionFromCookies(): Promise<AuthSession | nul
     return null;
   }
 
-  const userId = user.id;
-
-  try {
-    const authRepo = createAuthRepositoryFromEnv(process.env);
-    const memberships = await authRepo.listMembershipsByUserId(userId);
-
-    // User must have at least one membership to access web-manager
-    if (memberships.length === 0) {
-      return null;
-    }
-
-    // Use first (most recent) membership as primary org context
-    const primary = memberships[0];
-    if (!primary) {
-      return null;
-    }
-
-    return {
-      userId,
-      role: primary.role,
-      organizationId: primary.organizationId,
-      capabilities: primary.capabilities,
-      memberships
-    };
-  } catch (error) {
-    console.error("Failed to extract auth session from cookies", error);
-    return null;
-  }
+  return resolveAuthSessionForUserId(user.id);
 }

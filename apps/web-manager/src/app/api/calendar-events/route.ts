@@ -1,5 +1,6 @@
 import { parseCreateCalendarEventInput } from "@hhousing/api-contracts";
 import { logOperatorAuditEvent } from "../../../api/audit-log";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { filterCalendarEventsByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
@@ -7,14 +8,11 @@ import { validateWorkflowEntitySelection } from "../../../lib/workflow-entity-va
 import { createCalendarEventRepo, createId, jsonResponse, parseJsonBody } from "../shared";
 
 export async function GET(): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
-  if (session === null) {
-    return jsonResponse(401, { success: false, code: "UNAUTHORIZED", error: "Authentication required" });
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
-
-  if (session.role === "tenant") {
-    return jsonResponse(403, { success: false, code: "FORBIDDEN", error: "Operator access required" });
-  }
+  const session = access.data;
 
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
@@ -35,14 +33,11 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
-  if (session === null) {
-    return jsonResponse(401, { success: false, code: "UNAUTHORIZED", error: "Authentication required" });
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
-
-  if (session.role === "tenant") {
-    return jsonResponse(403, { success: false, code: "FORBIDDEN", error: "Operator access required" });
-  }
+  const session = access.data;
 
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {

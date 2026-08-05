@@ -1,4 +1,5 @@
 import { deleteDocument } from "../../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../auth/session-adapter";
 import { getScopedPortfolioData, isDocumentAttachmentInScope } from "../../../../lib/operator-scope-portfolio";
 import { createDocumentRepo, createTeamFunctionsRepo, jsonResponse } from "../../shared";
@@ -8,27 +9,29 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const params = await context.params;
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
   const repository = createDocumentRepo();
 
-  if (session !== null) {
-    const document = await repository.getDocumentById(params.id, session.organizationId);
-    if (!document) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Document not found"
-      });
-    }
+  const document = await repository.getDocumentById(params.id, session.organizationId);
+  if (!document) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Document not found"
+    });
+  }
 
-    const scopedPortfolio = await getScopedPortfolioData(session);
-    if (!isDocumentAttachmentInScope(document.attachmentType, document.attachmentId, scopedPortfolio)) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "Document not found"
-      });
-    }
+  const scopedPortfolio = await getScopedPortfolioData(session);
+  if (!isDocumentAttachmentInScope(document.attachmentType, document.attachmentId, scopedPortfolio)) {
+    return jsonResponse(404, {
+      success: false,
+      code: "NOT_FOUND",
+      error: "Document not found"
+    });
   }
 
   const result = await deleteDocument(

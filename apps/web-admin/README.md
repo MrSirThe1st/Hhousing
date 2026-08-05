@@ -1,10 +1,5 @@
 # web-admin
 
-Internal platform administration dashboard.
+Unused stub. Platform administration lives in **`apps/web-manager`** under `/admin`, gated by the `platform_admins` table and role `platform_admin`.
 
-## Scope
-
-- Organizations and accounts
-- Tickets and disputes
-- Plans and subscriptions
-- Feature flags and usage limits
+Do not scaffold a separate Next app here. See `docs/context/features-owner-admin.md`.

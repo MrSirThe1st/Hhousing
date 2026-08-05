@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import type { ApiResult, AuthSession } from "@hhousing/api-contracts";
+import type { ApiResult, AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
 import type { PlatformExperience } from "@hhousing/domain";
 import { jsonResponse } from "../app/api/shared";
 import { getServerOperatorContext } from "./operator-context";
 import { isIndividualExperience } from "./platform-experience";
 import { getServerAuthSession } from "./session";
 
-export async function getPlatformExperienceForSession(session: AuthSession): Promise<PlatformExperience> {
+export async function getPlatformExperienceForSession(session: MembershipAuthSession): Promise<PlatformExperience> {
   const context = await getServerOperatorContext(session);
   return context.experience;
 }
@@ -15,6 +15,10 @@ export async function requireEntrepriseExperience(): Promise<PlatformExperience>
   const session = await getServerAuthSession();
   if (session === null) {
     redirect("/login");
+  }
+
+  if (session.role === "platform_admin") {
+    redirect("/admin");
   }
 
   const experience = await getPlatformExperienceForSession(session);
@@ -33,6 +37,14 @@ export async function requireEntrepriseExperienceForApi(
       success: false,
       code: "UNAUTHORIZED",
       error: "Authentication required"
+    };
+  }
+
+  if (session.role === "platform_admin") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Platform admins must use the admin console"
     };
   }
 

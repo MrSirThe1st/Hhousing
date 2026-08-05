@@ -1,4 +1,4 @@
-import type { AuthSession, LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { AuthSession, MembershipAuthSession, LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { CalendarEvent, MaintenanceRequest, Payment, Task, Tenant } from "@hhousing/domain";
 import {
   createCalendarEventRepo,
@@ -81,7 +81,7 @@ type SyncSystemTasksPrefetched = {
   leases: LeaseWithTenantView[];
 };
 
-export async function syncSystemTasks(session: AuthSession, prefetched?: SyncSystemTasksPrefetched): Promise<void> {
+export async function syncSystemTasks(session: MembershipAuthSession, prefetched?: SyncSystemTasksPrefetched): Promise<void> {
   const organizationId = session.organizationId;
   const taskRepo = createTaskRepo();
 
@@ -200,7 +200,7 @@ export async function syncSystemTasks(session: AuthSession, prefetched?: SyncSys
   await taskRepo.closeInactiveSystemTasks(organizationId, activeSystemKeys);
 }
 
-export async function buildDashboardWorkflowData(session: AuthSession): Promise<{
+export async function buildDashboardWorkflowData(session: MembershipAuthSession): Promise<{
   tasks: Task[];
   calendarEntries: DashboardCalendarEntry[];
   relatedOptions: Array<{ type: "property" | "unit" | "lease" | "tenant"; id: string; label: string; propertyId?: string | null; unitId?: string | null; leaseId?: string | null; tenantId?: string | null }>;

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { useAuth } from "../contexts/auth-context";
 
 type LogoutButtonProps = {
@@ -21,6 +22,8 @@ export default function LogoutButton({ compact = false }: LogoutButtonProps): Re
     setBusy(true);
 
     try {
+      posthog.capture("user_logged_out");
+      posthog.reset();
       await signOut();
     } catch {
       // Ignore transient auth/session errors and continue logout navigation.

@@ -1,14 +1,23 @@
 import { createDocument, listDocuments } from "../../../api";
+import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import {
   filterDocumentsByScope,
   getScopedPortfolioData,
   isDocumentAttachmentInScope
 } from "../../../lib/operator-scope-portfolio";
+import {
+  captureServerEvent,
+  readPostHogDistinctId
+} from "../../../lib/posthog-server";
 import { createId, createDocumentRepo, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
 
   let body: unknown;
   try {
@@ -21,7 +30,7 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  if (session !== null && typeof body === "object" && body !== null) {
+  if (typeof body === "object" && body !== null) {
     const payload = body as Record<string, unknown>;
     const attachmentType = payload.attachmentType;
     const attachmentId = typeof payload.attachmentId === "string" ? payload.attachmentId : null;
@@ -53,12 +62,38 @@ export async function POST(request: Request): Promise<Response> {
     }
   );
 
+  if (result.body.success) {
+    const attachmentType =
+      typeof body === "object" && body !== null && typeof (body as { attachmentType?: unknown }).attachmentType === "string"
+        ? (body as { attachmentType: string }).attachmentType
+        : undefined;
+    const documentType =
+      typeof body === "object" && body !== null && typeof (body as { documentType?: unknown }).documentType === "string"
+        ? (body as { documentType: string }).documentType
+        : undefined;
+
+    await captureServerEvent({
+      distinctId: readPostHogDistinctId(request, session.userId),
+      event: "document_uploaded",
+      properties: {
+        organization_id: session.organizationId,
+        attachment_type: attachmentType,
+        document_type: documentType,
+        source: "api"
+      }
+    });
+  }
+
   return jsonResponse(result.status, result.body);
 }
 
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
-  const session = await extractAuthSessionFromCookies();
+  const access = requireOperatorSession(await extractAuthSessionFromCookies());
+  if (!access.success) {
+    return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+  const session = access.data;
 
   const result = await listDocuments(
     {

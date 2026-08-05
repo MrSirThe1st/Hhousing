@@ -1,8 +1,10 @@
-# Owner and Admin (Deferred)
+# Owner and Admin
 
-## Property Owner Portal (Read-Only, Future)
+## Property Owner Portal (Read-Only)
 
 **Goal:** "Understand performance, not operate"
+
+Implemented as `/owner-portal` inside `web-manager` (not a separate app). First slice: dashboard, properties, payments, reports (+ CSV).
 
 ### Feature Set
 
@@ -26,73 +28,41 @@
 - Handle maintenance
 - Access messaging system
 
-### Screen Flow
-
-**Dashboard:**
-- Total properties
-- Monthly income summary
-- Occupancy rate
-
-**Property view:**
-- Owned properties list
-- Property detail: income, occupancy, tenant summary
-
-**Financials:**
-- Monthly income breakdown
-- Annual summary
-- Export report
-
-## Platform Admin (Internal, Deferred)
+## Platform Admin (Internal SaaS ops)
 
 **Goal:** "Control the SaaS system"
 
-### Feature Set
+**Not a separate Next app.** Lives in `web-manager` at `/admin`, gated by the global `platform_admins` table and role `platform_admin`.
 
-**Users Management:**
-- All users (tenants + operators)
-- Suspend/activate users
+### MVP (shipped)
 
-**Organizations:**
-- View all organizations
-- Inspect data health
-- Resolve disputes
+- Admin shell (overview, users, organizations, audit)
+- Cross-org users list/detail + suspend/activate (`platform_user_statuses`)
+- Cross-org organizations list/detail + suspend/activate (`organizations.status`)
+- Platform audit log (`platform_audit_logs`)
+- **First admin (seed):** `node apps/web-manager/scripts/seed-platform-admin.mjs admin@example.com 'YourPassword123!'`
+- **Grant existing user:** `node apps/web-manager/scripts/grant-platform-admin.mjs <email>`
 
-**Support/Tickets:**
-- Customer issues
-- Resolution tracking
+### Deferred
 
-**Billing (SaaS layer):**
-- Subscriptions
-- Plan limits
-- Usage tracking
-
-**System Control:**
+- Support/tickets
+- SaaS billing / plans / usage
 - Feature flags
-- Regional config (DRC support rules)
-- Audit logs
+- Regional DRC config beyond existing product rules
 
 ### Screen Flow
 
-**Admin dashboard:**
-- Total users (tenants, landlords, owners)
-- Active organizations
-- System activity overview
+**Admin dashboard (`/admin`):**
+- Total users, orgs, suspended counts
+- Recent platform audit
 
 **User management:**
-- Users list
-- User detail
+- Users list / detail
 - Suspend/activate account
 
 **Organization management:**
-- Organizations list
-- Organization detail: properties, users, activity
+- Organizations list / detail
+- Suspend/activate organization
 
-**Support/tickets:**
-- Ticket list
-- Ticket detail
-- Status updates (`open -> resolved`)
-
-**Platform settings:**
-- Plans and subscriptions
-- Feature toggles
-- System configuration
+**Platform audit:**
+- Admin action history
