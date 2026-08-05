@@ -39,7 +39,8 @@ Hhousing should adapt the model for DRC realities (French-first UX, local paymen
    - Role-gated routes in `web-manager` at `/admin` (not a separate app)
    - Source of truth: `platform_admins` table + role `platform_admin`
    - MVP: cross-org users/orgs, suspend/activate, platform audit
-   - Deferred: tickets, billing/plans, feature flags
+   - Slice 2: org health, audit polish, grant/revoke platform admin; operator support via Tawk.to (no in-app tickets; PostHog for product analytics)
+   - Deferred: billing/plans, feature flags
 
 ## Core Data Backbone
 
@@ -74,7 +75,7 @@ Priority now:
 - Rent and payments
 - Maintenance lifecycle
 - Messaging and documents
-- Platform admin SaaS control plane (users/orgs/suspend/audit) — deepen tickets/billing later
+- Platform admin SaaS control plane (users/orgs/suspend/audit/org health) — Tawk.to for operator support; billing later; domain intake (`reports` / `contact_requests`) later
 
 Not current priority:
 - Marketplace-style listing growth work

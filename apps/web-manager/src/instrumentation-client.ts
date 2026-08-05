@@ -1,25 +1,23 @@
 import posthog from "posthog-js";
 
-const posthogToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+const configuredHost = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
+const isEu = configuredHost.includes("eu.");
 
-if (!posthogToken) {
+if (!projectToken) {
   if (process.env.NODE_ENV === "development") {
-    console.error(
-      new Error(
-        "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN is configured"
-      )
+    console.warn(
+      "[PostHog] NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN is missing — analytics events will not be sent."
     );
   }
 } else {
-  posthog.init(posthogToken, {
+  posthog.init(projectToken, {
+    // Same-origin reverse proxy (see next.config.ts rewrites). Avoids ad-blockers
+    // and keeps region routing in one place.
     api_host: "/ingest",
-    ui_host:
-      process.env.NEXT_PUBLIC_POSTHOG_HOST?.includes("eu.")
-        ? "https://eu.posthog.com"
-        : "https://us.posthog.com",
+    ui_host: isEu ? "https://eu.posthog.com" : "https://us.posthog.com",
     defaults: "2026-01-30",
     capture_exceptions: true,
-    debug: process.env.NODE_ENV === "development",
-    tracing_headers: ["localhost", "www.harakaproperty.com", "harakaproperty.com"]
+    debug: process.env.NEXT_PUBLIC_POSTHOG_DEBUG === "true",
   });
 }

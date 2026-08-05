@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "../contexts/auth-context";
 import { ThemeProvider } from "../contexts/theme-context";
+import TawkToWidget from "../components/tawk-to-widget";
 
 export const metadata: Metadata = {
   title: "Haraka Property — Gestionnaire",
@@ -35,6 +36,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
+        <TawkToWidget />
       </body>
     </html>
   );

@@ -43,12 +43,25 @@ Implemented as `/owner-portal` inside `web-manager` (not a separate app). First 
 - **First admin (seed):** `node apps/web-manager/scripts/seed-platform-admin.mjs admin@example.com 'YourPassword123!'`
 - **Grant existing user:** `node apps/web-manager/scripts/grant-platform-admin.mjs <email>`
 
+### Slice 2 (shipped)
+
+- Org health counters on organization detail (members, units, leases, overdue payments, open maintenance)
+- Audit polish — French labels + filters; logs suspend/activate and platform-admin grant/revoke
+- Grant/revoke platform admin from user detail UI
+- Operator/public support via **Tawk.to** chat (root layout widget; hidden on `/admin`)
+- Product analytics stay in PostHog (not mirrored in the admin feed)
+
+### Support model
+
+- **Not** an in-app ticket system. Operators chat via Tawk.to; Hhousing ops answer in the Tawk dashboard.
+- Domain-specific intake later (e.g. property `reports`, `contact_requests`) — lightweight, not a full ticket product.
+
 ### Deferred
 
-- Support/tickets
 - SaaS billing / plans / usage
 - Feature flags
 - Regional DRC config beyond existing product rules
+- Lightweight domain intake (`reports` / `contact_requests`)
 
 ### Screen Flow
 

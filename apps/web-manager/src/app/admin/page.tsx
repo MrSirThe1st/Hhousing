@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createPlatformAdminRepositoryFromEnv } from "@hhousing/data-access";
+import { getPlatformAuditActionLabel } from "../../lib/admin-labels";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -64,7 +65,9 @@ export default async function AdminOverviewPage(): Promise<React.ReactElement> {
             {stats.recentPlatformAudit.map((entry) => (
               <li key={entry.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#010a19] dark:text-white">{entry.actionKey}</p>
+                  <p className="text-sm font-medium text-[#010a19] dark:text-white">
+                    {getPlatformAuditActionLabel(entry.actionKey)}
+                  </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {entry.entityType}
                     {entry.entityId ? ` · ${entry.entityId}` : ""}

@@ -81,6 +81,15 @@ export interface PlatformOrganizationListItem {
   createdAtIso: string;
 }
 
+export interface PlatformOrganizationHealth {
+  memberCount: number;
+  propertyCount: number;
+  unitCount: number;
+  activeLeaseCount: number;
+  overduePaymentCount: number;
+  openMaintenanceCount: number;
+}
+
 export interface PlatformOrganizationDetail {
   id: string;
   name: string;
@@ -95,6 +104,7 @@ export interface PlatformOrganizationDetail {
     createdAtIso: string;
   }>;
   propertyCount: number;
+  health: PlatformOrganizationHealth;
   recentOrgAudit: Array<{
     id: string;
     actionKey: string;
@@ -103,6 +113,12 @@ export interface PlatformOrganizationDetail {
     actorUserId: string | null;
     createdAtIso: string;
   }>;
+}
+
+export interface ListPlatformAuditLogsInput {
+  limit?: number;
+  actionKey?: string | null;
+  entityType?: string | null;
 }
 
 export interface PlatformOverviewStats {
@@ -152,8 +168,9 @@ export interface PlatformAdminRepository {
   upsertPlatformUserStatus(input: UpsertPlatformUserStatusInput): Promise<PlatformUserStatusRecord>;
   setOrganizationStatus(input: SetOrganizationStatusInput): Promise<PlatformOrganizationListItem | null>;
   grantPlatformAdmin(input: GrantPlatformAdminInput): Promise<PlatformAdminRecord>;
+  revokePlatformAdmin(userId: string): Promise<boolean>;
   createPlatformAuditLog(input: CreatePlatformAuditLogInput): Promise<PlatformAuditLogRecord>;
-  listPlatformAuditLogs(limit?: number): Promise<PlatformAuditLogRecord[]>;
+  listPlatformAuditLogs(input?: ListPlatformAuditLogsInput | number): Promise<PlatformAuditLogRecord[]>;
   getOverviewStats(): Promise<PlatformOverviewStats>;
   listUsers(input?: ListPlatformUsersInput): Promise<PlatformUserListItem[]>;
   getUserDetail(userId: string): Promise<PlatformUserDetail | null>;

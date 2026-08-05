@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createPlatformAdminRepositoryFromEnv } from "@hhousing/data-access";
+import AdminPlatformAdminGrantForm from "../../../../components/admin-platform-admin-grant-form";
 import AdminUserStatusForm from "../../../../components/admin-user-status-form";
+import { getServerAuthSession } from "../../../../lib/session";
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -15,6 +17,11 @@ export default async function AdminUserDetailPage({
   params: Promise<{ id: string }>;
 }): Promise<React.ReactElement> {
   const { id } = await params;
+  const session = await getServerAuthSession();
+  if (session === null || session.role !== "platform_admin") {
+    notFound();
+  }
+
   const repo = createPlatformAdminRepositoryFromEnv(process.env);
   const user = await repo.getUserDetail(id);
 
@@ -54,6 +61,12 @@ export default async function AdminUserDetailPage({
         userId={user.userId}
         currentStatus={user.accountStatus}
         reason={user.accountReason}
+      />
+
+      <AdminPlatformAdminGrantForm
+        userId={user.userId}
+        isPlatformAdmin={user.isPlatformAdmin}
+        isSelf={user.userId === session.userId}
       />
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">

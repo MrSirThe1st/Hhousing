@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createPlatformAdminRepositoryFromEnv } from "@hhousing/data-access";
 import AdminOrganizationStatusForm from "../../../../components/admin-organization-status-form";
+import { getPlatformAuditActionLabel } from "../../../../lib/admin-labels";
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -22,6 +23,15 @@ export default async function AdminOrganizationDetailPage({
     notFound();
   }
 
+  const healthCards = [
+    { label: "Membres", value: organization.health.memberCount },
+    { label: "Biens", value: organization.health.propertyCount },
+    { label: "Unités", value: organization.health.unitCount },
+    { label: "Baux actifs", value: organization.health.activeLeaseCount },
+    { label: "Paiements en retard", value: organization.health.overduePaymentCount },
+    { label: "Maintenance ouverte", value: organization.health.openMaintenanceCount }
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -31,10 +41,27 @@ export default async function AdminOrganizationDetailPage({
         <h2 className="mt-2 text-2xl font-semibold text-[#010a19] dark:text-white">{organization.name}</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{organization.id}</p>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          {organization.propertyCount} bien{organization.propertyCount === 1 ? "" : "s"} · créée le{" "}
-          {formatDate(organization.createdAtIso)}
+          Créée le {formatDate(organization.createdAtIso)}
         </p>
       </div>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">
+        <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Santé organisation</h3>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Compteurs opérationnels (pas d&apos;usage produit — voir PostHog)
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {healthCards.map((card) => (
+            <div
+              key={card.label}
+              className="rounded-lg border border-slate-100 px-3 py-3 dark:border-slate-800"
+            >
+              <p className="text-xs text-slate-500 dark:text-slate-400">{card.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#010a19] dark:text-white">{card.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <AdminOrganizationStatusForm
         organizationId={organization.id}
@@ -76,7 +103,9 @@ export default async function AdminOrganizationDetailPage({
             {organization.recentOrgAudit.map((entry) => (
               <li key={entry.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#010a19] dark:text-white">{entry.actionKey}</p>
+                  <p className="text-sm font-medium text-[#010a19] dark:text-white">
+                    {getPlatformAuditActionLabel(entry.actionKey)}
+                  </p>
                   <p className="text-xs text-slate-500">
                     {entry.entityType}
                     {entry.entityId ? ` · ${entry.entityId}` : ""}

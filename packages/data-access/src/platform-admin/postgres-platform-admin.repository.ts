@@ -4,6 +4,7 @@ import { readDatabaseEnv } from "../database/database-env";
 import type {
   CreatePlatformAuditLogInput,
   GrantPlatformAdminInput,
+  ListPlatformAuditLogsInput,
   ListPlatformOrganizationsInput,
   ListPlatformUsersInput,
   PlatformAdminRecord,
@@ -188,6 +189,17 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
       return mapAdminRow(result.rows[0]);
     },
 
+    async revokePlatformAdmin(userId: string): Promise<boolean> {
+      const result = await pool.query(
+        `update platform_admins
+         set status = 'inactive'
+         where user_id = $1::uuid
+           and status = 'active'`,
+        [userId]
+      );
+      return (result.rowCount ?? 0) > 0;
+    },
+
     async createPlatformAuditLog(input: CreatePlatformAuditLogInput): Promise<PlatformAuditLogRecord> {
       const result = await pool.query<PlatformAuditLogRow>(
         `insert into platform_audit_logs (
@@ -213,7 +225,13 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
       return mapAuditRow(result.rows[0]);
     },
 
-    async listPlatformAuditLogs(limit = 50): Promise<PlatformAuditLogRecord[]> {
+    async listPlatformAuditLogs(input: ListPlatformAuditLogsInput | number = 50): Promise<PlatformAuditLogRecord[]> {
+      const options: ListPlatformAuditLogsInput =
+        typeof input === "number" ? { limit: input } : input ?? {};
+      const limit = options.limit ?? 50;
+      const actionKey = options.actionKey?.trim() || null;
+      const entityType = options.entityType?.trim() || null;
+
       const result = await pool.query<PlatformAuditLogRow>(
         `select
            id,
@@ -224,9 +242,11 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
            metadata,
            created_at::text as "createdAtIso"
          from platform_audit_logs
+         where ($1::text is null or action_key = $1 or action_key like $1 || '.%')
+           and ($2::text is null or entity_type = $2)
          order by created_at desc
-         limit $1`,
-        [limit]
+         limit $3`,
+        [actionKey, entityType, limit]
       );
       return result.rows.map(mapAuditRow);
     },
@@ -470,13 +490,23 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
         status: "active" | "suspended";
         createdAtIso: string;
         propertyCount: number;
+        memberCount: number;
+        unitCount: number;
+        activeLeaseCount: number;
+        overduePaymentCount: number;
+        openMaintenanceCount: number;
       }>(
         `select
            org.id,
            org.name,
            org.status,
            org.created_at::text as "createdAtIso",
-           (select count(*)::int from properties p where p.organization_id = org.id) as "propertyCount"
+           (select count(*)::int from properties p where p.organization_id = org.id) as "propertyCount",
+           (select count(*)::int from organization_memberships m where m.organization_id = org.id) as "memberCount",
+           (select count(*)::int from units u where u.organization_id = org.id) as "unitCount",
+           (select count(*)::int from leases l where l.organization_id = org.id and l.status = 'active') as "activeLeaseCount",
+           (select count(*)::int from payments pay where pay.organization_id = org.id and pay.status = 'overdue') as "overduePaymentCount",
+           (select count(*)::int from maintenance_requests mr where mr.organization_id = org.id and mr.status in ('open', 'in_progress')) as "openMaintenanceCount"
          from organizations org
          where org.id = $1`,
         [organizationId]
@@ -538,6 +568,14 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
         status: org.status,
         createdAtIso: org.createdAtIso,
         propertyCount: org.propertyCount,
+        health: {
+          memberCount: org.memberCount,
+          propertyCount: org.propertyCount,
+          unitCount: org.unitCount,
+          activeLeaseCount: org.activeLeaseCount,
+          overduePaymentCount: org.overduePaymentCount,
+          openMaintenanceCount: org.openMaintenanceCount
+        },
         members: members.rows,
         recentOrgAudit: recentOrgAudit.rows
       };

@@ -33,22 +33,19 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-slate-50 text-slate-950 dark:bg-[#0a1120] dark:text-slate-100">
       <PublicSiteNavbar />
 
-      {/* Premium Dark Architectural Hero Banner */}
-      <section className="relative overflow-hidden py-16 md:py-24 bg-slate-900 border-b border-slate-200/50 flex items-center justify-center min-h-[300px]">
-        {/* Background Image with dark mask */}
+      {/* Search hero */}
+      <section className="relative overflow-hidden py-16 md:py-24 bg-slate-200 border-b border-slate-200/50 flex items-center justify-center min-h-[300px] dark:bg-slate-900 dark:border-slate-800">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: "url('/brand/cover.png')",
           }}
         />
-        <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-[1px]" />
-        
-        {/* Subtle glow layer */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/20" />
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px] dark:bg-slate-950/75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-900/20 dark:to-slate-950/20" />
 
         <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center w-full z-10">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white/95 shadow-sm backdrop-blur-md">

@@ -35,22 +35,20 @@ export default async function HomePage(): Promise<React.ReactElement> {
   const previewItems = items.slice(0, MARKETPLACE_PREVIEW_LIMIT);
 
   return (
-    <main className="min-h-screen bg-white text-slate-950">
+    <main className="min-h-screen bg-white text-slate-950 dark:bg-[#0a1120] dark:text-slate-100">
       <PublicSiteNavbar />
 
-      {/* Search Hero Banner (Centered & Fully Visible) */}
-      <section className="relative overflow-hidden py-12 md:py-24 bg-slate-900 border-b border-slate-200/50 flex items-center justify-center min-h-[320px]">
-        {/* Background Image with dark mask */}
+      {/* Search Hero Banner */}
+      <section className="relative overflow-hidden py-12 md:py-24 bg-slate-200 border-b border-slate-200/50 flex items-center justify-center min-h-[320px] dark:bg-slate-900 dark:border-slate-800">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: "url('/brand/cover.png')",
           }}
         />
-        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px]" />
-
-        {/* Glow overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/45" />
+        {/* Soften in light mode; keep stronger contrast in dark mode */}
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px] dark:bg-slate-950/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-900/25 dark:to-slate-950/45" />
 
         <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center w-full">
           <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-6 max-w-3xl leading-tight">

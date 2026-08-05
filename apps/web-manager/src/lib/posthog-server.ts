@@ -25,7 +25,7 @@ export function getPostHogClient(): PostHog | null {
 
   if (!posthogClient) {
     posthogClient = new PostHog(token, {
-      host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
+      host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com",
       flushAt: 1,
       flushInterval: 0,
       enableExceptionAutocapture: true
