@@ -10,6 +10,7 @@ import { validateDrcPhoneInput } from "../lib/phone-input";
 import type { TenantFormState } from "./tenant-management.types";
 import PhoneInput from "./phone-input";
 import UniversalLoadingState from "./universal-loading-state";
+import posthog from "posthog-js";
 
 const INITIAL_TENANT_FORM: TenantFormState = {
   fullName: "",
@@ -104,6 +105,13 @@ export default function TenantCreateForm({
       setBusy(false);
       return;
     }
+
+    posthog.capture("tenant_created", {
+      created_from_onboarding: fromOnboarding,
+      has_photo: photoUrl !== null,
+      has_email: Boolean(tenantForm.email.trim()),
+      has_employment_details: Boolean(tenantForm.employmentStatus.trim())
+    });
 
     if (fromOnboarding) {
       router.push(`/dashboard/leases/move-in?from=onboarding&tenantId=${encodeURIComponent(result.data.id)}`);

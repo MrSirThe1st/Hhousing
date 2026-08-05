@@ -6,6 +6,7 @@ import type { CreateExpenseOutput, UpdateExpenseOutput } from "@hhousing/api-con
 import type { ExpenseCategory } from "@hhousing/domain";
 import type { FinancePropertyOption, ExpenseDataset } from "../lib/finance-reporting.types";
 import { patchWithAuth, postWithAuth } from "../lib/api-client";
+import posthog from "posthog-js";
 
 interface ExpenseCreateFormProps {
   organizationId: string;
@@ -134,6 +135,13 @@ export default function ExpenseCreateForm({
       setBusy(false);
       return;
     }
+
+    posthog.capture(expenseId ? "expense_updated" : "expense_created", {
+      expense_category: form.category,
+      currency_code: form.currencyCode.trim().toUpperCase(),
+      has_property: Boolean(form.propertyId),
+      has_unit: Boolean(form.unitId)
+    });
 
     if (expenseId) {
       setMessage("Dépense mise à jour.");

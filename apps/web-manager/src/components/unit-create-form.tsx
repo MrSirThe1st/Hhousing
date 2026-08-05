@@ -8,6 +8,7 @@ import { postWithAuth } from "../lib/api-client";
 import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 import type { UnitFormState } from "./property-management.types";
 import UniversalLoadingState from "./universal-loading-state";
+import posthog from "posthog-js";
 
 const INITIAL_UNIT_FORM: UnitFormState = {
   propertyId: "",
@@ -256,6 +257,11 @@ export default function UnitCreateForm({
 
       createdCount += 1;
     }
+
+    posthog.capture("unit_created", {
+      property_type: selectedCreateProperty?.property.propertyType ?? "unknown",
+      unit_count: createdCount
+    });
 
     setUnitForm({
       ...INITIAL_UNIT_FORM,

@@ -8,6 +8,7 @@ import { getWithAuth, patchWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
 import ActionMenu from "./action-menu";
 import { buildInvoiceDocumentContext, buildInvoiceDocumentHtml } from "../lib/invoices/invoice-document";
+import posthog from "posthog-js";
 
 type InvoiceManagementPanelProps = {
   invoices: Invoice[];
@@ -211,6 +212,11 @@ export default function InvoiceManagementPanel({
       setBusyInvoiceId(null);
       return;
     }
+
+    posthog.capture("invoice_voided", {
+      invoice_status: "void",
+      had_credit_adjustment: result.data.creditAdjustedAmount > 0
+    });
 
     setMessage(`Facture annulée. Ajustement crédit: ${result.data.creditAdjustedAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}`);
     await loadInvoiceDetail(invoiceId);

@@ -11,6 +11,7 @@ import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 import type { PropertyFormState } from "./property-management.types";
 import UniversalLoadingState from "./universal-loading-state";
 import CitySelect from "./city-select";
+import posthog from "posthog-js";
 
 type WizardStep = "type" | "where" | "owner" | "rent" | "confirm";
 
@@ -419,6 +420,12 @@ export default function PropertyCreateForm({
       setPropertyBusy(false);
       return;
     }
+
+    posthog.capture("property_created", {
+      property_type: propertyForm.propertyType,
+      unit_count: unitCount,
+      created_from_onboarding: fromOnboarding
+    });
 
     router.push(fromOnboarding ? "/onboarding" : "/dashboard/properties");
     router.refresh();
