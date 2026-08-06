@@ -210,6 +210,11 @@ export {
   createPostgresPlatformAdminRepository,
   createPlatformAdminRepositoryFromEnv
 } from "./platform-admin/postgres-platform-admin.repository";
+export type {
+  OrganizationPlatformStatus,
+  PlatformAdminStatus,
+  PlatformUserAccountStatus
+} from "./platform-admin/platform-admin-record.types";
 export {
   createPostgresPlatformBillingRepository,
   createPlatformBillingRepositoryFromEnv
