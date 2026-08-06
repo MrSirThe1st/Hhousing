@@ -18,8 +18,6 @@ function statusLabel(status: string): string {
   switch (status) {
     case "issued":
       return "Émise";
-    case "pending_confirmation":
-      return "En attente de confirmation";
     case "paid":
       return "Payée";
     case "void":
@@ -90,14 +88,6 @@ export default async function AdminBillingInvoiceDetailPage({
           <div>
             <dt className="text-xs text-slate-500">Échéance</dt>
             <dd className="mt-1 text-sm">{formatDate(invoice.dueAtIso)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-slate-500">Signalé par l&apos;opérateur</dt>
-            <dd className="mt-1 text-sm">{formatDate(invoice.paymentReportedAtIso)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-slate-500">Note opérateur</dt>
-            <dd className="mt-1 text-sm">{invoice.paymentNote ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">Payée le</dt>

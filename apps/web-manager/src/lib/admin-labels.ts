@@ -26,6 +26,24 @@ export function getPlatformAuditActionLabel(actionKey: string): string {
       return "Facture SaaS confirmée payée";
     case "billing.invoice.void":
       return "Facture SaaS annulée";
+    case "service_provider.create":
+      return "Prestataire créé";
+    case "service_provider.update":
+      return "Prestataire modifié";
+    case "service_provider.delete":
+      return "Prestataire supprimé";
+    case "service_provider.suspend":
+      return "Prestataire suspendu";
+    case "service_provider.activate":
+      return "Prestataire réactivé";
+    case "service_provider.promote":
+      return "Prestataire promu plateforme";
+    case "service_provider_category.create":
+      return "Catégorie prestataire créée";
+    case "service_provider_category.update":
+      return "Catégorie prestataire modifiée";
+    case "service_provider_category.delete":
+      return "Catégorie prestataire supprimée";
     default:
       return actionKey;
   }
@@ -47,6 +65,10 @@ export function getPlatformEntityTypeLabel(entityType: string): string {
       return "Facture SaaS";
     case "saas_invoice_batch":
       return "Lot de factures SaaS";
+    case "service_provider":
+      return "Prestataire";
+    case "service_provider_category":
+      return "Catégorie prestataire";
     default:
       return entityType;
   }

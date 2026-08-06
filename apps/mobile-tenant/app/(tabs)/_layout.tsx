@@ -41,6 +41,13 @@ export default function TabsLayout(): React.ReactElement {
         name="payments"
         options={{ title: t("tabs.payments"), tabBarIcon: tabIcon("card-outline", "card") }}
       />
+      <Tabs.Screen
+        name="services"
+        options={{
+          title: t("tabs.services"),
+          tabBarIcon: tabIcon("construct-outline", "construct")
+        }}
+      />
       {/* Hidden for now — re-enable when maintenance is ready */}
       <Tabs.Screen
         name="maintenance"

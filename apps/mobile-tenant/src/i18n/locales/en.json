@@ -23,7 +23,19 @@
     "payments": "Payments",
     "menu": "Menu",
     "messages": "Messages",
-    "maintenance": "Maintenance"
+    "maintenance": "Maintenance",
+    "services": "Services"
+  },
+  "services": {
+    "title": "Services",
+    "subtitle": "Useful contacts for your building",
+    "emptyTitle": "No providers yet",
+    "emptyBody": "Your property manager has not shared any service providers for your building yet.",
+    "verified": "Verified by the platform",
+    "landlordAdded": "Added by the manager",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "whatsappPrefill": "Hello, I'm contacting you about a service for my rental unit."
   },
   "errors": {
     "networkTitle": "No connection",
@@ -48,6 +60,7 @@
   },
   "auth": {
     "loginTitle": "Sign in",
+    "welcomeBack": "Welcome back",
     "subtitle": "Sign in with your phone number and password.",
     "phoneLabel": "Phone number",
     "phoneHint": "9 digits after +243",
@@ -67,7 +80,7 @@
     "welcomeNamed": "Welcome, {{name}}",
     "inviteBody": "Create your password on the secure web page, then sign in here with your phone number and that password.",
     "openActivation": "Open activation page",
-    "signInBiometric": "Sign in with biometrics",
+    "signInBiometric": "Sign in with {{method}}",
     "forgotPassword": "Forgot password?",
     "forgotTitle": "Forgot password",
     "forgotSubtitle": "Enter your phone number and we’ll email you a reset link if an account exists.",

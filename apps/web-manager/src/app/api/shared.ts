@@ -16,6 +16,7 @@ import {
   createCalendarEventRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv,
   createAuditLogRepositoryFromEnv,
+  createServiceProviderRepositoryFromEnv,
   type AuthRepository,
   type AuditLogRepository,
   type CalendarEventRepository,
@@ -31,6 +32,7 @@ import {
   type MessageRepository,
   type ListingRepository,
   type TaskRepository,
+  type ServiceProviderRepository,
   TeamFunctionsRepository
 } from "@hhousing/data-access";
 
@@ -127,4 +129,8 @@ export function createTeamFunctionsRepo(): TeamFunctionsRepository {
 
 export function createAuditLogRepo(): AuditLogRepository {
   return createAuditLogRepositoryFromEnv(process.env);
+}
+
+export function createServiceProviderRepo(): ServiceProviderRepository {
+  return createServiceProviderRepositoryFromEnv(process.env);
 }

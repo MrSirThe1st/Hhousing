@@ -27,6 +27,11 @@ Tenant app is mobile-only.
 - Track status: `open -> in_progress -> resolved`
 - Chat updates per request
 
+**Services / Prestataires:**
+- View providers enabled for the tenant's building
+- Trust labels (platform-verified vs manager-added)
+- Call (`tel:`) and WhatsApp contact
+
 **Messaging:**
 - Chat with landlord/manager
 - Receive announcements
@@ -82,6 +87,11 @@ Tenant app is mobile-only.
 - Request form: title, description, image upload
 - Past requests list
 - Request detail: status timeline, updates/messages
+
+### Services / Prestataires
+- Provider list by category
+- Detail with trust badge
+- Call / WhatsApp actions
 
 ### Messages
 - Conversation list

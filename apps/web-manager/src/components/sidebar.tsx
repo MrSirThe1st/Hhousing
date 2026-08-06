@@ -6,27 +6,8 @@ import { usePathname } from "next/navigation";
 import type { Organization } from "@hhousing/domain";
 import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
 import LogoutButton from "./logout-button";
-
-const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed_v2";
-const SIDEBAR_SET_COLLAPSED_EVENT = "hhousing.sidebar.setCollapsed";
-
-type IconName =
-  | "dashboard"
-  | "portfolio"
-  | "clients"
-  | "listings"
-  | "tenants"
-  | "leases"
-  | "move-outs"
-  | "revenues"
-  | "expenses"
-  | "reports"
-  | "payments"
-  | "maintenance"
-  | "documents"
-  | "messages"
-  | "team"
-  | "audit";
+import { SIDEBAR_SET_COLLAPSED_EVENT, SIDEBAR_STORAGE_KEY } from "./sidebar-collapse";
+import { SidebarIcon, type IconName } from "./sidebar-icons";
 
 export type SidebarAccess = {
   dashboard: boolean;
@@ -71,139 +52,6 @@ function createEmptyBadgeCounts(): SidebarBadgeCounts {
     maintenance: 0,
     messages: 0
   };
-}
-
-function SidebarIcon({ name, active }: { name: IconName; active: boolean }): React.ReactElement {
-  const strokeClassName = active ? "stroke-current" : "stroke-slate-600 group-hover:stroke-[#010a19] dark:stroke-slate-400 dark:group-hover:stroke-white";
-
-  switch (name) {
-    case "dashboard":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" className={strokeClassName} strokeWidth="1.8" />
-          <rect x="13.5" y="3.5" width="7" height="5" rx="1.5" className={strokeClassName} strokeWidth="1.8" />
-          <rect x="13.5" y="11.5" width="7" height="9" rx="1.5" className={strokeClassName} strokeWidth="1.8" />
-          <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" className={strokeClassName} strokeWidth="1.8" />
-        </svg>
-      );
-    case "portfolio":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M4 20.5V9.5L12 4l8 5.5v11" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M9 20.5v-5h6v5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "clients":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <circle cx="9" cy="8" r="3" className={strokeClassName} strokeWidth="1.8" />
-          <path d="M4.5 18.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M16 10.5c1.9 0 3.5 1.6 3.5 3.5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M15 5.5c1.4.2 2.5 1.4 2.5 2.9" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "listings":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M5 18.5V5.5h14v13" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M8 9.5h8M8 13h5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M12 18.5l2.4-2.4a1.8 1.8 0 0 0 0-2.5 1.8 1.8 0 0 0-2.5 0l-.4.4-.4-.4a1.8 1.8 0 0 0-2.5 2.5L12 18.5Z" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-        </svg>
-      );
-    case "tenants":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <circle cx="12" cy="8" r="3.5" className={strokeClassName} strokeWidth="1.8" />
-          <path d="M5.5 19c0-3.2 2.9-5.5 6.5-5.5s6.5 2.3 6.5 5.5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "leases":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M7 3.5h7l4 4v13H7z" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M14 3.5v4h4" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M9.5 12h5M9.5 15.5h5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "move-outs":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M14 20.5H7V3.5h10v8" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M9.5 9h5M9.5 12.5h3" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M13.5 17.5h7M17.5 14.5l3 3-3 3" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "revenues":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M4 18.5h16" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M6.5 15l4-4 3 2.5 4.5-5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15.5 8.5H18v2.5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "expenses":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M4 18.5h16" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M6.5 9 10.5 13l3-2.5L18 15" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15.5 15H18v-2.5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "reports":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M7 4.5h10v15H7z" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M10 9h4M10 12.5h4M10 16h2" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "payments":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <rect x="4" y="6" width="16" height="12" rx="2" className={strokeClassName} strokeWidth="1.8" />
-          <path d="M4 10h16" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M8 14.5h3" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "maintenance":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M14.5 6.5a3 3 0 0 1 3.9 3.9l-7.8 7.8-4.6 1 1-4.6 7.5-7.5Z" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M13 8l3 3" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "documents":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M8 3.5h6l4 4v9.5A3.5 3.5 0 0 1 14.5 20.5H8.5A3.5 3.5 0 0 1 5 17V7a3.5 3.5 0 0 1 3-3.5Z" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M14 3.5v4h4" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M9 13.5h6" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "messages":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v6A2.5 2.5 0 0 1 16.5 16H11l-4 3v-3H7.5A2.5 2.5 0 0 1 5 13.5z" className={strokeClassName} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M8.5 9.5h7M8.5 12h4.5" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "team":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <circle cx="8.5" cy="9" r="2.5" className={strokeClassName} strokeWidth="1.8" />
-          <circle cx="15.5" cy="8" r="2" className={strokeClassName} strokeWidth="1.8" />
-          <path d="M4.5 18c0-2.2 1.9-4 4.2-4h.6c2.3 0 4.2 1.8 4.2 4" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M14.5 17c.2-1.6 1.5-2.8 3.1-2.8h.2c1 0 1.8.4 2.4 1.1" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "audit":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-          <path d="M6 4.5h12M6 9h12M6 13.5h6" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-          <circle cx="16.5" cy="16.5" r="3.5" className={strokeClassName} strokeWidth="1.8" />
-          <path d="M19 19l2 2" className={strokeClassName} strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-  }
 }
 
 function getOrganizationInitials(name?: string): string {
@@ -256,6 +104,7 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
       title: "Services",
       items: [
         { href: "/dashboard/maintenance", label: "Réparations", icon: "maintenance", badgeCount: badgeCounts.maintenance },
+        { href: "/dashboard/prestataires", label: "Prestataires", icon: "team" },
         { href: "/dashboard/documents", label: "Documents", icon: "documents" }
       ]
     },
@@ -263,7 +112,7 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
       title: "Organisation",
       items: [
         { href: "/dashboard/team", label: "Équipe", icon: "team" },
-        { href: "/dashboard/billing", label: "Abonnement", icon: "payments" },
+        { href: "/dashboard/billing", label: "Facturation", icon: "payments" },
         { href: "/dashboard/audit", label: "Audit", icon: "audit" }
       ]
     }
@@ -455,9 +304,7 @@ export default function Sidebar({ currentRoleLabel, access, isIndividualExperien
                 <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
                   {section.title}
                 </p>
-              ) : (
-                <div className="mx-auto mb-3 h-px w-8 bg-slate-200 dark:bg-slate-800" />
-              )}
+              ) : null}
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const isActive =

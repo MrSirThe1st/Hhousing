@@ -23,7 +23,19 @@
     "payments": "Paiements",
     "menu": "Menu",
     "messages": "Messages",
-    "maintenance": "Maintenance"
+    "maintenance": "Maintenance",
+    "services": "Prestataires"
+  },
+  "services": {
+    "title": "Prestataires",
+    "subtitle": "Contacts utiles pour votre immeuble",
+    "emptyTitle": "Aucun prestataire",
+    "emptyBody": "Votre gestionnaire n'a pas encore partagé de prestataires pour votre bien.",
+    "verified": "Vérifié par la plateforme",
+    "landlordAdded": "Ajouté par le gestionnaire",
+    "call": "Appeler",
+    "whatsapp": "WhatsApp",
+    "whatsappPrefill": "Bonjour, je vous contacte concernant un service pour mon logement."
   },
   "errors": {
     "networkTitle": "Pas de connexion",
@@ -48,6 +60,7 @@
   },
   "auth": {
     "loginTitle": "Connexion",
+    "welcomeBack": "Bon retour",
     "subtitle": "Connectez-vous avec votre numéro et votre mot de passe.",
     "phoneLabel": "Numéro de téléphone",
     "phoneHint": "9 chiffres après +243",
@@ -67,7 +80,7 @@
     "welcomeNamed": "Bienvenue, {{name}}",
     "inviteBody": "Créez votre mot de passe sur la page web sécurisée, puis reconnectez-vous ici avec votre numéro et ce mot de passe.",
     "openActivation": "Ouvrir la page d'activation",
-    "signInBiometric": "Se connecter avec la biométrie",
+    "signInBiometric": "Se connecter avec {{method}}",
     "forgotPassword": "Mot de passe oublié ?",
     "forgotTitle": "Mot de passe oublié",
     "forgotSubtitle": "Entrez votre numéro de téléphone. Si un compte existe, nous enverrons un lien de réinitialisation par e-mail.",

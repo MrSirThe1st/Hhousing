@@ -54,10 +54,19 @@ Implemented as `/owner-portal` inside `web-manager` (not a separate app). First 
 ### Slice 3 — SaaS billing (shipped)
 
 - Usage-based subscription: free under 2 properties; then `$price × unit_count` / month (default $5/logement)
-- Platform admin: billing settings, Mobile Money payment methods, invoice generate/confirm/void (`/admin/billing`)
-- Operator Facturation page (`/dashboard/billing`) — estimate, pay instructions, signal payment
+- Platform admin: billing settings, invoice generate/confirm/void (`/admin/billing`)
+- Admin Facturation answers ops questions: who owes, who paid, who is late, revenue KPIs (month/YTD + AR), org active/suspended, paid invoice history
+- Operator Facturation (`/dashboard/billing`) answers: plan, amount owed, why, how to pay (offline + support chat), payment received, late policy
 - Soft overdue banner (no hard lock); platform admin confirms paid (no live PawaPay yet)
 - Monthly cron: `/api/internal/billing/generate-saas-invoices`
+- Manual Mobile Money / self-report schema removed (`0060_drop_manual_saas_payment_artifacts.sql`)
+
+### Prestataires directory (Phase 1)
+
+- Admin: categories + provider CRUD, verify, promote landlord-added → platform, global suspend (`/admin/service-providers`)
+- Operators: `/dashboard/prestataires` with in-page tabs Par bien / Catalogue / Mes prestataires (assign, discover, manage private providers)
+- Tenants: Services/Prestataires tab with phone + WhatsApp (`/api/mobile/services`)
+- Deferred: ratings/reviews, search/favorites polish, maintenance-ticket linkage
 
 ### Support model
 
@@ -90,5 +99,12 @@ Implemented as `/owner-portal` inside `web-manager` (not a separate app). First 
 - Admin action history
 
 **SaaS billing (`/admin/billing`):**
-- Pricing settings + Mobile Money payment methods
-- Subscription invoices (generate, confirm paid, void)
+- Revenue KPIs (collected month/YTD, open AR, overdue)
+- Org active vs suspended counts
+- Pricing settings + invoice generate
+
+**Prestataires (`/admin/service-providers`):**
+- List page only (filters: category, view, search) + link to categories
+- Nested: `/new`, `/[id]`, `/[id]/edit`, `/categories`
+- Detail: info, ownership, visibility counts, verify/suspend/promote
+- Filtered invoice views: who owes / late / paid / all

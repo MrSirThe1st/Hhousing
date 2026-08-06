@@ -16,9 +16,13 @@ const AMOUNTS_SENSITIVE_KEY = "hhousing.prefs.amountsSensitive";
 
 export type ThemeMode = "light" | "dark";
 
-function applyNativeColorScheme(mode: ThemeMode): void {
+export function applyNativeColorScheme(mode: ThemeMode): void {
   // Keep splash / system chrome in sync with the in-app theme (default light),
   // instead of following the OS appearance when the app theme differs.
+  // react-native-web does not implement Appearance.setColorScheme.
+  if (typeof Appearance.setColorScheme !== "function") {
+    return;
+  }
   Appearance.setColorScheme(mode);
 }
 

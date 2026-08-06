@@ -10,6 +10,7 @@ import { postWithAuth } from "../lib/api-client";
 import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 import type { PropertyFormState } from "./property-management.types";
 import UniversalLoadingState from "./universal-loading-state";
+import CreateSuccessBanner from "./create-success-banner";
 import CitySelect from "./city-select";
 import posthog from "posthog-js";
 
@@ -207,6 +208,8 @@ export default function PropertyCreateForm({
   const [photos, setPhotos] = useState<File[]>([]);
   const [showAmenities, setShowAmenities] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(null);
 
   const isMultiUnit = propertyForm.propertyType === "multi_unit";
   const stepIndex = wizardSteps.findIndex((item) => item.id === step);
@@ -351,6 +354,8 @@ export default function PropertyCreateForm({
   async function handleConfirm(): Promise<void> {
     setPropertyBusy(true);
     setError(null);
+    setMessage(null);
+    setCreatedPropertyId(null);
 
     for (const wizardStep of wizardSteps) {
       if (wizardStep.id === "type" || wizardStep.id === "confirm") {
@@ -427,7 +432,22 @@ export default function PropertyCreateForm({
       created_from_onboarding: fromOnboarding
     });
 
-    router.push(fromOnboarding ? "/onboarding" : "/dashboard/properties");
+    if (fromOnboarding) {
+      router.push("/onboarding");
+      router.refresh();
+      return;
+    }
+
+    setPropertyForm({
+      ...INITIAL_PROPERTY_FORM,
+      clientId: initialOwners[0]?.id ?? ""
+    });
+    setPhotos([]);
+    setShowAmenities(false);
+    setStep("type");
+    setCreatedPropertyId(result.data.property.id);
+    setMessage("Bien créé avec succès.");
+    setPropertyBusy(false);
     router.refresh();
   }
 
@@ -454,6 +474,18 @@ export default function PropertyCreateForm({
         <p className="mt-2 text-sm text-slate-600">
           Suivez les étapes. Une seule décision à la fois.
         </p>
+        {message ? (
+          <CreateSuccessBanner
+            className="mt-4"
+            message={message}
+            links={[
+              ...(createdPropertyId
+                ? [{ href: `/dashboard/properties/${createdPropertyId}`, label: "Voir la fiche" }]
+                : []),
+              { href: "/dashboard/properties", label: "Retour à la liste" }
+            ]}
+          />
+        ) : null}
       </div>
 
       <div className="mb-6 max-w-2xl">

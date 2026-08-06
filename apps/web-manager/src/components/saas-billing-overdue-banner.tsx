@@ -16,16 +16,16 @@ export default function SaasBillingOverdueBanner({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
-            Abonnement en retard — facture {invoice.period}
+            Facturation en retard — facture {invoice.period}
           </p>
           <p className="text-xs text-amber-800 dark:text-amber-200">
-            {invoice.status === "pending_confirmation"
-              ? "Paiement signalé, confirmation Haraka en attente."
-              : `Montant dû : ${invoice.amountDue.toLocaleString("fr-FR", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                })} ${invoice.currencyCode} (échéance ${dueLabel}).`}{" "}
-            Votre accès reste ouvert — régularisez dès que possible.
+            Montant dû :{" "}
+            {invoice.amountDue.toLocaleString("fr-FR", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}{" "}
+            {invoice.currencyCode} (échéance {dueLabel}). Votre accès reste ouvert — régularisez dès que
+            possible via la facturation ou le support Haraka.
           </p>
         </div>
         <Link

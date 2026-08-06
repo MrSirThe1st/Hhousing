@@ -1,8 +1,6 @@
-import { redirect } from "next/navigation";
-import type { PaymentKind } from "@hhousing/domain";
 import FinanceFilterForm from "../../../components/finance-filter-form";
 import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
-import ResponsiveTable from "../../../components/responsive-table";
+import RevenuesLedgerTable from "../../../components/revenues-ledger-table";
 import {
   buildRevenueDataset,
   formatCurrencySummary,
@@ -14,23 +12,6 @@ import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 type RevenuesPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function formatPaymentKind(paymentKind: PaymentKind): string {
-  switch (paymentKind) {
-    case "rent":
-      return "Loyer";
-    case "deposit":
-      return "Garantie";
-    case "prorated_rent":
-      return "Prorata";
-    case "fee":
-      return "Frais";
-    case "other":
-      return "Autre";
-    default:
-      return paymentKind;
-  }
-}
 
 export default async function RevenuesPage({ searchParams }: RevenuesPageProps): Promise<React.ReactElement> {
   const { session } = await requireDashboardSectionAccess("finances");
@@ -118,64 +99,7 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
           {dataset.ledger.length === 0 ? (
             <p className="mt-5 text-sm text-gray-500">Aucun revenu enregistré pour les filtres actifs.</p>
           ) : (
-            <ResponsiveTable<any>
-              keyExtractor={(entry) => entry.paymentId}
-              data={dataset.ledger}
-              columns={[
-                {
-                  header: "Payé le",
-                  render: (entry) => <span className="text-gray-600">{new Date(entry.paidDate).toLocaleDateString("fr-FR")}</span>
-                },
-                {
-                  header: "Propriété",
-                  render: (entry) => (
-                    <div>
-                      <p className="font-medium text-[#010a19]">{entry.propertyName}</p>
-                      <p className="text-xs text-gray-500">Unité {entry.unitNumber}</p>
-                    </div>
-                  )
-                },
-                {
-                  header: "Locataire",
-                  render: (entry) => <span className="text-gray-600">{entry.tenantName}</span>
-                },
-                {
-                  header: "Type",
-                  render: (entry) => <span className="text-gray-600">{formatPaymentKind(entry.paymentKind)}</span>
-                },
-                {
-                  header: "Montant",
-                  className: "text-right",
-                  render: (entry) => (
-                    <span className="font-semibold text-[#010a19]">
-                      {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
-                    </span>
-                  )
-                }
-              ]}
-              renderMobileCard={(entry) => (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#0063fe] bg-blue-50 px-2.5 py-0.5 rounded-full">
-                      {formatPaymentKind(entry.paymentKind)}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(entry.paidDate).toLocaleDateString("fr-FR")}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[#010a19]">{entry.propertyName}</p>
-                    <p className="text-xs text-slate-500">Unité {entry.unitNumber} • {entry.tenantName}</p>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                    <span className="text-xs text-slate-400">Montant</span>
-                    <span className="font-bold text-emerald-600">
-                      {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
-                    </span>
-                  </div>
-                </div>
-              )}
-            />
+            <RevenuesLedgerTable entries={dataset.ledger} />
           )}
         </article>
       </section>

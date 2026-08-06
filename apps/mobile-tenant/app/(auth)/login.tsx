@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { BiometricGlyph } from "@/components/biometric-glyph";
 import { FullScreenLoadingOverlay } from "@/components/universal-loading-state";
 import { useAuth } from "@/contexts/auth-context";
 import { usePreferences } from "@/contexts/preferences-context";
@@ -19,8 +20,11 @@ import { postWithoutAuth } from "@/lib/api-client";
 import {
   authenticateWithBiometrics,
   biometricFailureMessage,
+  biometricMethodLabel,
+  getBiometricAvailability,
   getBiometricCredentials,
   saveBiometricCredentials,
+  type BiometricModality,
   type StoredCredentials
 } from "@/lib/biometrics";
 import { setPendingBiometricCredentials } from "@/lib/pending-biometric-credentials";
@@ -32,7 +36,7 @@ import {
   toDrcE164,
   validateDrcPhoneInput
 } from "@/lib/phone-input";
-import { fontSize, useTheme } from "@/theme";
+import { fontSize, fontWeight, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
 
 type PhonePasswordLoginOutput = {
@@ -55,12 +59,16 @@ export default function LoginScreen(): React.ReactElement {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBiometricReady, setIsBiometricReady] = useState(false);
+  const [modality, setModality] = useState<BiometricModality>("biometric");
   const [error, setError] = useState<string | null>(null);
+
+  const canSubmitPasswordLogin = phoneNational.length > 0 && password.length > 0;
+  const biometricMethod = biometricMethodLabel(modality);
 
   useEffect(() => {
     let mounted = true;
 
-    async function bootstrapBiometric(): Promise<void> {
+    async function bootstrap(): Promise<void> {
       if (!biometricEnabled) {
         if (mounted) {
           setIsBiometricReady(false);
@@ -68,12 +76,17 @@ export default function LoginScreen(): React.ReactElement {
         return;
       }
 
-      const credentials = await getBiometricCredentials();
+      const [credentials, availability] = await Promise.all([
+        getBiometricCredentials(),
+        getBiometricAvailability()
+      ]);
       if (!mounted) {
         return;
       }
 
-      if (credentials) {
+      setModality(availability.modality);
+
+      if (credentials && availability.available) {
         const national = nationalFromStoredPhone(credentials.phone);
         if (national) {
           setPhoneNational(national);
@@ -84,7 +97,7 @@ export default function LoginScreen(): React.ReactElement {
       }
     }
 
-    void bootstrapBiometric();
+    void bootstrap();
     return () => {
       mounted = false;
     };
@@ -131,6 +144,10 @@ export default function LoginScreen(): React.ReactElement {
   }
 
   async function handleLogin(): Promise<void> {
+    if (!canSubmitPasswordLogin) {
+      return;
+    }
+
     const phoneError = validateDrcPhoneInput(phoneNational);
     if (phoneError) {
       setError(phoneError);
@@ -181,17 +198,16 @@ export default function LoginScreen(): React.ReactElement {
       <Stack.Screen options={{ title: t("auth.loginTitle"), headerShown: false }} />
       <SafeAreaView style={styles.safeRoot}>
         <View style={styles.root}>
-          <View style={styles.brandBlock}>
+          <View style={styles.welcomeBlock}>
             <Image
               source={require("../../assets/door_logo.png")}
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.brandName}>{t("common.appName")}</Text>
-            <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
+            <Text style={styles.welcomeBack}>{t("auth.welcomeBack")}</Text>
           </View>
 
-          <View style={styles.card}>
+          <View style={styles.form}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>{t("auth.phoneLabel")}</Text>
               <View style={styles.inputWrap}>
@@ -234,42 +250,48 @@ export default function LoginScreen(): React.ReactElement {
                   />
                 </Pressable>
               </View>
+              <Pressable
+                onPress={() => {
+                  router.push("/(auth)/forgot-password");
+                }}
+                style={styles.forgotWrap}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
+              </Pressable>
             </View>
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Pressable
-              style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
-              onPress={() => {
-                void handleLogin();
-              }}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => {
-                router.push("/(auth)/forgot-password");
-              }}
-              style={styles.forgotWrap}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
-            </Pressable>
-
-            {isBiometricReady ? (
+            <View style={styles.actions}>
               <Pressable
-                style={[styles.biometricButton, isSubmitting ? styles.buttonDisabled : null]}
+                style={[
+                  styles.button,
+                  !canSubmitPasswordLogin || isSubmitting ? styles.buttonDisabled : null
+                ]}
                 onPress={() => {
-                  void handleBiometricLogin();
+                  void handleLogin();
                 }}
-                disabled={isSubmitting}
+                disabled={!canSubmitPasswordLogin || isSubmitting}
               >
-                <Ionicons name="finger-print-outline" size={20} color={colors.brand} />
-                <Text style={styles.biometricButtonText}>{t("auth.signInBiometric")}</Text>
+                <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
               </Pressable>
-            ) : null}
+
+              {isBiometricReady ? (
+                <Pressable
+                  style={[styles.biometricButton, isSubmitting ? styles.buttonDisabled : null]}
+                  onPress={() => {
+                    void handleBiometricLogin();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <BiometricGlyph modality={modality} size={20} color={colors.brand} />
+                  <Text style={styles.biometricButtonText}>
+                    {t("auth.signInBiometric", { method: biometricMethod })}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.marketplaceWrap}>
@@ -304,38 +326,28 @@ function createStyles(colors: ThemeColors) {
     root: {
       flex: 1,
       backgroundColor: colors.backgroundAlt,
-      justifyContent: "center",
-      paddingHorizontal: 12,
-      gap: 18
+      paddingHorizontal: 20,
+      paddingTop: 28,
+      gap: 28
     },
-    brandBlock: {
-      alignItems: "center",
+    welcomeBlock: {
       gap: 8,
-      marginTop: -8
-    },
-    brandName: {
-      color: colors.brand,
-      fontSize: fontSize.display,
-      fontWeight: "700"
+      alignItems: "center"
     },
     logo: {
-      width: 72,
-      height: 108,
-      marginBottom: 4
+      width: 36,
+      height: 54
     },
-    subtitle: {
-      color: colors.textMuted,
+    welcomeBack: {
+      color: colors.text,
       fontSize: fontSize.title,
-      lineHeight: 24,
+      fontWeight: fontWeight.semibold,
       textAlign: "center"
     },
-    card: {
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: colors.borderStrong,
-      padding: 20,
-      gap: 16
+    form: {
+      gap: 16,
+      flexGrow: 1,
+      justifyContent: "center"
     },
     fieldGroup: {
       gap: 6
@@ -343,7 +355,7 @@ function createStyles(colors: ThemeColors) {
     label: {
       fontSize: fontSize.secondary,
       color: colors.textMuted,
-      fontWeight: "600"
+      fontWeight: fontWeight.semibold
     },
     inputWrap: {
       flexDirection: "row",
@@ -359,7 +371,7 @@ function createStyles(colors: ThemeColors) {
     prefix: {
       color: colors.text,
       fontSize: fontSize.body,
-      fontWeight: "700"
+      fontWeight: fontWeight.bold
     },
     input: {
       flex: 1,
@@ -371,36 +383,41 @@ function createStyles(colors: ThemeColors) {
     hint: {
       color: colors.textFaint,
       fontSize: fontSize.caption,
-      marginTop: 2
-    },
-    error: {
-      color: colors.danger,
-      fontSize: fontSize.secondary
-    },
-    button: {
-      marginTop: 4,
-      borderRadius: 10,
-      minHeight: 58,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.brand
-    },
-    buttonDisabled: {
-      opacity: 0.65
-    },
-    buttonText: {
-      color: colors.onBrand,
-      fontSize: fontSize.emphasis,
-      fontWeight: "700"
+      marginTop: 2,
+      textAlign: "center"
     },
     forgotWrap: {
-      alignItems: "center",
+      alignSelf: "center",
       paddingTop: 4
     },
     forgotText: {
       color: colors.brand,
       fontSize: fontSize.secondary,
-      fontWeight: "600"
+      fontWeight: fontWeight.semibold,
+      textAlign: "center"
+    },
+    error: {
+      color: colors.danger,
+      fontSize: fontSize.secondary
+    },
+    actions: {
+      gap: 10,
+      marginTop: 4
+    },
+    button: {
+      borderRadius: 10,
+      minHeight: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.brand
+    },
+    buttonDisabled: {
+      opacity: 0.45
+    },
+    buttonText: {
+      color: colors.onBrand,
+      fontSize: fontSize.body,
+      fontWeight: fontWeight.semibold
     },
     biometricButton: {
       flexDirection: "row",
@@ -408,7 +425,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: "center",
       gap: 8,
       borderRadius: 10,
-      minHeight: 52,
+      minHeight: 48,
       borderWidth: 1,
       borderColor: colors.brand,
       backgroundColor: colors.surfaceMuted
@@ -416,12 +433,11 @@ function createStyles(colors: ThemeColors) {
     biometricButtonText: {
       color: colors.brand,
       fontSize: fontSize.body,
-      fontWeight: "700"
+      fontWeight: fontWeight.semibold
     },
     footerWrap: {
       alignItems: "center",
-      gap: 2,
-      marginTop: 8
+      gap: 2
     },
     footerText: {
       color: colors.textMuted,
@@ -430,13 +446,12 @@ function createStyles(colors: ThemeColors) {
     footerLink: {
       color: colors.brand,
       fontSize: fontSize.secondary,
-      fontWeight: "600",
+      fontWeight: fontWeight.semibold,
       textAlign: "center"
     },
     marketplaceWrap: {
       alignItems: "center",
-      gap: 4,
-      marginTop: 12
+      gap: 4
     },
     marketplaceText: {
       color: colors.textMuted,
@@ -450,7 +465,7 @@ function createStyles(colors: ThemeColors) {
     marketplaceLink: {
       color: colors.brand,
       fontSize: fontSize.secondary,
-      fontWeight: "600",
+      fontWeight: fontWeight.semibold,
       textDecorationLine: "underline"
     }
   });

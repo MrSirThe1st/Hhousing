@@ -6,6 +6,7 @@ import type { CreateOwnerOutput } from "@hhousing/api-contracts";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 import { postWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
+import CreateSuccessBanner from "./create-success-banner";
 import CitySelect from "./city-select";
 import ProvinceSelect from "./province-select";
 
@@ -48,6 +49,8 @@ export default function OwnerClientCreatePanel({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createdOwnerId, setCreatedOwnerId] = useState<string | null>(null);
+  const [createdInviteEmail, setCreatedInviteEmail] = useState<string | null>(null);
 
   async function uploadProfilePicture(): Promise<string | null> {
     if (!profilePicture) {
@@ -99,6 +102,8 @@ export default function OwnerClientCreatePanel({
     setBusy(true);
     setMessage(null);
     setError(null);
+    setCreatedOwnerId(null);
+    setCreatedInviteEmail(null);
 
     let profilePictureUrl: string | null = null;
 
@@ -133,11 +138,9 @@ export default function OwnerClientCreatePanel({
     setForm(INITIAL_FORM_STATE);
     setProfilePicture(null);
     setBusy(false);
+    setCreatedOwnerId(result.data.owner.id);
+    setCreatedInviteEmail(trimmedEmail.length > 0 ? trimmedEmail : null);
     setMessage(`Owner créé: ${result.data.owner.name}`);
-    const inviteQuery = trimmedEmail.length > 0
-      ? `?inviteEmail=${encodeURIComponent(trimmedEmail)}`
-      : "";
-    router.push(`/dashboard/clients/${result.data.owner.id}/assign${inviteQuery}`);
     router.refresh();
   }
 
@@ -270,9 +273,26 @@ export default function OwnerClientCreatePanel({
       </form>
 
       {message ? (
-        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          {message}
-        </div>
+        <CreateSuccessBanner
+          className="mt-4"
+          message={message}
+          links={
+            createdOwnerId
+              ? [
+                  {
+                    href: `/dashboard/clients/${createdOwnerId}/assign${
+                      createdInviteEmail
+                        ? `?inviteEmail=${encodeURIComponent(createdInviteEmail)}`
+                        : ""
+                    }`,
+                    label: "Assigner des biens"
+                  },
+                  { href: `/dashboard/clients/${createdOwnerId}`, label: "Voir la fiche" },
+                  { href: "/dashboard/clients", label: "Retour à la liste" }
+                ]
+              : []
+          }
+        />
       ) : null}
       {error ? (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

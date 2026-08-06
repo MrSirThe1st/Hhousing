@@ -3,24 +3,60 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { FEATURE_GROUPS, PRICING_TIERS, USE_CASES } from "../app/public-site-data";
 import { useAuth } from "../contexts/auth-context";
 
-type MenuId = "pricing" | "roles" | "features";
+type MenuId = "solutions" | "features";
 
-const MENU_ITEMS: Array<{
-  id: MenuId;
-  label: string;
-}> = [
-  { id: "pricing", label: "Tarification" },
-  { id: "roles", label: "Cas d'usage" },
-  { id: "features", label: "Fonctionnalités" }
-];
+const SOLUTIONS = [
+  {
+    title: "Propriétaires",
+    description: "Suivez vos biens, loyers et locataires sans Excel ni carnets.",
+    href: "/#use-cases"
+  },
+  {
+    title: "Gestionnaires immobiliers",
+    description: "Centralisez portefeuilles, équipes, paiements et interventions.",
+    href: "/#use-cases"
+  },
+  {
+    title: "Locataires",
+    description: "Accédez à vos infos, demandes et échanges depuis l'application.",
+    href: "/mobile-app"
+  }
+] as const;
+
+const FEATURE_LINKS = [
+  {
+    title: "Gestion des biens",
+    description: "Maisons, immeubles et logements dans une seule vue.",
+    href: "/#features"
+  },
+  {
+    title: "Gestion des locataires",
+    description: "Contrats, dossiers et communication au même endroit.",
+    href: "/#features"
+  },
+  {
+    title: "Paiements",
+    description: "Suivi des loyers, retards et quittances en temps réel.",
+    href: "/#features"
+  },
+  {
+    title: "Maintenance",
+    description: "Demandes, photos et suivi jusqu'à la résolution.",
+    href: "/#features"
+  },
+  {
+    title: "Prestataires",
+    description: "Trouvez et coordonnez vos intervenants de confiance.",
+    href: "/#features"
+  }
+] as const;
 
 export default function PublicSiteNavbar(): React.ReactElement {
   const { user, loading } = useAuth();
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
-  const closeTimerRef = useRef<number | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent): void {
@@ -29,190 +65,249 @@ export default function PublicSiteNavbar(): React.ReactElement {
       }
     }
 
+    function handlePointerDown(event: MouseEvent | TouchEvent): void {
+      const target = event.target as Node | null;
+      if (!target || !headerRef.current) return;
+      if (!headerRef.current.contains(target)) {
+        setOpenMenu(null);
+      }
+    }
+
     window.addEventListener("keydown", handleEscape);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
 
     return () => {
       window.removeEventListener("keydown", handleEscape);
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-      }
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
     };
   }, []);
 
-  function cancelClose(): void {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }
-
-  function scheduleClose(): void {
-    cancelClose();
-    closeTimerRef.current = window.setTimeout(() => {
-      setOpenMenu(null);
-    }, 140);
-  }
-
-  function open(menuId: MenuId): void {
-    cancelClose();
-    setOpenMenu(menuId);
-  }
-
-  function toggle(menuId: MenuId): void {
-    cancelClose();
+  function toggleMenu(menuId: MenuId): void {
     setOpenMenu((current) => (current === menuId ? null : menuId));
   }
 
+  function closeMenu(): void {
+    setOpenMenu(null);
+  }
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <header
+      ref={headerRef}
+      className="relative sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/90"
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6 lg:px-10">
-        <Link href="/" className="flex min-w-0 items-center gap-2 text-[#010A19] sm:gap-3">
+        <Link
+          href="/"
+          onClick={closeMenu}
+          className="flex min-w-0 items-center gap-2 text-[#010A19] dark:text-slate-100 sm:gap-3"
+        >
           <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
           <span className="min-w-0">
             <span className="block truncate text-base font-semibold tracking-tight sm:text-lg">Haraka Property</span>
-            <span className="hidden sm:block text-[11px] uppercase tracking-[0.18em] text-slate-500">Gestion de vos locations</span>
+            <span className="hidden text-[11px] uppercase tracking-[0.18em] text-slate-500 sm:block">Gestion de vos locations</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-3 lg:flex">
-
-          {MENU_ITEMS.map((item) => {
-            const isOpen = openMenu === item.id;
-
-            return (
-              <div
-                key={item.id}
-                className="relative"
-                onMouseEnter={() => open(item.id)}
-                onMouseLeave={scheduleClose}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggle(item.id)}
-                  onFocus={() => open(item.id)}
-                  aria-expanded={isOpen}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${isOpen ? "bg-slate-100 text-slate-950" : "text-slate-700 hover:bg-slate-100"}`}
-                >
-                  {item.label}
-                </button>
-                <div
-                  className={`absolute left-1/2 top-full mt-3 -translate-x-1/2 transition duration-150 ${isOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"}`}
-                  onMouseEnter={cancelClose}
-                  onMouseLeave={scheduleClose}
-                >
-                  {item.id === "pricing" ? <PricingPanel /> : null}
-                  {item.id === "roles" ? <RolesPanel /> : null}
-                  {item.id === "features" ? <FeaturesPanel /> : null}
-                </div>
-              </div>
-            );
-          })}
+        <nav className="hidden items-center gap-1 xl:gap-2 lg:flex">
+          <MenuButton
+            label="Solutions"
+            isOpen={openMenu === "solutions"}
+            onClick={() => toggleMenu("solutions")}
+          />
+          <MenuButton
+            label="Fonctionnalités"
+            isOpen={openMenu === "features"}
+            onClick={() => toggleMenu("features")}
+          />
+          <NavLink href="/marketplace" onClick={closeMenu}>Catalogue</NavLink>
+          <NavLink href="/#pricing" onClick={closeMenu}>Tarifs</NavLink>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {loading ? (
-            <div className="h-8 w-20 sm:h-10 sm:w-24 rounded-full bg-slate-100 animate-pulse" />
+            <div className="h-9 w-28 animate-pulse rounded-full bg-slate-100 dark:bg-slate-800 sm:h-10 sm:w-40" />
           ) : user !== null ? (
             <Link
               href="/dashboard"
-              className="whitespace-nowrap rounded-full bg-[#0063FE] px-3 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+              onClick={closeMenu}
+              className="whitespace-nowrap rounded-full bg-[#0063FE] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0052d4] sm:px-6 sm:py-2.5 sm:text-sm"
             >
               <span className="sm:hidden">Tableau de bord</span>
               <span className="hidden sm:inline">Mon tableau de bord</span>
             </Link>
           ) : (
             <>
-              {/* Route Connexion to correct login page based on current path */}
-              {typeof window !== "undefined" && window.location.pathname.startsWith("/owner-portal") ? (
-                <Link href="/owner-portal/login" className="hidden sm:inline-block rounded-full px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
-              ) : (
-                <Link href="/login" className="hidden sm:inline-block rounded-full px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100">Connexion</Link>
-              )}
-              <Link href="/signup" className="rounded-full bg-[#0063FE] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#0052d4]">Créer un compte</Link>
+              <Link
+                href="/login"
+                onClick={closeMenu}
+                className="hidden rounded-full px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
+              >
+                Se connecter
+              </Link>
+              <Link
+                href="/signup"
+                onClick={closeMenu}
+                className="rounded-full bg-[#0063FE] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-[#0052d4] hover:shadow-md hover:shadow-blue-500/25 sm:px-6 sm:py-2.5 sm:text-sm"
+              >
+                Créer un compte
+              </Link>
             </>
           )}
         </div>
       </div>
 
-      <div className="border-t border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 lg:hidden">
+      {/* Overlay mega panel — does not push page content */}
+      <div
+        className={`absolute left-0 right-0 top-full z-50 hidden border-b border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition duration-150 dark:border-slate-800 dark:bg-[#0a1120] lg:block ${
+          openMenu
+            ? "visible translate-y-0 opacity-100"
+            : "pointer-events-none invisible -translate-y-1 opacity-0"
+        }`}
+        aria-hidden={openMenu === null}
+      >
+        <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
+          {openMenu === "solutions" ? <SolutionsPanel onNavigate={closeMenu} /> : null}
+          {openMenu === "features" ? <FeaturesPanel onNavigate={closeMenu} /> : null}
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 px-3 py-2.5 dark:border-slate-800 sm:px-4 sm:py-3 lg:hidden">
         <div className="mx-auto flex max-w-7xl gap-1.5 overflow-x-auto sm:gap-2">
-          <Link href="/#pricing" className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 sm:px-4 sm:py-2 sm:text-sm">Tarification</Link>
-          <Link href="/#use-cases" className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 sm:px-4 sm:py-2 sm:text-sm">Cas d'usage</Link>
-          <Link href="/#features" className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 sm:px-4 sm:py-2 sm:text-sm">Fonctionnalités</Link>
+          <MobileChip href="/#use-cases">Solutions</MobileChip>
+          <MobileChip href="/#features">Fonctionnalités</MobileChip>
+          <MobileChip href="/marketplace">Catalogue</MobileChip>
+          <MobileChip href="/#pricing">Tarifs</MobileChip>
+          {user === null && !loading ? (
+            <MobileChip href="/login">Se connecter</MobileChip>
+          ) : null}
         </div>
       </div>
     </header>
   );
 }
 
-function PricingPanel(): React.ReactElement {
+function MenuButton({
+  label,
+  isOpen,
+  onClick
+}: {
+  label: string;
+  isOpen: boolean;
+  onClick: () => void;
+}): React.ReactElement {
   return (
-    <div className="w-[24rem] rounded-4xl border border-slate-200 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.14)]">
-      <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tarification</p>
-          <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">Un tarif simple et unique</p>
-        </div>
-      </div>
-      {PRICING_TIERS.map((tier) => (
-        <div key={tier.name} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{tier.name}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0063FE]">{tier.price}</p>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">{tier.description}</p>
-          <div className="mt-4">
-            <Link href="/#pricing" className="block text-center text-xs font-bold text-white bg-[#0063FE] hover:bg-[#0052d4] px-4 py-2.5 rounded-full transition">
-              Découvrir les fonctionnalités
-            </Link>
-          </div>
-        </div>
-      ))}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={isOpen}
+      className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+        isOpen
+          ? "bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-white"
+          : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+      }`}
+    >
+      {label}
+      <svg
+        className={`h-3.5 w-3.5 transition ${isOpen ? "rotate-180" : ""}`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
   );
 }
 
-function RolesPanel(): React.ReactElement {
+function NavLink({
+  href,
+  onClick,
+  children
+}: {
+  href: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+}): React.ReactElement {
   return (
-    <div className="w-[48rem] rounded-4xl border border-slate-200 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.14)]">
-      <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Cas d'usage</p>
-          <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">Une même plateforme, plusieurs rôles dans la boucle locative</p>
-        </div>
-        <Link href="/#use-cases" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Voir les profils</Link>
+    <Link
+      href={href}
+      onClick={onClick}
+      className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function MobileChip({ href, children }: { href: string; children: React.ReactNode }): React.ReactElement {
+  return (
+    <Link
+      href={href}
+      className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 sm:px-4 sm:py-2 sm:text-sm"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function SolutionsPanel({ onNavigate }: { onNavigate: () => void }): React.ReactElement {
+  return (
+    <div>
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Solutions</p>
+        <p className="mt-2 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
+          Une plateforme adaptée à votre rôle
+        </p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {USE_CASES.map((useCase) => (
-          <div key={useCase.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-base font-semibold text-slate-950">{useCase.title}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{useCase.description}</p>
-          </div>
+      <div className="grid gap-2 md:grid-cols-3">
+        {SOLUTIONS.map((item) => (
+          <Link
+            key={item.title}
+            href={item.href}
+            onClick={onNavigate}
+            className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
+          >
+            <p className="text-sm font-semibold text-slate-950 dark:text-white">{item.title}</p>
+            <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">{item.description}</p>
+          </Link>
         ))}
       </div>
     </div>
   );
 }
 
-function FeaturesPanel(): React.ReactElement {
+function FeaturesPanel({ onNavigate }: { onNavigate: () => void }): React.ReactElement {
   return (
-    <div className="w-[52rem] rounded-4xl border border-slate-200 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.14)]">
+    <div>
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Fonctionnalités</p>
-          <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">Des panneaux plus riches pour comprendre vite ce que couvre Haraka Property</p>
+          <p className="mt-2 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
+            Des bénéfices concrets au quotidien
+          </p>
         </div>
-        <Link href="/#features" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Explorer</Link>
+        <Link
+          href="/#features"
+          onClick={onNavigate}
+          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          Tout voir
+        </Link>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        {FEATURE_GROUPS.map((group) => (
-          <div key={group.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-base font-semibold text-slate-950">{group.title}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{group.description}</p>
-            <div className="mt-3 space-y-2 text-sm text-slate-700">
-              {group.items.map((feature) => (
-                <p key={feature} className="rounded-2xl bg-white px-3 py-2">{feature}</p>
-              ))}
-            </div>
-          </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {FEATURE_LINKS.map((item) => (
+          <Link
+            key={item.title}
+            href={item.href}
+            onClick={onNavigate}
+            className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
+          >
+            <p className="text-sm font-semibold text-slate-950 dark:text-white">{item.title}</p>
+            <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">{item.description}</p>
+          </Link>
         ))}
       </div>
     </div>

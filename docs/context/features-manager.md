@@ -49,6 +49,11 @@ This is the main operator platform (`web-manager`).
 - Update status
 - Track resolution time
 
+**Prestataires (service provider directory):**
+- Par bien (assign to property), Catalogue (platform directory), Mes prestataires (private contacts)
+- Assign / unassign; create trusted providers via modal
+- Direct phone/WhatsApp contact for tenants (no in-app booking in Phase 1)
+
 **Messaging:**
 - Tenant conversations
 - Broadcast messages (all tenants or per property)
@@ -124,6 +129,13 @@ For account-type differences (`self_managed_owner`, `manager_for_others`, `mixed
 - Request list
 - Request detail: description, images, status control
 - Assign task screen
+
+### Prestataires
+- In-page tabs (sidebar unchanged): **Par bien** | **Catalogue** | **Mes prestataires**
+- Par bien: property selector, assigned list, assign modal (Catalogue / Mes tabs)
+- Catalogue: platform directory, Ajouter au bien (prompts for property if needed)
+- Mes prestataires: create modal, Affecter / Supprimer
+- Trust labels: Vérifié par la plateforme / Ajouté par le gestionnaire
 
 ### Messaging
 - Conversation list

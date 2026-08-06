@@ -40,7 +40,7 @@ Hhousing should adapt the model for DRC realities (French-first UX, local paymen
    - Source of truth: `platform_admins` table + role `platform_admin`
    - MVP: cross-org users/orgs, suspend/activate, platform audit
    - Slice 2: org health, audit polish, grant/revoke platform admin; operator support via Tawk.to (no in-app tickets; PostHog for product analytics)
-   - Slice 3: usage-based SaaS billing (free < 2 properties, then $/unit), admin payment methods + invoice confirm, operator `/dashboard/billing`, manual Mobile Money (PawaPay later)
+   - Slice 3: usage-based SaaS billing (free < 2 properties, then $/unit), admin invoice generate/confirm, operator view-only `/dashboard/billing` (PawaPay for SaaS later)
    - Deferred: live PawaPay for SaaS, hard lock, feature flags
 
 ## Core Data Backbone
@@ -55,6 +55,7 @@ All modules must map to these entities:
 - Maintenance Request
 - Message / Conversation
 - Document
+- Service Provider (Prestataires directory; property-assigned visibility)
 
 If a feature does not strengthen one of these entities or their workflows, it is not a priority.
 
@@ -126,3 +127,4 @@ Use these focused docs only when the task needs them:
 - `docs/context/finance-controls.md` — finance invariants, ledger/source-of-truth rules, reconciliation controls
 - `docs/context/features-owner-admin.md` — owner portal + platform admin (`/admin` in web-manager)
 - `docs/context/brand.md` — colors, typography, localization
+- `docs/context/web-ui-consistency.md` — web-manager loaders, buttons, alerts, create/upload stay-and-clear (`CreateSuccessBanner`), list/create patterns

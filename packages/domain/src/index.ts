@@ -70,13 +70,17 @@ export type {
   DocumentAttachmentType
 } from "./entities/document.types";
 export type {
+  PropertyServiceProvider,
+  ServiceProvider,
+  ServiceProviderCategory,
+  ServiceProviderStatus
+} from "./entities/service-provider.types";
+export type {
   TeamMemberInvitation,
   TeamMemberInvitationRole
 } from "./entities/team-member-invitation.types";
 export type {
   PlatformBillingSettings,
-  PlatformPaymentMethod,
-  PlatformPaymentProvider,
   PlatformSubscriptionInvoice,
   PlatformSubscriptionInvoiceStatus,
   OrganizationUsageSnapshot,

@@ -10,6 +10,7 @@ import { validateDrcPhoneInput } from "../lib/phone-input";
 import type { TenantFormState } from "./tenant-management.types";
 import PhoneInput from "./phone-input";
 import UniversalLoadingState from "./universal-loading-state";
+import CreateSuccessBanner from "./create-success-banner";
 import posthog from "posthog-js";
 
 const INITIAL_TENANT_FORM: TenantFormState = {
@@ -38,6 +39,8 @@ export default function TenantCreateForm({
   const [photo, setPhoto] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [createdTenantId, setCreatedTenantId] = useState<string | null>(null);
 
   async function uploadPhoto(): Promise<string | null> {
     if (!photo) {
@@ -69,6 +72,8 @@ export default function TenantCreateForm({
     event.preventDefault();
     setBusy(true);
     setError(null);
+    setMessage(null);
+    setCreatedTenantId(null);
 
     const phoneError = validateDrcPhoneInput(tenantForm.phone);
     if (phoneError) {
@@ -115,9 +120,15 @@ export default function TenantCreateForm({
 
     if (fromOnboarding) {
       router.push(`/dashboard/leases/move-in?from=onboarding&tenantId=${encodeURIComponent(result.data.id)}`);
-    } else {
-      router.push(`/dashboard/tenants/${result.data.id}`);
+      router.refresh();
+      return;
     }
+
+    setTenantForm(INITIAL_TENANT_FORM);
+    setPhoto(null);
+    setCreatedTenantId(result.data.id);
+    setMessage("Locataire créé avec succès.");
+    setBusy(false);
     router.refresh();
   }
 
@@ -137,6 +148,28 @@ export default function TenantCreateForm({
           <p className="mt-2 text-sm text-slate-600">
             Nom et téléphone WhatsApp suffisent pour commencer. Le reste peut attendre.
           </p>
+        ) : (
+          <p className="mt-2 text-sm text-slate-600">
+            Créez le profil, puis lancez un emménagement depuis la fiche si besoin.
+          </p>
+        )}
+        {message ? (
+          <CreateSuccessBanner
+            className="mt-4"
+            message={message}
+            links={[
+              ...(createdTenantId
+                ? [
+                    { href: `/dashboard/tenants/${createdTenantId}`, label: "Voir la fiche" },
+                    {
+                      href: `/dashboard/leases/move-in?tenantId=${encodeURIComponent(createdTenantId)}`,
+                      label: "Lancer un emménagement"
+                    }
+                  ]
+                : []),
+              { href: "/dashboard/tenants", label: "Retour à la liste" }
+            ]}
+          />
         ) : null}
       </div>
 

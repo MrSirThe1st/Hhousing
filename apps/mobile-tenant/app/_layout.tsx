@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
-import { Appearance, Text, TextInput } from "react-native";
+import { Text, TextInput } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -9,7 +9,11 @@ import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { BiometricLockProvider } from "@/contexts/biometric-lock-context";
 import { InboxProvider } from "@/contexts/inbox-context";
 import { AmountPrivacyProvider } from "@/contexts/amount-privacy-context";
-import { PreferencesProvider, usePreferences } from "@/contexts/preferences-context";
+import {
+  applyNativeColorScheme,
+  PreferencesProvider,
+  usePreferences
+} from "@/contexts/preferences-context";
 import { BiometricLockScreen } from "@/components/biometric-lock-screen";
 import { BlockingLoadingScreen } from "@/components/universal-loading-state";
 import { getWithAuth } from "@/lib/api-client";
@@ -23,7 +27,7 @@ SplashScreen.setOptions({
   fade: true
 });
 // Prefer light splash immediately; prefs may switch to dark before hide.
-Appearance.setColorScheme("light");
+applyNativeColorScheme("light");
 
 const TextWithDefaults = Text as typeof Text & {
   defaultProps?: { maxFontSizeMultiplier?: number };
@@ -188,7 +192,7 @@ function ThemedApp(): React.ReactElement {
     if (!isReady) {
       return;
     }
-    Appearance.setColorScheme(themeMode);
+    applyNativeColorScheme(themeMode);
   }, [isReady, themeMode]);
 
   if (!isReady) {

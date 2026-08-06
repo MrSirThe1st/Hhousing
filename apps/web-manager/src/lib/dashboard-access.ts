@@ -91,7 +91,8 @@ function getAccessFromPermissions(permissions: string[], isAccountOwner: boolean
     isAccountOwner ||
     hasPermission(permissions, Permission.MANAGE_MAINTENANCE) ||
     hasPermission(permissions, Permission.UPDATE_MAINTENANCE_STATUS) ||
-    hasPermission(permissions, Permission.UPLOAD_DOCUMENTS);
+    hasPermission(permissions, Permission.UPLOAD_DOCUMENTS) ||
+    hasPermission(permissions, Permission.ASSIGN_VENDORS);
 
   const billingWritable =
     isAccountOwner || hasPermission(permissions, Permission.MANAGE_ORG_BILLING);

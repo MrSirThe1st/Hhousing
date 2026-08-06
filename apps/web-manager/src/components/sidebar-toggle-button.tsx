@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const SIDEBAR_STORAGE_KEY = "hhousing.sidebar.collapsed_v2";
-const SIDEBAR_SET_COLLAPSED_EVENT = "hhousing.sidebar.setCollapsed";
+import { SIDEBAR_SET_COLLAPSED_EVENT, SIDEBAR_STORAGE_KEY } from "./sidebar-collapse";
 
 export default function SidebarToggleButton(): React.ReactElement {
   const [isCollapsed, setIsCollapsed] = useState(false);

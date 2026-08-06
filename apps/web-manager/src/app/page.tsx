@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createListingRepo } from "./api/shared";
+import PublicHeroCarousel from "../components/public-hero-carousel";
 import PublicListingCard from "../components/public-listing-card";
 import PublicMarketplaceSearchForm from "../components/public-marketplace-search-form";
 import PublicSiteFooter from "../components/public-site-footer";
@@ -38,25 +39,11 @@ export default async function HomePage(): Promise<React.ReactElement> {
     <main className="min-h-screen bg-white text-slate-950 dark:bg-[#0a1120] dark:text-slate-100">
       <PublicSiteNavbar />
 
-      {/* Search Hero Banner */}
-      <section className="relative overflow-hidden py-12 md:py-24 bg-slate-200 border-b border-slate-200/50 flex items-center justify-center min-h-[320px] dark:bg-slate-900 dark:border-slate-800">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: "url('/brand/cover.png')",
-          }}
-        />
-        {/* Soften in light mode; keep stronger contrast in dark mode */}
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px] dark:bg-slate-950/70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-900/25 dark:to-slate-950/45" />
+      <PublicHeroCarousel />
 
-        <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center w-full">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-6 max-w-3xl leading-tight">
-            Gérez vos loyers et vos maisons en RDC
-          </h1>
-          <div className="w-full">
-            <PublicMarketplaceSearchForm action="/marketplace" submitLabel="Rechercher" variant="hero" />
-          </div>
+      <section className="relative z-10 -mt-6 border-b border-slate-200/80 bg-white px-4 pb-8 pt-2 dark:border-slate-800 dark:bg-[#0a1120] sm:-mt-8 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-7xl">
+          <PublicMarketplaceSearchForm action="/marketplace" submitLabel="Rechercher" variant="hero" />
         </div>
       </section>
 
@@ -265,11 +252,11 @@ export default async function HomePage(): Promise<React.ReactElement> {
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700">
-              Pour tout le monde
+              Solutions
             </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Une solution adaptée à chacun</h2>
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Une plateforme adaptée à votre rôle</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Que vous soyez bailleur, locataire, ou professionnel de l&apos;immobilier, notre plateforme répond à vos besoins.
+              Propriétaire, gestionnaire ou locataire — Haraka Property répond à votre besoin, sans complexité inutile.
             </p>
           </div>
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">

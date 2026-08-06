@@ -116,6 +116,7 @@ export default function BottomNavigation({
     { href: "/dashboard/reports", label: "Rapports", icon: "reports", visible: access.finances },
     { href: "/dashboard/payments", label: "Paiements", icon: "payments", visible: access.finances },
     { href: "/dashboard/documents", label: "Documents", icon: "documents", visible: access.services },
+    { href: "/dashboard/prestataires", label: "Prestataires", icon: "team", visible: access.services },
     { href: "/dashboard/team", label: "Équipe", icon: "team", visible: access.organization },
     { href: "/dashboard/audit", label: "Audit", icon: "audit", visible: access.audit },
     { href: "/dashboard/profile?tab=organisation", label: isIndividualExperience ? "Espace" : "Organisation", icon: "organization", visible: access.manageOrganization || isIndividualExperience },

@@ -20,18 +20,19 @@ export default function PublicSiteFooter(): React.ReactElement {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Plateforme</p>
           <div className="mt-4 space-y-3 text-sm text-slate-300">
+            <Link href="/#use-cases" className="block hover:text-white">Solutions</Link>
             <Link href="/#features" className="block hover:text-white">Fonctionnalités</Link>
-            <Link href="/#pricing" className="block hover:text-white">Tarification</Link>
+            <Link href="/marketplace" className="block hover:text-white">Catalogue</Link>
+            <Link href="/#pricing" className="block hover:text-white">Tarifs</Link>
             <Link href="/#faq" className="block hover:text-white">FAQ</Link>
           </div>
         </div>
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Profils</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Solutions</p>
           <div className="mt-4 space-y-3 text-sm text-slate-300">
-            <p>Gestionnaires immobiliers</p>
-            <p>Bailleurs</p>
-            <p>Locataires</p>
-            <p>Investisseurs immobiliers</p>
+            <Link href="/#use-cases" className="block hover:text-white">Propriétaires</Link>
+            <Link href="/#use-cases" className="block hover:text-white">Gestionnaires immobiliers</Link>
+            <Link href="/mobile-app" className="block hover:text-white">Locataires</Link>
           </div>
         </div>
         <div>
@@ -46,9 +47,9 @@ export default function PublicSiteFooter(): React.ReactElement {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Accès</p>
           <div className="mt-4 space-y-3 text-sm text-slate-300">
-            <Link href="/login" className="block hover:text-white">Connexion</Link>
+            <Link href="/login" className="block hover:text-white">Se connecter</Link>
             <Link href="/signup" className="block hover:text-white">Créer un compte</Link>
-            <Link href="/marketplace" className="block hover:text-white">Toutes les annonces</Link>
+            <Link href="/marketplace" className="block hover:text-white">Catalogue</Link>
           </div>
         </div>
       </div>

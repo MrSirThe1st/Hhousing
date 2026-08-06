@@ -217,13 +217,28 @@ export {
 export type {
   PlatformBillingRepository,
   UpdatePlatformBillingSettingsInput,
-  CreatePlatformPaymentMethodInput,
-  UpdatePlatformPaymentMethodInput,
   ListPlatformSubscriptionInvoicesInput,
+  AdminBillingDashboard,
   PlatformSubscriptionInvoiceListItem,
   CreatePlatformSubscriptionInvoiceInput,
-  ReportPlatformInvoicePaymentInput,
   ConfirmPlatformInvoicePaidInput,
   VoidPlatformInvoiceInput,
   GenerateSaasInvoicesResult
 } from "./platform-billing/platform-billing-record.types";
+export {
+  createPostgresServiceProviderRepository,
+  createServiceProviderRepositoryFromEnv
+} from "./service-providers/postgres-service-provider.repository";
+export type {
+  AssignServiceProviderRecordInput,
+  CreateServiceProviderCategoryRecordInput,
+  CreateServiceProviderRecordInput,
+  ListServiceProvidersRecordFilter,
+  ServiceProviderAdminListItem,
+  ServiceProviderCategoryWithCount,
+  ServiceProviderRepository,
+  ServiceProviderVisibilityStats,
+  UpdateServiceProviderCategoryRecordInput,
+  UpdateServiceProviderRecordInput
+} from "./service-providers/service-provider-record.types";
+export type { ServiceProviderQueryable } from "./service-providers/postgres-service-provider.repository";

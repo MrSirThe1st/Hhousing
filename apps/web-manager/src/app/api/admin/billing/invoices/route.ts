@@ -4,12 +4,7 @@ import { mapErrorCodeToHttpStatus, requirePlatformAdminSession } from "../../../
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { jsonResponse } from "../../../shared";
 
-const STATUSES = new Set<PlatformSubscriptionInvoiceStatus>([
-  "issued",
-  "pending_confirmation",
-  "paid",
-  "void"
-]);
+const STATUSES = new Set<PlatformSubscriptionInvoiceStatus>(["issued", "paid", "void"]);
 
 export async function GET(request: Request): Promise<Response> {
   const access = requirePlatformAdminSession(await extractAuthSessionFromCookies());
@@ -26,11 +21,13 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const repo = createPlatformBillingRepositoryFromEnv(process.env);
+    const overdueOnly = url.searchParams.get("overdueOnly") === "1" || url.searchParams.get("overdueOnly") === "true";
     const data = await repo.listInvoices({
       organizationId: url.searchParams.get("organizationId"),
       period: url.searchParams.get("period"),
-      status,
+      status: overdueOnly ? "issued" : status,
       search: url.searchParams.get("search"),
+      overdueOnly,
       limit: Number(url.searchParams.get("limit") ?? 50) || 50,
       offset: Number(url.searchParams.get("offset") ?? 0) || 0
     });

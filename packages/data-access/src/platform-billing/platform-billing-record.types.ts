@@ -2,8 +2,6 @@ import type {
   OrganizationUsageSnapshot,
   PlatformBillingEstimate,
   PlatformBillingSettings,
-  PlatformPaymentMethod,
-  PlatformPaymentProvider,
   PlatformSubscriptionInvoice,
   PlatformSubscriptionInvoiceStatus
 } from "@hhousing/domain";
@@ -12,8 +10,6 @@ export type {
   OrganizationUsageSnapshot,
   PlatformBillingEstimate,
   PlatformBillingSettings,
-  PlatformPaymentMethod,
-  PlatformPaymentProvider,
   PlatformSubscriptionInvoice,
   PlatformSubscriptionInvoiceStatus
 };
@@ -24,33 +20,26 @@ export interface UpdatePlatformBillingSettingsInput {
   freePropertyThreshold: number;
 }
 
-export interface CreatePlatformPaymentMethodInput {
-  id: string;
-  provider: PlatformPaymentProvider;
-  displayName: string;
-  accountNumber: string;
-  instructions?: string | null;
-  isActive?: boolean;
-  sortOrder?: number;
-}
-
-export interface UpdatePlatformPaymentMethodInput {
-  id: string;
-  provider?: PlatformPaymentProvider;
-  displayName?: string;
-  accountNumber?: string;
-  instructions?: string | null;
-  isActive?: boolean;
-  sortOrder?: number;
-}
-
 export interface ListPlatformSubscriptionInvoicesInput {
   organizationId?: string | null;
   period?: string | null;
   status?: PlatformSubscriptionInvoiceStatus | null;
   search?: string | null;
+  /** When true, only issued invoices past due_at. Implies status issued. */
+  overdueOnly?: boolean;
   limit?: number;
   offset?: number;
+}
+
+export interface AdminBillingDashboard {
+  currencyCode: string;
+  openReceivableAmount: number;
+  openInvoiceCount: number;
+  overdueReceivableAmount: number;
+  overdueInvoiceCount: number;
+  collectedMonthAmount: number;
+  collectedMonthCount: number;
+  collectedYearAmount: number;
 }
 
 export interface PlatformSubscriptionInvoiceListItem extends PlatformSubscriptionInvoice {
@@ -67,13 +56,6 @@ export interface CreatePlatformSubscriptionInvoiceInput {
   amountDue: number;
   currencyCode: string;
   dueAtIso: string;
-}
-
-export interface ReportPlatformInvoicePaymentInput {
-  invoiceId: string;
-  organizationId: string;
-  reportedByUserId: string;
-  paymentNote?: string | null;
 }
 
 export interface ConfirmPlatformInvoicePaidInput {
@@ -99,15 +81,11 @@ export interface PlatformBillingRepository {
   getBillingSettings(): Promise<PlatformBillingSettings>;
   updateBillingSettings(input: UpdatePlatformBillingSettingsInput): Promise<PlatformBillingSettings>;
 
-  listPaymentMethods(activeOnly?: boolean): Promise<PlatformPaymentMethod[]>;
-  createPaymentMethod(input: CreatePlatformPaymentMethodInput): Promise<PlatformPaymentMethod>;
-  updatePaymentMethod(input: UpdatePlatformPaymentMethodInput): Promise<PlatformPaymentMethod | null>;
-  deletePaymentMethod(id: string): Promise<boolean>;
-
   getOrganizationUsage(organizationId: string): Promise<OrganizationUsageSnapshot | null>;
   listOrganizationUsage(): Promise<OrganizationUsageSnapshot[]>;
   estimateOrganizationBilling(organizationId: string): Promise<PlatformBillingEstimate | null>;
 
+  getAdminBillingDashboard(): Promise<AdminBillingDashboard>;
   listInvoices(input?: ListPlatformSubscriptionInvoicesInput): Promise<PlatformSubscriptionInvoiceListItem[]>;
   getInvoiceById(invoiceId: string): Promise<PlatformSubscriptionInvoiceListItem | null>;
   listInvoicesForOrganization(organizationId: string, limit?: number): Promise<PlatformSubscriptionInvoice[]>;
@@ -116,7 +94,6 @@ export interface PlatformBillingRepository {
   createInvoiceIfAbsent(
     input: CreatePlatformSubscriptionInvoiceInput
   ): Promise<"created" | "exists">;
-  reportInvoicePayment(input: ReportPlatformInvoicePaymentInput): Promise<PlatformSubscriptionInvoice | null>;
   confirmInvoicePaid(input: ConfirmPlatformInvoicePaidInput): Promise<PlatformSubscriptionInvoice | null>;
   voidInvoice(input: VoidPlatformInvoiceInput): Promise<PlatformSubscriptionInvoice | null>;
 

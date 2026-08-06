@@ -280,3 +280,31 @@ export {
   type MemberFunction,
   type MemberWithFunctions
 } from "./permissions.types";
+export type {
+  AssignServiceProviderInput,
+  CreateServiceProviderCategoryInput,
+  CreateServiceProviderInput,
+  CreateServiceProviderOutput,
+  GetServiceProviderOutput,
+  ListServiceProviderCategoriesOutput,
+  ListServiceProvidersFilter,
+  ListServiceProvidersOutput,
+  PropertyServiceProvider,
+  ServiceProvider,
+  ServiceProviderCategory,
+  ServiceProviderStatus,
+  ServiceProviderWithCategory,
+  UnassignServiceProviderInput,
+  UpdateServiceProviderCategoryInput,
+  UpdateServiceProviderInput,
+  UpdateServiceProviderOutput
+} from "./service-providers/service-provider.types";
+export {
+  parseAssignServiceProviderInput,
+  parseCreateServiceProviderCategoryInput,
+  parseCreateServiceProviderInput,
+  parseUnassignServiceProviderInput,
+  parseUpdateServiceProviderCategoryInput,
+  parseUpdateServiceProviderInput,
+  parseUpdateServiceProviderStatusInput
+} from "./service-providers/service-provider.validation";

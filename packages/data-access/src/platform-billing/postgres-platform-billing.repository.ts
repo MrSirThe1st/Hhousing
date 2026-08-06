@@ -3,45 +3,29 @@ import { Pool, type QueryResultRow } from "pg";
 import type { DatabaseEnvSource } from "../database/database-env";
 import { readDatabaseEnv } from "../database/database-env";
 import type {
+  AdminBillingDashboard,
   ConfirmPlatformInvoicePaidInput,
-  CreatePlatformPaymentMethodInput,
   CreatePlatformSubscriptionInvoiceInput,
   GenerateSaasInvoicesResult,
   ListPlatformSubscriptionInvoicesInput,
   PlatformBillingRepository,
-  ReportPlatformInvoicePaymentInput,
+  PlatformSubscriptionInvoiceListItem,
   UpdatePlatformBillingSettingsInput,
-  UpdatePlatformPaymentMethodInput,
   VoidPlatformInvoiceInput
 } from "./platform-billing-record.types";
 import type {
   OrganizationUsageSnapshot,
   PlatformBillingEstimate,
   PlatformBillingSettings,
-  PlatformPaymentMethod,
-  PlatformPaymentProvider,
   PlatformSubscriptionInvoice,
   PlatformSubscriptionInvoiceStatus
 } from "@hhousing/domain";
-import type { PlatformSubscriptionInvoiceListItem } from "./platform-billing-record.types";
 
 interface SettingsRow extends QueryResultRow {
   id: string;
   pricePerUnitAmount: string | number;
   currencyCode: string;
   freePropertyThreshold: number;
-  updatedAtIso: string;
-}
-
-interface PaymentMethodRow extends QueryResultRow {
-  id: string;
-  provider: PlatformPaymentProvider;
-  displayName: string;
-  accountNumber: string;
-  instructions: string | null;
-  isActive: boolean;
-  sortOrder: number;
-  createdAtIso: string;
   updatedAtIso: string;
 }
 
@@ -59,9 +43,6 @@ interface InvoiceRow extends QueryResultRow {
   issuedAtIso: string;
   paidAtIso: string | null;
   paidConfirmedByUserId: string | null;
-  paymentReportedAtIso: string | null;
-  paymentReportedByUserId: string | null;
-  paymentNote: string | null;
   voidReason: string | null;
   createdAtIso: string;
   updatedAtIso: string;
@@ -88,20 +69,6 @@ function mapSettings(row: SettingsRow): PlatformBillingSettings {
   };
 }
 
-function mapPaymentMethod(row: PaymentMethodRow): PlatformPaymentMethod {
-  return {
-    id: row.id,
-    provider: row.provider,
-    displayName: row.displayName,
-    accountNumber: row.accountNumber,
-    instructions: row.instructions,
-    isActive: row.isActive,
-    sortOrder: row.sortOrder,
-    createdAtIso: row.createdAtIso,
-    updatedAtIso: row.updatedAtIso
-  };
-}
-
 function mapInvoice(row: InvoiceRow): PlatformSubscriptionInvoice {
   return {
     id: row.id,
@@ -117,9 +84,6 @@ function mapInvoice(row: InvoiceRow): PlatformSubscriptionInvoice {
     issuedAtIso: row.issuedAtIso,
     paidAtIso: row.paidAtIso,
     paidConfirmedByUserId: row.paidConfirmedByUserId,
-    paymentReportedAtIso: row.paymentReportedAtIso,
-    paymentReportedByUserId: row.paymentReportedByUserId,
-    paymentNote: row.paymentNote,
     voidReason: row.voidReason,
     createdAtIso: row.createdAtIso,
     updatedAtIso: row.updatedAtIso
@@ -173,9 +137,6 @@ const INVOICE_SELECT = `
   inv.issued_at as "issuedAtIso",
   inv.paid_at as "paidAtIso",
   inv.paid_confirmed_by_user_id::text as "paidConfirmedByUserId",
-  inv.payment_reported_at as "paymentReportedAtIso",
-  inv.payment_reported_by_user_id::text as "paymentReportedByUserId",
-  inv.payment_note as "paymentNote",
   inv.void_reason as "voidReason",
   inv.created_at as "createdAtIso",
   inv.updated_at as "updatedAtIso"
@@ -226,96 +187,6 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
       return mapSettings(row);
     },
 
-    async listPaymentMethods(activeOnly = false): Promise<PlatformPaymentMethod[]> {
-      const result = await pool.query<PaymentMethodRow>(
-        `select
-           id,
-           provider,
-           display_name as "displayName",
-           account_number as "accountNumber",
-           instructions,
-           is_active as "isActive",
-           sort_order as "sortOrder",
-           created_at as "createdAtIso",
-           updated_at as "updatedAtIso"
-         from platform_payment_methods
-         where ($1::boolean = false or is_active = true)
-         order by sort_order asc, created_at asc`,
-        [activeOnly]
-      );
-      return result.rows.map(mapPaymentMethod);
-    },
-
-    async createPaymentMethod(input: CreatePlatformPaymentMethodInput): Promise<PlatformPaymentMethod> {
-      const result = await pool.query<PaymentMethodRow>(
-        `insert into platform_payment_methods (
-           id, provider, display_name, account_number, instructions, is_active, sort_order
-         ) values ($1, $2, $3, $4, $5, coalesce($6, true), coalesce($7, 0))
-         returning
-           id,
-           provider,
-           display_name as "displayName",
-           account_number as "accountNumber",
-           instructions,
-           is_active as "isActive",
-           sort_order as "sortOrder",
-           created_at as "createdAtIso",
-           updated_at as "updatedAtIso"`,
-        [
-          input.id,
-          input.provider,
-          input.displayName,
-          input.accountNumber,
-          input.instructions ?? null,
-          input.isActive ?? true,
-          input.sortOrder ?? 0
-        ]
-      );
-      return mapPaymentMethod(result.rows[0]);
-    },
-
-    async updatePaymentMethod(input: UpdatePlatformPaymentMethodInput): Promise<PlatformPaymentMethod | null> {
-      const result = await pool.query<PaymentMethodRow>(
-        `update platform_payment_methods
-         set
-           provider = coalesce($2, provider),
-           display_name = coalesce($3, display_name),
-           account_number = coalesce($4, account_number),
-           instructions = case when $5::boolean then $6 else instructions end,
-           is_active = coalesce($7, is_active),
-           sort_order = coalesce($8, sort_order),
-           updated_at = now()
-         where id = $1
-         returning
-           id,
-           provider,
-           display_name as "displayName",
-           account_number as "accountNumber",
-           instructions,
-           is_active as "isActive",
-           sort_order as "sortOrder",
-           created_at as "createdAtIso",
-           updated_at as "updatedAtIso"`,
-        [
-          input.id,
-          input.provider ?? null,
-          input.displayName ?? null,
-          input.accountNumber ?? null,
-          input.instructions !== undefined,
-          input.instructions ?? null,
-          input.isActive ?? null,
-          input.sortOrder ?? null
-        ]
-      );
-      const row = result.rows[0];
-      return row ? mapPaymentMethod(row) : null;
-    },
-
-    async deletePaymentMethod(id: string): Promise<boolean> {
-      const result = await pool.query(`delete from platform_payment_methods where id = $1`, [id]);
-      return (result.rowCount ?? 0) > 0;
-    },
-
     async getOrganizationUsage(organizationId: string): Promise<OrganizationUsageSnapshot | null> {
       const result = await pool.query<UsageRow>(
         `select
@@ -354,11 +225,81 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
       return computeEstimate(usage, settings);
     },
 
+    async getAdminBillingDashboard(): Promise<AdminBillingDashboard> {
+      const settings = await this.getBillingSettings();
+      const result = await pool.query<{
+        openReceivableAmount: string | number;
+        openInvoiceCount: number;
+        overdueReceivableAmount: string | number;
+        overdueInvoiceCount: number;
+        collectedMonthAmount: string | number;
+        collectedMonthCount: number;
+        collectedYearAmount: string | number;
+      }>(
+        `select
+           coalesce((
+             select sum(amount_due) from platform_subscription_invoices
+             where status = 'issued'
+           ), 0) as "openReceivableAmount",
+           (
+             select count(*)::int from platform_subscription_invoices
+             where status = 'issued'
+           ) as "openInvoiceCount",
+           coalesce((
+             select sum(amount_due) from platform_subscription_invoices
+             where status = 'issued' and due_at < now()
+           ), 0) as "overdueReceivableAmount",
+           (
+             select count(*)::int from platform_subscription_invoices
+             where status = 'issued' and due_at < now()
+           ) as "overdueInvoiceCount",
+           coalesce((
+             select sum(amount_due) from platform_subscription_invoices
+             where status = 'paid'
+               and paid_at >= date_trunc('month', now())
+               and paid_at < date_trunc('month', now()) + interval '1 month'
+           ), 0) as "collectedMonthAmount",
+           (
+             select count(*)::int from platform_subscription_invoices
+             where status = 'paid'
+               and paid_at >= date_trunc('month', now())
+               and paid_at < date_trunc('month', now()) + interval '1 month'
+           ) as "collectedMonthCount",
+           coalesce((
+             select sum(amount_due) from platform_subscription_invoices
+             where status = 'paid'
+               and paid_at >= date_trunc('year', now())
+               and paid_at < date_trunc('year', now()) + interval '1 year'
+           ), 0) as "collectedYearAmount"`
+      );
+      const row = result.rows[0];
+      return {
+        currencyCode: settings.currencyCode,
+        openReceivableAmount: toNumber(row?.openReceivableAmount ?? 0),
+        openInvoiceCount: row?.openInvoiceCount ?? 0,
+        overdueReceivableAmount: toNumber(row?.overdueReceivableAmount ?? 0),
+        overdueInvoiceCount: row?.overdueInvoiceCount ?? 0,
+        collectedMonthAmount: toNumber(row?.collectedMonthAmount ?? 0),
+        collectedMonthCount: row?.collectedMonthCount ?? 0,
+        collectedYearAmount: toNumber(row?.collectedYearAmount ?? 0)
+      };
+    },
+
     async listInvoices(
       input: ListPlatformSubscriptionInvoicesInput = {}
     ): Promise<PlatformSubscriptionInvoiceListItem[]> {
       const limit = Math.min(input.limit ?? 50, 200);
       const offset = input.offset ?? 0;
+      const overdueOnly = input.overdueOnly === true;
+      const status = overdueOnly ? "issued" : (input.status ?? null);
+
+      let orderBy = "inv.period desc, inv.issued_at desc";
+      if (overdueOnly || status === "issued") {
+        orderBy = "inv.due_at asc, inv.period desc";
+      } else if (status === "paid") {
+        orderBy = "inv.paid_at desc nulls last, inv.period desc";
+      }
+
       const result = await pool.query<InvoiceRow>(
         `select
            ${INVOICE_SELECT},
@@ -373,13 +314,15 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
              or o.name ilike '%' || $4 || '%'
              or inv.organization_id ilike '%' || $4 || '%'
            )
-         order by inv.period desc, inv.issued_at desc
-         limit $5 offset $6`,
+           and ($5::boolean = false or (inv.status = 'issued' and inv.due_at < now()))
+         order by ${orderBy}
+         limit $6 offset $7`,
         [
           input.organizationId ?? null,
           input.period ?? null,
-          input.status ?? null,
+          status,
           input.search?.trim() || null,
+          overdueOnly,
           limit,
           offset
         ]
@@ -424,15 +367,8 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
         `select ${INVOICE_SELECT}
          from platform_subscription_invoices inv
          where inv.organization_id = $1
-           and inv.status in ('issued', 'pending_confirmation')
-           and (
-             inv.due_at < now()
-             or (
-               inv.status = 'pending_confirmation'
-               and inv.payment_reported_at is not null
-               and inv.payment_reported_at < now() - interval '7 days'
-             )
-           )
+           and inv.status = 'issued'
+           and inv.due_at < now()
          order by inv.due_at asc
          limit 1`,
         [organizationId]
@@ -465,27 +401,6 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
       return (result.rowCount ?? 0) > 0 ? "created" : "exists";
     },
 
-    async reportInvoicePayment(
-      input: ReportPlatformInvoicePaymentInput
-    ): Promise<PlatformSubscriptionInvoice | null> {
-      const result = await pool.query<InvoiceRow>(
-        `update platform_subscription_invoices as inv
-         set
-           status = 'pending_confirmation',
-           payment_reported_at = now(),
-           payment_reported_by_user_id = $3::uuid,
-           payment_note = $4,
-           updated_at = now()
-         where inv.id = $1
-           and inv.organization_id = $2
-           and inv.status = 'issued'
-         returning ${INVOICE_SELECT}`,
-        [input.invoiceId, input.organizationId, input.reportedByUserId, input.paymentNote ?? null]
-      );
-      const row = result.rows[0];
-      return row ? mapInvoice(row) : null;
-    },
-
     async confirmInvoicePaid(
       input: ConfirmPlatformInvoicePaidInput
     ): Promise<PlatformSubscriptionInvoice | null> {
@@ -497,7 +412,7 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
            paid_confirmed_by_user_id = $2::uuid,
            updated_at = now()
          where inv.id = $1
-           and inv.status in ('issued', 'pending_confirmation')
+           and inv.status = 'issued'
          returning ${INVOICE_SELECT}`,
         [input.invoiceId, input.confirmedByUserId]
       );
@@ -513,7 +428,7 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
            void_reason = $2,
            updated_at = now()
          where inv.id = $1
-           and inv.status in ('issued', 'pending_confirmation')
+           and inv.status = 'issued'
          returning ${INVOICE_SELECT}`,
         [input.invoiceId, input.voidReason ?? null]
       );

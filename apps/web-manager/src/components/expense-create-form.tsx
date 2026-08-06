@@ -6,6 +6,7 @@ import type { CreateExpenseOutput, UpdateExpenseOutput } from "@hhousing/api-con
 import type { ExpenseCategory } from "@hhousing/domain";
 import type { FinancePropertyOption, ExpenseDataset } from "../lib/finance-reporting.types";
 import { patchWithAuth, postWithAuth } from "../lib/api-client";
+import CreateSuccessBanner from "./create-success-banner";
 import posthog from "posthog-js";
 
 interface ExpenseCreateFormProps {
@@ -197,7 +198,17 @@ export default function ExpenseCreateForm({
         ) : null}
       </div>
 
-      {message ? <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{message}</div> : null}
+      {message ? (
+        <CreateSuccessBanner
+          className="mt-4"
+          message={message}
+          links={
+            !isEditing
+              ? [{ href: "/dashboard/expenses", label: "Retour à la liste" }]
+              : []
+          }
+        />
+      ) : null}
       {error ? <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
       <form onSubmit={handleSubmit} className="mt-5 grid gap-4 md:grid-cols-2">

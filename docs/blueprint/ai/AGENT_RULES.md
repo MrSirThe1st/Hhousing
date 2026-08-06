@@ -16,6 +16,7 @@ Core entities: Organization, Property, Unit, Lease, Tenant, Payment, Maintenance
 - Return `ApiResult<T>` — never raw DB or provider errors
 - No DB or privileged service calls from client/UI code
 - Reuse existing types, components, and logic before creating new
+- **Web UI consistency:** follow `docs/context/web-ui-consistency.md` (UniversalLoadingState overlay, TableSkeleton `loading.tsx`, shared alerts/buttons, create/upload stay-and-clear via `CreateSuccessBanner`) for every new web-manager screen or form
 ```ts
 type ApiResult<T> = { success: true; data: T } | { success: false; error: string };
 ```

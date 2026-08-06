@@ -259,4 +259,25 @@
       transform: translate3d(0, var(--hhousing-loader-travel), 0);
     }
   }
+
+  @keyframes hero-carousel-fade {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hero-carousel-fade {
+    animation: hero-carousel-fade 400ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-carousel-fade {
+      animation: none;
+    }
+  }
 }

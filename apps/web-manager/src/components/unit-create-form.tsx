@@ -8,6 +8,7 @@ import { postWithAuth } from "../lib/api-client";
 import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 import type { UnitFormState } from "./property-management.types";
 import UniversalLoadingState from "./universal-loading-state";
+import CreateSuccessBanner from "./create-success-banner";
 import posthog from "posthog-js";
 
 const INITIAL_UNIT_FORM: UnitFormState = {
@@ -144,6 +145,9 @@ export default function UnitCreateForm({
   });
   const [unitBusy, setUnitBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(null);
+  const [createdUnitId, setCreatedUnitId] = useState<string | null>(null);
+  const [lastCreatedCount, setLastCreatedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const selectedCreateProperty = useMemo(
@@ -168,6 +172,9 @@ export default function UnitCreateForm({
     setUnitBusy(true);
     setMessage(null);
     setError(null);
+    setCreatedPropertyId(null);
+    setCreatedUnitId(null);
+    setLastCreatedCount(0);
 
     const unitNumberBase = unitForm.unitNumber.trim();
     if (unitNumberBase.length === 0) {
@@ -256,6 +263,7 @@ export default function UnitCreateForm({
       }
 
       createdCount += 1;
+      setCreatedUnitId(result.data.unit.id);
     }
 
     posthog.capture("unit_created", {
@@ -263,13 +271,15 @@ export default function UnitCreateForm({
       unit_count: createdCount
     });
 
+    const propertyId = unitForm.propertyId;
     setUnitForm({
       ...INITIAL_UNIT_FORM,
-      propertyId: unitForm.propertyId
+      propertyId
     });
+    setCreatedPropertyId(propertyId);
+    setLastCreatedCount(createdCount);
     setMessage(unitCount === 1 ? "Unité créée avec succès." : `${unitCount} unités créées avec succès.`);
     setUnitBusy(false);
-    router.push("/dashboard/properties");
     router.refresh();
   }
 
@@ -455,9 +465,18 @@ export default function UnitCreateForm({
         </div>
 
         {message ? (
-          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {message}
-          </div>
+          <CreateSuccessBanner
+            message={message}
+            links={[
+              ...(createdUnitId && lastCreatedCount === 1
+                ? [{ href: `/dashboard/units/${createdUnitId}`, label: "Voir l'unité" }]
+                : []),
+              ...(createdPropertyId
+                ? [{ href: `/dashboard/properties/${createdPropertyId}`, label: "Voir le bien" }]
+                : []),
+              { href: "/dashboard/properties", label: "Retour à la liste" }
+            ]}
+          />
         ) : null}
         {error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

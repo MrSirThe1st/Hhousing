@@ -14,7 +14,7 @@ export default function AdminInvoiceActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (status !== "issued" && status !== "pending_confirmation") {
+  if (status !== "issued") {
     return null;
   }
 

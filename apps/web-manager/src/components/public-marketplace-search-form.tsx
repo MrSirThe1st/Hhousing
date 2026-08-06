@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicMarketplaceSearchParams } from "../app/public-site-data";
 
@@ -30,16 +30,7 @@ export default function PublicMarketplaceSearchForm({
   const [propertyType, setPropertyType] = useState(values?.propertyType ?? "");
   const [minRent, setMinRent] = useState(values?.minRent ?? "");
   const [maxRent, setMaxRent] = useState(values?.maxRent ?? "");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Additional Filters States
-  const [bedrooms, setBedrooms] = useState("");
-  const [bathrooms, setBathrooms] = useState("");
-  const [minSize, setMinSize] = useState("");
-  const [maxSize, setMaxSize] = useState("");
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
-  // Sync state if initial values change
   useEffect(() => {
     setQ(values?.q ?? "");
     setCity(values?.city ?? "");
@@ -48,24 +39,7 @@ export default function PublicMarketplaceSearchForm({
     setMaxRent(values?.maxRent ?? "");
   }, [values]);
 
-  function toggleAmenity(id: string) {
-    setSelectedAmenities(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  }
-
-  let activeFilterCount = 0;
-  if (propertyType) activeFilterCount++;
-  if (minRent) activeFilterCount++;
-  if (maxRent) activeFilterCount++;
-  if (city) activeFilterCount++;
-  if (bedrooms) activeFilterCount++;
-  if (bathrooms) activeFilterCount++;
-  if (minSize) activeFilterCount++;
-  if (maxSize) activeFilterCount++;
-  activeFilterCount += selectedAmenities.length;
-  
-  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
     const params = new URLSearchParams();
     if (q.trim()) params.set("q", q.trim());
@@ -73,382 +47,96 @@ export default function PublicMarketplaceSearchForm({
     if (propertyType) params.set("propertyType", propertyType);
     if (minRent) params.set("minRent", minRent);
     if (maxRent) params.set("maxRent", maxRent);
-    if (bedrooms) params.set("bedrooms", bedrooms);
-    if (bathrooms) params.set("bathrooms", bathrooms);
-    if (minSize) params.set("minSize", minSize);
-    if (maxSize) params.set("maxSize", maxSize);
-    selectedAmenities.forEach(id => {
-      params.set(id, "on");
-    });
     router.push(`${action}?${params.toString()}`);
   }
 
   if (actualVariant === "hero") {
     return (
-      <div className="w-full max-w-4xl mx-auto px-4">
-        <form onSubmit={handleFormSubmit} className="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden text-left">
-          {/* Hidden inputs for additional filters so they are submitted even when modal is closed */}
-          <input type="hidden" name="bedrooms" value={bedrooms} />
-          <input type="hidden" name="bathrooms" value={bathrooms} />
-          <input type="hidden" name="minSize" value={minSize} />
-          <input type="hidden" name="maxSize" value={maxSize} />
-          {selectedAmenities.map(id => (
-            <input key={id} type="hidden" name={id} value="on" />
-          ))}
+      <div className="mx-auto w-full max-w-5xl">
+        <p className="mb-4 text-center text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-xl">
+          Que recherchez-vous&nbsp;?
+        </p>
 
-          {/* Desktop Search Input Row (Hidden on Mobile) */}
-          <div className="hidden md:flex md:items-center p-2.5 gap-2">
-            {/* Search Input (q) */}
-            <div className="flex-1 flex flex-col justify-center px-4 py-1.5 border-r border-slate-200">
-              <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-0.5">Recherche</label>
-              <div className="flex items-center min-w-0">
-                <div className="text-slate-400 mr-2 shrink-0">
-                  <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Ville, commune ou quartier..."
-                  className="w-full bg-transparent border-0 p-0 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0"
-                />
-              </div>
-            </div>
+        <form
+          onSubmit={handleFormSubmit}
+          className="rounded-[1.75rem] bg-slate-200/50 p-1.5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] dark:bg-slate-800/60"
+        >
+          <div className="flex flex-col gap-2 rounded-[1.35rem] border border-slate-200/80 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-[#0d1526] md:flex-row md:items-center md:gap-0 md:p-1.5 md:pl-2">
+            <label className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 md:rounded-none md:border-r md:border-slate-200 md:py-1.5 dark:md:border-slate-700">
+              <span className="shrink-0 text-slate-400" aria-hidden="true">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <span className="sr-only">Ville, commune ou quartier</span>
+              <input
+                type="text"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Ville, commune ou quartier"
+                className="w-full min-w-0 border-0 bg-transparent p-0 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500"
+              />
+            </label>
 
-            {/* Loyer Min Dropdown */}
-            <div className="w-36 flex flex-col justify-center px-4 py-1.5 border-r border-slate-200">
-              <label className="block text-[10px] text-slate-455 font-bold uppercase tracking-wider mb-0.5">Loyer Min</label>
+            <label className="relative flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 md:w-[11.5rem] md:rounded-none md:border-r md:border-slate-200 md:py-1.5 dark:md:border-slate-700 lg:w-[13rem]">
+              <span className="shrink-0 text-slate-400" aria-hidden="true">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </span>
+              <span className="sr-only">Type de bien</span>
               <select
-                value={minRent}
-                onChange={(e) => setMinRent(e.target.value)}
-                className="w-full bg-transparent border-0 p-0 text-sm font-semibold text-slate-800 focus:ring-0 focus:outline-none cursor-pointer appearance-none"
+                value={propertyType}
+                onChange={(e) => setPropertyType(e.target.value)}
+                className="w-full min-w-0 cursor-pointer appearance-none border-0 bg-transparent p-0 pr-5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 dark:text-slate-100"
               >
-                <option value="">Indifférent</option>
-                <option value="0">0 $</option>
-                <option value="100">100 $</option>
-                <option value="200">200 $</option>
-                <option value="500">500 $</option>
-                <option value="1000">1000 $</option>
-                <option value="1500">1500 $</option>
+                <option value="">Type de bien</option>
+                <option value="single_unit">Maison / unité</option>
+                <option value="multi_unit">Immeuble</option>
               </select>
-            </div>
+              <span className="pointer-events-none absolute right-3 text-slate-400" aria-hidden="true">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </label>
 
-            {/* Loyer Max Dropdown */}
-            <div className="w-36 flex flex-col justify-center px-4 py-1.5 border-r border-slate-200">
-              <label className="block text-[10px] text-slate-460 font-bold uppercase tracking-wider mb-0.5">Loyer Max</label>
-              <select
+            <label className="flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 md:w-[11.5rem] md:rounded-none md:py-1.5 lg:w-[13rem]">
+              <span className="shrink-0 text-slate-400" aria-hidden="true">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              <span className="sr-only">Budget maximum</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={50}
                 value={maxRent}
                 onChange={(e) => setMaxRent(e.target.value)}
-                className="w-full bg-transparent border-0 p-0 text-sm font-semibold text-slate-800 focus:ring-0 focus:outline-none cursor-pointer appearance-none"
-              >
-                <option value="">Indifférent</option>
-                <option value="500">500 $</option>
-                <option value="1000">1000 $</option>
-                <option value="1500">1500 $</option>
-                <option value="2000">2000 $</option>
-                <option value="2500">2500 $</option>
-                <option value="5000">5000 $</option>
-                <option value="10000">10000 $</option>
-              </select>
-            </div>
+                placeholder="Budget maximum"
+                className="w-full min-w-0 border-0 bg-transparent p-0 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            </label>
 
-            {/* Filter Trigger Button */}
-            <div className="flex items-center justify-center px-2">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className={`rounded-2xl px-4 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer h-11 border ${
-                  isModalOpen || activeFilterCount > 0
-                    ? "bg-blue-50 border-blue-200 text-[#0063FE]"
-                    : "bg-slate-50 border-slate-250/50 text-slate-650 hover:bg-slate-100 hover:text-slate-800"
-                }`}
-              >
-                {activeFilterCount > 0 && (
-                  <span className="bg-[#0063FE] text-white rounded-full h-4.5 w-4.5 flex items-center justify-center text-[9px] font-bold">
-                    {activeFilterCount}
-                  </span>
-                )}
-                <span>Filtres</span>
-                <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Submit Button */}
-            <div className="pl-1">
+            <div className="shrink-0 md:pl-1.5">
               <button
                 type="submit"
-                className="bg-[#0063FE] hover:bg-[#0052d4] text-white font-bold text-sm px-6 rounded-2xl transition duration-150 cursor-pointer h-11 flex items-center justify-center shadow-sm"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0063FE] px-5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition hover:bg-[#0052d4] md:w-auto"
               >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
                 {submitLabel}
               </button>
             </div>
           </div>
-
-          {/* Mobile Search Input Row (Hidden on Desktop) */}
-          <div className="flex flex-col md:hidden p-4 gap-3 bg-white">
-            {/* Search Input (q) */}
-            <div className="flex flex-col rounded-2xl border border-slate-250/70 p-3.5 bg-slate-50/50">
-              <label className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Recherche</label>
-              <div className="flex items-center min-w-0">
-                <div className="text-slate-400 mr-2 shrink-0">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Commune, ville ou quartier..."
-                  className="w-full bg-transparent border-0 p-0 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Filter Trigger Button (Opens Pop out modal) */}
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className={`border rounded-2xl px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer h-11 flex-1 ${
-                  isModalOpen || activeFilterCount > 0
-                    ? "bg-blue-50 border-blue-200 text-[#0063FE]"
-                    : "bg-white border-slate-200 text-slate-650 hover:bg-slate-50"
-                }`}
-              >
-                {activeFilterCount > 0 && (
-                  <span className="bg-[#0063FE] text-white rounded-full h-4.5 w-4.5 flex items-center justify-center text-[9px] font-bold">
-                    {activeFilterCount}
-                  </span>
-                )}
-                <span>Filtres</span>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </button>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="bg-[#0063FE] hover:bg-[#0052d4] text-white font-bold text-sm px-6 rounded-2xl transition duration-150 cursor-pointer flex-1 text-center h-11 flex items-center justify-center shadow-sm"
-              >
-                {submitLabel}
-              </button>
-            </div>
-          </div>          {/* Pop out Modal for advanced filters */}
-          {isModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-              <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 animate-in fade-in-50 zoom-in-95 duration-150 text-left">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">Filtres de recherche</h3>
-                    <p className="text-xs text-slate-500 mt-1">Personnalisez vos critères pour trouver le logement idéal</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Modal Body */}
-                <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-1">
-                  {/* City & Property Type */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Ville de recherche</label>
-                      <input
-                        type="text"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        placeholder="Ex: Kinshasa"
-                        className="w-full rounded-xl border border-slate-200/80 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 placeholder-slate-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Type de bien</label>
-                      <select
-                        name="propertyType"
-                        value={propertyType}
-                        onChange={(e) => setPropertyType(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200/80 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 cursor-pointer"
-                      >
-                        <option value="">Tous les types</option>
-                        <option value="single_unit">Unité simple</option>
-                        <option value="multi_unit">Immeuble multi-unités</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Rent Range (Loyer Min / Max) */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Loyer Min ($)</label>
-                      <input
-                        type="number"
-                        value={minRent}
-                        onChange={(e) => setMinRent(e.target.value)}
-                        placeholder="0"
-                        className="w-full rounded-xl border border-slate-200/80 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 placeholder-slate-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Loyer Max ($)</label>
-                      <input
-                        type="number"
-                        value={maxRent}
-                        onChange={(e) => setMaxRent(e.target.value)}
-                        placeholder="2500"
-                        className="w-full rounded-xl border border-slate-200/80 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 placeholder-slate-400"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Bedrooms */}
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Chambres (Bedrooms)</label>
-                      <select
-                        value={bedrooms}
-                        onChange={(e) => setBedrooms(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200/80 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 cursor-pointer"
-                      >
-                        <option value="">Indifférent</option>
-                        <option value="studio">Studio</option>
-                        <option value="1">1 chambre</option>
-                        <option value="2">2 chambres</option>
-                        <option value="3">3+ chambres</option>
-                      </select>
-                    </div>
-
-                    {/* Bathrooms */}
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Salles de bain (Bathrooms)</label>
-                      <select
-                        value={bathrooms}
-                        onChange={(e) => setBathrooms(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200/80 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 cursor-pointer"
-                      >
-                        <option value="">Indifférent</option>
-                        <option value="1">1 salle de bain</option>
-                        <option value="2">2 salles de bain</option>
-                        <option value="3">3+ salles de bain</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Size range */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Superficie min (m²)</label>
-                      <input
-                        type="number"
-                        value={minSize}
-                        onChange={(e) => setMinSize(e.target.value)}
-                        placeholder="Ex: 20"
-                        className="w-full rounded-xl border border-slate-200/80 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 placeholder-slate-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-1.5">Superficie max (m²)</label>
-                      <input
-                        type="number"
-                        value={maxSize}
-                        onChange={(e) => setMaxSize(e.target.value)}
-                        placeholder="Ex: 500"
-                        className="w-full rounded-xl border border-slate-200/80 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none bg-slate-50/20 text-slate-800 placeholder-slate-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Categories & Amenities checkbox selection */}
-                  <div>
-                    <h4 className="text-[10px] text-slate-450 font-bold uppercase tracking-wider mb-3">Équipements & Critères</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {[
-                        { id: "wifi", label: "Wi-Fi" },
-                        { id: "parking", label: "Parking" },
-                        { id: "pool", label: "Piscine" },
-                        { id: "ac", label: "Climatisation" },
-                        { id: "security", label: "Sécurité 24/7" },
-                        { id: "garden", label: "Jardin" },
-                        { id: "balcony", label: "Balcon" },
-                        { id: "furnished", label: "Meublé" }
-                      ].map((item) => {
-                        const isChecked = selectedAmenities.includes(item.id);
-                        return (
-                          <label key={item.id} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleAmenity(item.id)}
-                              className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
-                            />
-                            <span className="font-semibold text-slate-650 text-xs">{item.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Modal Footer */}
-                <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCity("");
-                      setPropertyType("");
-                      setMinRent("");
-                      setMaxRent("");
-                      setBedrooms("");
-                      setBathrooms("");
-                      setMinSize("");
-                      setMaxSize("");
-                      setSelectedAmenities([]);
-                    }}
-                    className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition cursor-pointer"
-                  >
-                    Réinitialiser
-                  </button>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      type="submit"
-                      onClick={() => setIsModalOpen(false)}
-                      className="rounded-xl bg-[#0063FE] hover:bg-[#0052d4] px-5 py-2 text-sm font-semibold text-white transition cursor-pointer"
-                    >
-                      Appliquer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </form>
       </div>
     );
   }
 
-  // Original compact view
   return (
     <form action={action} method="get" className={`border border-slate-200 bg-white shadow-sm ${compact ? "rounded-3xl px-4 py-4" : "rounded-4xl px-5 py-5"}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
@@ -483,7 +171,7 @@ export default function PublicMarketplaceSearchForm({
             name="propertyType"
             value={propertyType}
             onChange={(e) => setPropertyType(e.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white"
+            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
           >
             <option value="">Tous</option>
             <option value="single_unit">Unité simple</option>
@@ -513,7 +201,7 @@ export default function PublicMarketplaceSearchForm({
           />
         </label>
         <div className="flex gap-3 lg:pb-0.5">
-          <button type="submit" className="rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white cursor-pointer">
+          <button type="submit" className="cursor-pointer rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white">
             {submitLabel}
           </button>
           {resetHref ? (

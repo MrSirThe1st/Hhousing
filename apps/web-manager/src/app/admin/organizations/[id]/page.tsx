@@ -79,7 +79,7 @@ export default async function AdminOrganizationDetailPage({
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Abonnement SaaS</h3>
+          <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Facturation SaaS</h3>
           <Link href="/admin/billing" className="text-sm text-[#0063fe] hover:underline">
             Facturation
           </Link>

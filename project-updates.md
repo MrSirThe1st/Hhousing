@@ -2,6 +2,18 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-08-06
+- Type: Frontend
+- Description: Rebuilt the public navbar around Solutions / Fonctionnalités / Catalogue / Tarifs, with stronger Se connecter + Créer un compte CTAs; removed Cas d'usage from nav.
+- Impact: Updated `apps/web-manager/src/components/public-site-navbar.tsx` and landing Solutions section copy in `apps/web-manager/src/app/page.tsx`.
+- Tests: deferred (marketing nav UI)
+
+## 2026-08-06
+- Type: Frontend
+- Description: Replaced the static landing-page cover hero with a 3-slide split carousel (property management → catalogue → tenant app) and moved the marketplace search form into a strip directly under the carousel.
+- Impact: Added `apps/web-manager/src/components/public-hero-carousel.tsx`; updated `apps/web-manager/src/app/page.tsx` and `apps/web-manager/src/app/globals.css`.
+- Tests: deferred (UI-only marketing surface; typecheck clean for new files)
+
 ## 2026-07-04
 - Change type: Web + Frontend
 - Description: Normalized country inputs to select dropdowns restricted to the DRC, corrected the city select component to show only the 35 official administrative cities, and replaced all province text inputs with a custom dropdown select populated with the 26 official provinces of the DRC.
