@@ -40,7 +40,14 @@ export async function GET(): Promise<Response> {
           freePropertyThreshold: settings.freePropertyThreshold
         },
         overdueInvoice: overdue,
-        billingWritable: dashboardAccess.billingWritable
+        billingWritable: dashboardAccess.billingWritable,
+        payment: {
+          pawapayEnabled:
+            process.env.PAWAPAY_SAAS_ENABLED === "1" ||
+            process.env.PAWAPAY_SAAS_ENABLED === "true" ||
+            process.env.NEXT_PUBLIC_PAWAPAY_SAAS_ENABLED === "1" ||
+            process.env.NEXT_PUBLIC_PAWAPAY_SAAS_ENABLED === "true"
+        }
       }
     });
   } catch (error) {

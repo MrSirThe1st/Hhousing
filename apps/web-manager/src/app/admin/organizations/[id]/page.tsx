@@ -111,7 +111,7 @@ export default async function AdminOrganizationDetailPage({
                   href={`/admin/billing/invoices/${invoice.id}`}
                   className="font-medium text-[#010a19] hover:underline dark:text-white"
                 >
-                  {invoice.period}
+                  {invoice.invoiceNumber} · {invoice.period}
                 </Link>
                 <span className="text-slate-500">
                   {invoice.amountDue.toLocaleString("fr-FR", {

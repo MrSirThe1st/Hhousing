@@ -5,10 +5,12 @@ import { useState } from "react";
 
 export default function AdminInvoiceActions({
   invoiceId,
-  status
+  status,
+  compact = false
 }: {
   invoiceId: string;
   status: string;
+  compact?: boolean;
 }): React.ReactElement | null {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -45,21 +47,25 @@ export default function AdminInvoiceActions({
     }
   }
 
+  const buttonClass = compact
+    ? "rounded-md px-2 py-1 text-xs font-medium disabled:opacity-60"
+    : "rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-60";
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={`flex flex-wrap items-center gap-2 ${compact ? "" : ""}`}>
       <button
         type="button"
         disabled={busy}
         onClick={() => void run("confirm_paid")}
-        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+        className={`${buttonClass} bg-emerald-600 text-white`}
       >
-        Confirmer payé
+        Confirmer
       </button>
       <button
         type="button"
         disabled={busy}
         onClick={() => void run("void")}
-        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium dark:border-slate-700"
+        className={`${buttonClass} border border-slate-200 dark:border-slate-700`}
       >
         Annuler
       </button>

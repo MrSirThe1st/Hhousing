@@ -4,7 +4,8 @@ import {
   LEGAL_CONTACT_EMAIL,
   LEGAL_JURISDICTION,
   LEGAL_PRIVACY_EMAIL,
-  LEGAL_SITE_NAME
+  LEGAL_SITE_NAME,
+  LEGAL_SUPPORT_EMAIL
 } from "../../lib/legal/site-legal";
 
 export const metadata = buildLegalMetadata(
@@ -109,7 +110,7 @@ export default function TermsOfServicePage(): React.ReactElement {
       <p>
         Nous visons une haute disponibilité mais ne garantissons pas un fonctionnement ininterrompu. Des maintenances,
         mises à jour ou incidents chez nos prestataires peuvent entraîner des interruptions temporaires. Le support est
-        fourni dans la mesure du possible via <a href={`mailto:${LEGAL_CONTACT_EMAIL}`}>{LEGAL_CONTACT_EMAIL}</a>.
+        fourni dans la mesure du possible via <a href={`mailto:${LEGAL_SUPPORT_EMAIL}`}>{LEGAL_SUPPORT_EMAIL}</a>.
       </p>
 
       <h2>10. Limitation de responsabilité</h2>

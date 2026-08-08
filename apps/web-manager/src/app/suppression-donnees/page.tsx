@@ -2,9 +2,9 @@ import Link from "next/link";
 import LegalDocumentPage, { buildLegalMetadata } from "../../components/legal-document-page";
 import {
   LEGAL_COMPANY_NAME,
-  LEGAL_CONTACT_EMAIL,
   LEGAL_PRIVACY_EMAIL,
-  LEGAL_SITE_NAME
+  LEGAL_SITE_NAME,
+  LEGAL_SUPPORT_EMAIL
 } from "../../lib/legal/site-legal";
 
 export const metadata = buildLegalMetadata(
@@ -102,7 +102,7 @@ export default function DataDeletionPage(): React.ReactElement {
 
       <h2>8. Autres contacts</h2>
       <p>
-        Questions générales : <a href={`mailto:${LEGAL_CONTACT_EMAIL}`}>{LEGAL_CONTACT_EMAIL}</a>
+        Questions générales : <a href={`mailto:${LEGAL_SUPPORT_EMAIL}`}>{LEGAL_SUPPORT_EMAIL}</a>
         <br />
         Politique de confidentialité : <Link href="/politique-de-confidentialite">/politique-de-confidentialite</Link>
         <br />

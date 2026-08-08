@@ -7,4 +7,5 @@ export const LEGAL_URLS = {
   dataDeletion: `${LEGAL_SITE_BASE_URL}/suppression-donnees`
 } as const;
 
-export const SUPPORT_EMAIL = "contact@harakaproperty.com";
+/** Tawk.to ticket forwarding inbox — use for product support mailto links. */
+export const SUPPORT_EMAIL = "tickets@haraka.p.tawk.email";

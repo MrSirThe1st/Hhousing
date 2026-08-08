@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createListingRepo } from "../api/shared";
 import PublicListingCard from "../../components/public-listing-card";
+import PublicMarketplacePagination from "../../components/public-marketplace-pagination";
 import PublicMarketplaceSearchForm from "../../components/public-marketplace-search-form";
 import PublicSiteFooter from "../../components/public-site-footer";
 import PublicSiteNavbar from "../../components/public-site-navbar";
-import { buildPublicListingFilter, type PublicMarketplaceSearchParams } from "../public-site-data";
+import {
+  buildPublicListingFilter,
+  firstSearchParam,
+  MARKETPLACE_PAGE_SIZE,
+  parseMarketplacePage,
+  type PublicMarketplaceSearchParams
+} from "../public-site-data";
 
 export const metadata: Metadata = {
   title: "Annonces Immobilières & Logements à Louer en RDC — Haraka Property",
@@ -32,6 +39,21 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     console.error("Failed to fetch public listings on marketplace page:", error);
   }
 
+  const totalCount = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / MARKETPLACE_PAGE_SIZE));
+  const currentPage = Math.min(parseMarketplacePage(params?.page), totalPages);
+  const pageStart = (currentPage - 1) * MARKETPLACE_PAGE_SIZE;
+  const pageItems = items.slice(pageStart, pageStart + MARKETPLACE_PAGE_SIZE);
+  const rangeStart = totalCount === 0 ? 0 : pageStart + 1;
+  const rangeEnd = Math.min(pageStart + MARKETPLACE_PAGE_SIZE, totalCount);
+  const hasActiveFilters = Boolean(
+    firstSearchParam(params?.q) ||
+      firstSearchParam(params?.city) ||
+      firstSearchParam(params?.propertyType) ||
+      firstSearchParam(params?.minRent) ||
+      firstSearchParam(params?.maxRent)
+  );
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950 dark:bg-[#0a1120] dark:text-slate-100">
       <PublicSiteNavbar />
@@ -48,16 +70,9 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-900/20 dark:to-slate-950/20" />
 
         <div className="relative mx-auto max-w-7xl px-6 lg:px-10 text-center flex flex-col items-center justify-center w-full z-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white/95 shadow-sm backdrop-blur-md">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-            Annonces disponibles
-          </div>
-          <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-white max-w-3xl">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-white max-w-3xl">
             Trouvez le logement idéal
           </h1>
-          <p className="mt-4 text-sm md:text-base text-slate-300 max-w-2xl">
-            Parcourez {items.length} annonce{items.length > 1 ? "s" : ""} de logements disponibles et trouvez celui qui correspond à vos besoins.
-          </p>
         </div>
       </section>
 
@@ -68,32 +83,23 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
       {/* Main Results Listing Grid */}
       <section className="mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-16">
-        {/* Results Header with Breadcrumbs & Clean Back Button */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/60 pb-6">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
-              <Link href="/" className="hover:text-slate-700 transition">Accueil</Link>
-              <span>/</span>
-              <span className="text-[#0063FE]">Marketplace</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {items.length} logement{items.length > 1 ? "s" : ""} trouvé{items.length > 1 ? "s" : ""}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {params ? "Résultats filtrés selon vos critères" : "Tous les logements disponibles"}
-            </p>
+        <div className="mb-8 border-b border-slate-200/60 pb-6">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+            <Link href="/" className="hover:text-slate-700 transition">Accueil</Link>
+            <span>/</span>
+            <span className="text-[#0063FE]">Marketplace</span>
           </div>
-          
-          <Link href="/" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-650 shadow-xs hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 transition duration-205 self-start">
-            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Retour à l'accueil
-          </Link>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            {totalCount} logement{totalCount > 1 ? "s" : ""} trouvé{totalCount > 1 ? "s" : ""}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {hasActiveFilters ? "Résultats filtrés selon vos critères" : "Tous les logements disponibles"}
+            {totalCount > 0 ? ` · Affichage ${rangeStart}–${rangeEnd}` : null}
+          </p>
         </div>
 
         <div>
-          {items.length === 0 ? (
+          {totalCount === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white px-6 py-20 text-center shadow-xs max-w-2xl mx-auto">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400">
                 <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -107,11 +113,21 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
               </Link>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {items.map((item) => (
-                <PublicListingCard key={item.listing.id} item={item} compact showShareActions={false} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {pageItems.map((item) => (
+                  <PublicListingCard key={item.listing.id} item={item} compact showShareActions={false} />
+                ))}
+              </div>
+
+              {totalPages > 1 ? (
+                <PublicMarketplacePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  params={params}
+                />
+              ) : null}
+            </>
           )}
         </div>
       </section>

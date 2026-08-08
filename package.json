@@ -9,9 +9,14 @@
     "build": "pnpm -C apps/web-manager build",
     "mobile:dev": "pnpm -C apps/mobile-tenant dev",
     "android": "pnpm -C apps/mobile-tenant android",
-    "ios": "pnpm -C apps/mobile-tenant ios"
+    "ios": "pnpm -C apps/mobile-tenant ios",
+    "seed:demo": "node apps/web-manager/scripts/seed-demo-data.mjs",
+    "seed:demo:wipe": "node apps/web-manager/scripts/seed-demo-data.mjs --wipe-seed-data",
+    "seed:demo:refresh": "node apps/web-manager/scripts/seed-demo-data.mjs --wipe-seed-data --seed"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "@supabase/supabase-js": "^2.100.1",
     "@types/pg": "^8.20.0",
     "pg": "^8.20.0"
   },

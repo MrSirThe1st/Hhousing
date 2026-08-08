@@ -225,9 +225,11 @@ export type {
   ListPlatformSubscriptionInvoicesInput,
   AdminBillingDashboard,
   PlatformSubscriptionInvoiceListItem,
+  OrganizationBillingSnapshot,
   CreatePlatformSubscriptionInvoiceInput,
   ConfirmPlatformInvoicePaidInput,
   VoidPlatformInvoiceInput,
+  ReportPlatformInvoicePaymentInput,
   GenerateSaasInvoicesResult
 } from "./platform-billing/platform-billing-record.types";
 export {

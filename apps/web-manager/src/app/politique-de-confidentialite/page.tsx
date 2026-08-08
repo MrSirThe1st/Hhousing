@@ -1,10 +1,10 @@
 import LegalDocumentPage, { buildLegalMetadata } from "../../components/legal-document-page";
 import {
   LEGAL_COMPANY_NAME,
-  LEGAL_CONTACT_EMAIL,
   LEGAL_JURISDICTION,
   LEGAL_PRIVACY_EMAIL,
-  LEGAL_SITE_NAME
+  LEGAL_SITE_NAME,
+  LEGAL_SUPPORT_EMAIL
 } from "../../lib/legal/site-legal";
 
 export const metadata = buildLegalMetadata(
@@ -165,7 +165,7 @@ export default function PrivacyPolicyPage(): React.ReactElement {
 
       <h2>13. Contact</h2>
       <p>
-        Questions générales : <a href={`mailto:${LEGAL_CONTACT_EMAIL}`}>{LEGAL_CONTACT_EMAIL}</a>
+        Questions générales : <a href={`mailto:${LEGAL_SUPPORT_EMAIL}`}>{LEGAL_SUPPORT_EMAIL}</a>
         <br />
         Données personnelles et confidentialité :{" "}
         <a href={`mailto:${LEGAL_PRIVACY_EMAIL}`}>{LEGAL_PRIVACY_EMAIL}</a>

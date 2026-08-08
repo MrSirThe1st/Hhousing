@@ -1,5 +1,7 @@
 "use client";
 
+import { LEGAL_SITE_NAME, LEGAL_SUPPORT_EMAIL } from "../lib/legal/site-legal";
+
 declare global {
   interface Window {
     Tawk_API?: {
@@ -21,9 +23,8 @@ export default function ContactBillingSupportButton(): React.ReactElement {
       api.toggle();
       return;
     }
-    window.alert(
-      "Ouvrez le chat support (icône en bas à droite) pour obtenir les instructions de paiement Haraka Property."
-    );
+    const subject = encodeURIComponent(`Support facturation — ${LEGAL_SITE_NAME}`);
+    window.location.href = `mailto:${LEGAL_SUPPORT_EMAIL}?subject=${subject}`;
   }
 
   return (

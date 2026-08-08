@@ -296,7 +296,9 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
 
       const result = await pool.query<PlatformUserListItem & QueryResultRow>(
         `with known_users as (
-           select distinct user_id::uuid as user_id from organization_memberships
+           select distinct user_id::uuid as user_id
+           from organization_memberships
+           where user_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
            union
            select distinct user_id from owner_portal_accesses
            union
@@ -330,7 +332,7 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
            ) as "isPlatformAdmin",
            au.created_at::text as "createdAtIso"
          from known_users ku
-         left join auth.users au on au.id = ku.user_id
+         inner join auth.users au on au.id = ku.user_id
          left join platform_user_statuses pus on pus.user_id = ku.user_id
          where ($1::text is null or au.email ilike '%' || $1 || '%' or ku.user_id::text ilike '%' || $1 || '%')
            and ($2::text is null or coalesce(pus.status, 'active') = $2)
@@ -383,7 +385,7 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
         `select exists(
            select 1 from auth.users where id = $1::uuid
          ) or exists(
-           select 1 from organization_memberships where user_id = $1
+           select 1 from organization_memberships where user_id = $1::text
          ) or exists(
            select 1 from owner_portal_accesses where user_id = $1::uuid
          ) or exists(
@@ -414,7 +416,7 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
            om.created_at::text as "createdAtIso"
          from organization_memberships om
          join organizations org on org.id = om.organization_id
-         where om.user_id = $1
+         where om.user_id = $1::text
          order by om.created_at desc`,
         [userId]
       );

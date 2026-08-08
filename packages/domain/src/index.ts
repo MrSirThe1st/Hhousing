@@ -83,8 +83,11 @@ export type {
   PlatformBillingSettings,
   PlatformSubscriptionInvoice,
   PlatformSubscriptionInvoiceStatus,
+  PlatformBillingDisplayStatus,
+  PlatformSaasPaymentMethod,
   OrganizationUsageSnapshot,
   PlatformBillingEstimate
 } from "./entities/platform-billing.types";
+export { resolvePlatformBillingDisplayStatus } from "./entities/platform-billing.types";
 export type { MonthlyProrationInput, MonthlyProrationResult } from "./proration/monthly-proration.types";
 export { calculateMonthlyProration } from "./proration/calculate-monthly-proration";

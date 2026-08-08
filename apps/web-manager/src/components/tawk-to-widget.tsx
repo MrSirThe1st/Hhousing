@@ -4,7 +4,7 @@ import Script from "next/script";
 import { usePathname } from "next/navigation";
 
 const DEFAULT_PROPERTY_ID = "6a732b3e2502921d483ec339";
-const DEFAULT_WIDGET_ID = "1jv8u1rsu";
+const DEFAULT_WIDGET_ID = "1jvgcml3v";
 
 /**
  * Loads Tawk.to on public + operator surfaces.

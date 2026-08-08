@@ -1,12 +1,20 @@
 import type { PublicListingFilter } from "@hhousing/api-contracts";
 
 export type PublicMarketplaceSearchParams = {
-  q?: string;
-  city?: string;
-  minRent?: string;
-  maxRent?: string;
-  propertyType?: string;
+  q?: string | string[];
+  city?: string | string[];
+  minRent?: string | string[];
+  maxRent?: string | string[];
+  propertyType?: string | string[];
+  page?: string | string[];
 };
+
+export function firstSearchParam(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+}
 
 export const FEATURE_GROUPS = [
   {
@@ -92,25 +100,57 @@ export const PRICING_TIERS = [
 
 
 export const MARKETPLACE_PREVIEW_LIMIT = 8;
+export const MARKETPLACE_PAGE_SIZE = 12;
 
-export function parseOptionalNumber(value: string | undefined): number | null {
-  if (!value) {
+export function parseMarketplacePage(value: string | string[] | undefined): number {
+  const parsed = Number(firstSearchParam(value));
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 1;
+  }
+  return Math.floor(parsed);
+}
+
+export function buildMarketplaceHref(
+  params: PublicMarketplaceSearchParams | undefined,
+  page: number
+): string {
+  const search = new URLSearchParams();
+  const q = firstSearchParam(params?.q)?.trim();
+  const city = firstSearchParam(params?.city)?.trim();
+  const propertyType = firstSearchParam(params?.propertyType);
+  const minRent = firstSearchParam(params?.minRent);
+  const maxRent = firstSearchParam(params?.maxRent);
+
+  if (q) search.set("q", q);
+  if (city) search.set("city", city);
+  if (propertyType) search.set("propertyType", propertyType);
+  if (minRent) search.set("minRent", minRent);
+  if (maxRent) search.set("maxRent", maxRent);
+  if (page > 1) search.set("page", String(page));
+  const query = search.toString();
+  return query ? `/marketplace?${query}` : "/marketplace";
+}
+
+export function parseOptionalNumber(value: string | string[] | undefined): number | null {
+  const raw = firstSearchParam(value);
+  if (!raw) {
     return null;
   }
 
-  const parsed = Number(value);
+  const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function buildPublicListingFilter(params?: PublicMarketplaceSearchParams): PublicListingFilter {
+  const propertyType = firstSearchParam(params?.propertyType);
   return {
-    q: params?.q?.trim() || null,
-    city: params?.city?.trim() || null,
+    q: firstSearchParam(params?.q)?.trim() || null,
+    city: firstSearchParam(params?.city)?.trim() || null,
     minRent: parseOptionalNumber(params?.minRent),
     maxRent: parseOptionalNumber(params?.maxRent),
     propertyType:
-      params?.propertyType === "single_unit" || params?.propertyType === "multi_unit"
-        ? params.propertyType
+      propertyType === "single_unit" || propertyType === "multi_unit"
+        ? propertyType
         : null,
     featuredOnly: false
   };

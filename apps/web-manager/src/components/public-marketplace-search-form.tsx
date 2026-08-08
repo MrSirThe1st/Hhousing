@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicMarketplaceSearchParams } from "../app/public-site-data";
+import { firstSearchParam } from "../app/public-site-data";
 
 interface PublicMarketplaceSearchFormProps {
   action: string;
@@ -25,18 +26,18 @@ export default function PublicMarketplaceSearchForm({
   const router = useRouter();
   const actualVariant = compact ? "compact" : variant;
 
-  const [q, setQ] = useState(values?.q ?? "");
-  const [city, setCity] = useState(values?.city ?? "");
-  const [propertyType, setPropertyType] = useState(values?.propertyType ?? "");
-  const [minRent, setMinRent] = useState(values?.minRent ?? "");
-  const [maxRent, setMaxRent] = useState(values?.maxRent ?? "");
+  const [q, setQ] = useState(firstSearchParam(values?.q) ?? "");
+  const [city, setCity] = useState(firstSearchParam(values?.city) ?? "");
+  const [propertyType, setPropertyType] = useState(firstSearchParam(values?.propertyType) ?? "");
+  const [minRent, setMinRent] = useState(firstSearchParam(values?.minRent) ?? "");
+  const [maxRent, setMaxRent] = useState(firstSearchParam(values?.maxRent) ?? "");
 
   useEffect(() => {
-    setQ(values?.q ?? "");
-    setCity(values?.city ?? "");
-    setPropertyType(values?.propertyType ?? "");
-    setMinRent(values?.minRent ?? "");
-    setMaxRent(values?.maxRent ?? "");
+    setQ(firstSearchParam(values?.q) ?? "");
+    setCity(firstSearchParam(values?.city) ?? "");
+    setPropertyType(firstSearchParam(values?.propertyType) ?? "");
+    setMinRent(firstSearchParam(values?.minRent) ?? "");
+    setMaxRent(firstSearchParam(values?.maxRent) ?? "");
   }, [values]);
 
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>): void {
@@ -53,10 +54,6 @@ export default function PublicMarketplaceSearchForm({
   if (actualVariant === "hero") {
     return (
       <div className="mx-auto w-full max-w-5xl">
-        <p className="mb-4 text-center text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-xl">
-          Que recherchez-vous&nbsp;?
-        </p>
-
         <form
           onSubmit={handleFormSubmit}
           className="rounded-[1.75rem] bg-slate-200/50 p-1.5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] dark:bg-slate-800/60"

@@ -8,8 +8,10 @@ import type {
   CreatePlatformSubscriptionInvoiceInput,
   GenerateSaasInvoicesResult,
   ListPlatformSubscriptionInvoicesInput,
+  OrganizationBillingSnapshot,
   PlatformBillingRepository,
   PlatformSubscriptionInvoiceListItem,
+  ReportPlatformInvoicePaymentInput,
   UpdatePlatformBillingSettingsInput,
   VoidPlatformInvoiceInput
 } from "./platform-billing-record.types";
@@ -17,6 +19,7 @@ import type {
   OrganizationUsageSnapshot,
   PlatformBillingEstimate,
   PlatformBillingSettings,
+  PlatformSaasPaymentMethod,
   PlatformSubscriptionInvoice,
   PlatformSubscriptionInvoiceStatus
 } from "@hhousing/domain";
@@ -32,6 +35,7 @@ interface SettingsRow extends QueryResultRow {
 interface InvoiceRow extends QueryResultRow {
   id: string;
   organizationId: string;
+  invoiceNumber: string;
   period: string;
   propertyCount: number;
   unitCount: number;
@@ -43,6 +47,10 @@ interface InvoiceRow extends QueryResultRow {
   issuedAtIso: string;
   paidAtIso: string | null;
   paidConfirmedByUserId: string | null;
+  paymentReportedAtIso: string | null;
+  paymentReportedByUserId: string | null;
+  paymentMethod: PlatformSaasPaymentMethod | null;
+  paymentNote: string | null;
   voidReason: string | null;
   createdAtIso: string;
   updatedAtIso: string;
@@ -53,6 +61,33 @@ interface UsageRow extends QueryResultRow {
   organizationId: string;
   propertyCount: string | number;
   unitCount: string | number;
+}
+
+interface OrgBillingRow extends QueryResultRow {
+  organizationId: string;
+  organizationName: string;
+  propertyCount: string | number;
+  unitCount: string | number;
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  period: string | null;
+  invPropertyCount: number | null;
+  invUnitCount: number | null;
+  pricePerUnitAmount: string | number | null;
+  amountDue: string | number | null;
+  currencyCode: string | null;
+  status: PlatformSubscriptionInvoiceStatus | null;
+  dueAtIso: string | null;
+  issuedAtIso: string | null;
+  paidAtIso: string | null;
+  paidConfirmedByUserId: string | null;
+  paymentReportedAtIso: string | null;
+  paymentReportedByUserId: string | null;
+  paymentMethod: PlatformSaasPaymentMethod | null;
+  paymentNote: string | null;
+  voidReason: string | null;
+  createdAtIso: string | null;
+  updatedAtIso: string | null;
 }
 
 function toNumber(value: string | number): number {
@@ -73,6 +108,7 @@ function mapInvoice(row: InvoiceRow): PlatformSubscriptionInvoice {
   return {
     id: row.id,
     organizationId: row.organizationId,
+    invoiceNumber: row.invoiceNumber,
     period: row.period,
     propertyCount: row.propertyCount,
     unitCount: row.unitCount,
@@ -84,6 +120,10 @@ function mapInvoice(row: InvoiceRow): PlatformSubscriptionInvoice {
     issuedAtIso: row.issuedAtIso,
     paidAtIso: row.paidAtIso,
     paidConfirmedByUserId: row.paidConfirmedByUserId,
+    paymentReportedAtIso: row.paymentReportedAtIso,
+    paymentReportedByUserId: row.paymentReportedByUserId,
+    paymentMethod: row.paymentMethod,
+    paymentNote: row.paymentNote,
     voidReason: row.voidReason,
     createdAtIso: row.createdAtIso,
     updatedAtIso: row.updatedAtIso
@@ -123,9 +163,16 @@ function computeEstimate(
   };
 }
 
+function currentPeriod(now = new Date()): string {
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
 const INVOICE_SELECT = `
   inv.id,
   inv.organization_id as "organizationId",
+  inv.invoice_number as "invoiceNumber",
   inv.period,
   inv.property_count as "propertyCount",
   inv.unit_count as "unitCount",
@@ -137,10 +184,36 @@ const INVOICE_SELECT = `
   inv.issued_at as "issuedAtIso",
   inv.paid_at as "paidAtIso",
   inv.paid_confirmed_by_user_id::text as "paidConfirmedByUserId",
+  inv.payment_reported_at as "paymentReportedAtIso",
+  inv.payment_reported_by_user_id::text as "paymentReportedByUserId",
+  inv.payment_method as "paymentMethod",
+  inv.payment_note as "paymentNote",
   inv.void_reason as "voidReason",
   inv.created_at as "createdAtIso",
   inv.updated_at as "updatedAtIso"
 `;
+
+type SqlQueryable = {
+  query: Pool["query"];
+};
+
+async function nextInvoiceNumber(client: SqlQueryable, issuedAt = new Date()): Promise<string> {
+  const year = String(issuedAt.getUTCFullYear());
+  const prefix = `INV-${year}-`;
+  // Serialize number allocation for the year (transaction-scoped advisory lock).
+  await client.query(`select pg_advisory_xact_lock(hashtext($1))`, [prefix]);
+  const result = await client.query<{ maxSeq: string | null }>(
+    `select max(
+       nullif(regexp_replace(invoice_number, '^INV-\\d{4}-', ''), '')
+     ) as "maxSeq"
+     from platform_subscription_invoices
+     where invoice_number like $1`,
+    [`${prefix}%`]
+  );
+  const raw = result.rows[0]?.maxSeq;
+  const next = (raw && /^\d+$/.test(raw) ? Number(raw) : 0) + 1;
+  return `${prefix}${String(next).padStart(3, "0")}`;
+}
 
 export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBillingRepository {
   return {
@@ -227,7 +300,9 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
 
     async getAdminBillingDashboard(): Promise<AdminBillingDashboard> {
       const settings = await this.getBillingSettings();
+      const period = currentPeriod();
       const result = await pool.query<{
+        mrrAmount: string | number;
         openReceivableAmount: string | number;
         openInvoiceCount: number;
         overdueReceivableAmount: string | number;
@@ -237,6 +312,10 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
         collectedYearAmount: string | number;
       }>(
         `select
+           coalesce((
+             select sum(amount_due) from platform_subscription_invoices
+             where period = $1 and status in ('issued', 'paid')
+           ), 0) as "mrrAmount",
            coalesce((
              select sum(amount_due) from platform_subscription_invoices
              where status = 'issued'
@@ -270,11 +349,13 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
              where status = 'paid'
                and paid_at >= date_trunc('year', now())
                and paid_at < date_trunc('year', now()) + interval '1 year'
-           ), 0) as "collectedYearAmount"`
+           ), 0) as "collectedYearAmount"`,
+        [period]
       );
       const row = result.rows[0];
       return {
         currencyCode: settings.currencyCode,
+        mrrAmount: toNumber(row?.mrrAmount ?? 0),
         openReceivableAmount: toNumber(row?.openReceivableAmount ?? 0),
         openInvoiceCount: row?.openInvoiceCount ?? 0,
         overdueReceivableAmount: toNumber(row?.overdueReceivableAmount ?? 0),
@@ -285,12 +366,112 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
       };
     },
 
+    async listOrganizationBillingSnapshots(): Promise<OrganizationBillingSnapshot[]> {
+      const result = await pool.query<OrgBillingRow>(
+        `select
+           o.id as "organizationId",
+           o.name as "organizationName",
+           (select count(*)::int from properties p where p.organization_id = o.id) as "propertyCount",
+           (select count(*)::int from units u
+              join properties p on p.id = u.property_id
+              where p.organization_id = o.id) as "unitCount",
+           inv.id as "invoiceId",
+           inv.invoice_number as "invoiceNumber",
+           inv.period,
+           inv.property_count as "invPropertyCount",
+           inv.unit_count as "invUnitCount",
+           inv.price_per_unit_amount as "pricePerUnitAmount",
+           inv.amount_due as "amountDue",
+           inv.currency_code as "currencyCode",
+           inv.status,
+           inv.due_at as "dueAtIso",
+           inv.issued_at as "issuedAtIso",
+           inv.paid_at as "paidAtIso",
+           inv.paid_confirmed_by_user_id::text as "paidConfirmedByUserId",
+           inv.payment_reported_at as "paymentReportedAtIso",
+           inv.payment_reported_by_user_id::text as "paymentReportedByUserId",
+           inv.payment_method as "paymentMethod",
+           inv.payment_note as "paymentNote",
+           inv.void_reason as "voidReason",
+           inv.created_at as "createdAtIso",
+           inv.updated_at as "updatedAtIso"
+         from organizations o
+         left join lateral (
+           select *
+           from platform_subscription_invoices i
+           where i.organization_id = o.id
+             and i.status = 'issued'
+           order by i.due_at asc, i.period desc
+           limit 1
+         ) inv on true
+         where o.status = 'active'
+         order by
+           case
+             when inv.id is not null and inv.due_at < now() then 0
+             when inv.id is not null then 1
+             else 2
+           end,
+           inv.due_at asc nulls last,
+           o.name asc`
+      );
+
+      return result.rows.map((row) => {
+        const openInvoice =
+          row.invoiceId &&
+          row.invoiceNumber &&
+          row.period &&
+          row.invPropertyCount != null &&
+          row.invUnitCount != null &&
+          row.pricePerUnitAmount != null &&
+          row.amountDue != null &&
+          row.currencyCode &&
+          row.status &&
+          row.dueAtIso &&
+          row.issuedAtIso &&
+          row.createdAtIso &&
+          row.updatedAtIso
+            ? mapInvoice({
+                id: row.invoiceId,
+                organizationId: row.organizationId,
+                invoiceNumber: row.invoiceNumber,
+                period: row.period,
+                propertyCount: row.invPropertyCount,
+                unitCount: row.invUnitCount,
+                pricePerUnitAmount: row.pricePerUnitAmount,
+                amountDue: row.amountDue,
+                currencyCode: row.currencyCode,
+                status: row.status,
+                dueAtIso: row.dueAtIso,
+                issuedAtIso: row.issuedAtIso,
+                paidAtIso: row.paidAtIso,
+                paidConfirmedByUserId: row.paidConfirmedByUserId,
+                paymentReportedAtIso: row.paymentReportedAtIso,
+                paymentReportedByUserId: row.paymentReportedByUserId,
+                paymentMethod: row.paymentMethod,
+                paymentNote: row.paymentNote,
+                voidReason: row.voidReason,
+                createdAtIso: row.createdAtIso,
+                updatedAtIso: row.updatedAtIso
+              })
+            : null;
+
+        return {
+          organizationId: row.organizationId,
+          organizationName: row.organizationName,
+          propertyCount: Number(row.propertyCount),
+          unitCount: Number(row.unitCount),
+          openInvoice
+        };
+      });
+    },
+
     async listInvoices(
       input: ListPlatformSubscriptionInvoicesInput = {}
     ): Promise<PlatformSubscriptionInvoiceListItem[]> {
       const limit = Math.min(input.limit ?? 50, 200);
       const offset = input.offset ?? 0;
       const overdueOnly = input.overdueOnly === true;
+      const paymentReportedOnly = input.paymentReportedOnly === true;
       const status = overdueOnly ? "issued" : (input.status ?? null);
 
       let orderBy = "inv.period desc, inv.issued_at desc";
@@ -313,16 +494,19 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
              $4::text is null
              or o.name ilike '%' || $4 || '%'
              or inv.organization_id ilike '%' || $4 || '%'
+             or inv.invoice_number ilike '%' || $4 || '%'
            )
            and ($5::boolean = false or (inv.status = 'issued' and inv.due_at < now()))
+           and ($6::boolean = false or inv.payment_reported_at is not null)
          order by ${orderBy}
-         limit $6 offset $7`,
+         limit $7 offset $8`,
         [
           input.organizationId ?? null,
           input.period ?? null,
           status,
           input.search?.trim() || null,
           overdueOnly,
+          paymentReportedOnly,
           limit,
           offset
         ]
@@ -380,25 +564,47 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
     async createInvoiceIfAbsent(
       input: CreatePlatformSubscriptionInvoiceInput
     ): Promise<"created" | "exists"> {
-      const result = await pool.query(
-        `insert into platform_subscription_invoices (
-           id, organization_id, period, property_count, unit_count,
-           price_per_unit_amount, amount_due, currency_code, status, due_at
-         ) values ($1, $2, $3, $4, $5, $6, $7, $8, 'issued', $9::timestamptz)
-         on conflict (organization_id, period) do nothing`,
-        [
-          input.id,
-          input.organizationId,
-          input.period,
-          input.propertyCount,
-          input.unitCount,
-          input.pricePerUnitAmount,
-          input.amountDue,
-          input.currencyCode,
-          input.dueAtIso
-        ]
-      );
-      return (result.rowCount ?? 0) > 0 ? "created" : "exists";
+      const client = await pool.connect();
+      try {
+        await client.query("begin");
+        const existing = await client.query(
+          `select 1 from platform_subscription_invoices
+           where organization_id = $1 and period = $2
+           limit 1`,
+          [input.organizationId, input.period]
+        );
+        if ((existing.rowCount ?? 0) > 0) {
+          await client.query("rollback");
+          return "exists";
+        }
+
+        const invoiceNumber = await nextInvoiceNumber(client);
+        await client.query(
+          `insert into platform_subscription_invoices (
+             id, organization_id, invoice_number, period, property_count, unit_count,
+             price_per_unit_amount, amount_due, currency_code, status, due_at
+           ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'issued', $10::timestamptz)`,
+          [
+            input.id,
+            input.organizationId,
+            invoiceNumber,
+            input.period,
+            input.propertyCount,
+            input.unitCount,
+            input.pricePerUnitAmount,
+            input.amountDue,
+            input.currencyCode,
+            input.dueAtIso
+          ]
+        );
+        await client.query("commit");
+        return "created";
+      } catch (error) {
+        await client.query("rollback");
+        throw error;
+      } finally {
+        client.release();
+      }
     },
 
     async confirmInvoicePaid(
@@ -431,6 +637,31 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
            and inv.status = 'issued'
          returning ${INVOICE_SELECT}`,
         [input.invoiceId, input.voidReason ?? null]
+      );
+      const row = result.rows[0];
+      return row ? mapInvoice(row) : null;
+    },
+
+    async reportInvoicePayment(
+      input: ReportPlatformInvoicePaymentInput
+    ): Promise<PlatformSubscriptionInvoice | null> {
+      const result = await pool.query<InvoiceRow>(
+        `update platform_subscription_invoices as inv
+         set
+           payment_reported_at = now(),
+           payment_reported_by_user_id = $2::uuid,
+           payment_method = coalesce($3, payment_method),
+           payment_note = coalesce($4, payment_note),
+           updated_at = now()
+         where inv.id = $1
+           and inv.status = 'issued'
+         returning ${INVOICE_SELECT}`,
+        [
+          input.invoiceId,
+          input.reportedByUserId,
+          input.paymentMethod ?? null,
+          input.paymentNote ?? null
+        ]
       );
       const row = result.rows[0];
       return row ? mapInvoice(row) : null;

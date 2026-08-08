@@ -1,6 +1,6 @@
 import Link from "next/link";
 import LegalDocumentPage, { buildLegalMetadata } from "../../components/legal-document-page";
-import { LEGAL_COMPANY_NAME, LEGAL_CONTACT_EMAIL, LEGAL_SITE_NAME } from "../../lib/legal/site-legal";
+import { LEGAL_COMPANY_NAME, LEGAL_SITE_NAME, LEGAL_SUPPORT_EMAIL } from "../../lib/legal/site-legal";
 
 export const metadata = buildLegalMetadata(
   "Support",
@@ -19,8 +19,8 @@ export default function SupportPage(): React.ReactElement {
         à :
       </p>
       <p>
-        <a href={`mailto:${LEGAL_CONTACT_EMAIL}?subject=${encodeURIComponent(`Support — ${LEGAL_SITE_NAME}`)}`}>
-          {LEGAL_CONTACT_EMAIL}
+        <a href={`mailto:${LEGAL_SUPPORT_EMAIL}?subject=${encodeURIComponent(`Support — ${LEGAL_SITE_NAME}`)}`}>
+          {LEGAL_SUPPORT_EMAIL}
         </a>
       </p>
 

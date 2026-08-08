@@ -7,53 +7,18 @@ import {
 import type { PlatformSubscriptionInvoiceStatus } from "@hhousing/domain";
 import AdminBillingSettingsForm from "../../../components/admin-billing-settings-form";
 import AdminGenerateInvoicesButton from "../../../components/admin-generate-invoices-button";
+import AdminInvoiceActions from "../../../components/admin-invoice-actions";
+import {
+  billingDisplayStatus,
+  billingStatusBadgeClass,
+  billingStatusDot,
+  billingStatusLabel,
+  formatBillingDate,
+  formatBillingMoney,
+  paymentMethodLabel
+} from "../../../lib/billing/saas-billing-ui";
 
 type BillingView = "open" | "overdue" | "paid" | "all";
-
-function formatMoney(amount: number, currency: string): string {
-  return `${amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString("fr-FR");
-}
-
-function statusLabel(status: string): string {
-  switch (status) {
-    case "issued":
-      return "À encaisser";
-    case "paid":
-      return "Payée";
-    case "void":
-      return "Annulée";
-    default:
-      return status;
-  }
-}
-
-function statusClass(status: string, overdue: boolean): string {
-  if (overdue) {
-    return "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200";
-  }
-  switch (status) {
-    case "paid":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300";
-    case "void":
-      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
-    default:
-      return "bg-blue-50 text-[#0063fe] dark:bg-[#0063fe]/15 dark:text-blue-200";
-  }
-}
-
-function isOverdueInvoice(invoice: PlatformSubscriptionInvoiceListItem): boolean {
-  if (invoice.status !== "issued") return false;
-  const due = new Date(invoice.dueAtIso);
-  if (Number.isNaN(due.getTime())) return false;
-  return due.getTime() < Date.now();
-}
 
 function parseView(value: string | undefined): BillingView {
   if (value === "open" || value === "overdue" || value === "paid" || value === "all") {
@@ -62,11 +27,11 @@ function parseView(value: string | undefined): BillingView {
   return "open";
 }
 
-const VIEWS: Array<{ id: BillingView; label: string; question: string }> = [
-  { id: "open", label: "À encaisser", question: "Qui doit de l'argent ?" },
-  { id: "overdue", label: "En retard", question: "Qui est en retard ?" },
-  { id: "paid", label: "Payées", question: "Qui a payé ?" },
-  { id: "all", label: "Toutes", question: "Historique complet" }
+const VIEWS: Array<{ id: BillingView; label: string }> = [
+  { id: "open", label: "À encaisser" },
+  { id: "overdue", label: "En retard" },
+  { id: "paid", label: "Payées" },
+  { id: "all", label: "Toutes" }
 ];
 
 export default async function AdminBillingPage({
@@ -95,91 +60,143 @@ export default async function AdminBillingPage({
           ? { status: "paid" as const, search, period, limit: 100 }
           : { status: statusFilter, search, period, limit: 100 };
 
-  const [settings, dashboard, invoices, overview] = await Promise.all([
+  const [settings, dashboard, invoices, orgSnapshots, overview] = await Promise.all([
     billingRepo.getBillingSettings(),
     billingRepo.getAdminBillingDashboard(),
     billingRepo.listInvoices(listInput),
+    billingRepo.listOrganizationBillingSnapshots(),
     adminRepo.getOverviewStats()
   ]);
 
   const currency = dashboard.currencyCode;
-  const activeViewMeta = VIEWS.find((item) => item.id === view) ?? VIEWS[0];
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-semibold text-[#010a19] dark:text-white">Facturation SaaS</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Qui doit, qui a payé, qui est en retard, et combien vous encaissez.
+          KPIs, organisations à encaisser, et opérations de factures.
         </p>
       </div>
 
-      {/* Revenue KPIs */}
+      {/* 1. KPI dashboard */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#0d1526]">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Encaissé ce mois</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">MRR</p>
           <p className="mt-2 text-2xl font-semibold text-[#010a19] dark:text-white">
-            {formatMoney(dashboard.collectedMonthAmount, currency)}
+            {formatBillingMoney(dashboard.mrrAmount, currency)}
           </p>
-          <p className="mt-1 text-xs text-slate-500">{dashboard.collectedMonthCount} paiement(s)</p>
+          <p className="mt-1 text-xs text-slate-500">Période en cours (émises + payées)</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#0d1526]">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">À encaisser</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Encours</p>
           <p className="mt-2 text-2xl font-semibold text-[#010a19] dark:text-white">
-            {formatMoney(dashboard.openReceivableAmount, currency)}
+            {formatBillingMoney(dashboard.openReceivableAmount, currency)}
           </p>
-          <p className="mt-1 text-xs text-slate-500">{dashboard.openInvoiceCount} facture(s) ouvertes</p>
+          <p className="mt-1 text-xs text-slate-500">{dashboard.openInvoiceCount} facture(s) à recevoir</p>
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
-          <p className="text-xs font-medium uppercase tracking-wide text-amber-800 dark:text-amber-200">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+          <p className="text-xs font-medium uppercase tracking-wide text-red-800 dark:text-red-200">
             En retard
           </p>
-          <p className="mt-2 text-2xl font-semibold text-amber-950 dark:text-amber-100">
-            {formatMoney(dashboard.overdueReceivableAmount, currency)}
+          <p className="mt-2 text-2xl font-semibold text-red-950 dark:text-red-100">
+            {formatBillingMoney(dashboard.overdueReceivableAmount, currency)}
           </p>
-          <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
+          <p className="mt-1 text-xs text-red-800/80 dark:text-red-200/80">
             {dashboard.overdueInvoiceCount} facture(s) échues
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#0d1526]">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Encaissé YTD</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Collecté ce mois</p>
           <p className="mt-2 text-2xl font-semibold text-[#010a19] dark:text-white">
-            {formatMoney(dashboard.collectedYearAmount, currency)}
+            {formatBillingMoney(dashboard.collectedMonthAmount, currency)}
           </p>
-          <p className="mt-1 text-xs text-slate-500">Année civile en cours</p>
+          <p className="mt-1 text-xs text-slate-500">{dashboard.collectedMonthCount} paiement(s)</p>
         </div>
       </section>
 
-      {/* Org active / suspended */}
+      {/* Org active / suspended counters */}
+      <section className="flex flex-wrap gap-3 text-sm">
+        <Link href="/admin/organizations?status=active" className="text-emerald-700 hover:underline dark:text-emerald-300">
+          {overview.activeOrganizationCount} actives
+        </Link>
+        <span className="text-slate-300">·</span>
+        <Link href="/admin/organizations?status=suspended" className="text-red-700 hover:underline dark:text-red-300">
+          {overview.suspendedOrganizationCount} suspendues
+        </Link>
+        <span className="text-slate-300">·</span>
+        <span className="text-slate-500">{overview.organizationCount} au total</span>
+      </section>
+
+      {/* 2. Organisations table */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">
-        <h3 className="text-base font-semibold text-[#010a19] dark:text-white">
-          Organisations actives / suspendues
-        </h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div>
-            <p className="text-xs text-slate-500">Total</p>
-            <p className="mt-1 text-2xl font-semibold text-[#010a19] dark:text-white">
-              {overview.organizationCount}
-            </p>
-          </div>
-          <Link
-            href="/admin/organizations?status=active"
-            className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 transition hover:border-emerald-300 dark:border-emerald-900/50 dark:bg-emerald-950/30"
-          >
-            <p className="text-xs text-emerald-700 dark:text-emerald-300">Actives</p>
-            <p className="mt-1 text-2xl font-semibold text-emerald-900 dark:text-emerald-100">
-              {overview.activeOrganizationCount}
-            </p>
-          </Link>
-          <Link
-            href="/admin/organizations?status=suspended"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 transition hover:border-red-300 dark:border-red-900/50 dark:bg-red-950/30"
-          >
-            <p className="text-xs text-red-700 dark:text-red-300">Suspendues</p>
-            <p className="mt-1 text-2xl font-semibold text-red-900 dark:text-red-100">
-              {overview.suspendedOrganizationCount}
-            </p>
-          </Link>
+        <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Organisations</h3>
+        <p className="mt-1 text-xs text-slate-500">Vue actionnable sur le solde ouvert de chaque org.</p>
+        <div className="mt-4 overflow-x-auto">
+          {orgSnapshots.length === 0 ? (
+            <p className="text-sm text-slate-500">Aucune organisation active.</p>
+          ) : (
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-xs uppercase text-slate-400">
+                <tr>
+                  <th className="pb-2 pr-4">Org</th>
+                  <th className="pb-2 pr-4">Units</th>
+                  <th className="pb-2 pr-4">Due</th>
+                  <th className="pb-2 pr-4">Status</th>
+                  <th className="pb-2">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {orgSnapshots.map((org) => {
+                  const invoice = org.openInvoice;
+                  const status = invoice ? billingDisplayStatus(invoice) : null;
+                  return (
+                    <tr key={org.organizationId}>
+                      <td className="py-3 pr-4">
+                        <Link
+                          href={`/admin/organizations/${org.organizationId}`}
+                          className="font-medium text-[#010a19] hover:underline dark:text-white"
+                        >
+                          {org.organizationName}
+                        </Link>
+                      </td>
+                      <td className="py-3 pr-4">{org.unitCount}</td>
+                      <td className="py-3 pr-4">
+                        {invoice
+                          ? formatBillingMoney(invoice.amountDue, invoice.currencyCode)
+                          : "—"}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {status ? (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${billingStatusBadgeClass(status)}`}
+                          >
+                            {billingStatusDot(status)} {billingStatusLabel(status)}
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            🟢 À jour
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        {invoice ? (
+                          <Link
+                            href={`/admin/billing/invoices/${invoice.id}`}
+                            className="text-[#0063fe] hover:underline"
+                          >
+                            {status === "overdue" ? "Relancer" : "Ouvrir"}
+                          </Link>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
 
@@ -189,8 +206,8 @@ export default async function AdminBillingPage({
           <div>
             <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Paramètres tarifaires</h3>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Actuel : {formatMoney(settings.pricePerUnitAmount, settings.currencyCode)} / logement · gratuit sous{" "}
-              {settings.freePropertyThreshold} biens
+              Actuel : {formatBillingMoney(settings.pricePerUnitAmount, settings.currencyCode)} / logement ·
+              gratuit sous {settings.freePropertyThreshold} biens
             </p>
           </div>
           <AdminGenerateInvoicesButton />
@@ -200,12 +217,9 @@ export default async function AdminBillingPage({
         </div>
       </section>
 
-      {/* Invoice views */}
+      {/* 3. Invoice table */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">
-        <div>
-          <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Factures</h3>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{activeViewMeta.question}</p>
-        </div>
+        <h3 className="text-base font-semibold text-[#010a19] dark:text-white">Factures</h3>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {VIEWS.map((item) => {
@@ -236,7 +250,7 @@ export default async function AdminBillingPage({
             type="search"
             name="search"
             defaultValue={search ?? ""}
-            placeholder="Rechercher une organisation…"
+            placeholder="Org, numéro de facture…"
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-[#0d1526] dark:text-white"
           />
           {view === "paid" || view === "all" ? (
@@ -275,51 +289,76 @@ export default async function AdminBillingPage({
             <table className="min-w-full text-left text-sm">
               <thead className="text-xs uppercase text-slate-400">
                 <tr>
-                  <th className="pb-2 pr-4">Organisation</th>
-                  <th className="pb-2 pr-4">Période</th>
-                  <th className="pb-2 pr-4">Montant</th>
-                  <th className="pb-2 pr-4">{view === "paid" ? "Payée le" : "Échéance"}</th>
-                  <th className="pb-2 pr-4">Statut</th>
-                  <th className="pb-2">Détail</th>
+                  <th className="pb-2 pr-4">Invoice</th>
+                  <th className="pb-2 pr-4">Org</th>
+                  <th className="pb-2 pr-4">Amount</th>
+                  <th className="pb-2 pr-4">Status</th>
+                  <th className="pb-2 pr-4">{view === "paid" ? "Payée" : "Due"}</th>
+                  <th className="pb-2 pr-4">Signal</th>
+                  <th className="pb-2">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {invoices.map((invoice) => {
-                  const overdue = isOverdueInvoice(invoice);
+                {invoices.map((invoice: PlatformSubscriptionInvoiceListItem) => {
+                  const status = billingDisplayStatus(invoice);
+                  const signaled = Boolean(invoice.paymentReportedAtIso);
                   return (
                     <tr key={invoice.id}>
                       <td className="py-3 pr-4">
                         <Link
+                          href={`/admin/billing/invoices/${invoice.id}`}
+                          className="font-medium text-[#0063fe] hover:underline"
+                        >
+                          {invoice.invoiceNumber}
+                        </Link>
+                        <p className="text-xs text-slate-400">{invoice.period}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Link
                           href={`/admin/organizations/${invoice.organizationId}`}
-                          className="font-medium text-[#010a19] hover:underline dark:text-white"
+                          className="text-[#010a19] hover:underline dark:text-white"
                         >
                           {invoice.organizationName}
                         </Link>
-                        <p className="text-xs text-slate-400">
-                          {invoice.propertyCount} biens · {invoice.unitCount} logements
-                        </p>
                       </td>
-                      <td className="py-3 pr-4">{invoice.period}</td>
-                      <td className="py-3 pr-4">{formatMoney(invoice.amountDue, invoice.currencyCode)}</td>
                       <td className="py-3 pr-4">
-                        {view === "paid"
-                          ? formatDate(invoice.paidAtIso)
-                          : formatDate(invoice.dueAtIso)}
+                        {formatBillingMoney(invoice.amountDue, invoice.currencyCode)}
                       </td>
                       <td className="py-3 pr-4">
                         <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass(invoice.status, overdue)}`}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${billingStatusBadgeClass(status)}`}
                         >
-                          {overdue && view !== "paid" ? "En retard" : statusLabel(invoice.status)}
+                          {billingStatusDot(status)} {billingStatusLabel(status)}
                         </span>
                       </td>
+                      <td className="py-3 pr-4">
+                        {view === "paid"
+                          ? formatBillingDate(invoice.paidAtIso)
+                          : formatBillingDate(invoice.dueAtIso)}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {signaled ? (
+                          <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                            Oui
+                            {invoice.paymentMethod
+                              ? ` · ${paymentMethodLabel(invoice.paymentMethod)}`
+                              : ""}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">Non</span>
+                        )}
+                      </td>
                       <td className="py-3">
-                        <Link
-                          href={`/admin/billing/invoices/${invoice.id}`}
-                          className="text-[#0063fe] hover:underline"
-                        >
-                          Ouvrir
-                        </Link>
+                        {invoice.status === "issued" ? (
+                          <AdminInvoiceActions invoiceId={invoice.id} status={invoice.status} compact />
+                        ) : (
+                          <Link
+                            href={`/admin/billing/invoices/${invoice.id}`}
+                            className="text-xs text-[#0063fe] hover:underline"
+                          >
+                            Ouvrir
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   );
