@@ -1,6 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { ManagerListingView } from "@hhousing/api-contracts";
 import ListingEditorForm from "../../../../components/listing-editor-form";
+import DashboardPageLoadError from "../../../../components/dashboard-page-load-error";
 import { createListingRepo } from "../../../api/shared";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
@@ -13,8 +14,18 @@ export default async function ListingEditorPage({ params }: ListingEditorPagePro
 
   const { unitId } = await params;
   const listingRepo = createListingRepo();
-  const listings = await listingRepo.listManagerListings(session.organizationId);
-  const item = (listings as ManagerListingView[]).find((entry) => entry.unit.id === unitId);
+
+  let listings: ManagerListingView[] = [];
+  try {
+    listings = (await listingRepo.listManagerListings(session.organizationId)) as ManagerListingView[];
+  } catch (error) {
+    console.error("Failed to load listing editor", error);
+    return (
+      <DashboardPageLoadError message="Impossible de charger l'annonce pour le moment. Réessayez dans un instant." />
+    );
+  }
+
+  const item = listings.find((entry) => entry.unit.id === unitId);
 
   if (!item) {
     notFound();
@@ -25,7 +36,7 @@ export default async function ListingEditorPage({ params }: ListingEditorPagePro
       organizationId={session.organizationId}
       currentScopeLabel="Tous mes biens"
       item={item}
-      allManagerListings={listings as ManagerListingView[]}
+      allManagerListings={listings}
     />
   );
 }

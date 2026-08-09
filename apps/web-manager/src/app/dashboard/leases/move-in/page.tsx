@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import type { Tenant } from "@hhousing/domain";
 import { listProperties } from "../../../../api";
 import { createListingRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
 import LeaseMoveInForm from "../../../../components/lease-move-in-form";
+import DashboardPageLoadError from "../../../../components/dashboard-page-load-error";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
 type LeaseMoveInPageProps = {
@@ -26,22 +26,41 @@ export default async function LeaseMoveInPage({ searchParams }: LeaseMoveInPageP
     return <div className="p-8 text-red-600">Erreur de connexion à la base de données.</div>;
   }
 
-  const propertiesResult = await listProperties(
-    {
-      session,
-      organizationId: session.organizationId ?? ""
-    },
-    {
-      repository: propertyRepoResult.data,
-      teamFunctionsRepository: createTeamFunctionsRepo()
-    }
-  );
+  let items: PropertyWithUnitsView[] = [];
+  let tenants: Tenant[] = [];
+  let applicationView: Awaited<ReturnType<ReturnType<typeof createListingRepo>["getApplicationById"]>> = null;
+  let loadError: string | null = null;
 
-  const items: PropertyWithUnitsView[] = propertiesResult.body.success ? propertiesResult.body.data.items : [];
-  const tenants: Tenant[] = await createTenantLeaseRepo().listTenantsByOrganization(session.organizationId ?? "");
-  const applicationView = params?.applicationId
-    ? await createListingRepo().getApplicationById(params.applicationId, session.organizationId ?? "")
-    : null;
+  try {
+    // Wave properties first (largest); tenants second to limit pooler fan-out.
+    const propertiesResult = await listProperties(
+      {
+        session,
+        organizationId: session.organizationId ?? ""
+      },
+      {
+        repository: propertyRepoResult.data,
+        teamFunctionsRepository: createTeamFunctionsRepo()
+      }
+    );
+    items = propertiesResult.body.success ? propertiesResult.body.data.items : [];
+
+    tenants = await createTenantLeaseRepo().listTenantsByOrganization(session.organizationId ?? "");
+
+    if (params?.applicationId) {
+      applicationView = await createListingRepo().getApplicationById(
+        params.applicationId,
+        session.organizationId ?? ""
+      );
+    }
+  } catch (error) {
+    console.error("Failed to load lease move-in workspace", error);
+    loadError = "Impossible de charger le formulaire d'entrée en location. Réessayez dans un instant.";
+  }
+
+  if (loadError) {
+    return <DashboardPageLoadError message={loadError} />;
+  }
 
   return (
     <LeaseMoveInForm

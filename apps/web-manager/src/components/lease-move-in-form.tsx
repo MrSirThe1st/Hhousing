@@ -12,11 +12,10 @@ import posthog from "posthog-js";
 type ChargeFrequency = "one_time" | "monthly" | "quarterly" | "annually";
 type ChargeType = "deposit" | "fee" | "other";
 type MoveInMode = "standard" | "existing_tenant";
-type WizardStep = "who" | "where" | "rent" | "deposit" | "confirm";
+type WizardStep = "who" | "rent" | "deposit" | "confirm";
 
 const WIZARD_STEPS: Array<{ id: WizardStep; label: string }> = [
   { id: "who", label: "Qui ?" },
-  { id: "where", label: "Où ?" },
   { id: "rent", label: "Loyer" },
   { id: "deposit", label: "Caution" },
   { id: "confirm", label: "Confirmer" }
@@ -84,14 +83,13 @@ export default function LeaseMoveInForm({
 }: LeaseMoveInFormProps): React.ReactElement {
   const router = useRouter();
   const [step, setStep] = useState<WizardStep>("who");
-  const [moveInMode, setMoveInMode] = useState<MoveInMode>("existing_tenant");
+  const [moveInMode, setMoveInMode] = useState<MoveInMode>("standard");
   const eligibleProperties = useMemo(
     () => items.filter(({ units }) => units.some((unit) => unit.status === "vacant" || (moveInMode === "existing_tenant" && unit.status === "occupied"))),
     [items, moveInMode]
   );
   const [propertyId, setPropertyId] = useState<string>(initialPropertyId ?? eligibleProperties[0]?.property.id ?? "");
   const [tenantId, setTenantId] = useState<string>(initialTenantId ?? tenants[0]?.id ?? "");
-  const [inviteEmail, setInviteEmail] = useState("");
   const [termType, setTermType] = useState<"fixed" | "month_to_month">("month_to_month");
   const [fixedTermMonths, setFixedTermMonths] = useState("12");
   const [autoRenewToMonthly, setAutoRenewToMonthly] = useState(true);
@@ -99,12 +97,10 @@ export default function LeaseMoveInForm({
   const [paymentFrequency, setPaymentFrequency] = useState<"monthly" | "quarterly" | "annually">("monthly");
   const [paymentStartDate, setPaymentStartDate] = useState(new Date().toISOString().substring(0, 10));
   const [leaseStartDate, setLeaseStartDate] = useState(new Date().toISOString().substring(0, 10));
-  const [depositAlreadyPaid, setDepositAlreadyPaid] = useState(true);
+  const [depositAlreadyPaid, setDepositAlreadyPaid] = useState(false);
   const [externalDepositAmount, setExternalDepositAmount] = useState("");
   const [externalDepositNote, setExternalDepositNote] = useState("Payé avant l'enregistrement");
   const [skipFirstRent, setSkipFirstRent] = useState(false);
-  const [activateImmediately, setActivateImmediately] = useState(true);
-  const [sendMobileInvite, setSendMobileInvite] = useState(false);
   const [showExtraCharges, setShowExtraCharges] = useState(false);
   const [showLeaseOptions, setShowLeaseOptions] = useState(false);
   const [currencyCode, setCurrencyCode] = useState("CDF");
@@ -144,10 +140,6 @@ export default function LeaseMoveInForm({
     setDepositRows((previous) => previous.map((row) => ({ ...row, currencyCode: selectedUnit.currencyCode })));
     setOtherCharges((previous) => previous.map((row) => ({ ...row, currencyCode: selectedUnit.currencyCode })));
   }, [selectedUnit]);
-
-  useEffect(() => {
-    setInviteEmail(selectedTenant?.email ?? "");
-  }, [selectedTenant]);
 
   useEffect(() => {
     if (propertyId && !eligibleProperties.some((item) => item.property.id === propertyId)) {
@@ -195,7 +187,7 @@ export default function LeaseMoveInForm({
   }
 
   function validateStep(currentStep: WizardStep): string | null {
-    if (currentStep === "where") {
+    if (currentStep === "who") {
       const selectedUnitId = selectedProperty?.property.propertyType === "single_unit"
         ? eligibleUnits[0]?.id ?? ""
         : unitId;
@@ -233,7 +225,7 @@ export default function LeaseMoveInForm({
     }
 
     if (currentStep === "deposit") {
-      if (moveInMode === "existing_tenant" && depositAlreadyPaid) {
+      if (depositAlreadyPaid) {
         const externalAmount = Number(externalDepositAmount);
         if (!Number.isFinite(externalAmount) || externalAmount <= 0) {
           return "Indiquez le montant de la caution déjà payée.";
@@ -285,7 +277,7 @@ export default function LeaseMoveInForm({
     setError(null);
 
     for (const wizardStep of WIZARD_STEPS) {
-      if (wizardStep.id === "confirm" || wizardStep.id === "who") {
+      if (wizardStep.id === "confirm") {
         continue;
       }
       const validationError = validateStep(wizardStep.id);
@@ -301,7 +293,7 @@ export default function LeaseMoveInForm({
       ? eligibleUnits[0]?.id ?? ""
       : unitId;
 
-    const allCharges = moveInMode === "existing_tenant" && depositAlreadyPaid
+    const allCharges = depositAlreadyPaid
       ? [...otherCharges]
       : [...depositRows, ...otherCharges];
     const normalizedCharges = allCharges
@@ -317,14 +309,14 @@ export default function LeaseMoveInForm({
       }));
 
     const skipInitialChargeTypes: Array<"deposit" | "first_rent"> = [];
-    if (moveInMode === "existing_tenant") {
-      if (depositAlreadyPaid) {
-        skipInitialChargeTypes.push("deposit");
-      }
-      if (skipFirstRent) {
-        skipInitialChargeTypes.push("first_rent");
-      }
+    if (depositAlreadyPaid) {
+      skipInitialChargeTypes.push("deposit");
     }
+    if (moveInMode === "existing_tenant" && skipFirstRent) {
+      skipInitialChargeTypes.push("first_rent");
+    }
+
+    const canInvite = Boolean(selectedTenant?.phone?.trim() || selectedTenant?.email?.trim());
 
     const result = await postWithAuth<CreateLeaseOutput>("/api/leases", {
       organizationId,
@@ -344,12 +336,12 @@ export default function LeaseMoveInForm({
       dueDayOfMonth,
       charges: normalizedCharges,
       moveInMode,
-      activateImmediately: moveInMode === "existing_tenant" ? activateImmediately : false,
+      activateImmediately: true,
       skipInitialChargeTypes,
-      externalDepositAmount: moveInMode === "existing_tenant" && depositAlreadyPaid ? Number(externalDepositAmount) : null,
-      externalDepositNote: moveInMode === "existing_tenant" && depositAlreadyPaid ? externalDepositNote.trim() || "Payé avant l'enregistrement" : null,
-      externalDepositPaidDate: moveInMode === "existing_tenant" && depositAlreadyPaid ? effectiveLeaseStartDate : null,
-      sendMobileInvite: moveInMode === "existing_tenant" ? sendMobileInvite : false
+      externalDepositAmount: depositAlreadyPaid ? Number(externalDepositAmount) : null,
+      externalDepositNote: depositAlreadyPaid ? externalDepositNote.trim() || "Payé avant l'enregistrement" : null,
+      externalDepositPaidDate: depositAlreadyPaid ? effectiveLeaseStartDate : null,
+      sendMobileInvite: canInvite
     });
 
     if (!result.success) {
@@ -362,7 +354,8 @@ export default function LeaseMoveInForm({
       move_in_mode: moveInMode,
       payment_frequency: paymentFrequency,
       term_type: termType,
-      activated_immediately: moveInMode === "existing_tenant" && activateImmediately,
+      activated_immediately: true,
+      invite_requested: canInvite,
       created_from_onboarding: fromOnboarding
     });
 
@@ -376,7 +369,7 @@ export default function LeaseMoveInForm({
       ? "Trimestriel"
       : "Annuel";
 
-  const depositSummary = moveInMode === "existing_tenant" && depositAlreadyPaid
+  const depositSummary = depositAlreadyPaid
     ? `Déjà payée · ${formatMoney(externalDepositAmount, currencyCode)}`
     : depositRows
       .filter((row) => row.label.trim() && row.amount.trim())
@@ -442,27 +435,10 @@ export default function LeaseMoveInForm({
         {step === "who" ? (
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Qui emménage ?</h2>
-              <p className="mt-1 text-sm text-slate-600">Choisissez le cas qui correspond à votre situation.</p>
+              <h2 className="text-lg font-semibold text-[#010a19]">Qui et où ?</h2>
+              <p className="mt-1 text-sm text-slate-600">Choisissez la situation, puis le logement et le locataire.</p>
             </div>
-            <div className="grid gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setMoveInMode("existing_tenant");
-                  setDepositAlreadyPaid(true);
-                }}
-                className={`rounded-xl border px-4 py-4 text-left transition ${
-                  moveInMode === "existing_tenant"
-                    ? "border-[#0063fe] bg-[#0063fe]/5 ring-2 ring-[#0063fe]/20"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <p className="font-semibold text-[#010a19]">Locataire déjà en place</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Il habite déjà le logement. Vous digitalisez le bail (dates passées, caution déjà payée possible).
-                </p>
-              </button>
+            <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => {
@@ -477,19 +453,28 @@ export default function LeaseMoveInForm({
               >
                 <p className="font-semibold text-[#010a19]">Nouveau locataire</p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Il emménage maintenant. Vous créez le bail, la caution et la première échéance.
+                  Il emménage maintenant dans un logement libre.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMoveInMode("existing_tenant");
+                  setDepositAlreadyPaid(true);
+                }}
+                className={`rounded-xl border px-4 py-4 text-left transition ${
+                  moveInMode === "existing_tenant"
+                    ? "border-[#0063fe] bg-[#0063fe]/5 ring-2 ring-[#0063fe]/20"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <p className="font-semibold text-[#010a19]">Locataire déjà en place</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Il habite déjà là. Vous enregistrez le bail maintenant.
                 </p>
               </button>
             </div>
-          </section>
-        ) : null}
 
-        {step === "where" ? (
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Où et qui ?</h2>
-              <p className="mt-1 text-sm text-slate-600">Bien, logement, puis locataire.</p>
-            </div>
             <label className="block text-sm font-medium text-gray-700">
               <span className="mb-1.5 block">Bien</span>
               <select
@@ -547,10 +532,11 @@ export default function LeaseMoveInForm({
             {selectedTenant ? (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
                 <p>Téléphone : {selectedTenant.phone ?? "— manquant"}</p>
-                <p>WhatsApp : {selectedTenant.whatsappOptIn ? "activé" : "non activé"}</p>
                 {!selectedTenant.phone ? (
                   <p className="mt-2 text-amber-700">Ajoutez un numéro sur la fiche locataire avant de continuer.</p>
-                ) : null}
+                ) : (
+                  <p className="mt-2 text-slate-500">À la confirmation, l&apos;invitation WhatsApp partira automatiquement.</p>
+                )}
               </div>
             ) : null}
           </section>
@@ -724,45 +710,41 @@ export default function LeaseMoveInForm({
             <div>
               <h2 className="text-lg font-semibold text-[#010a19]">Caution</h2>
               <p className="mt-1 text-sm text-slate-600">
-                {moveInMode === "existing_tenant"
-                  ? "Dans la plupart des cas, la caution est déjà payée hors plateforme."
-                  : "Indiquez le montant de la caution à encaisser."}
+                Indiquez le montant et si la caution est déjà reçue ou encore à encaisser.
               </p>
             </div>
 
-            {moveInMode === "existing_tenant" ? (
-              <div className="grid gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDepositAlreadyPaid(true)}
-                  className={`rounded-xl border px-4 py-3 text-left ${
-                    depositAlreadyPaid
-                      ? "border-[#0063fe] bg-[#0063fe]/5 ring-2 ring-[#0063fe]/20"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <p className="font-semibold text-[#010a19]">Déjà payée</p>
-                  <p className="mt-1 text-sm text-slate-600">Enregistrer le montant sans créer une échéance à payer.</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDepositAlreadyPaid(false)}
-                  className={`rounded-xl border px-4 py-3 text-left ${
-                    !depositAlreadyPaid
-                      ? "border-[#0063fe] bg-[#0063fe]/5 ring-2 ring-[#0063fe]/20"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <p className="font-semibold text-[#010a19]">À encaisser encore</p>
-                  <p className="mt-1 text-sm text-slate-600">Créer une caution à suivre sur la plateforme.</p>
-                </button>
-              </div>
-            ) : null}
+            <div className="grid gap-3">
+              <button
+                type="button"
+                onClick={() => setDepositAlreadyPaid(true)}
+                className={`rounded-xl border px-4 py-3 text-left ${
+                  depositAlreadyPaid
+                    ? "border-[#0063fe] bg-[#0063fe]/5 ring-2 ring-[#0063fe]/20"
+                    : "border-gray-200"
+                }`}
+              >
+                <p className="font-semibold text-[#010a19]">Déjà reçue</p>
+                <p className="mt-1 text-sm text-slate-600">Enregistrer le montant sans créer un paiement à suivre.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDepositAlreadyPaid(false)}
+                className={`rounded-xl border px-4 py-3 text-left ${
+                  !depositAlreadyPaid
+                    ? "border-[#0063fe] bg-[#0063fe]/5 ring-2 ring-[#0063fe]/20"
+                    : "border-gray-200"
+                }`}
+              >
+                <p className="font-semibold text-[#010a19]">À encaisser</p>
+                <p className="mt-1 text-sm text-slate-600">Créer une caution à marquer comme payée plus tard.</p>
+              </button>
+            </div>
 
-            {moveInMode === "existing_tenant" && depositAlreadyPaid ? (
+            {depositAlreadyPaid ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  <span className="mb-1.5 block">Montant déjà payé</span>
+                  <span className="mb-1.5 block">Montant déjà reçu</span>
                   <input
                     value={externalDepositAmount}
                     onChange={(event) => setExternalDepositAmount(event.target.value)}
@@ -783,7 +765,7 @@ export default function LeaseMoveInForm({
               </div>
             ) : (
               <div className="space-y-3">
-                {depositRows.map((row, index) => (
+                {depositRows.map((row) => (
                   <div key={row.id} className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-3 sm:grid-cols-2">
                     <label className="block text-sm font-medium text-gray-700 sm:col-span-2">
                       <span className="mb-1.5 block">Libellé</span>
@@ -815,29 +797,8 @@ export default function LeaseMoveInForm({
                         <option value="USD">USD</option>
                       </select>
                     </label>
-                    {depositRows.length > 1 ? (
-                      <button
-                        type="button"
-                        onClick={() => removeChargeRow(setDepositRows, row.id)}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:col-span-2"
-                      >
-                        Retirer cette caution
-                      </button>
-                    ) : null}
-                    {index === 0 ? (
-                      <p className="text-xs text-slate-500 sm:col-span-2">
-                        La date d&apos;échéance de la caution est alignée automatiquement sur la date du bail.
-                      </p>
-                    ) : null}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => addChargeRow(setDepositRows, "deposit")}
-                  className="text-sm font-medium text-[#0063fe] hover:underline"
-                >
-                  + Ajouter une autre caution
-                </button>
               </div>
             )}
 
@@ -920,8 +881,10 @@ export default function LeaseMoveInForm({
         {step === "confirm" ? (
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Vérifiez avant d&apos;enregistrer</h2>
-              <p className="mt-1 text-sm text-slate-600">Résumé en langage simple. Corrigez si besoin en revenant en arrière.</p>
+              <h2 className="text-lg font-semibold text-[#010a19]">C&apos;est bon ?</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Le bail sera actif tout de suite. L&apos;invitation WhatsApp part automatiquement si un téléphone est renseigné.
+              </p>
             </div>
 
             <dl className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-4 text-sm">
@@ -965,56 +928,19 @@ export default function LeaseMoveInForm({
                 <dt className="text-slate-500">Caution</dt>
                 <dd className="text-right font-medium text-[#010a19]">{depositSummary}</dd>
               </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Bail</dt>
-                <dd className="text-right font-medium text-[#010a19]">
-                  {termType === "month_to_month" ? "Mois à mois" : `Durée fixe · ${fixedTermMonths} mois`}
-                </dd>
-              </div>
               {moveInMode === "existing_tenant" && skipFirstRent ? (
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">Loyer en cours</dt>
                   <dd className="text-right font-medium text-[#010a19]">Déjà payé (non créé)</dd>
                 </div>
               ) : null}
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Invitation</dt>
+                <dd className="text-right font-medium text-[#010a19]">
+                  {selectedTenant?.phone ? `WhatsApp · ${selectedTenant.phone}` : "Aucun téléphone — invitation à renvoyer plus tard"}
+                </dd>
+              </div>
             </dl>
-
-            {moveInMode === "existing_tenant" ? (
-              <div className="space-y-3 rounded-lg border border-dashed border-gray-300 px-4 py-3">
-                <p className="text-sm font-medium text-[#010a19]">Activation</p>
-                <label className="flex items-start gap-3 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={activateImmediately}
-                    onChange={(event) => setActivateImmediately(event.target.checked)}
-                  />
-                  <span>
-                    <span className="font-medium">Activer le bail maintenant</span>
-                    <span className="mt-0.5 block text-slate-500">Sinon il reste en brouillon.</span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-3 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={sendMobileInvite}
-                    onChange={(event) => setSendMobileInvite(event.target.checked)}
-                    disabled={!activateImmediately || !inviteEmail}
-                  />
-                  <span>
-                    <span className="font-medium">Envoyer l&apos;invitation mobile</span>
-                    <span className="mt-0.5 block text-slate-500">
-                      {inviteEmail || "Aucune adresse e-mail sur la fiche locataire"}
-                    </span>
-                  </span>
-                </label>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-slate-600">
-                Le bail sera enregistré en brouillon. Vous pourrez finaliser après encaissement des charges initiales.
-              </div>
-            )}
           </section>
         ) : null}
 
@@ -1042,7 +968,7 @@ export default function LeaseMoveInForm({
               disabled={busy}
               className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0050d0] disabled:opacity-60"
             >
-              {moveInMode === "existing_tenant" && activateImmediately ? "Activer le bail" : "Enregistrer comme brouillon"}
+              Enregistrer le locataire
             </button>
           ) : (
             <button

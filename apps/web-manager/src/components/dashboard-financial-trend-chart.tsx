@@ -38,7 +38,7 @@ export default function DashboardFinancialTrendChart({
   const hasData = revenue.some((amount) => amount !== 0);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0d1526]">
+    <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0d1526]">
       <div>
         <h2 className="text-base font-semibold text-[#010a19] dark:text-white">Évolution des loyers</h2>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">

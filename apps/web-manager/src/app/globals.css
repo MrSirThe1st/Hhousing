@@ -240,6 +240,108 @@
 }
 
 @layer components {
+  /* Shared dashboard filter controls — keeps native select/date icons inset. */
+  .hh-filter-label {
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: #010a19;
+    white-space: nowrap;
+  }
+
+  .hh-filter-input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #334155;
+    outline: none;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .hh-filter-input:focus {
+    border-color: #0063fe;
+    box-shadow: 0 0 0 2px rgb(0 99 254 / 0.15);
+  }
+
+  .hh-filter-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem 1rem;
+    padding-right: 2.5rem;
+  }
+
+  .hh-filter-date {
+    padding-right: 0.75rem;
+  }
+
+  .hh-filter-date::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    margin-inline-end: 0.15rem;
+    opacity: 0.7;
+    padding: 0.15rem;
+  }
+
+  .hh-filter-date::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  .hh-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1rem;
+  }
+
+  .hh-filter-field-grow {
+    flex: 2 1 16rem;
+    min-width: min(100%, 16rem);
+  }
+
+  .hh-filter-field {
+    flex: 1 1 9.5rem;
+    min-width: 9.5rem;
+  }
+
+  .hh-filter-field-date {
+    flex: 1 1 8.5rem;
+    min-width: 8.5rem;
+  }
+
+  .hh-filter-field-action {
+    flex: 0 0 auto;
+    min-width: 8.5rem;
+  }
+
+  .dark .hh-filter-label {
+    color: #f1f5f9;
+  }
+
+  .dark .hh-filter-input {
+    border-color: #1e293b;
+    background-color: #0a1120;
+    color: #e2e8f0;
+  }
+
+  .dark .hh-filter-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  .dark .hh-filter-bar {
+    border-bottom-color: #1e293b;
+  }
+
   .hhousing-universal-loader-dot {
     animation-name: hhousing-material-wave;
     animation-iteration-count: infinite;

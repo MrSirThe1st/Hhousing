@@ -21,20 +21,28 @@ function formatPaymentKind(paymentKind: PaymentKind): string {
   }
 }
 
+/** Default rows per page when the property list size is unknown. */
+const DEFAULT_LEDGER_PAGE_SIZE = 6;
+
 export default function RevenuesLedgerTable({
-  entries
+  entries,
+  pageSize = DEFAULT_LEDGER_PAGE_SIZE
 }: {
   entries: RevenueLedgerEntry[];
+  pageSize?: number;
 }): React.ReactElement {
   return (
     <ResponsiveTable<RevenueLedgerEntry>
       keyExtractor={(entry) => entry.paymentId}
       data={entries}
+      paginate
+      defaultPageSize={pageSize}
+      framed={false}
       columns={[
         {
           header: "Payé le",
           render: (entry) => (
-            <span className="text-gray-600">{new Date(entry.paidDate).toLocaleDateString("fr-FR")}</span>
+            <span className="text-slate-600">{new Date(entry.paidDate).toLocaleDateString("fr-FR")}</span>
           )
         },
         {
@@ -42,37 +50,42 @@ export default function RevenuesLedgerTable({
           render: (entry) => (
             <div>
               <p className="font-medium text-[#010a19]">{entry.propertyName}</p>
-              <p className="text-xs text-gray-500">Logement {entry.unitNumber}</p>
+              <p className="text-xs text-slate-500">Logement {entry.unitNumber}</p>
             </div>
           )
         },
         {
           header: "Locataire",
-          render: (entry) => <span className="text-gray-600">{entry.tenantName}</span>
+          render: (entry) => <span className="text-slate-600">{entry.tenantName}</span>
         },
         {
           header: "Type",
           render: (entry) => (
-            <span className="text-gray-600">{formatPaymentKind(entry.paymentKind)}</span>
+            <span className="text-slate-600">{formatPaymentKind(entry.paymentKind)}</span>
           )
         },
         {
           header: "Montant",
           className: "text-right",
           render: (entry) => (
-            <span className="font-semibold text-[#010a19]">
-              {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
-            </span>
+            <div className="text-right">
+              <p className="font-semibold tabular-nums text-[#010a19]">
+                {entry.amount.toLocaleString("fr-FR")}
+              </p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                {entry.currencyCode}
+              </p>
+            </div>
           )
         }
       ]}
       renderMobileCard={(entry) => (
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#0063fe] bg-blue-50 px-2.5 py-0.5 rounded-full">
+          <div className="flex items-center justify-between gap-3">
+            <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
               {formatPaymentKind(entry.paymentKind)}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-slate-500">
               {new Date(entry.paidDate).toLocaleDateString("fr-FR")}
             </span>
           </div>
@@ -82,10 +95,10 @@ export default function RevenuesLedgerTable({
               Logement {entry.unitNumber} • {entry.tenantName}
             </p>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-            <span className="text-xs text-slate-400">Montant</span>
-            <span className="font-bold text-emerald-600">
-              {entry.amount.toLocaleString("fr-FR")} {entry.currencyCode}
+          <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-2">
+            <span className="text-xs uppercase tracking-wide text-slate-400">{entry.currencyCode}</span>
+            <span className="font-semibold tabular-nums text-[#010a19]">
+              {entry.amount.toLocaleString("fr-FR")}
             </span>
           </div>
         </div>

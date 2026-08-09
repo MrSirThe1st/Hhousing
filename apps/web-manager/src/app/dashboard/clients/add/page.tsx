@@ -1,19 +1,12 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import OwnerClientCreatePanel from "../../../../components/owner-client-create-panel";
-import { createRepositoryFromEnv } from "../../../api/shared";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
+/**
+ * Auth + client form only — do not preload owner lists on create routes.
+ */
 export default async function AddOwnerPage(): Promise<React.ReactElement> {
   const { session } = await requireDashboardSectionAccess("operations");
-
-  const repoResult = createRepositoryFromEnv();
-  if (!repoResult.success) {
-    return <div className="p-8 text-red-600">Erreur de connexion à la base de données.</div>;
-  }
-
-  const owners = await repoResult.data.listOwners(session.organizationId);
-  const existingClientCount = owners.filter((owner) => owner.ownerType === "client").length;
 
   return (
     <div className="space-y-6 p-8">
@@ -30,10 +23,7 @@ export default async function AddOwnerPage(): Promise<React.ReactElement> {
         </p>
       </div>
 
-      <OwnerClientCreatePanel
-        organizationId={session.organizationId}
-        existingClientCount={existingClientCount}
-      />
+      <OwnerClientCreatePanel organizationId={session.organizationId} />
     </div>
   );
 }

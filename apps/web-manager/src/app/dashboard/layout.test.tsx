@@ -24,28 +24,35 @@ vi.mock("../../lib/operator-context", () => ({
   getOperatorScopeLabel: () => "Mon parc"
 }));
 
-vi.mock("../../lib/sidebar-badge-counts", () => ({
-  getSidebarBadgeCounts: vi.fn().mockResolvedValue({
-    listings: 0,
-    payments: 0
-  })
-}));
-
-vi.mock("../../lib/dashboard-access", () => ({
-  resolveDashboardAccess: vi.fn().mockResolvedValue({
-    dashboard: true,
-    operations: true,
-    finances: true,
-    services: true,
-    organization: true,
-    audit: true,
-    billing: true,
-    manageOrganization: true,
-    isFoundingManager: true,
-    operationsWritable: true,
-    financesWritable: true,
-    servicesWritable: true,
-    billingWritable: true
+vi.mock("../../lib/dashboard-request-context", () => ({
+  getDashboardRequestContext: vi.fn().mockImplementation(async () => {
+    const session = await getServerAuthSessionMock();
+    if (!session || session.role === "tenant" || session.role === "platform_admin" || !session.organizationId) {
+      return null;
+    }
+    return {
+      session,
+      access: {
+        dashboard: true,
+        operations: true,
+        finances: true,
+        services: true,
+        organization: true,
+        audit: true,
+        billing: true,
+        manageOrganization: true,
+        isFoundingManager: true,
+        operationsWritable: true,
+        financesWritable: true,
+        servicesWritable: true,
+        billingWritable: true
+      },
+      organization: {
+        id: "org_1",
+        name: "Test Org",
+        status: "active"
+      }
+    };
   })
 }));
 
@@ -61,6 +68,22 @@ vi.mock("@hhousing/data-access", async (importOriginal) => {
 
 vi.mock("../../components/sidebar", () => ({
   default: () => "sidebar"
+}));
+
+vi.mock("../../components/bottom-navigation", () => ({
+  default: () => null
+}));
+
+vi.mock("../../components/floating-action-button", () => ({
+  default: () => null
+}));
+
+vi.mock("../../components/theme-toggle", () => ({
+  default: () => null
+}));
+
+vi.mock("./dashboard-overdue-billing-banner", () => ({
+  default: async () => null
 }));
 
 vi.mock("../api/shared", () => ({

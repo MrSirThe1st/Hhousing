@@ -12,7 +12,8 @@ import ProvinceSelect from "./province-select";
 
 interface OwnerClientCreatePanelProps {
   organizationId: string;
-  existingClientCount: number;
+  /** Optional — create routes should not SSR full owner lists just for this count. */
+  existingClientCount?: number;
 }
 
 interface OwnerCreateFormState {
@@ -149,7 +150,10 @@ export default function OwnerClientCreatePanel({
       <div>
         <h2 className="text-base font-semibold text-[#010a19]">Ajouter un owner tiers</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Enregistrez un profil complet. Vous avez actuellement {existingClientCount} owner(s) tiers.
+          Enregistrez un profil complet
+          {typeof existingClientCount === "number"
+            ? `. Vous avez actuellement ${existingClientCount} owner(s) tiers.`
+            : " avant de rattacher ses biens."}
         </p>
       </div>
 

@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
 import type { PropertyWithUnitsView } from "@hhousing/api-contracts";
 import { listProperties } from "../../../../api";
 import { createRepositoryFromEnv, createTeamFunctionsRepo } from "../../../api/shared";
 import UnitCreateForm from "../../../../components/unit-create-form";
+import DashboardPageLoadError from "../../../../components/dashboard-page-load-error";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 
 export default async function AddUnitPage(): Promise<React.ReactElement> {
@@ -14,18 +14,29 @@ export default async function AddUnitPage(): Promise<React.ReactElement> {
     return <div className="p-8 text-red-600">Erreur de connexion à la base de données.</div>;
   }
 
-  const result = await listProperties(
-    {
-      session,
-      organizationId: session.organizationId ?? ""
-    },
-    {
-      repository: repoResult.data,
-      teamFunctionsRepository: createTeamFunctionsRepo()
-    }
-  );
+  let items: PropertyWithUnitsView[] = [];
+  let loadError: string | null = null;
 
-  const items: PropertyWithUnitsView[] = result.body.success ? result.body.data.items : [];
+  try {
+    const result = await listProperties(
+      {
+        session,
+        organizationId: session.organizationId ?? ""
+      },
+      {
+        repository: repoResult.data,
+        teamFunctionsRepository: createTeamFunctionsRepo()
+      }
+    );
+    items = result.body.success ? result.body.data.items : [];
+  } catch (error) {
+    console.error("Failed to load unit create options", error);
+    loadError = "Impossible de charger les biens pour le moment. Réessayez dans un instant.";
+  }
+
+  if (loadError) {
+    return <DashboardPageLoadError message={loadError} />;
+  }
 
   return (
     <UnitCreateForm

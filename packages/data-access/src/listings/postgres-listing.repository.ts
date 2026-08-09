@@ -179,7 +179,7 @@ interface PropertyOwnershipSchema {
 
 async function getPropertyOwnershipSchema(client: ListingQueryable): Promise<PropertyOwnershipSchema> {
   if (!propertyOwnershipSchemaPromise) {
-    propertyOwnershipSchemaPromise = (async () => {
+    const loading = (async (): Promise<PropertyOwnershipSchema> => {
       const result = await client.query<{ column_name: string }>(
         `select column_name
          from information_schema.columns
@@ -201,6 +201,12 @@ async function getPropertyOwnershipSchema(client: ListingQueryable): Promise<Pro
         relationNameColumn: "client_name"
       };
     })();
+
+    propertyOwnershipSchemaPromise = loading.catch((error: unknown) => {
+      // Allow retry on the next request — do not cache a rejected promise forever.
+      propertyOwnershipSchemaPromise = null;
+      throw error;
+    });
   }
 
   return propertyOwnershipSchemaPromise;

@@ -1,6 +1,7 @@
 import type { Owner } from "@hhousing/domain";
 import { createRepositoryFromEnv } from "../../../api/shared";
 import PropertyCreateForm from "../../../../components/property-create-form";
+import DashboardPageLoadError from "../../../../components/dashboard-page-load-error";
 import { requireDashboardSectionAccess } from "../../../../lib/dashboard-access";
 import { getIndividualExperienceFeatures } from "../../../../lib/individual-experience";
 import { getServerOperatorContext } from "../../../../lib/operator-context";
@@ -23,10 +24,18 @@ export default async function AddPropertyPage({ searchParams }: AddPropertyPageP
     return <div className="p-8 text-red-600">Erreur de connexion à la base de données.</div>;
   }
 
-  const owners: Owner[] = await repoResult.data.listOwners(session.organizationId ?? "");
-  const filteredOwners = features.managedPropertyMode
-    ? owners
-    : owners.filter((owner) => owner.ownerType === "organization");
+  let filteredOwners: Owner[] = [];
+  try {
+    const owners = await repoResult.data.listOwners(session.organizationId ?? "");
+    filteredOwners = features.managedPropertyMode
+      ? owners
+      : owners.filter((owner) => owner.ownerType === "organization");
+  } catch (error) {
+    console.error("Failed to load property create options", error);
+    return (
+      <DashboardPageLoadError message="Impossible de charger le formulaire bien. Réessayez dans un instant." />
+    );
+  }
 
   return (
     <PropertyCreateForm

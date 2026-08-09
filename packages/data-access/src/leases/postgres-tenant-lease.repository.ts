@@ -951,6 +951,17 @@ export function createPostgresTenantLeaseRepository(
       return result.rows.map(mapTenant);
     },
 
+    async listTenantIdsWithCurrentLeases(organizationId: string): Promise<string[]> {
+      const result = await client.query<{ tenant_id: string }>(
+        `select distinct tenant_id
+         from leases
+         where organization_id = $1
+           and status in ('active', 'pending')`,
+        [organizationId]
+      );
+      return result.rows.map((row) => row.tenant_id);
+    },
+
     async getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null> {
       const result = await client.query<TenantRow>(
         `select ${TENANT_COLUMNS}

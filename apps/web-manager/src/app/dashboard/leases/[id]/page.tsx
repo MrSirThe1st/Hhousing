@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Permission } from "@hhousing/api-contracts";
 import { requirePermission } from "../../../../api/organizations/permissions";
 import { filterDocumentsByScope, getScopedPortfolioData } from "../../../../lib/operator-scope-portfolio";
-import { createDocumentRepo, createPaymentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
+import { createDocumentRepo, createRepositoryFromEnv, createTeamFunctionsRepo, createTenantLeaseRepo } from "../../../api/shared";
 import { getDashboardOperatorSession } from "../../detail-page-access";
 import { getIndividualExperienceFeatures } from "../../../../lib/individual-experience";
 import { getServerOperatorContext } from "../../../../lib/operator-context";
@@ -24,7 +24,6 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
   }
 
   const tenantLeaseRepo = createTenantLeaseRepo();
-  const paymentRepo = createPaymentRepo();
   const documentRepo = createDocumentRepo();
   const propertyRepoResult = createRepositoryFromEnv();
 
@@ -44,8 +43,7 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
     );
   }
 
-  const [payments, documents, tenant, unit] = await Promise.all([
-    paymentRepo.listPayments({ organizationId: session.organizationId, leaseId: id }),
+  const [documents, tenant, unit] = await Promise.all([
     documentRepo.listDocuments({ organizationId: session.organizationId }),
     tenantLeaseRepo.getTenantById(lease.tenantId, session.organizationId),
     propertyRepoResult.success
@@ -63,7 +61,6 @@ export default async function LeaseDetailPage({ params }: PageProps): Promise<Re
     <LeaseDetailClient
       id={id}
       initialLease={lease}
-      initialPayments={payments}
       initialAvailableDocuments={availableDocuments}
       tenant={tenant}
       unit={unit}

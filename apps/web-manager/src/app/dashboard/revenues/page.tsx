@@ -1,11 +1,7 @@
-import Link from "next/link";
+import CurrencyTotalStack from "../../../components/currency-total-stack";
 import FinanceFilterForm from "../../../components/finance-filter-form";
 import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
 import RevenuesLedgerTable from "../../../components/revenues-ledger-table";
-import {
-  buildFinanceQueryString,
-  formatCurrencySummary
-} from "../../../lib/finance-reporting";
 import { loadRevenuesPageData } from "../../../lib/revenues-page-data";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
@@ -18,109 +14,115 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
 
   const params = await searchParams;
   const dataset = await loadRevenuesPageData(session, params);
-  const baseQuery = buildFinanceQueryString(dataset.filters);
-  const nextPageHref = dataset.nextCursor
-    ? `/dashboard/revenues?${buildFinanceQueryString(dataset.filters, { cursor: dataset.nextCursor })}`
-    : null;
+  const ledgerPageSize = Math.max(4, Math.min(8, dataset.propertyRevenue.length || 6));
 
   return (
     <div id="revenues-container" className="space-y-6 p-8">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Revenus</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Revenus opérationnels encaissés (hors garanties locatives).
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Revenus</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Revenus opérationnels encaissés (hors garanties locatives).
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-start gap-8 border-b border-slate-200 pb-3">
+        <div className="min-w-[9rem]">
+          <p className="text-xs uppercase tracking-wide text-slate-500">Revenu encaissé</p>
+          <div className="mt-2">
+            <CurrencyTotalStack totals={dataset.revenueTotals} />
+          </div>
+        </div>
+
+        <div className="hidden h-10 w-px self-center bg-slate-200 sm:block" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Encaissements</p>
+          <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900">
+            {dataset.recordedPaymentCount.toLocaleString("fr-FR")}
+          </p>
+        </div>
+
+        <div className="hidden h-10 w-px self-center bg-slate-200 sm:block" />
+
+        <div className="min-w-[9rem]">
+          <p className="text-xs uppercase tracking-wide text-slate-500">Cautions (passif)</p>
+          <div className="mt-2">
+            <CurrencyTotalStack totals={dataset.depositLiabilityTotals} tone="muted" />
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {dataset.recordedDepositCount.toLocaleString("fr-FR")} encaissement(s)
+          </p>
+        </div>
+
+        <div className="hidden h-10 w-px self-center bg-slate-200 sm:block" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Propriétés actives</p>
+          <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900">
+            {dataset.propertyRevenue.length.toLocaleString("fr-FR")}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-8 border-b border-slate-200 pb-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Revenu encaissé</p>
-          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.revenueTotals)}</p>
-        </div>
-
-        <div className="h-6 w-px bg-slate-200" />
-
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Encaissements</p>
-          <p className="text-xl font-semibold text-slate-900">{dataset.recordedPaymentCount.toLocaleString("fr-FR")}</p>
-        </div>
-
-        <div className="h-6 w-px bg-slate-200" />
-
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Cautions (passif)</p>
-          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.depositLiabilityTotals)}</p>
-          <p className="mt-1 text-xs text-slate-500">{dataset.recordedDepositCount.toLocaleString("fr-FR")} encaissement(s)</p>
-        </div>
-
-        <div className="h-6 w-px bg-slate-200" />
-
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Propriétés actives</p>
-          <p className="text-xl font-semibold text-slate-900">{dataset.propertyRevenue.length.toLocaleString("fr-FR")}</p>
-        </div>
-      </div>
-
-      <FinanceFilterForm actionPath="/dashboard/revenues" filters={dataset.filters} propertyOptions={dataset.propertyOptions} />
+      <FinanceFilterForm
+        actionPath="/dashboard/revenues"
+        filters={dataset.filters}
+        propertyOptions={dataset.propertyOptions}
+      />
 
       <FinanceMonthlyChart
         buckets={dataset.monthlyRevenue}
         emptyLabel="Aucun revenu encaissé sur cette période."
       />
 
-      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#010a19]">Par propriété</h2>
-          <p className="mt-1 text-sm text-gray-500">Vue portefeuille des revenus déjà encaissés.</p>
-
-          {dataset.propertyRevenue.length === 0 ? (
-            <p className="mt-5 text-sm text-gray-500">Aucun revenu à afficher pour les filtres actifs.</p>
-          ) : (
-            <div className="mt-5 space-y-3">
-              {dataset.propertyRevenue.map((property) => (
-                <div key={property.propertyId} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-medium text-[#010a19]">{property.propertyName}</p>
-                      <p className="mt-1 text-sm text-gray-500">{property.paymentCount} encaissement(s)</p>
-                    </div>
-                    <p className="text-sm font-semibold text-[#010a19]">{formatCurrencySummary(property.totals)}</p>
-                  </div>
-                </div>
-              ))}
+      <section className="grid items-stretch gap-6 xl:grid-cols-12">
+        <div className="flex xl:col-span-4">
+          <article className="flex h-full min-h-0 w-full flex-col rounded-xl border border-slate-200 bg-white">
+            <div className="shrink-0 border-b border-slate-200 px-5 py-4">
+              <h2 className="text-base font-semibold text-[#010a19]">Par propriété</h2>
+              <p className="mt-1 text-sm text-slate-500">Vue portefeuille des revenus déjà encaissés.</p>
             </div>
-          )}
-        </article>
 
-        <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#010a19]">Grand livre des revenus</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Un paiement payé devient un revenu ici.
-            {dataset.recordedPaymentCount > dataset.ledger.length
-              ? ` Affichage de ${dataset.ledger.length} sur ${dataset.recordedPaymentCount.toLocaleString("fr-FR")}.`
-              : null}
-          </p>
+            {dataset.propertyRevenue.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center px-5 py-8 text-center text-sm text-slate-400">
+                Aucun revenu à afficher pour les filtres actifs.
+              </div>
+            ) : (
+              <ul className="min-h-0 flex-1 divide-y divide-slate-200 overflow-y-auto">
+                {dataset.propertyRevenue.map((property) => (
+                  <li key={property.propertyId} className="flex items-start justify-between gap-4 px-5 py-4">
+                    <div className="min-w-0">
+                      <p className="font-medium text-[#010a19]">{property.propertyName}</p>
+                      <p className="mt-0.5 text-sm text-slate-500">{property.paymentCount} encaissement(s)</p>
+                    </div>
+                    <div className="min-w-26 shrink-0">
+                      <CurrencyTotalStack totals={property.totals} size="sm" />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+        </div>
 
-          {dataset.ledger.length === 0 ? (
-            <p className="mt-5 text-sm text-gray-500">Aucun revenu enregistré pour les filtres actifs.</p>
-          ) : (
-            <>
-              <RevenuesLedgerTable entries={dataset.ledger} />
-              {nextPageHref ? (
-                <div className="mt-4 flex justify-end">
-                  <Link
-                    href={nextPageHref}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Page suivante
-                  </Link>
+        <div className="flex xl:col-span-8">
+          <article className="flex h-full min-h-0 w-full flex-col rounded-xl border border-slate-200 bg-white">
+            <div className="shrink-0 border-b border-slate-200 px-5 py-4">
+              <h2 className="text-base font-semibold text-[#010a19]">Grand livre des revenus</h2>
+              <p className="mt-1 text-sm text-slate-500">Un paiement payé devient un revenu ici.</p>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col">
+              {dataset.ledger.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center px-5 py-8 text-center text-sm text-slate-400">
+                  Aucun revenu enregistré pour les filtres actifs.
                 </div>
-              ) : null}
-            </>
-          )}
-        </article>
+              ) : (
+                <RevenuesLedgerTable entries={dataset.ledger} pageSize={ledgerPageSize} />
+              )}
+            </div>
+          </article>
+        </div>
       </section>
     </div>
   );

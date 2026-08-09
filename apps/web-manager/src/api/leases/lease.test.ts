@@ -218,12 +218,14 @@ describe("createLease", () => {
     expect(repository.createLease).toHaveBeenCalledTimes(1);
     expect(repository.createLease).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: "pending",
+        status: "active",
         moveInMode: "standard",
         depositSettledExternally: false,
         depositAmount: 200,
         paymentFrequency: "monthly",
         dueDayOfMonth: 1,
+        signedAt: "2026-04-01",
+        signingMethod: "physical",
         charges: [
           expect.objectContaining({
             chargeType: "deposit",
@@ -395,7 +397,7 @@ describe("createLease", () => {
     expect(response.body).toEqual({
       success: false,
       code: "VALIDATION_ERROR",
-      error: "Unit must exist and be vacant before creating a lease"
+      error: "Le logement doit exister et être libre pour créer un bail"
     });
   });
 

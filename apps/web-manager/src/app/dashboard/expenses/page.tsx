@@ -1,5 +1,6 @@
 import ExpenseCreateForm from "../../../components/expense-create-form";
 import ExpensesLedgerTable from "../../../components/expenses-ledger-table";
+import FinanceFilterForm from "../../../components/finance-filter-form";
 import {
   buildFinanceQueryString,
   formatCurrencySummary
@@ -7,7 +8,6 @@ import {
 import { loadExpensesPageData } from "../../../lib/expenses-page-data";
 import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
-import Link from "next/link";
 
 type ExpensesPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -20,9 +20,6 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
   const dataset = await loadExpensesPageData(session, params);
   const baseQuery = buildFinanceQueryString(dataset.filters);
   const baseHref = baseQuery.length > 0 ? `/dashboard/expenses?${baseQuery}` : "/dashboard/expenses";
-  const nextPageHref = dataset.nextCursor
-    ? `/dashboard/expenses?${buildFinanceQueryString(dataset.filters, { cursor: dataset.nextCursor })}`
-    : null;
 
   return (
     <>
@@ -85,29 +82,11 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
         </div>
       </div>
 
-      <form action="/dashboard/expenses" className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end">
-        <label className="block flex-1 text-sm">
-          <span className="mb-1.5 block font-medium text-slate-700">Propriété</span>
-          <select name="propertyId" defaultValue={dataset.filters.propertyId ?? ""} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15">
-            <option value="">Toutes les propriétés</option>
-            {dataset.propertyOptions.map((property) => (
-              <option key={property.id} value={property.id}>{property.name}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block text-sm">
-          <span className="mb-1.5 block font-medium text-slate-700">Du</span>
-          <input type="date" name="from" defaultValue={dataset.filters.from} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
-        </label>
-
-        <label className="block text-sm">
-          <span className="mb-1.5 block font-medium text-slate-700">Au</span>
-          <input type="date" name="to" defaultValue={dataset.filters.to} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15" />
-        </label>
-
-        <button type="submit" className="rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]">Appliquer</button>
-      </form>
+      <FinanceFilterForm
+        actionPath="/dashboard/expenses"
+        filters={dataset.filters}
+        propertyOptions={dataset.propertyOptions}
+      />
 
       <section>
         <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -138,33 +117,18 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
         <h2 className="text-lg font-semibold text-[#010a19]">Journal des dépenses</h2>
         <p className="mt-1 text-sm text-gray-500">
           Chaque dépense reflète une sortie d’argent déjà engagée.
-          {dataset.recordedExpenseCount > dataset.ledger.length
-            ? ` Affichage de ${dataset.ledger.length} sur ${dataset.recordedExpenseCount.toLocaleString("fr-FR")}.`
-            : null}
         </p>
 
         {dataset.ledger.length === 0 ? (
           <p className="mt-5 text-sm text-gray-500">Aucune dépense enregistrée pour les filtres actifs.</p>
         ) : (
-          <>
-            <ExpensesLedgerTable
-              entries={dataset.ledger.map((entry) => ({
-                ...entry,
-                editHref: `/dashboard/expenses?${buildFinanceQueryString(dataset.filters, { editExpenseId: entry.expenseId })}`
-              }))}
-              redirectHref={baseHref}
-            />
-            {nextPageHref ? (
-              <div className="mt-4 flex justify-end">
-                <Link
-                  href={nextPageHref}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  Page suivante
-                </Link>
-              </div>
-            ) : null}
-          </>
+          <ExpensesLedgerTable
+            entries={dataset.ledger.map((entry) => ({
+              ...entry,
+              editHref: `/dashboard/expenses?${buildFinanceQueryString(dataset.filters, { editExpenseId: entry.expenseId })}`
+            }))}
+            redirectHref={baseHref}
+          />
         )}
       </section>
     </div>

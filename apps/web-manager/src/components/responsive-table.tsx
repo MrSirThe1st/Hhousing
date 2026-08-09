@@ -20,6 +20,8 @@ export interface ResponsiveTableProps<T> {
   paginate?: boolean;
   defaultPageSize?: number;
   mode?: "auto" | "table" | "cards";
+  /** When false, omit outer card chrome (for nesting inside an existing panel). */
+  framed?: boolean;
 }
 
 export default function ResponsiveTable<T>({
@@ -37,6 +39,7 @@ export default function ResponsiveTable<T>({
   paginate = true,
   defaultPageSize = 10,
   mode = "auto",
+  framed = true,
 }: ResponsiveTableProps<T>): React.ReactElement {
   const { isMobile, isMounted } = useIsMobile();
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,7 +65,7 @@ export default function ResponsiveTable<T>({
   if (!isMounted) {
     // Render desktop placeholder to avoid layout shifts/hydration mismatch
     return (
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden animate-pulse dark:border-slate-800 dark:bg-[#0d1526]">
+      <div className={`${framed ? "rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-[#0d1526]" : "bg-white dark:bg-[#0d1526]"} overflow-hidden animate-pulse`}>
         <div className="bg-slate-50 px-4 py-4 flex gap-8 border-b border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
           {columns.map((col, idx) => (
             <div key={idx} className="h-4 bg-slate-200 rounded w-20 dark:bg-slate-700" />
@@ -78,7 +81,7 @@ export default function ResponsiveTable<T>({
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-[#0d1526]">
+      <div className={`${framed ? "rounded-xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-[#0d1526]" : "overflow-hidden bg-white dark:bg-[#0d1526]"}`}>
         {emptyState}
       </div>
     );
@@ -180,7 +183,7 @@ export default function ResponsiveTable<T>({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs dark:border-slate-800 dark:bg-[#0d1526]">
+    <div className={`${framed ? "rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-[#0d1526]" : "bg-white dark:bg-[#0d1526]"} overflow-hidden`}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 border-b border-slate-200 dark:bg-slate-900/40 dark:text-slate-400 dark:border-slate-800">

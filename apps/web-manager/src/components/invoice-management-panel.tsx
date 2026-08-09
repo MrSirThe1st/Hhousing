@@ -8,6 +8,18 @@ import { getWithAuth, patchWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
 import ActionMenu from "./action-menu";
 import { buildInvoiceDocumentContext, buildInvoiceDocumentHtml } from "../lib/invoices/invoice-document";
+import {
+  FILTER_BAR_CLASS,
+  FILTER_DATE_CLASS,
+  FILTER_FIELD_ACTION_CLASS,
+  FILTER_FIELD_CLASS,
+  FILTER_FIELD_DATE_CLASS,
+  FILTER_FIELD_GROW_CLASS,
+  FILTER_INPUT_CLASS,
+  FILTER_LABEL_CLASS,
+  FILTER_RESET_BUTTON_CLASS,
+  FILTER_SELECT_CLASS
+} from "../lib/filter-field-classes";
 import posthog from "posthog-js";
 
 type InvoiceManagementPanelProps = {
@@ -237,22 +249,22 @@ export default function InvoiceManagementPanel({
         <p className="text-sm text-slate-500">Reçus de loyer par bail et période. Indépendants de la saisie des paiements.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-end 2xl:grid-cols-[minmax(0,1.25fr)_220px_220px_220px_180px_180px_auto]">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Rechercher</label>
+      <div className={FILTER_BAR_CLASS}>
+        <div className={FILTER_FIELD_GROW_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Rechercher</label>
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Numéro, locataire, période ou bail"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_INPUT_CLASS}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Bail</label>
+        <div className={FILTER_FIELD_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Bail</label>
           <select
             value={leaseFilter}
             onChange={(event) => setLeaseFilter(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_SELECT_CLASS}
           >
             <option value="all">Tous les baux</option>
             {leases.map((lease) => (
@@ -262,12 +274,12 @@ export default function InvoiceManagementPanel({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Statut</label>
+        <div className={FILTER_FIELD_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Statut</label>
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as Invoice["status"] | "all")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_SELECT_CLASS}
           >
             <option value="all">Tous</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -277,12 +289,12 @@ export default function InvoiceManagementPanel({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Email</label>
+        <div className={FILTER_FIELD_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Email</label>
           <select
             value={emailStatusFilter}
             onChange={(event) => setEmailStatusFilter(event.target.value as Invoice["emailStatus"] | "all")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_SELECT_CLASS}
           >
             <option value="all">Tous</option>
             {Object.entries(EMAIL_LABELS).map(([value, label]) => (
@@ -292,31 +304,29 @@ export default function InvoiceManagementPanel({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Du</label>
+        <div className={FILTER_FIELD_DATE_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Du</label>
           <input
             value={dueDateFrom}
             onChange={(event) => setDueDateFrom(event.target.value)}
             type="date"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_DATE_CLASS}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Au</label>
+        <div className={FILTER_FIELD_DATE_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Au</label>
           <input
             value={dueDateTo}
             onChange={(event) => setDueDateTo(event.target.value)}
             type="date"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_DATE_CLASS}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-transparent whitespace-nowrap">Actions</label>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
+        <div className={FILTER_FIELD_ACTION_CLASS}>
+          <label className={`${FILTER_LABEL_CLASS} invisible`} aria-hidden>
+            Actions
+          </label>
+          <button type="button" onClick={resetFilters} className={`w-full ${FILTER_RESET_BUTTON_CLASS}`}>
             Réinitialiser
           </button>
         </div>
@@ -331,108 +341,135 @@ export default function InvoiceManagementPanel({
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       ) : null}
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-[#010a19]">Journal des factures</h2>
-        <p className="mt-1 text-sm text-gray-500">Suivi des statuts de facture et d'email.</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            <p className="text-slate-500">Encours</p>
-            <p className="font-semibold text-[#010a19]">{summary.outstanding.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            <p className="text-slate-500">Avoirs</p>
-            <p className="font-semibold text-[#010a19]">{summary.creditTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            <p className="text-slate-500">Net à encaisser</p>
-            <p className="font-semibold text-[#010a19]">{summary.netDue.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</p>
-          </div>
+      <div className="flex flex-wrap items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Encours</p>
+          <p className="text-xl font-semibold text-slate-900">
+            {summary.outstanding.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Avoirs</p>
+          <p className="text-xl font-semibold text-slate-900">
+            {summary.creditTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Net à encaisser</p>
+          <p className="text-xl font-semibold text-slate-900">
+            {summary.netDue.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
+          </p>
+        </div>
+      </div>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-[#010a19]">Journal des factures</h2>
+          <p className="mt-1 text-sm text-slate-500">Suivi des statuts de facture et d&apos;email.</p>
         </div>
 
         {filteredInvoices.length === 0 ? (
-          <p className="mt-5 text-sm text-gray-500">Aucune facture pour les filtres actifs.</p>
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+            Aucune facture pour les filtres actifs.
+          </div>
         ) : (
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-[0.14em] text-gray-400">
-                <tr>
-                  <th className="pb-3">N°</th>
-                  <th className="pb-3">Locataire</th>
-                  <th className="pb-3">Période</th>
-                  <th className="pb-3">Échéance</th>
-                  <th className="pb-3 text-right">Total</th>
-                  <th className="pb-3 text-right">Payé</th>
-                  <th className="pb-3 text-right">Solde</th>
-                  <th className="pb-3">Statut</th>
-                  <th className="pb-3">Email</th>
-                  <th className="pb-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredInvoices.map((invoice) => {
-                  const lease = leaseMap.get(invoice.leaseId);
-                  const remaining = Math.max(0, invoice.totalAmount - invoice.amountPaid);
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <tr>
+                    <th className="px-5 py-3 text-left">N°</th>
+                    <th className="px-5 py-3 text-left">Locataire</th>
+                    <th className="px-5 py-3 text-left">Période</th>
+                    <th className="px-5 py-3 text-left">Échéance</th>
+                    <th className="px-5 py-3 text-right">Total</th>
+                    <th className="px-5 py-3 text-right">Payé</th>
+                    <th className="px-5 py-3 text-right">Solde</th>
+                    <th className="px-5 py-3 text-left">Statut</th>
+                    <th className="px-5 py-3 text-left">Email</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredInvoices.map((invoice) => {
+                    const lease = leaseMap.get(invoice.leaseId);
+                    const remaining = Math.max(0, invoice.totalAmount - invoice.amountPaid);
 
-                  return (
-                    <tr
-                      key={invoice.id}
-                      className="cursor-pointer hover:bg-gray-50"
-                      tabIndex={0}
-                      onClick={() => {
-                        void loadInvoiceDetail(invoice.id);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
+                    return (
+                      <tr
+                        key={invoice.id}
+                        className="cursor-pointer transition-colors hover:bg-slate-50/80"
+                        tabIndex={0}
+                        onClick={() => {
                           void loadInvoiceDetail(invoice.id);
-                        }
-                      }}
-                    >
-                      <td className="py-3 font-medium text-[#010a19]">{invoice.invoiceNumber}</td>
-                      <td className="py-3 text-gray-600">
-                        <div>{lease?.tenantFullName ?? "—"}</div>
-                      </td>
-                      <td className="py-3 text-gray-600">{invoice.period ?? "Ponctuelle"}</td>
-                      <td className="py-3 text-gray-600">{formatDate(invoice.dueDate)}</td>
-                      <td className="py-3 text-right font-medium text-[#010a19]">{invoice.totalAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</td>
-                      <td className="py-3 text-right text-gray-700">{invoice.amountPaid.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</td>
-                      <td className="py-3 text-right text-gray-700">{remaining.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</td>
-                      <td className="py-3">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[invoice.status]}`}>{STATUS_LABELS[invoice.status]}</span>
-                      </td>
-                      <td className="py-3">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${EMAIL_STYLES[invoice.emailStatus]}`}>{EMAIL_LABELS[invoice.emailStatus]}</span>
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="flex items-center justify-end" onClick={(event) => event.stopPropagation()}>
-                          <ActionMenu
-                            items={[
-                              {
-                                label: "Télécharger",
-                                onSelect: () => {
-                                  downloadInvoiceDocument(invoice);
-                                }
-                              },
-                              {
-                                label: busyInvoiceId === invoice.id ? "Annulation..." : "Annuler la facture",
-                                tone: "danger",
-                                disabled: invoice.status === "void" || busyInvoiceId === invoice.id,
-                                onSelect: () => {
-                                  const reason = window.prompt("Motif d'annulation");
-                                  if (reason) {
-                                    void handleVoidInvoice(invoice.id, reason);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            void loadInvoiceDetail(invoice.id);
+                          }
+                        }}
+                      >
+                        <td className="px-5 py-4 font-medium text-[#010a19]">{invoice.invoiceNumber}</td>
+                        <td className="px-5 py-4 text-slate-600">{lease?.tenantFullName ?? "—"}</td>
+                        <td className="px-5 py-4 text-slate-600">{invoice.period ?? "Ponctuelle"}</td>
+                        <td className="px-5 py-4 text-slate-600">{formatDate(invoice.dueDate)}</td>
+                        <td className="px-5 py-4 text-right font-medium text-[#010a19]">
+                          {invoice.totalAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-5 py-4 text-right text-slate-700">
+                          {invoice.amountPaid.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-5 py-4 text-right text-slate-700">
+                          {remaining.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[invoice.status]}`}>
+                            {STATUS_LABELS[invoice.status]}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${EMAIL_STYLES[invoice.emailStatus]}`}>
+                            {EMAIL_LABELS[invoice.emailStatus]}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex items-center justify-end" onClick={(event) => event.stopPropagation()}>
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "Télécharger",
+                                  onSelect: () => {
+                                    downloadInvoiceDocument(invoice);
+                                  }
+                                },
+                                {
+                                  label: busyInvoiceId === invoice.id ? "Annulation..." : "Annuler la facture",
+                                  tone: "danger",
+                                  disabled: invoice.status === "void" || busyInvoiceId === invoice.id,
+                                  onSelect: () => {
+                                    const reason = window.prompt("Motif d'annulation");
+                                    if (reason) {
+                                      void handleVoidInvoice(invoice.id, reason);
+                                    }
                                   }
                                 }
-                              }
-                            ]}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                              ]}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>

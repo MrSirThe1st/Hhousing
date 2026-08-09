@@ -183,4 +183,80 @@ describe("createTenantInvitation notifications", () => {
     }
     expect(sendInvitationWhatsApp).not.toHaveBeenCalled();
   });
+
+  it("invites by WhatsApp when tenant has phone but no email", async () => {
+    const sendInvitationEmail = vi.fn().mockResolvedValue(undefined);
+    const sendInvitationWhatsApp = vi.fn().mockResolvedValue(undefined);
+
+    const result = await createTenantInvitation(
+      {
+        tenantId: "tenant-1",
+        session: {
+          userId: "user-1",
+          role: "landlord",
+          organizationId: "org-1",
+          capabilities: { canOwnProperties: true },
+          memberships: [{
+            id: "member-1",
+            userId: "user-1",
+            organizationId: "org-1",
+            organizationName: "Org 1",
+            role: "landlord",
+            status: "active",
+            capabilities: { canOwnProperties: true },
+            createdAtIso: "2026-01-01T00:00:00.000Z"
+          }]
+        }
+      },
+      {
+        repository: {
+          getTenantById: vi.fn().mockResolvedValue({
+            id: "tenant-1",
+            organizationId: "org-1",
+            authUserId: null,
+            fullName: "Jane Tenant",
+            email: null,
+            phone: "+243812345678",
+            whatsappNumber: null,
+            whatsappOptIn: false,
+            dateOfBirth: null,
+            photoUrl: null,
+            employmentStatus: null,
+            jobTitle: null,
+            monthlyIncome: null,
+            numberOfOccupants: null,
+            accountStatus: "active",
+            deletionRequestedAtIso: null,
+            deletedAtIso: null,
+            createdAtIso: "2026-01-01T00:00:00.000Z"
+          }),
+          findTenantByNormalizedPhone: vi.fn(),
+          findTenantByEmail: vi.fn(),
+          revokeActiveTenantInvitations: vi.fn().mockResolvedValue(undefined),
+          createTenantInvitation: vi.fn().mockResolvedValue({
+            id: "tin-1",
+            tenantId: "tenant-1",
+            organizationId: "org-1",
+            email: "243812345678@phone.tenant.harakaproperty.local",
+            expiresAtIso: "2026-04-09T00:00:00.000Z",
+            usedAtIso: null,
+            revokedAtIso: null,
+            createdAtIso: "2026-01-01T00:00:00.000Z"
+          })
+        } as unknown as TenantLeaseRepository,
+        teamFunctionsRepository: createTeamFunctionsRepositoryMock(),
+        createId: () => "tin-1",
+        createToken: () => "token-123",
+        inviteLinkBaseUrl: "hhousing-tenant://accept-invite",
+        notificationChannels: ["email", "whatsapp"],
+        sendInvitationEmail,
+        sendInvitationWhatsApp
+      }
+    );
+
+    expect(result.status).toBe(201);
+    expect(result.body.success).toBe(true);
+    expect(sendInvitationEmail).not.toHaveBeenCalled();
+    expect(sendInvitationWhatsApp).toHaveBeenCalledOnce();
+  });
 });

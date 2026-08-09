@@ -1,7 +1,8 @@
 import { cache } from "react";
-import type { AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
+import type { MembershipAuthSession } from "@hhousing/api-contracts";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 import { createRepositoryFromEnv } from "../app/api/shared";
+import { getDashboardRequestContext } from "./dashboard-request-context";
 import type { OperatorContext } from "./operator-context.types";
 
 export type { OperatorContext, PlatformExperience } from "./operator-context.types";
@@ -35,6 +36,17 @@ export const getServerOperatorContext = cache(async function getServerOperatorCo
 ): Promise<OperatorContext> {
   if (!session.organizationId) {
     return { experience: "entreprise" };
+  }
+
+  // Reuse org already loaded by dashboard layout when present (same RSC request).
+  const dashboardContext = await getDashboardRequestContext();
+  if (
+    dashboardContext?.organization &&
+    dashboardContext.session.organizationId === session.organizationId
+  ) {
+    return {
+      experience: dashboardContext.organization.platformExperience ?? "entreprise"
+    };
   }
 
   const repositoryResult = createRepositoryFromEnv();

@@ -5,8 +5,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { GetLeaseMoveOutOutput, LeaseWithTenantView } from "@hhousing/api-contracts";
-import type { Document, Lease, MoveOut, Payment, Property, Tenant, Unit } from "@hhousing/domain";
-import { getWithAuth, postWithAuth, patchWithAuth } from "../../../../lib/api-client";
+import type { Document, MoveOut, Property, Tenant, Unit } from "@hhousing/domain";
+import { getWithAuth, postWithAuth } from "../../../../lib/api-client";
 import UniversalLoadingState from "../../../../components/universal-loading-state";
 import ActionMenu from "../../../../components/action-menu";
 
@@ -33,17 +33,10 @@ const SIGNING_METHOD_LABELS: Record<string, string> = {
   scanned: "Scannée",
   email_confirmation: "Confirmation e-mail"
 };
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  pending: "En attente",
-  paid: "Payé",
-  overdue: "En retard",
-  cancelled: "Annulé"
-};
 
 interface LeaseDetailClientProps {
   id: string;
   initialLease: LeaseWithTenantView;
-  initialPayments: Payment[];
   initialAvailableDocuments: Document[];
   tenant: Tenant | null;
   unit: Unit | null;
@@ -54,7 +47,6 @@ interface LeaseDetailClientProps {
 export default function LeaseDetailClient({
   id,
   initialLease,
-  initialPayments,
   initialAvailableDocuments: _initialAvailableDocuments,
   tenant,
   unit,
@@ -63,12 +55,8 @@ export default function LeaseDetailClient({
 }: LeaseDetailClientProps): React.ReactElement {
   const router = useRouter();
   const [lease] = useState<LeaseWithTenantView>(initialLease);
-  const [payments] = useState<Payment[]>(initialPayments);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [signingMethod, setSigningMethod] = useState<"physical" | "scanned" | "email_confirmation">(lease.signingMethod ?? "physical");
-  const [signedAt, setSignedAt] = useState(lease.signedAt ?? new Date().toISOString().substring(0, 10));
-  const [finalizing, setFinalizing] = useState(false);
   const [busyMoveOut, setBusyMoveOut] = useState(false);
   const [plannedMoveOut, setPlannedMoveOut] = useState<MoveOut | null>(null);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
@@ -103,7 +91,7 @@ export default function LeaseDetailClient({
       setBusyMoveOut(false);
       return;
     }
-            setMessage("Départ confirmé. Le bail est terminé et le logement est libre.");
+    setMessage("Départ confirmé. Le bail est terminé et le logement est libre.");
     setBusyMoveOut(false);
     router.refresh();
   }
@@ -124,32 +112,9 @@ export default function LeaseDetailClient({
     router.refresh();
   }
 
-  async function handleFinalize(): Promise<void> {
-    setFinalizing(true);
-    setError(null);
-    const result = await patchWithAuth<Lease>(`/api/leases/${id}`, {
-      action: "finalize",
-      organizationId: lease.organizationId,
-      signedAt,
-      signingMethod
-    });
-    if (!result.success) {
-      setError(result.error);
-      setFinalizing(false);
-      return;
-    }
-    router.refresh();
-    setFinalizing(false);
-  }
-
   const canUseMoveOutAction = showMoveOutAction && lease.status === "active" && plannedMoveOut === null;
   const canUseAddDocumentAction = true;
-  const canUseDraftEmailWorkspaceAction = lease.status === "pending" || lease.status === "active";
-  const chargePayments = payments.filter((payment) => payment.isInitialCharge);
-  const unpaidInitialPayments = chargePayments.filter((payment) => payment.status !== "paid");
-  const canFinalize = lease.status === "pending"
-    && unpaidInitialPayments.length === 0
-    && (lease.moveInMode === "existing_tenant" || chargePayments.length > 0);
+  const canUseDraftEmailWorkspaceAction = lease.status === "active";
 
   return (
     <div className="p-8">
@@ -284,50 +249,11 @@ export default function LeaseDetailClient({
           </div>
         </div>
 
-        {lease.status === "pending" ? (
-          <div className="mb-6 space-y-4 border-t border-gray-200 pt-6">
-            <div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Finaliser l&apos;entrée en location</h2>
-              <p className="mt-1 text-sm text-gray-500">Le bail reste en attente tant que les montants de départ ne sont pas payés et que la signature n&apos;est pas renseignée.</p>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <label className="block text-sm font-medium text-gray-700">
-                <span className="mb-1.5 block">Date de signature</span>
-                <input type="date" value={signedAt} onChange={(event) => setSignedAt(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19]" />
-              </label>
-              <label className="block text-sm font-medium text-gray-700">
-                <span className="mb-1.5 block">Méthode de signature</span>
-                <select value={signingMethod} onChange={(event) => setSigningMethod(event.target.value as "physical" | "scanned" | "email_confirmation")} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#010a19]">
-                  <option value="physical">Physique</option>
-                  <option value="scanned">Scannée</option>
-                  <option value="email_confirmation">Confirmation email</option>
-                </select>
-              </label>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <h3 className="text-sm font-semibold text-[#010a19]">Montants de départ à solder avant activation</h3>
-              {chargePayments.length === 0 ? <p className="mt-2 text-sm text-red-600">Aucun montant de départ n&apos;a été généré pour ce bail.</p> : (
-                <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                  {chargePayments.map((payment) => (
-                    <li key={payment.id} className="flex items-center justify-between gap-4">
-                      <span>{payment.note ?? payment.paymentKind}</span>
-                      <span className={payment.status === "paid" ? "text-green-700" : "text-yellow-700"}>{payment.amount.toLocaleString("fr-FR")} {payment.currencyCode} · {PAYMENT_STATUS_LABELS[payment.status] ?? payment.status}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <button onClick={() => void handleFinalize()} disabled={finalizing || !canFinalize} className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0052d4] disabled:opacity-60">
-              Finaliser et activer le bail
-            </button>
-          </div>
-        ) : null}
-
         {message ? <p className="mt-3 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p> : null}
         {error ? <p className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p> : null}
       </div>
 
-      {finalizing || busyMoveOut ? (
+      {busyMoveOut ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">
           <UniversalLoadingState minHeightClassName="min-h-0" className="h-full w-full" />
         </div>

@@ -11,6 +11,14 @@ import type {
 import { patchWithAuth, postWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
 import ResponsiveTable, { type Column } from "./responsive-table";
+import {
+  FILTER_BAR_CLASS,
+  FILTER_FIELD_CLASS,
+  FILTER_FIELD_GROW_CLASS,
+  FILTER_INPUT_CLASS,
+  FILTER_LABEL_CLASS,
+  FILTER_SELECT_CLASS
+} from "../lib/filter-field-classes";
 
 type ListingsWorkspaceTab = "listings" | "applications" | "screening";
 
@@ -341,7 +349,11 @@ export default function ListingManagementPanel({
     (applicationBusyState.action === "convert" || isRoutePending);
 
   const publishedListingsCount = listings.filter((item) => item.listing?.status === "published").length;
-  const totalApplicationsCount = applications.length;
+  // On the listings tab we skip loading applications; derive a total from per-listing counts.
+  const totalApplicationsCount =
+    applications.length > 0
+      ? applications.length
+      : listings.reduce((sum, item) => sum + item.applicationCount, 0);
   const approvedApplicationsCount = applications.filter((app) => app.application.status === "approved").length;
   const listingCityOptions = useMemo(
     () => [...new Set(listings.map((item) => item.property.city))].sort((left, right) => left.localeCompare(right, "fr")),
@@ -523,23 +535,23 @@ export default function ListingManagementPanel({
 
       {activeTab === "listings" && (
         <div className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-end">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">Rechercher une annonce</label>
+          <div className={FILTER_BAR_CLASS}>
+            <div className={FILTER_FIELD_GROW_CLASS}>
+              <label className={FILTER_LABEL_CLASS}>Rechercher une annonce</label>
               <input
                 value={listingSearchTerm}
                 onChange={(event) => setListingSearchTerm(event.target.value)}
                 placeholder="Bien, logement ou ville"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                className={FILTER_INPUT_CLASS}
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">Statut</label>
+            <div className={FILTER_FIELD_CLASS}>
+              <label className={FILTER_LABEL_CLASS}>Statut</label>
               <select
                 value={listingStatusFilter}
                 onChange={(event) => setListingStatusFilter(event.target.value as "all" | "published" | "draft" | "not_configured")}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                className={FILTER_SELECT_CLASS}
               >
                 <option value="all">Tous</option>
                 <option value="published">Publiée</option>
@@ -548,12 +560,12 @@ export default function ListingManagementPanel({
               </select>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">Ville</label>
+            <div className={FILTER_FIELD_CLASS}>
+              <label className={FILTER_LABEL_CLASS}>Ville</label>
               <select
                 value={listingCityFilter}
                 onChange={(event) => setListingCityFilter(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                className={FILTER_SELECT_CLASS}
               >
                 <option value="all">Toutes les villes</option>
                 {listingCityOptions.map((city) => (
@@ -564,12 +576,12 @@ export default function ListingManagementPanel({
               </select>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">Bien</label>
+            <div className={FILTER_FIELD_CLASS}>
+              <label className={FILTER_LABEL_CLASS}>Bien</label>
               <select
                 value={listingPropertyFilter}
                 onChange={(event) => setListingPropertyFilter(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                className={FILTER_SELECT_CLASS}
               >
                 <option value="all">Tous les biens</option>
                 {listingPropertyOptions.map((property) => (

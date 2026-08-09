@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { ApiResult, AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
 import type { PlatformExperience } from "@hhousing/domain";
 import { jsonResponse } from "../app/api/shared";
+import { getDashboardRequestContext } from "./dashboard-request-context";
 import { getServerOperatorContext } from "./operator-context";
 import { isIndividualExperience } from "./platform-experience";
 import { getServerAuthSession } from "./session";
@@ -21,7 +22,15 @@ export async function requireEntrepriseExperience(): Promise<PlatformExperience>
     redirect("/admin");
   }
 
-  const experience = await getPlatformExperienceForSession(session);
+  // Prefer the session already resolved for dashboard layout (same RSC request).
+  const dashboardContext = await getDashboardRequestContext();
+  const membershipSession = dashboardContext?.session ?? (session as MembershipAuthSession);
+
+  if (!membershipSession.organizationId) {
+    redirect("/dashboard");
+  }
+
+  const experience = await getPlatformExperienceForSession(membershipSession);
   if (isIndividualExperience(experience)) {
     redirect("/dashboard");
   }

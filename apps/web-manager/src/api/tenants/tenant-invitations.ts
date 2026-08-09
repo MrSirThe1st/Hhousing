@@ -18,13 +18,48 @@ import { requirePermission, type TeamPermissionRepository } from "../organizatio
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../shared";
 import { dispatchDualChannelNotification } from "../../lib/notifications/dispatch";
 import { getDefaultNotificationChannels } from "../../lib/notifications/channels";
-import { resolveTenantWhatsAppRecipient } from "../../lib/whatsapp/phone";
+import {
+  normalizeWhatsAppPhoneNumber,
+  resolveTenantWhatsAppRecipient
+} from "../../lib/whatsapp/phone";
 import type { TenantInvitationWhatsAppSender } from "../../lib/whatsapp/tenant-invitation";
+import { isDeliverableTenantEmail } from "./tenant-password-reset";
+import { normalizeTenantPhoneNumber } from "@hhousing/data-access";
+import type { Tenant } from "@hhousing/domain";
 
 type SupabaseAdminUser = {
   id: string;
   email: string;
 };
+
+function buildSyntheticTenantEmail(phoneNormalized: string): string {
+  return `${phoneNormalized}@phone.tenant.harakaproperty.local`;
+}
+
+function resolveInvitationContactEmail(tenant: Tenant): string | null {
+  if (isDeliverableTenantEmail(tenant.email)) {
+    return tenant.email.trim();
+  }
+  const phoneNormalized = tenant.phone ? normalizeTenantPhoneNumber(tenant.phone) : null;
+  if (phoneNormalized) {
+    return buildSyntheticTenantEmail(phoneNormalized);
+  }
+  return null;
+}
+
+/** Landlord-initiated invite: WhatsApp if opted in, else phone on file. */
+function resolveInvitationWhatsAppRecipient(
+  tenant: Pick<Tenant, "phone" | "whatsappNumber" | "whatsappOptIn">
+): string | null {
+  const optedIn = resolveTenantWhatsAppRecipient(tenant);
+  if (optedIn) {
+    return optedIn;
+  }
+  if (!tenant.phone) {
+    return null;
+  }
+  return normalizeWhatsAppPhoneNumber(tenant.phone);
+}
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -186,17 +221,25 @@ export async function createTenantInvitation(
     };
   }
 
-  if (!tenant.email) {
-    return {
-      status: 400,
-      body: { success: false, code: "VALIDATION_ERROR", error: "Tenant email is required before inviting" }
-    };
-  }
-
   if (tenant.authUserId) {
     return {
       status: 409,
-      body: { success: false, code: "FORBIDDEN", error: "Tenant already has login access" }
+      body: { success: false, code: "FORBIDDEN", error: "Ce locataire a déjà accès à l'application" }
+    };
+  }
+
+  const invitationEmail = resolveInvitationContactEmail(tenant);
+  const whatsappRecipient = resolveInvitationWhatsAppRecipient(tenant);
+  const deliverableEmail = isDeliverableTenantEmail(tenant.email) ? tenant.email.trim() : null;
+
+  if (!invitationEmail || (!deliverableEmail && !whatsappRecipient)) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        code: "VALIDATION_ERROR",
+        error: "Ajoutez un téléphone ou un e-mail sur la fiche locataire pour envoyer l'invitation"
+      }
     };
   }
 
@@ -209,7 +252,7 @@ export async function createTenantInvitation(
     id: deps.createId(),
     tenantId: tenant.id,
     organizationId: tenant.organizationId,
-    email: tenant.email,
+    email: invitationEmail,
     tokenHash,
     expiresAtIso,
     createdByUserId: sessionResult.data.userId
@@ -224,19 +267,19 @@ export async function createTenantInvitation(
     ? await deps.organizationRepository.getOrganizationById(sessionResult.data.organizationId)
     : null;
   const organizationName = organization?.name ?? "Haraka Property";
-  const whatsappRecipient = resolveTenantWhatsAppRecipient(tenant);
 
   const dispatchResult = await dispatchDualChannelNotification({
     channels: deps.notificationChannels ?? getDefaultNotificationChannels(),
-    sendEmail: deps.sendInvitationEmail
-      ? () =>
-          deps.sendInvitationEmail!({
-            to: invitation.email,
-            tenantFullName: tenant.fullName,
-            activationLink,
-            organization
-          })
-      : undefined,
+    sendEmail:
+      deps.sendInvitationEmail && deliverableEmail
+        ? () =>
+            deps.sendInvitationEmail!({
+              to: deliverableEmail,
+              tenantFullName: tenant.fullName,
+              activationLink,
+              organization
+            })
+        : undefined,
     sendWhatsApp:
       deps.sendInvitationWhatsApp && whatsappRecipient
         ? () =>

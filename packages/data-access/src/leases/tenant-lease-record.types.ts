@@ -264,6 +264,8 @@ export interface TenantLeaseRepository {
     organizationId: string
   ): Promise<LeaseWithTenantView | null>;
   listTenantsByOrganization(organizationId: string): Promise<Tenant[]>;
+  /** Tenant ids with an active or pending lease — cheap badge for list UIs. */
+  listTenantIdsWithCurrentLeases(organizationId: string): Promise<string[]>;
   getTenantById(tenantId: string, organizationId: string): Promise<Tenant | null>;
   findTenantByNormalizedPhone(phoneNormalized: string): Promise<Tenant | null>;
   findTenantByEmail(email: string): Promise<Tenant | null>;

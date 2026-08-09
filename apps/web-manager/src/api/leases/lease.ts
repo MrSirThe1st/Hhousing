@@ -199,7 +199,7 @@ export async function createLease(
     const depositFromCharges = parsed.data.charges?.filter((charge) => charge.chargeType === "deposit").reduce((sum, charge) => sum + charge.amount, 0) ?? 0;
     const externalDepositAmount = parsed.data.externalDepositAmount;
     const depositAmount = externalDepositAmount ?? depositFromCharges;
-    const leaseStatus = isExistingTenant && parsed.data.activateImmediately ? "active" : "pending";
+    const leaseStatus = parsed.data.activateImmediately ? "active" : "pending";
 
     const lease = await deps.repository.createLease({
       id: deps.createId(),
@@ -257,7 +257,7 @@ export async function createLease(
         amount: externalDepositAmount,
         currencyCode: parsed.data.currencyCode,
         dueDate: parsed.data.externalDepositPaidDate ?? parsed.data.startDate,
-        note: parsed.data.externalDepositNote ?? "Paid before onboarding",
+        note: parsed.data.externalDepositNote ?? "Payé avant l'enregistrement",
         paymentKind: "deposit",
         billingFrequency: "one_time",
         sourceLeaseChargeTemplateId: null,
@@ -267,7 +267,10 @@ export async function createLease(
       });
     }
 
-    if (parsed.data.sendMobileInvite && lease.status === "active" && deps.invitationDeps) {
+    let invitationSent = false;
+    let invitationWarning: string | null = null;
+    const shouldInvite = parsed.data.sendMobileInvite && lease.status === "active" && Boolean(deps.invitationDeps);
+    if (shouldInvite && deps.invitationDeps) {
       const invitationResult = await createTenantInvitation(
         {
           tenantId: parsed.data.tenantId,
@@ -285,8 +288,16 @@ export async function createLease(
         }
       );
 
-      if (!invitationResult.body.success) {
-        return { status: invitationResult.status, body: invitationResult.body };
+      if (invitationResult.body.success) {
+        invitationSent = true;
+      } else {
+        invitationWarning = invitationResult.body.error;
+        console.warn("Lease created but tenant invitation failed", {
+          leaseId: lease.id,
+          tenantId: parsed.data.tenantId,
+          code: invitationResult.body.code,
+          error: invitationResult.body.error
+        });
       }
     }
 
@@ -303,7 +314,9 @@ export async function createLease(
         monthlyRentAmount: lease.monthlyRentAmount,
         currencyCode: lease.currencyCode,
         moveInMode: lease.moveInMode,
-        status: lease.status
+        status: lease.status,
+        invitationSent,
+        invitationWarning
       }
     });
 
@@ -321,7 +334,7 @@ export async function createLease(
           code: "VALIDATION_ERROR",
           error: isExistingTenant
             ? "Cette unité a déjà un bail actif, ou elle n'est pas disponible. Terminez l'ancien bail avant d'en créer un nouveau."
-            : "Unit must exist and be vacant before creating a lease"
+            : "Le logement doit exister et être libre pour créer un bail"
         }
       };
     }

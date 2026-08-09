@@ -4,14 +4,12 @@ import { redirect } from "next/navigation";
 import Sidebar from "../../components/sidebar";
 import BottomNavigation from "../../components/bottom-navigation";
 import FloatingActionButton from "../../components/floating-action-button";
-import SaasBillingOverdueBanner from "../../components/saas-billing-overdue-banner";
 import { getDashboardRequestContext } from "../../lib/dashboard-request-context";
 import { getServerAuthSession } from "../../lib/session";
 import { getServerOperatorContext } from "../../lib/operator-context";
 import { isIndividualExperience } from "../../lib/platform-experience";
-import { getSidebarBadgeCounts } from "../../lib/sidebar-badge-counts";
 import ThemeToggle from "../../components/theme-toggle";
-import { createPlatformBillingRepositoryFromEnv } from "@hhousing/data-access";
+import DashboardOverdueBillingBanner from "./dashboard-overdue-billing-banner";
 
 export const metadata: Metadata = {
   title: "hhousing — Tableau de bord",
@@ -59,30 +57,23 @@ export default async function DashboardLayout({
 
   const { access: sidebarAccess, organization } = context;
 
-  const [operatorContext, badgeCounts, overdueInvoice] = await Promise.all([
-    getServerOperatorContext(context.session),
-    getSidebarBadgeCounts(context.session),
-    (async () => {
-      try {
-        const billingRepo = createPlatformBillingRepositoryFromEnv(process.env);
-        return await billingRepo.getOpenOverdueInvoiceForOrganization(context.session.organizationId);
-      } catch {
-        return null;
-      }
-    })()
-  ]);
-
+  // Keep the shell critical path thin: badges load client-side via
+  // /api/sidebar/badge-counts; billing banner streams in Suspense.
+  const operatorContext = await getServerOperatorContext(context.session);
   const isIndividual = isIndividualExperience(operatorContext.experience);
-  const bannerInvoice = sidebarAccess.billing ? overdueInvoice : null;
+  const roleLabel = getRoleLabel(
+    context.session.role === "landlord" || context.session.role === "property_manager"
+      ? context.session.role
+      : "property_manager"
+  );
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden w-full max-w-full dark:bg-[#0a1120]">
       <Sidebar
-        currentRoleLabel={getRoleLabel(context.session.role === "landlord" || context.session.role === "property_manager" ? context.session.role : "property_manager")}
+        currentRoleLabel={roleLabel}
         access={sidebarAccess}
         isIndividualExperience={isIndividual}
         initialOrganization={organization}
-        initialBadgeCounts={badgeCounts}
       />
       <main className="flex-1 overflow-y-auto pb-32 md:pb-0 min-w-0 max-w-full overflow-x-hidden">
         <div className="sticky top-0 z-10 flex h-14 items-center border-b border-slate-200 bg-white px-4 md:px-6 dark:border-slate-800 dark:bg-[#0d1526]">
@@ -102,13 +93,18 @@ export default async function DashboardLayout({
             </div>
           </div>
         </div>
-        {bannerInvoice ? <SaasBillingOverdueBanner invoice={bannerInvoice} /> : null}
+        <Suspense fallback={null}>
+          <DashboardOverdueBillingBanner
+            organizationId={context.session.organizationId}
+            enabled={sidebarAccess.billing}
+          />
+        </Suspense>
         {children}
       </main>
       <Suspense fallback={null}>
         <BottomNavigation
           access={sidebarAccess}
-          currentRoleLabel={getRoleLabel(context.session.role === "landlord" || context.session.role === "property_manager" ? context.session.role : "property_manager")}
+          currentRoleLabel={roleLabel}
           isIndividualExperience={isIndividual}
         />
       </Suspense>

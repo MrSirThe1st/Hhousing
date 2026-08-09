@@ -308,22 +308,16 @@ export function parseCreateLeaseInput(input: unknown): ApiResult<CreateLeaseInpu
   }
 
   const activateImmediately = input.activateImmediately === undefined
-    ? moveInMode === "existing_tenant"
+    ? true
     : asBoolean(input.activateImmediately);
 
   if (activateImmediately === null) {
     return { success: false, code: "VALIDATION_ERROR", error: "activateImmediately must be a boolean" };
   }
 
-  if (moveInMode === "standard" && activateImmediately) {
-    return {
-      success: false,
-      code: "VALIDATION_ERROR",
-      error: "activateImmediately is only allowed for existing_tenant move-ins"
-    };
-  }
-
-  const sendMobileInvite = input.sendMobileInvite === undefined ? false : asBoolean(input.sendMobileInvite);
+  const sendMobileInvite = input.sendMobileInvite === undefined
+    ? activateImmediately
+    : asBoolean(input.sendMobileInvite);
   if (sendMobileInvite === null) {
     return { success: false, code: "VALIDATION_ERROR", error: "sendMobileInvite must be a boolean" };
   }

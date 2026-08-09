@@ -8,6 +8,18 @@ import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { postWithAuth, patchWithAuth } from "../lib/api-client";
 import UniversalLoadingState from "./universal-loading-state";
 import ResponsiveTable from "./responsive-table";
+import {
+  FILTER_BAR_CLASS,
+  FILTER_DATE_CLASS,
+  FILTER_FIELD_ACTION_CLASS,
+  FILTER_FIELD_CLASS,
+  FILTER_FIELD_DATE_CLASS,
+  FILTER_FIELD_GROW_CLASS,
+  FILTER_INPUT_CLASS,
+  FILTER_LABEL_CLASS,
+  FILTER_RESET_BUTTON_CLASS,
+  FILTER_SELECT_CLASS
+} from "../lib/filter-field-classes";
 import posthog from "posthog-js";
 
 const STATUS_LABELS: Record<PaymentStatus, string> = {
@@ -348,22 +360,22 @@ export default function PaymentManagementPanel({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_220px] xl:items-end 2xl:grid-cols-[minmax(0,1.35fr)_220px_220px_180px_180px_auto]">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Rechercher</label>
+      <div className={FILTER_BAR_CLASS}>
+        <div className={FILTER_FIELD_GROW_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Rechercher</label>
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Locataire, note, période ou bail"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_INPUT_CLASS}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Bail</label>
+        <div className={FILTER_FIELD_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Bail</label>
           <select
             value={leaseFilter}
             onChange={(event) => setLeaseFilter(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_SELECT_CLASS}
           >
             <option value="all">Tous les baux</option>
             {leases.map((lease) => (
@@ -373,12 +385,12 @@ export default function PaymentManagementPanel({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Type</label>
+        <div className={FILTER_FIELD_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Type</label>
           <select
             value={kindFilter}
             onChange={(event) => setKindFilter(event.target.value as PaymentKind | "all")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_SELECT_CLASS}
           >
             <option value="all">Tous</option>
             {Object.entries(PAYMENT_KIND_LABELS).map(([value, label]) => (
@@ -388,31 +400,29 @@ export default function PaymentManagementPanel({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Du</label>
+        <div className={FILTER_FIELD_DATE_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Du</label>
           <input
             value={dueDateFrom}
             onChange={(event) => setDueDateFrom(event.target.value)}
             type="date"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_DATE_CLASS}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#010a19] whitespace-nowrap">Au</label>
+        <div className={FILTER_FIELD_DATE_CLASS}>
+          <label className={FILTER_LABEL_CLASS}>Au</label>
           <input
             value={dueDateTo}
             onChange={(event) => setDueDateTo(event.target.value)}
             type="date"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+            className={FILTER_DATE_CLASS}
           />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-transparent whitespace-nowrap">Actions</label>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
+        <div className={FILTER_FIELD_ACTION_CLASS}>
+          <label className={`${FILTER_LABEL_CLASS} invisible`} aria-hidden>
+            Actions
+          </label>
+          <button type="button" onClick={resetFilters} className={`w-full ${FILTER_RESET_BUTTON_CLASS}`}>
             Réinitialiser
           </button>
         </div>

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { MembershipAuthSession, LeaseWithTenantView, ManagerConversationListItem } from "@hhousing/api-contracts";
 import {
   createOrganizationPropertyUnitRepositoryFromEnv,
@@ -16,7 +17,13 @@ export interface ScopedPortfolioData {
   tenantIds: Set<string>;
 }
 
-export async function getScopedPortfolioData(session: MembershipAuthSession): Promise<ScopedPortfolioData> {
+/**
+ * Request-scoped portfolio snapshot. Memoized so layout/detail pages that
+ * call this multiple times share one 3-query wave per RSC request.
+ */
+export const getScopedPortfolioData = cache(async function getScopedPortfolioData(
+  session: MembershipAuthSession
+): Promise<ScopedPortfolioData> {
   const propertyRepository = createOrganizationPropertyUnitRepositoryFromEnv(process.env);
 
   if (!propertyRepository.success) {
@@ -47,7 +54,7 @@ export async function getScopedPortfolioData(session: MembershipAuthSession): Pr
     leaseIds,
     tenantIds
   };
-}
+});
 
 export function filterTenantsByScope(tenants: Tenant[], scoped: ScopedPortfolioData): Tenant[] {
   return tenants.filter((tenant) => scoped.tenantIds.has(tenant.id));
