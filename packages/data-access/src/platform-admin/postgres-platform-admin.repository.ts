@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { DatabaseEnvSource } from "../database/database-env";
 import { readDatabaseEnv } from "../database/database-env";
 import type {
@@ -496,7 +497,6 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
         unitCount: number;
         activeLeaseCount: number;
         overduePaymentCount: number;
-        openMaintenanceCount: number;
       }>(
         `select
            org.id,
@@ -507,8 +507,7 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
            (select count(*)::int from organization_memberships m where m.organization_id = org.id) as "memberCount",
            (select count(*)::int from units u where u.organization_id = org.id) as "unitCount",
            (select count(*)::int from leases l where l.organization_id = org.id and l.status = 'active') as "activeLeaseCount",
-           (select count(*)::int from payments pay where pay.organization_id = org.id and pay.status = 'overdue') as "overduePaymentCount",
-           (select count(*)::int from maintenance_requests mr where mr.organization_id = org.id and mr.status in ('open', 'in_progress')) as "openMaintenanceCount"
+           (select count(*)::int from payments pay where pay.organization_id = org.id and pay.status = 'overdue') as "overduePaymentCount"
          from organizations org
          where org.id = $1`,
         [organizationId]
@@ -576,7 +575,8 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
           unitCount: org.unitCount,
           activeLeaseCount: org.activeLeaseCount,
           overduePaymentCount: org.overduePaymentCount,
-          openMaintenanceCount: org.openMaintenanceCount
+          // Maintenance is deferred for V1 — keep field for type compat, do not query the table.
+          openMaintenanceCount: 0
         },
         members: members.rows,
         recentOrgAudit: recentOrgAudit.rows
@@ -596,18 +596,6 @@ export function createPostgresPlatformAdminRepository(pool: Pool): PlatformAdmin
   };
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPlatformAdminRepositoryFromEnv(env: DatabaseEnvSource): PlatformAdminRepository {
   const envResult = readDatabaseEnv(env);
@@ -615,5 +603,5 @@ export function createPlatformAdminRepositoryFromEnv(env: DatabaseEnvSource): Pl
     throw new Error(envResult.error);
   }
 
-  return createPostgresPlatformAdminRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresPlatformAdminRepository(getSharedPool(envResult.data.connectionString));
 }

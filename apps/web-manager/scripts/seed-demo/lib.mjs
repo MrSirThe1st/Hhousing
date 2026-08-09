@@ -8,7 +8,6 @@ import {
   SEED_EMAIL_DOMAIN,
   SEED_ID_PREFIX,
   AMENITIES,
-  MAINTENANCE_PHOTO_IDS,
   PROPERTY_PHOTO_IDS
 } from "./config.mjs";
 
@@ -231,17 +230,6 @@ export function propertyPhotoUrls(seedKey, count = null) {
   return urls;
 }
 
-export function maintenancePhotoUrls(seedKey, count = null) {
-  const n = count ?? randInt(1, 2);
-  const base = Math.abs(hashString(String(seedKey)));
-  const urls = [];
-  for (let i = 0; i < n; i++) {
-    const id = MAINTENANCE_PHOTO_IDS[(base + i * 3) % MAINTENANCE_PHOTO_IDS.length];
-    urls.push(unsplashHousingUrl(id, 800, 600));
-  }
-  return urls;
-}
-
 /** Stable portrait-style photo for a tenant. */
 export function tenantPhotoUrl(seedKey) {
   // Mix gender folders; index 0–99 is a fixed catalog on randomuser.me
@@ -311,8 +299,12 @@ export async function wipeSeedData(client, supabase) {
       `delete from messages where ${orgFilter}`,
       `delete from conversations where ${orgFilter}`,
       `delete from documents where ${orgFilter}`,
+      `delete from tasks where ${orgFilter} and (system_code = 'maintenance_follow_up' or related_entity_type = 'maintenance_request' or maintenance_request_id is not null)`,
+      `delete from calendar_events where ${orgFilter} and (event_type = 'maintenance' or related_entity_type = 'maintenance_request' or maintenance_request_id is not null)`,
       `delete from maintenance_request_events where ${orgFilter}`,
       `delete from maintenance_requests where ${orgFilter}`,
+      `delete from member_functions where function_id in (select id from team_functions where ${orgFilter} and function_code = 'MAINTENANCE_MANAGER')`,
+      `delete from team_functions where ${orgFilter} and function_code = 'MAINTENANCE_MANAGER'`,
       `delete from expenses where ${orgFilter}`,
       `delete from invoice_payment_applications where ${orgFilter}`,
       `delete from invoices where ${orgFilter}`,

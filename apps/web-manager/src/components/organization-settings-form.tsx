@@ -205,7 +205,7 @@ export default function OrganizationSettingsForm({ organization, canEdit }: Orga
 
           {/* Legal / Corporate details */}
           <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">
-            <h3 className="text-sm font-semibold text-slate-800">Informations légales &amp; Facturation</h3>
+            <h3 className="text-sm font-semibold text-slate-800">Informations légales &amp; facturation</h3>
             <p className="text-xs text-slate-500 mt-0.5">Ces données figureront sur vos baux, factures et reçus officiels.</p>
           </div>
 

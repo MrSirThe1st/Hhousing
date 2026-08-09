@@ -6,9 +6,7 @@ export const INDIVIDUAL_HIDDEN_ROUTE_PREFIXES = [
   "/dashboard/team",
   "/dashboard/clients",
   "/dashboard/audit",
-  "/dashboard/maintenance",
   "/dashboard/listings",
-  "/dashboard/move-outs",
   "/dashboard/reports",
   "/dashboard/expenses"
 ] as const;
@@ -18,7 +16,6 @@ export interface IndividualExperienceFeatures {
   dashboardTasksCalendar: boolean;
   managedPropertyMode: boolean;
   ownerPortalInvites: boolean;
-  maintenanceDashboardWidgets: boolean;
   financeReportsWidgets: boolean;
   leaseMoveOut: boolean;
 }
@@ -30,7 +27,6 @@ export function getIndividualExperienceFeatures(experience: PlatformExperience):
       dashboardTasksCalendar: true,
       managedPropertyMode: true,
       ownerPortalInvites: true,
-      maintenanceDashboardWidgets: true,
       financeReportsWidgets: true,
       leaseMoveOut: true
     };
@@ -41,9 +37,8 @@ export function getIndividualExperienceFeatures(experience: PlatformExperience):
     dashboardTasksCalendar: false,
     managedPropertyMode: false,
     ownerPortalInvites: false,
-    maintenanceDashboardWidgets: false,
     financeReportsWidgets: false,
-    leaseMoveOut: false
+    leaseMoveOut: true
   };
 }
 
@@ -54,10 +49,6 @@ export function isDashboardPathHiddenInIndividualExperience(pathname: string): b
     if (path === prefix || path.startsWith(`${prefix}/`)) {
       return true;
     }
-  }
-
-  if (path.includes("/move-out")) {
-    return true;
   }
 
   return false;

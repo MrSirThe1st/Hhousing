@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
 import { createAuthRepositoryFromEnv } from "@hhousing/data-access";
 import { createRepositoryFromEnv } from "../app/api/shared";
@@ -29,7 +30,9 @@ export async function isAccountOwner(session: MembershipAuthSession): Promise<bo
   return accountOwnerMembership?.id === currentMembership.id;
 }
 
-export async function getServerOperatorContext(session: MembershipAuthSession): Promise<OperatorContext> {
+export const getServerOperatorContext = cache(async function getServerOperatorContext(
+  session: MembershipAuthSession
+): Promise<OperatorContext> {
   if (!session.organizationId) {
     return { experience: "entreprise" };
   }
@@ -43,7 +46,7 @@ export async function getServerOperatorContext(session: MembershipAuthSession): 
   return {
     experience: organization?.platformExperience ?? "entreprise"
   };
-}
+});
 
 export function getOperatorScopeLabel(): string {
   return "Tous mes biens";

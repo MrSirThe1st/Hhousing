@@ -26,7 +26,7 @@ export default async function AdminServiceProviderDetailPage({
           href="/admin/service-providers"
           className="text-sm font-medium text-slate-500 hover:underline"
         >
-          ← Prestataires
+          ← Artisans et services
         </Link>
         <h2 className="mt-2 text-2xl font-semibold text-[#010a19] dark:text-white">
           {provider.name}

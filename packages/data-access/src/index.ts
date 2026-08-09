@@ -59,6 +59,7 @@ export type {
   TenantInvitationRecord,
   TenantInvitationPreviewRecord,
   UpsertMoveOutRecordInput,
+  CreateSimpleMoveOutRecordInput,
   TenantLeaseRepository
 } from "./leases/tenant-lease-record.types";
 export type { TenantLeaseQueryable } from "./leases/postgres-tenant-lease.repository";
@@ -99,10 +100,19 @@ export {
 } from "./expenses/postgres-expense.repository";
 export type {
   CreateExpenseRecordInput,
+  ExpenseCurrencyTotal,
+  ExpenseFinanceFilters,
+  ExpenseLedgerPageRow,
+  ExpenseMonthlyAggregate,
+  ExpensePropertyAggregate,
   ExpenseRepository,
+  ListExpensesPageInput,
+  ListExpensesPageResult,
+  SumExpensesResult,
   UpdateExpenseRecordInput
 } from "./expenses/expense-record.types";
 export type { ExpenseQueryable } from "./expenses/postgres-expense.repository";
+export { getSharedPool } from "./pg-pool";
 export {
   createPostgresTaskRepository,
   createTaskRepositoryFromEnv

@@ -15,9 +15,9 @@ export default async function PrestatairesLayout({
       {!access.servicesWritable ? <ReadOnlyBanner /> : null}
 
       <div>
-        <h1 className="text-2xl font-semibold text-[#010a19] dark:text-white">Prestataires</h1>
+        <h1 className="text-2xl font-semibold text-[#010a19] dark:text-white">Artisans et services</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Affectez des prestataires par bien, explorez le catalogue, gérez vos contacts de confiance
+          Affectez des contacts par bien, explorez le catalogue, gérez vos artisans de confiance
         </p>
       </div>
 

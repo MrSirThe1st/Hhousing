@@ -6,6 +6,7 @@ import {
   buildOwnerStatementSummary,
   type OwnerStatementRow
 } from "@/lib/owner-portal/owner-reporting";
+import { redirectIfV1FeatureDeferred } from "@/lib/v1-deferred-feature-guard";
 
 function formatCurrency(amount: number, currencyCode: string): string {
   return new Intl.NumberFormat("fr-FR", {
@@ -23,6 +24,8 @@ function formatRowStatus(row: OwnerStatementRow): string {
 }
 
 export default async function OwnerPortalReportsPage(): Promise<React.ReactElement> {
+  redirectIfV1FeatureDeferred("reports", "/owner-portal/dashboard");
+
   const session = await getOwnerPortalSession();
   if (session === null) {
     return <div className="text-sm text-slate-500">Session owner introuvable.</div>;
@@ -149,7 +152,7 @@ export default async function OwnerPortalReportsPage(): Promise<React.ReactEleme
                 allStatementRows.map((row) => (
                   <tr key={row.paymentId} className="transition hover:bg-slate-50">
                     <td className="px-5 py-4 text-slate-600">{row.period}</td>
-                    <td className="px-5 py-4 text-slate-600">{row.propertyName}{row.unitNumber ? ` · Unité ${row.unitNumber}` : ""}</td>
+                    <td className="px-5 py-4 text-slate-600">{row.propertyName}{row.unitNumber ? ` · Logement ${row.unitNumber}` : ""}</td>
                     <td className="px-5 py-4 text-slate-600">{row.tenantName}</td>
                     <td className="px-5 py-4 text-slate-600">{new Date(`${row.dueDate}T12:00:00`).toLocaleDateString("fr-FR")}</td>
                     <td className="px-5 py-4 text-slate-600">{formatRowStatus(row)}</td>

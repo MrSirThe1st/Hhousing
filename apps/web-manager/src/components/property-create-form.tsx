@@ -716,7 +716,7 @@ export default function PropertyCreateForm({
                 />
               </label>
               <label className="block">
-                <PropertyFieldLabel icon="deposit" label="Garantie" />
+                <PropertyFieldLabel icon="deposit" label="Caution" />
                 <input
                   type="number"
                   min="0"
@@ -862,7 +862,7 @@ export default function PropertyCreateForm({
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Garantie</dt>
+                <dt className="text-slate-500">Caution</dt>
                 <dd className="text-right font-medium text-[#010a19]">
                   {formatMoney(propertyForm.depositAmount, propertyForm.currencyCode)}
                 </dd>
@@ -873,7 +873,7 @@ export default function PropertyCreateForm({
               </div>
               {isMultiUnit ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">Unités</dt>
+                  <dt className="text-slate-500">Logements</dt>
                   <dd className="text-right font-medium text-[#010a19]">{propertyForm.unitCount}</dd>
                 </div>
               ) : null}

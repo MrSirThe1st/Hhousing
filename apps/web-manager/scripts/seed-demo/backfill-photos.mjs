@@ -1,5 +1,5 @@
 /**
- * One-shot: replace seed_* property / listing / maintenance photos
+ * One-shot: replace seed_* property / listing photos
  * with curated Unsplash housing images (instead of picsum scenery).
  *
  * Usage: node apps/web-manager/scripts/seed-demo/backfill-photos.mjs [--allow-remote]
@@ -8,7 +8,6 @@ import pg from "pg";
 import {
   assertSafeToSeed,
   loadEnvFiles,
-  maintenancePhotoUrls,
   propertyPhotoUrls
 } from "./lib.mjs";
 
@@ -64,23 +63,6 @@ try {
     where t.id like 'seed_%'
   `);
   console.log("tenants updated:", tenRes.rowCount);
-
-  const maint = await client.query(
-    `select id, photo_urls from maintenance_requests where organization_id like 'seed_%'`
-  );
-  let mntUpdated = 0;
-  for (const row of maint.rows) {
-    const hadPhotos = Array.isArray(row.photo_urls) && row.photo_urls.length > 0;
-    // Keep ~40% with photos (same idea as original seed), rest empty
-    const shouldHave = hadPhotos || Math.abs(hashCode(row.id)) % 10 < 4;
-    const urls = shouldHave ? maintenancePhotoUrls(row.id) : [];
-    await client.query(`update maintenance_requests set photo_urls = $1 where id = $2`, [
-      urls,
-      row.id
-    ]);
-    mntUpdated += 1;
-  }
-  console.log("maintenance updated:", mntUpdated);
 
   const sampleP = await client.query(
     `select id, photo_urls from properties where id like 'seed_%' limit 1`

@@ -233,8 +233,8 @@ export default function InvoiceManagementPanel({
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Factures</h1>
-        <p className="text-sm text-slate-500">Facturation par bail et période, indépendante des opérations de paiement.</p>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Reçus</h1>
+        <p className="text-sm text-slate-500">Reçus de loyer par bail et période. Indépendants de la saisie des paiements.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-end 2xl:grid-cols-[minmax(0,1.25fr)_220px_220px_220px_180px_180px_auto]">

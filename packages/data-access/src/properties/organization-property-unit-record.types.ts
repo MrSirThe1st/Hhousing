@@ -158,4 +158,13 @@ export interface OrganizationPropertyUnitRepository {
     organizationId: string,
     filter?: ListPropertiesWithUnitsFilter | PropertyManagementContext
   ): Promise<PropertyWithUnitsRecord[]>;
+  listPropertyOptions(organizationId: string): Promise<Array<{ id: string; name: string }>>;
+  listPropertyUnitOptions(
+    organizationId: string
+  ): Promise<Array<{ propertyId: string; propertyName: string; units: Array<{ id: string; label: string }> }>>;
+  getPortfolioCounts(organizationId: string): Promise<{
+    propertyCount: number;
+    unitCount: number;
+    occupiedUnitCount: number;
+  }>;
 }

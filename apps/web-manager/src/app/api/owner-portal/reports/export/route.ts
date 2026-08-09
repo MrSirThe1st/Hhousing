@@ -3,6 +3,7 @@ import { loadOwnerPortfolio } from "@/lib/owner-portal/owner-portfolio";
 import { buildOwnerPortfolioView } from "@/lib/owner-portal/owner-portfolio-view";
 import { buildOwnerStatementCsv, buildOwnerStatementRows } from "@/lib/owner-portal/owner-reporting";
 import { jsonResponse } from "@/app/api/shared";
+import { rejectIfV1FeatureDeferred } from "@/lib/v1-deferred-feature-guard";
 
 function normalizePeriod(value: string | null): string | null {
   if (value === null) {
@@ -24,6 +25,11 @@ export async function GET(request: Request): Promise<Response> {
       success: false,
       error: "Session owner introuvable"
     });
+  }
+
+  const deferred = rejectIfV1FeatureDeferred("reports");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
   }
 
   const period = normalizePeriod(new URL(request.url).searchParams.get("period"));

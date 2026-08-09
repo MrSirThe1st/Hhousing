@@ -1,77 +1,56 @@
 import type {
   MoveOut,
-  MoveOutCharge,
-  MoveOutChargeType,
-  MoveOutInspection,
-  MoveOutInspectionChecklistItem,
-  MoveOutStatus
+  MoveOutDepositDisposition,
+  MoveOutEndedBy,
+  MoveOutReasonCode,
+  MoveOutRetentionReasonCode
 } from "@hhousing/domain";
 
-export interface UpsertMoveOutChargeInput {
-  chargeType: MoveOutChargeType;
-  amount: number;
-  currencyCode: string;
-  note?: string | null;
-  sourceReferenceType?: string | null;
-  sourceReferenceId?: string | null;
-}
-
-export interface UpsertMoveOutInput {
-  moveOutDate: string;
-  reason?: string | null;
-  status?: Extract<MoveOutStatus, "draft" | "confirmed">;
-  charges?: UpsertMoveOutChargeInput[];
-}
-
-export interface UpsertMoveOutInspectionInput {
-  checklistSnapshot: MoveOutInspectionChecklistItem[];
-  notes?: string | null;
-  photoDocumentIds?: string[];
-  inspectedAt?: string | null;
-}
-
-export interface CloseMoveOutInput {
-  closureLedgerEventId: number;
-}
-
-export interface MoveOutSettlementSummary {
-  currencyCode: string;
-  outstandingAmount: number;
-  futureScheduledAmount: number;
+export interface CreateMoveOutInput {
+  departureEffectiveDate: string;
+  leaseEndDate: string;
+  endedBy: MoveOutEndedBy;
+  reasonCode?: MoveOutReasonCode | null;
+  reasonNote?: string | null;
   depositHeldAmount: number;
-  manualChargeAmount: number;
-  manualCreditAmount: number;
-  depositDeductionAmount: number;
-  projectedTenantBalanceBeforeDeposit: number;
-  projectedDepositRefundAmount: number;
+  depositAmountOverridden: boolean;
+  depositDisposition: MoveOutDepositDisposition;
+  depositRetentionAmount: number;
+  depositRetentionReasonCode?: MoveOutRetentionReasonCode | null;
+  depositRetentionNote?: string | null;
+  currencyCode: string;
 }
 
-export type MoveOutReconciliationSeverity = "blocking" | "drift_anomaly" | "warning";
-
-export interface MoveOutReconciliationIssue {
-  severity: MoveOutReconciliationSeverity;
-  code: string;
-  message: string;
+export interface MoveOutDepositContext {
+  currencyCode: string;
+  paidDepositAmount: number;
+  leaseDepositAmount: number;
+  /** Suggested base: paid if > 0, else lease amount. */
+  suggestedHeldAmount: number;
+  equivalentMonths: number | null;
 }
 
 export interface LeaseMoveOutView {
   moveOut: MoveOut;
-  charges: MoveOutCharge[];
-  inspection: MoveOutInspection | null;
-  summary: MoveOutSettlementSummary;
+  depositContext: MoveOutDepositContext;
 }
 
 export interface GetLeaseMoveOutOutput {
-  moveOut: LeaseMoveOutView | null;
-  summary: MoveOutSettlementSummary;
+  moveOut: MoveOut | null;
+  depositContext: MoveOutDepositContext;
 }
 
-export interface GetMoveOutReconciliationOutput {
-  moveOutStatus: MoveOutStatus | "not_started";
-  issueCount: number;
-  issues: MoveOutReconciliationIssue[];
-}
+export type CreateMoveOutOutput = LeaseMoveOutView;
 
-export type UpsertMoveOutOutput = LeaseMoveOutView;
-export type UpsertMoveOutInspectionOutput = MoveOutInspection;
-export type CloseMoveOutOutput = LeaseMoveOutView;
+export interface MoveOutListItemView {
+  moveOutId: string;
+  leaseId: string;
+  status: MoveOut["status"];
+  departureEffectiveDate: string;
+  leaseEndDate: string;
+  depositRefundAmount: number | null;
+  currencyCode: string | null;
+  tenantFullName: string;
+  propertyName: string;
+  unitNumber: string;
+}

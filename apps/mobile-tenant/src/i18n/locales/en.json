@@ -23,7 +23,6 @@
     "payments": "Payments",
     "menu": "Menu",
     "messages": "Messages",
-    "maintenance": "Maintenance",
     "services": "Services"
   },
   "services": {
@@ -146,6 +145,8 @@
     "defaultAddress": "Your tenant space",
     "rentLabel": "RENT {{month}}",
     "rentOfMonth": "THIS MONTH'S RENT",
+    "totalDueLabel": "TOTAL BALANCE DUE",
+    "dueCount": "{{count}} payments pending",
     "welcome": "WELCOME",
     "dueOn": "Due on {{date}}",
     "payNow": "Pay now",
@@ -154,9 +155,13 @@
     "noRentDue": "No rent due this month.",
     "noLeaseLinked": "Your home is not linked yet. Contact your landlord to activate your account.",
     "recentPayments": "Recent payments",
-    "seeAll": "See all",
+    "seeAll": "View history",
     "noPaymentsYet": "No payments yet. When rent is recorded, it will show up here.",
     "noPaymentsTitle": "No payments yet",
+    "contactsTitle": "Useful contacts",
+    "contactsSeeAll": "See all",
+    "contactsOpen": "View list",
+    "contactsEmpty": "No service providers have been shared for your building yet.",
     "kind": {
       "deposit": "Deposit",
       "fee": "Fee",
@@ -168,7 +173,8 @@
     "status": {
       "paid": "PAID",
       "cancelled": "CANCELLED",
-      "toPay": "TO PAY"
+      "toPay": "TO PAY",
+      "upToDate": "UP TO DATE"
     }
   },
   "payments": {
@@ -217,6 +223,7 @@
   "account": {
     "profile": "Profile",
     "myHome": "My home",
+    "services": "Service providers",
     "terms": "Terms of use",
     "privacy": "Privacy policy",
     "support": "Support",
@@ -256,7 +263,7 @@
     "freqQuarterly": "Every 3 months",
     "freqYearly": "Every year",
     "aboutTagline": "Your Haraka Property tenant space",
-    "aboutDescription": "Haraka Property helps tenants and landlords manage leases, rent payments, maintenance, and communication in one place.",
+    "aboutDescription": "Haraka Property helps tenants and landlords manage leases, rent payments, and communication in one place.",
     "madeInDrc": "Made in DR Congo 🇨🇩",
     "visitWebsite": "Visit harakaproperty.com",
     "version": "Version {{version}}",
@@ -315,72 +322,6 @@
     "cancelDeletion": "Cancel deletion",
     "cancelledBody": "Your account deletion was cancelled. You can continue using the app.",
     "endpointUnavailable": "Account deletion is not available on this server yet. Point the app at your local API, or deploy the latest web-manager."
-  },
-  "maintenance": {
-    "title": "Maintenance",
-    "subtitle": "Manage your service and repair requests.",
-    "newRequest": "New request",
-    "formSubtitle": "Describe the issue to report.",
-    "titleLabel": "Title *",
-    "descriptionLabel": "Description *",
-    "priorityLabel": "Priority",
-    "photosLabel": "Photos (optional, max 4)",
-    "addPhoto": "+ Add a photo",
-    "submit": "Submit request",
-    "filterAll": "All",
-    "filterActive": "Active",
-    "filterResolved": "Resolved",
-    "emptyTitle": "No requests yet",
-    "emptyText": "Report a repair or service issue and track it here.",
-    "emptyFilterTitle": "Nothing matches",
-    "emptyFilterText": "No requests match the selected filter.",
-    "urgencyTitle": "Emergency?",
-    "urgencyBody": "Contact our 24/7 support line for critical issues.",
-    "titleRequired": "Title and description are required.",
-    "maxPhotos": "Maximum 4 photos allowed.",
-    "galleryDenied": "Gallery access denied.",
-    "galleryUnavailable": "Unable to open the gallery right now.",
-    "status": {
-      "open": "Open",
-      "inProgress": "In progress",
-      "resolved": "Resolved",
-      "cancelled": "Cancelled"
-    },
-    "priority": {
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High",
-      "urgent": "Urgent"
-    },
-    "category": {
-      "low": "General",
-      "medium": "Plumbing",
-      "high": "Electrical",
-      "urgent": "Emergency"
-    },
-    "detailSubtitle": "Request details",
-    "loadError": "Unable to load the request.",
-    "loadErrorSubtitle": "Unable to load",
-    "invalidId": "Missing ID",
-    "invalidRequestId": "Invalid request ID",
-    "unknownError": "Unknown error",
-    "assignedTo": "Assigned to",
-    "resolution": "Resolution",
-    "photos": "Photos",
-    "history": "History",
-    "backToList": "Back to list",
-    "defaultTitle": "Maintenance request",
-    "event": {
-      "created": "Created",
-      "statusChanged": "Status changed",
-      "assigned": "Assigned",
-      "internalNote": "Internal note added",
-      "resolutionNote": "Resolution note",
-      "createdDesc": "Request created",
-      "statusChangedDesc": "Status changed from {{from}} to {{to}}",
-      "assignedDesc": "Assigned to {{name}}",
-      "someone": "someone"
-    }
   },
   "messages": {
     "title": "Messages",

@@ -18,11 +18,11 @@ const PRIMARY_TABS: AdminNavItem[] = [
   { href: "/admin", label: "Aperçu", icon: "dashboard", exact: true },
   { href: "/admin/users", label: "Utilisateurs", icon: "team" },
   { href: "/admin/organizations", label: "Organisations", icon: "organizations" },
-  { href: "/admin/billing", label: "Facturation", icon: "payments" }
+  { href: "/admin/billing", label: "Abonnement Haraka", icon: "payments" }
 ];
 
 const MENU_ITEMS: AdminNavItem[] = [
-  { href: "/admin/service-providers", label: "Prestataires", icon: "maintenance" },
+  { href: "/admin/service-providers", label: "Artisans et services", icon: "maintenance" },
   { href: "/admin/audit", label: "Audit", icon: "audit" }
 ];
 
@@ -161,7 +161,7 @@ export default function AdminBottomNavigation(): React.ReactElement {
         </div>
 
         <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-3 dark:border-slate-800">
-          <span className="text-xs text-slate-400 shrink-0">haraka property admin</span>
+          <span className="text-xs text-slate-400 shrink-0">Haraka Admin · v1.0</span>
           <div className="min-h-[44px] flex items-center gap-2">
             <ThemeToggle />
             <LogoutButton compact />

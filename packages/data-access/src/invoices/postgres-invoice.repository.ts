@@ -1,4 +1,5 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { ListInvoicesFilter } from "@hhousing/api-contracts";
 import type {
   Invoice,
@@ -74,18 +75,6 @@ export interface InvoiceQueryable {
   connect?: () => Promise<PoolClient>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 function toIso(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
@@ -613,6 +602,6 @@ export function createInvoiceRepositoryFromEnv(env: DatabaseEnvSource): InvoiceR
     throw new Error(envResult.error);
   }
 
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresInvoiceRepository(pool);
 }

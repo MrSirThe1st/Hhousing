@@ -215,6 +215,12 @@ export default function AccountScreen(): React.ReactElement {
       onPress: () => { router.push("/(tabs)/account/lease"); }
     },
     {
+      key: "services",
+      label: t("account.services"),
+      icon: "construct-outline",
+      onPress: () => { router.push("/(tabs)/services"); }
+    },
+    {
       key: "settings",
       label: t("account.settings"),
       icon: "settings-outline",

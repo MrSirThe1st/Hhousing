@@ -47,7 +47,7 @@ export default async function AdminServiceProvidersPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-[#010a19] dark:text-white">Prestataires</h2>
+          <h2 className="text-2xl font-semibold text-[#010a19] dark:text-white">Artisans et services</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Catalogue plateforme et prestataires ajoutés par les gestionnaires
           </p>

@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type {
   Listing,
   ListingApplication,
@@ -419,16 +420,6 @@ function mapPublicListing(row: PublicListingRow): PublicListingView {
   };
 }
 
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 function listingSelectClause(): string {
   return `
@@ -1009,6 +1000,17 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
       }));
     },
 
+    async countOpenListingApplications(organizationId: string): Promise<number> {
+      const result = await client.query<{ count: string | number }>(
+        `select count(*)::int as count
+         from listing_applications
+         where organization_id = $1
+           and status <> 'converted'`,
+        [organizationId]
+      );
+      return Number(result.rows[0]?.count ?? 0);
+    },
+
     async updateApplicationStatus(input: UpdateListingApplicationStatusRecordInput): Promise<ListingApplication | null> {
       const result = await client.query<ApplicationRow>(
         `update listing_applications
@@ -1200,5 +1202,5 @@ export function createListingRepositoryFromEnv(env: DatabaseEnvSource): ListingR
     throw new Error(envResult.error);
   }
 
-  return createPostgresListingRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresListingRepository(getSharedPool(envResult.data.connectionString));
 }

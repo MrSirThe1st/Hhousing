@@ -24,8 +24,6 @@ export const VOLUME = {
   /** Share of occupied units that get a conversation. */
   conversationRate: 0.2,
   messagesPerConversation: [2, 5],
-  /** Maintenance tickets relative to occupied units. */
-  maintenanceRate: 0.2,
   documentsPerActiveLeaseChance: 0.35,
   /** Share of vacant units on active properties that get a published listing. */
   listingPublishRate: 0.4,
@@ -89,16 +87,6 @@ export const PROPERTY_PHOTO_IDS = [
   "1600585154526-990dced4db0d",
   "1600573472591-ee6981cf7426",
   "1600047508618-e987f9b2c8c4"
-];
-
-/** Interior / repair-ish shots for maintenance ticket attachments. */
-export const MAINTENANCE_PHOTO_IDS = [
-  "1581578731548-c64695cc6952",
-  "1556912173-3bb406ef7e77",
-  "1584622650111-993a426fbf0a",
-  "1552321554-5fefe8c9ef14",
-  "1503387762-592deb58ef4e",
-  "1565182999561-18d7dc61c393"
 ];
 
 export const CITIES = [
@@ -233,18 +221,6 @@ export const TEAM_FUNCTIONS = [
     ]
   },
   {
-    code: "MAINTENANCE_MANAGER",
-    display_name: "Responsable maintenance",
-    description: "Gère les tickets de maintenance",
-    permissions: [
-      "manage_maintenance",
-      "assign_vendors",
-      "view_maintenance",
-      "update_maintenance_status",
-      "view_documents"
-    ]
-  },
-  {
     code: "ADMIN",
     display_name: "Admin (interne)",
     description: "Accès complet dans l'organisation",
@@ -261,21 +237,8 @@ export const SP_CATEGORIES = [
   "spc_autre"
 ];
 
-export const MAINTENANCE_TITLES = [
-  ["Fuite d'eau cuisine", "Fuite sous l'évier depuis hier soir."],
-  ["Panne électrique partielle", "Plus de courant dans la chambre principale."],
-  ["Climatiseur en panne", "Le climatiseur ne refroidit plus correctement."],
-  ["Serrure défectueuse", "La serrure de la porte d'entrée bloque."],
-  ["Chasse d'eau cassée", "La chasse d'eau fuit en continu."],
-  ["Peinture écaillée", "Peinture qui s'écaille dans le salon."],
-  ["Interphone HS", "L'interphone ne sonne plus."],
-  ["Infiltration plafond", "Taches d'humidité au plafond après pluie."],
-  ["Porte garage bloquée", "La porte du garage ne s'ouvre plus."],
-  ["Prise murale endommagée", "Prise qui étincelle dans le couloir."]
-];
-
 export const MESSAGE_SNIPPETS = [
-  "Bonjour, j'aimerais confirmer la date de visite pour la maintenance.",
+  "Bonjour, j'aimerais confirmer la date de visite pour le bien.",
   "Le paiement du loyer a bien été effectué hier via mobile money.",
   "Merci pour votre retour rapide.",
   "Y a-t-il une mise à jour concernant ma demande ?",

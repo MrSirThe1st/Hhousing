@@ -14,7 +14,7 @@ export default async function AdminServiceProviderCategoriesPage(): Promise<Reac
             href="/admin/service-providers"
             className="text-sm font-medium text-slate-500 hover:underline"
           >
-            ← Prestataires
+            ← Artisans et services
           </Link>
           <h2 className="mt-2 text-2xl font-semibold text-[#010a19] dark:text-white">Catégories</h2>
           <p className="mt-1 text-sm text-slate-500">Organiser les types de prestataires</p>

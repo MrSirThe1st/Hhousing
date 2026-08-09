@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { ServiceProviderWithCategory } from "@hhousing/api-contracts";
 import type {
   ServiceProvider,
@@ -110,15 +111,6 @@ export interface ServiceProviderQueryable {
   ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresServiceProviderRepository(
   client: ServiceProviderQueryable
@@ -488,5 +480,5 @@ export function createServiceProviderRepositoryFromEnv(
     throw new Error(envResult.error);
   }
 
-  return createPostgresServiceProviderRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresServiceProviderRepository(getSharedPool(envResult.data.connectionString));
 }

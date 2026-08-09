@@ -1,3 +1,4 @@
+import { cache } from "react";
 import {
   createAuthRepositoryFromEnv,
   createOrganizationPropertyUnitRepositoryFromEnv,
@@ -8,16 +9,24 @@ import type { AuthSession, MembershipAuthSession, PlatformAdminAuthSession } fro
 /**
  * Resolve AuthSession for an authenticated Supabase user id.
  * Handles platform admins (no org membership), suspended accounts, and suspended orgs.
+ * Request-scoped via React cache so layout/page/API helpers share one resolution.
  */
-export async function resolveAuthSessionForUserId(userId: string): Promise<AuthSession | null> {
+export const resolveAuthSessionForUserId = cache(async function resolveAuthSessionForUserId(
+  userId: string
+): Promise<AuthSession | null> {
   try {
     const platformRepo = createPlatformAdminRepositoryFromEnv(process.env);
 
-    if (await platformRepo.isUserSuspended(userId)) {
+    const [suspended, isPlatformAdmin] = await Promise.all([
+      platformRepo.isUserSuspended(userId),
+      platformRepo.isActivePlatformAdmin(userId)
+    ]);
+
+    if (suspended) {
       return null;
     }
 
-    if (await platformRepo.isActivePlatformAdmin(userId)) {
+    if (isPlatformAdmin) {
       const session: PlatformAdminAuthSession = {
         userId,
         role: "platform_admin",
@@ -39,14 +48,15 @@ export async function resolveAuthSessionForUserId(userId: string): Promise<AuthS
     let usable = memberships;
 
     if (orgRepoResult.success) {
-      const activeMemberships = [];
-      for (const membership of memberships) {
-        const organization = await orgRepoResult.data.getOrganizationById(membership.organizationId);
-        if (organization === null || organization.status !== "suspended") {
-          activeMemberships.push(membership);
-        }
-      }
-      usable = activeMemberships;
+      const organizations = await Promise.all(
+        memberships.map((membership) =>
+          orgRepoResult.data.getOrganizationById(membership.organizationId)
+        )
+      );
+      usable = memberships.filter((_membership, index) => {
+        const organization = organizations[index];
+        return organization === null || organization.status !== "suspended";
+      });
     }
 
     if (usable.length === 0) {
@@ -70,4 +80,4 @@ export async function resolveAuthSessionForUserId(userId: string): Promise<AuthS
     console.error("Failed to resolve auth session for user", error);
     return null;
   }
-}
+});

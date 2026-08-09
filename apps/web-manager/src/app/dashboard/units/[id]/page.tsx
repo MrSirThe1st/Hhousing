@@ -17,7 +17,7 @@ export default async function UnitDetailPage({ params }: PageProps): Promise<Rea
   if (!unit) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Unité introuvable</p>
+        <p className="text-gray-600">Logement introuvable</p>
         <Link href="/dashboard/properties" className="mt-4 inline-block text-[#0063fe] hover:underline">
           Retour à mes biens
         </Link>

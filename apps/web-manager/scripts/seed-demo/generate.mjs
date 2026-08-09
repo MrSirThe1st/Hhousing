@@ -10,7 +10,6 @@ import {
   SP_CATEGORIES,
   TEAM_FUNCTIONS,
   VOLUME,
-  MAINTENANCE_TITLES,
   MESSAGE_SNIPPETS,
   SEED_MARKER
 } from "./config.mjs";
@@ -26,7 +25,6 @@ import {
   pickCurrency,
   propertyName,
   propertyPhotoUrls,
-  maintenancePhotoUrls,
   randInt,
   randomPastDate,
   rentAmount,
@@ -291,7 +289,7 @@ export async function runSeed(client) {
       makeDbMember(
         "property_manager",
         false,
-        pick(["LEASING_AGENT", "ACCOUNTANT", "MAINTENANCE_MANAGER"])
+        pick(["LEASING_AGENT", "ACCOUNTANT", "ADMIN"])
       );
     }
   }
@@ -1208,110 +1206,9 @@ export async function runSeed(client) {
     `  listings=${listings.length} (published=${listings.filter((l) => l.status === "published").length}) applications=${listingApplications.length}`
   );
 
-  console.log("Seeding maintenance, messaging, documents, expenses, prestataires...");
-  const maintenance = [];
-  const maintenanceEvents = [];
-  let mntSeq = 1;
-  let mevSeq = 1;
+  console.log("Seeding messaging, documents, expenses, prestataires...");
 
   const activeLeases = leases.filter((l) => l.status === "active");
-  const maintCount = Math.floor(activeLeases.length * VOLUME.maintenanceRate);
-  for (let i = 0; i < maintCount; i++) {
-    const lease = pick(activeLeases);
-    const [title, description] = pick(MAINTENANCE_TITLES);
-    const created = randomPastDate(2, 180);
-    const status = pick(["open", "open", "in_progress", "resolved", "resolved", "cancelled"]);
-    const priority = pick(["low", "medium", "medium", "high", "urgent"]);
-    const id = seedId("mnt", mntSeq++, 6);
-    const resolvedAt =
-      status === "resolved" || status === "cancelled"
-        ? toTimestamptz(new Date(created.getTime() + randInt(1, 14) * 86400000))
-        : null;
-
-    maintenance.push({
-      id,
-      organization_id: lease.organization_id,
-      unit_id: lease.unit_id,
-      tenant_id: lease.tenant_id,
-      title,
-      description,
-      priority,
-      status,
-      assigned_to_name: status === "open" ? null : frenchFullName(),
-      internal_notes: chance(0.3) ? "Suivi interne seed." : null,
-      resolution_notes: status === "resolved" ? "Intervention terminée." : null,
-      photo_urls: chance(0.4) ? maintenancePhotoUrls(id, randInt(1, 2)) : [],
-      resolved_at: resolvedAt,
-      updated_at: toTimestamptz(created),
-      created_at: toTimestamptz(created)
-    });
-
-    maintenanceEvents.push({
-      id: seedId("mev", mevSeq++, 6),
-      organization_id: lease.organization_id,
-      maintenance_request_id: id,
-      event_type: "created",
-      status_from: null,
-      status_to: "open",
-      assigned_to_name: null,
-      note: null,
-      created_at: toTimestamptz(created)
-    });
-    if (status !== "open") {
-      maintenanceEvents.push({
-        id: seedId("mev", mevSeq++, 6),
-        organization_id: lease.organization_id,
-        maintenance_request_id: id,
-        event_type: "status_changed",
-        status_from: "open",
-        status_to: status,
-        assigned_to_name: null,
-        note: null,
-        created_at: toTimestamptz(new Date(created.getTime() + 86400000))
-      });
-    }
-  }
-
-  await bulkInsert(
-    client,
-    "maintenance_requests",
-    [
-      "id",
-      "organization_id",
-      "unit_id",
-      "tenant_id",
-      "title",
-      "description",
-      "priority",
-      "status",
-      "assigned_to_name",
-      "internal_notes",
-      "resolution_notes",
-      "photo_urls",
-      "resolved_at",
-      "updated_at",
-      "created_at"
-    ],
-    maintenance,
-    { batchSize: 400 }
-  );
-  await bulkInsert(
-    client,
-    "maintenance_request_events",
-    [
-      "id",
-      "organization_id",
-      "maintenance_request_id",
-      "event_type",
-      "status_from",
-      "status_to",
-      "assigned_to_name",
-      "note",
-      "created_at"
-    ],
-    maintenanceEvents,
-    { batchSize: 400 }
-  );
 
   // Conversations + messages
   const conversations = [];
@@ -1611,7 +1508,6 @@ export async function runSeed(client) {
     payments: payments.length,
     listings: listings.length,
     listingApplications: listingApplications.length,
-    maintenance: maintenance.length,
     conversations: conversations.length,
     messages: messages.length,
     documents: documents.length,

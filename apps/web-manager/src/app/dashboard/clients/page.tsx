@@ -2,7 +2,7 @@ import Link from "next/link";
 import ClientsSummaryTable, {
   type ClientSummary
 } from "../../../components/clients-summary-table";
-import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../api/shared";
+import { createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../api/shared";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 function PlusIcon(): React.ReactElement {
@@ -23,12 +23,11 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
   }
 
   const tenantLeaseRepo = createTenantLeaseRepo();
-  const [owners, properties, leases, payments, maintenanceRequests] = await Promise.all([
+  const [owners, properties, leases, payments] = await Promise.all([
     repoResult.data.listOwners(session.organizationId),
     repoResult.data.listPropertiesWithUnits(session.organizationId),
     tenantLeaseRepo.listLeasesByOrganization(session.organizationId),
-    createPaymentRepo().listPayments({ organizationId: session.organizationId }),
-    createMaintenanceRepo().listMaintenanceRequests({ organizationId: session.organizationId })
+    createPaymentRepo().listPayments({ organizationId: session.organizationId })
   ]);
 
   const clientOwners = owners.filter((owner) => owner.ownerType === "client");
@@ -48,13 +47,6 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
     const overduePaymentCount = payments.filter(
       (payment) => clientLeaseIds.has(payment.leaseId) && payment.status === "overdue"
     ).length;
-    const clientMaintenanceRequests = maintenanceRequests.filter((request) => unitIds.has(request.unitId));
-    const activeMaintenanceCount = clientMaintenanceRequests.filter(
-      (request) => request.status === "open" || request.status === "in_progress"
-    ).length;
-    const urgentMaintenanceCount = clientMaintenanceRequests.filter(
-      (request) => request.priority === "urgent" && (request.status === "open" || request.status === "in_progress")
-    ).length;
 
     return {
       owner,
@@ -62,33 +54,20 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
       unitCount,
       occupiedUnitCount,
       activeTenantCount,
-      overduePaymentCount,
-      activeMaintenanceCount,
-      urgentMaintenanceCount
+      overduePaymentCount
     };
   }).sort((left, right) => {
-    if (right.urgentMaintenanceCount !== left.urgentMaintenanceCount) {
-      return right.urgentMaintenanceCount - left.urgentMaintenanceCount;
-    }
-
     if (right.overduePaymentCount !== left.overduePaymentCount) {
       return right.overduePaymentCount - left.overduePaymentCount;
-    }
-
-    if (right.activeMaintenanceCount !== left.activeMaintenanceCount) {
-      return right.activeMaintenanceCount - left.activeMaintenanceCount;
     }
 
     return left.owner.name.localeCompare(right.owner.name, "fr");
   });
 
-  const organizationProperties = properties.filter((item) => item.property.ownerType === "organization").length;
   const managedPropertyCount = summaries.reduce((sum, summary) => sum + summary.propertyCount, 0);
   const totalUnitCount = summaries.reduce((sum, summary) => sum + summary.unitCount, 0);
   const occupiedUnitCount = summaries.reduce((sum, summary) => sum + summary.occupiedUnitCount, 0);
   const occupancyRate = totalUnitCount === 0 ? 0 : Math.round((occupiedUnitCount / totalUnitCount) * 100);
-  const overdueAlertCount = summaries.reduce((sum, summary) => sum + summary.overduePaymentCount, 0);
-  const urgentMaintenanceCount = summaries.reduce((sum, summary) => sum + summary.urgentMaintenanceCount, 0);
 
   return (
     <div id="clients-container" className="space-y-6 p-8">
@@ -112,27 +91,27 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
         </div>
       </div>
 
-<div className="flex items-center gap-8 border-b border-slate-200 pb-3">
-  <div>
-    <p className="text-xs uppercase tracking-wide text-slate-500">
-      Propriétaires tiers
-    </p>
-    <p className="text-xl font-semibold text-slate-900">
-      {clientOwners.length}
-    </p>
-  </div>
+      <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            Propriétaires tiers
+          </p>
+          <p className="text-xl font-semibold text-slate-900">
+            {clientOwners.length}
+          </p>
+        </div>
 
-  <div className="h-6 w-px bg-slate-200" />
+        <div className="h-6 w-px bg-slate-200" />
 
-  <div>
-    <p className="text-xs uppercase tracking-wide text-slate-500">
-      Occupation
-    </p>
-    <p className="text-xl font-semibold text-slate-900">
-      {occupancyRate}%
-    </p>
-  </div>
-</div>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            Occupation
+          </p>
+          <p className="text-xl font-semibold text-slate-900">
+            {occupancyRate}%
+          </p>
+        </div>
+      </div>
 
       {summaries.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">

@@ -1,82 +1,42 @@
 import type {
-  CloseMoveOutInput,
-  GetMoveOutReconciliationOutput,
+  CreateMoveOutInput,
+  GetLeaseMoveOutOutput,
   LeaseMoveOutView,
-  MoveOutReconciliationIssue,
-  MoveOutSettlementSummary,
-  UpsertMoveOutInput,
-  UpsertMoveOutInspectionInput
+  MoveOutDepositContext
 } from "@hhousing/api-contracts";
 import type { PaymentRepository, TenantLeaseRepository } from "@hhousing/data-access";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import type { Payment } from "@hhousing/domain";
-import { createHash } from "node:crypto";
 import { logOperatorAuditEvent } from "../audit-log";
 
 function getTodayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function buildMoveOutSettlementSummary(
+export function buildMoveOutDepositContext(
   lease: LeaseWithTenantView,
-  payments: Payment[],
-  moveOutView: LeaseMoveOutView | null
-): MoveOutSettlementSummary {
-  const referenceDate = moveOutView?.moveOut.moveOutDate ?? lease.endDate ?? getTodayIsoDate();
-  let outstandingAmount = 0;
-  let futureScheduledAmount = 0;
-  let depositHeldAmount = 0;
-
+  payments: Payment[]
+): MoveOutDepositContext {
+  let paidDepositAmount = 0;
   for (const payment of payments) {
-    if (payment.status === "cancelled") {
-      continue;
-    }
-
-    if (payment.paymentKind === "deposit") {
-      if (payment.status === "paid") {
-        depositHeldAmount += payment.amount;
-      }
-      continue;
-    }
-
-    if ((payment.status === "pending" || payment.status === "overdue") && payment.dueDate <= referenceDate) {
-      outstandingAmount += payment.amount;
-      continue;
-    }
-
-    if ((payment.status === "pending" || payment.status === "overdue") && payment.dueDate > referenceDate) {
-      futureScheduledAmount += payment.amount;
+    if (payment.paymentKind === "deposit" && payment.status === "paid") {
+      paidDepositAmount += payment.amount;
     }
   }
 
-  const chargeTotals = (moveOutView?.charges ?? []).reduce(
-    (totals, charge) => {
-      if (charge.chargeType === "credit") {
-        totals.manualCreditAmount += charge.amount;
-      } else if (charge.chargeType === "deposit_deduction") {
-        totals.depositDeductionAmount += charge.amount;
-      } else {
-        totals.manualChargeAmount += charge.amount;
-      }
-
-      return totals;
-    },
-    { manualChargeAmount: 0, manualCreditAmount: 0, depositDeductionAmount: 0 }
-  );
-
-  const projectedTenantBalanceBeforeDeposit = outstandingAmount + chargeTotals.manualChargeAmount - chargeTotals.manualCreditAmount;
-  const projectedDepositRefundAmount = Math.max(depositHeldAmount - chargeTotals.depositDeductionAmount, 0);
+  const leaseDepositAmount = lease.depositAmount;
+  const suggestedHeldAmount = paidDepositAmount > 0 ? paidDepositAmount : leaseDepositAmount;
+  const equivalentMonths =
+    lease.monthlyRentAmount > 0
+      ? Math.round((suggestedHeldAmount / lease.monthlyRentAmount) * 10) / 10
+      : null;
 
   return {
     currencyCode: lease.currencyCode,
-    outstandingAmount,
-    futureScheduledAmount,
-    depositHeldAmount,
-    manualChargeAmount: chargeTotals.manualChargeAmount,
-    manualCreditAmount: chargeTotals.manualCreditAmount,
-    depositDeductionAmount: chargeTotals.depositDeductionAmount,
-    projectedTenantBalanceBeforeDeposit,
-    projectedDepositRefundAmount
+    paidDepositAmount,
+    leaseDepositAmount,
+    suggestedHeldAmount,
+    equivalentMonths
   };
 }
 
@@ -84,316 +44,192 @@ export async function buildLeaseMoveOutView(
   lease: LeaseWithTenantView,
   repository: TenantLeaseRepository,
   paymentRepository: PaymentRepository
-): Promise<{ moveOut: LeaseMoveOutView | null; summary: MoveOutSettlementSummary }> {
-  const [moveOutAggregate, payments] = await Promise.all([
+): Promise<GetLeaseMoveOutOutput> {
+  const [aggregate, payments] = await Promise.all([
     repository.getMoveOutByLeaseId(lease.id, lease.organizationId),
     paymentRepository.listPayments({ organizationId: lease.organizationId, leaseId: lease.id })
   ]);
 
-  const moveOut = moveOutAggregate
-    ? {
-      moveOut: moveOutAggregate.moveOut,
-      charges: moveOutAggregate.charges,
-      inspection: moveOutAggregate.inspection,
-      summary: buildMoveOutSettlementSummary(lease, payments, {
-        moveOut: moveOutAggregate.moveOut,
-        charges: moveOutAggregate.charges,
-        inspection: moveOutAggregate.inspection,
-        summary: {
-          currencyCode: lease.currencyCode,
-          outstandingAmount: 0,
-          futureScheduledAmount: 0,
-          depositHeldAmount: 0,
-          manualChargeAmount: 0,
-          manualCreditAmount: 0,
-          depositDeductionAmount: 0,
-          projectedTenantBalanceBeforeDeposit: 0,
-          projectedDepositRefundAmount: 0
-        }
-      })
-    }
-    : null;
-
   return {
-    moveOut,
-    summary: buildMoveOutSettlementSummary(lease, payments, moveOut)
+    moveOut: aggregate?.moveOut ?? null,
+    depositContext: buildMoveOutDepositContext(lease, payments)
   };
 }
 
-export async function upsertLeaseMoveOut(
+export async function lazyApplyDueMoveOutsForLease(
   lease: LeaseWithTenantView,
-  input: UpsertMoveOutInput,
+  repository: TenantLeaseRepository
+): Promise<void> {
+  const today = getTodayIsoDate();
+  const aggregate = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
+  if (!aggregate || aggregate.moveOut.status !== "planned") {
+    return;
+  }
+
+  if (aggregate.moveOut.departureEffectiveDate <= today) {
+    await repository.applyMoveOutDeparture({
+      moveOutId: aggregate.moveOut.id,
+      organizationId: lease.organizationId,
+      leaseId: lease.id
+    });
+  }
+}
+
+export async function lazyApplyDueMoveOutsForOrganization(
+  organizationId: string,
+  repository: TenantLeaseRepository
+): Promise<void> {
+  await repository.applyDueMoveOutsForOrganization(organizationId, getTodayIsoDate());
+}
+
+export async function createLeaseMoveOut(
+  lease: LeaseWithTenantView,
+  input: CreateMoveOutInput,
   initiatedByUserId: string,
   actorMemberId: string | null,
   repository: TenantLeaseRepository,
   createId: (prefix: string) => string
-): Promise<void> {
-  const existing = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
-
-  if (existing?.moveOut.status === "closed") {
-    throw new Error("MOVE_OUT_ALREADY_CLOSED");
+): Promise<LeaseMoveOutView> {
+  if (lease.status !== "active") {
+    throw new Error("LEASE_NOT_ACTIVE");
   }
 
-  const moveOut = await repository.upsertMoveOut({
-    id: existing?.moveOut.id ?? createId("mvo"),
+  const existing = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
+  if (existing?.moveOut.status === "completed" || existing?.moveOut.status === "closed") {
+    throw new Error("MOVE_OUT_ALREADY_COMPLETED");
+  }
+  if (existing?.moveOut.status === "planned") {
+    throw new Error("MOVE_OUT_ALREADY_PLANNED");
+  }
+
+  const today = getTodayIsoDate();
+  const status = input.departureEffectiveDate <= today ? "completed" : "planned";
+  const depositRefundAmount = Math.max(0, input.depositHeldAmount - input.depositRetentionAmount);
+
+  const moveOut = await repository.createSimpleMoveOut({
+    id: createId("mvo"),
     organizationId: lease.organizationId,
     leaseId: lease.id,
     initiatedByUserId,
-    moveOutDate: input.moveOutDate,
-    reason: input.reason ?? null,
-    status: input.status ?? "draft"
-  });
-
-  await repository.replaceMoveOutCharges({
-    moveOutId: moveOut.id,
-    organizationId: lease.organizationId,
-    charges: (input.charges ?? []).map((charge) => ({
-      id: createId("mch"),
-      chargeType: charge.chargeType,
-      amount: charge.amount,
-      currencyCode: charge.currencyCode,
-      note: charge.note ?? null,
-      sourceReferenceType: charge.sourceReferenceType ?? null,
-      sourceReferenceId: charge.sourceReferenceId ?? null
-    }))
+    leaseEndDate: input.leaseEndDate,
+    departureEffectiveDate: input.departureEffectiveDate,
+    endedBy: input.endedBy,
+    reasonCode: input.reasonCode ?? null,
+    reasonNote: input.reasonNote ?? null,
+    status,
+    depositHeldAmount: input.depositHeldAmount,
+    depositAmountOverridden: input.depositAmountOverridden,
+    depositDisposition: input.depositDisposition,
+    depositRetentionAmount: input.depositRetentionAmount,
+    depositRetentionReasonCode: input.depositRetentionReasonCode ?? null,
+    depositRetentionNote: input.depositRetentionNote ?? null,
+    depositRefundAmount,
+    currencyCode: input.currencyCode
   });
 
   await logOperatorAuditEvent({
     organizationId: lease.organizationId,
     actorMemberId,
-    actionKey: "operations.lease.move_out_upserted",
+    actionKey: "operations.lease.move_out_created",
     entityType: "move_out",
     entityId: moveOut.id,
     metadata: {
       leaseId: lease.id,
       status: moveOut.status,
-      chargeCount: input.charges?.length ?? 0
-    }
-  });
-}
-
-export async function upsertLeaseMoveOutInspection(
-  lease: LeaseWithTenantView,
-  input: UpsertMoveOutInspectionInput,
-  actorMemberId: string | null,
-  repository: TenantLeaseRepository,
-  createId: (prefix: string) => string
-): Promise<void> {
-  const existing = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
-
-  if (!existing) {
-    throw new Error("MOVE_OUT_NOT_STARTED");
-  }
-
-  if (existing.moveOut.status === "closed") {
-    throw new Error("MOVE_OUT_ALREADY_CLOSED");
-  }
-
-  await repository.upsertMoveOutInspection({
-    id: existing.inspection?.id ?? createId("min"),
-    moveOutId: existing.moveOut.id,
-    organizationId: lease.organizationId,
-    checklistSnapshot: input.checklistSnapshot,
-    notes: input.notes ?? null,
-    photoDocumentIds: input.photoDocumentIds ?? [],
-    inspectedAtIso: input.inspectedAt ?? null
-  });
-
-  await logOperatorAuditEvent({
-    organizationId: lease.organizationId,
-    actorMemberId,
-    actionKey: "operations.lease.move_out_inspection_upserted",
-    entityType: "move_out",
-    entityId: existing.moveOut.id,
-    metadata: {
-      leaseId: lease.id,
-      photoCount: input.photoDocumentIds?.length ?? 0
-    }
-  });
-}
-
-export async function closeLeaseMoveOut(
-  lease: LeaseWithTenantView,
-  input: CloseMoveOutInput,
-  actorMemberId: string | null,
-  repository: TenantLeaseRepository,
-  paymentRepository: PaymentRepository
-): Promise<void> {
-  const existing = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
-
-  if (!existing) {
-    throw new Error("MOVE_OUT_NOT_STARTED");
-  }
-
-  if (existing.moveOut.status === "closed") {
-    throw new Error("MOVE_OUT_ALREADY_CLOSED");
-  }
-
-  if (existing.moveOut.status !== "confirmed") {
-    throw new Error("MOVE_OUT_NOT_CONFIRMED");
-  }
-
-  const payments = await paymentRepository.listPayments({ organizationId: lease.organizationId, leaseId: lease.id });
-  const summary = buildMoveOutSettlementSummary(lease, payments, {
-    moveOut: existing.moveOut,
-    charges: existing.charges,
-    inspection: existing.inspection,
-    summary: {
-      currencyCode: lease.currencyCode,
-      outstandingAmount: 0,
-      futureScheduledAmount: 0,
-      depositHeldAmount: 0,
-      manualChargeAmount: 0,
-      manualCreditAmount: 0,
-      depositDeductionAmount: 0,
-      projectedTenantBalanceBeforeDeposit: 0,
-      projectedDepositRefundAmount: 0
+      departureEffectiveDate: moveOut.departureEffectiveDate,
+      depositRefundAmount
     }
   });
 
-  const closedAtIso = new Date().toISOString();
-  const finalizedStatementSnapshot = {
-    moveOut: existing.moveOut,
-    charges: existing.charges,
-    inspection: existing.inspection,
-    summary,
-    closureLedgerEventId: input.closureLedgerEventId,
-    closedAtIso
+  return {
+    moveOut,
+    depositContext: {
+      currencyCode: input.currencyCode,
+      paidDepositAmount: input.depositHeldAmount,
+      leaseDepositAmount: lease.depositAmount,
+      suggestedHeldAmount: input.depositHeldAmount,
+      equivalentMonths: null
+    }
   };
-  const finalizedStatementHash = createHash("sha256")
-    .update(JSON.stringify(finalizedStatementSnapshot))
-    .digest("hex");
+}
 
-  const closed = await repository.closeMoveOut({
-    moveOutId: existing.moveOut.id,
+export async function confirmLeaseMoveOutDeparture(
+  lease: LeaseWithTenantView,
+  actorMemberId: string | null,
+  repository: TenantLeaseRepository
+): Promise<LeaseMoveOutView> {
+  const aggregate = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
+  if (!aggregate || aggregate.moveOut.status !== "planned") {
+    throw new Error("MOVE_OUT_NOT_PLANNED");
+  }
+
+  const moveOut = await repository.applyMoveOutDeparture({
+    moveOutId: aggregate.moveOut.id,
     organizationId: lease.organizationId,
-    closureLedgerEventId: input.closureLedgerEventId,
-    finalizedStatementSnapshot,
-    finalizedStatementHash
+    leaseId: lease.id
   });
 
-  if (!closed) {
-    throw new Error("MOVE_OUT_NOT_CONFIRMED");
+  if (!moveOut) {
+    throw new Error("MOVE_OUT_APPLY_FAILED");
   }
 
   await logOperatorAuditEvent({
     organizationId: lease.organizationId,
     actorMemberId,
-    actionKey: "operations.lease.move_out_closed",
+    actionKey: "operations.lease.move_out_confirmed",
     entityType: "move_out",
-    entityId: existing.moveOut.id,
-    metadata: {
-      leaseId: lease.id,
-      closureLedgerEventId: input.closureLedgerEventId
-    }
+    entityId: moveOut.id,
+    metadata: { leaseId: lease.id }
   });
-}
-
-function extractSnapshotSummary(snapshot: unknown): MoveOutSettlementSummary | null {
-  if (typeof snapshot !== "object" || snapshot === null) {
-    return null;
-  }
-
-  const summary = (snapshot as { summary?: unknown }).summary;
-  if (typeof summary !== "object" || summary === null) {
-    return null;
-  }
-
-  const candidate = summary as Partial<MoveOutSettlementSummary>;
-  if (
-    typeof candidate.currencyCode !== "string"
-    || typeof candidate.outstandingAmount !== "number"
-    || typeof candidate.futureScheduledAmount !== "number"
-    || typeof candidate.depositHeldAmount !== "number"
-    || typeof candidate.manualChargeAmount !== "number"
-    || typeof candidate.manualCreditAmount !== "number"
-    || typeof candidate.depositDeductionAmount !== "number"
-    || typeof candidate.projectedTenantBalanceBeforeDeposit !== "number"
-    || typeof candidate.projectedDepositRefundAmount !== "number"
-  ) {
-    return null;
-  }
 
   return {
-    currencyCode: candidate.currencyCode,
-    outstandingAmount: candidate.outstandingAmount,
-    futureScheduledAmount: candidate.futureScheduledAmount,
-    depositHeldAmount: candidate.depositHeldAmount,
-    manualChargeAmount: candidate.manualChargeAmount,
-    manualCreditAmount: candidate.manualCreditAmount,
-    depositDeductionAmount: candidate.depositDeductionAmount,
-    projectedTenantBalanceBeforeDeposit: candidate.projectedTenantBalanceBeforeDeposit,
-    projectedDepositRefundAmount: candidate.projectedDepositRefundAmount
+    moveOut,
+    depositContext: {
+      currencyCode: moveOut.currencyCode ?? lease.currencyCode,
+      paidDepositAmount: moveOut.depositHeldAmount ?? 0,
+      leaseDepositAmount: lease.depositAmount,
+      suggestedHeldAmount: moveOut.depositHeldAmount ?? 0,
+      equivalentMonths: null
+    }
   };
 }
 
-export async function buildMoveOutReconciliation(
+export async function cancelLeaseMoveOut(
   lease: LeaseWithTenantView,
-  repository: TenantLeaseRepository,
-  paymentRepository: PaymentRepository
-): Promise<GetMoveOutReconciliationOutput> {
-  const view = await buildLeaseMoveOutView(lease, repository, paymentRepository);
-  const issues: MoveOutReconciliationIssue[] = [];
-
-  if (!view.moveOut) {
-    return {
-      moveOutStatus: "not_started",
-      issueCount: 0,
-      issues
-    };
+  actorMemberId: string | null,
+  repository: TenantLeaseRepository
+): Promise<LeaseMoveOutView> {
+  const aggregate = await repository.getMoveOutByLeaseId(lease.id, lease.organizationId);
+  if (!aggregate || aggregate.moveOut.status !== "planned") {
+    throw new Error("MOVE_OUT_NOT_PLANNED");
   }
 
-  if (view.moveOut.moveOut.status === "confirmed" && !view.moveOut.inspection) {
-    issues.push({
-      severity: "warning",
-      code: "inspection_missing",
-      message: "Move-out confirmé sans inspection enregistrée"
-    });
+  const moveOut = await repository.cancelMoveOut({
+    moveOutId: aggregate.moveOut.id,
+    organizationId: lease.organizationId
+  });
+
+  if (!moveOut) {
+    throw new Error("MOVE_OUT_CANCEL_FAILED");
   }
 
-  if (view.moveOut.moveOut.status === "closed") {
-    const snapshotSummary = extractSnapshotSummary(view.moveOut.moveOut.finalizedStatementSnapshot);
-    if (!snapshotSummary) {
-      issues.push({
-        severity: "blocking",
-        code: "snapshot_missing_summary",
-        message: "Snapshot final fermé sans résumé exploitable"
-      });
-    } else {
-      const tolerance = 0.009;
-      const driftChecks: Array<{ key: keyof MoveOutSettlementSummary; label: string }> = [
-        { key: "outstandingAmount", label: "impayés" },
-        { key: "futureScheduledAmount", label: "futur planifié" },
-        { key: "depositHeldAmount", label: "dépôt détenu" },
-        { key: "projectedTenantBalanceBeforeDeposit", label: "solde locataire projeté" },
-        { key: "projectedDepositRefundAmount", label: "remboursement dépôt projeté" }
-      ];
-
-      for (const check of driftChecks) {
-        const liveValue = view.moveOut.summary[check.key] as number;
-        const snapshotValue = snapshotSummary[check.key] as number;
-        if (Math.abs(liveValue - snapshotValue) > tolerance) {
-          issues.push({
-            severity: "drift_anomaly",
-            code: `summary_drift_${check.key}`,
-            message: `Écart détecté sur ${check.label} entre snapshot fermé et vue opérationnelle`
-          });
-        }
-      }
-    }
-
-    if (!view.moveOut.moveOut.closureLedgerEventId) {
-      issues.push({
-        severity: "blocking",
-        code: "closure_event_missing",
-        message: "Move-out fermé sans closureLedgerEventId"
-      });
-    }
-  }
+  await logOperatorAuditEvent({
+    organizationId: lease.organizationId,
+    actorMemberId,
+    actionKey: "operations.lease.move_out_cancelled",
+    entityType: "move_out",
+    entityId: moveOut.id,
+    metadata: { leaseId: lease.id }
+  });
 
   return {
-    moveOutStatus: view.moveOut.moveOut.status,
-    issueCount: issues.length,
-    issues
+    moveOut,
+    depositContext: {
+      currencyCode: moveOut.currencyCode ?? lease.currencyCode,
+      paidDepositAmount: moveOut.depositHeldAmount ?? 0,
+      leaseDepositAmount: lease.depositAmount,
+      suggestedHeldAmount: moveOut.depositHeldAmount ?? 0,
+      equivalentMonths: null
+    }
   };
 }

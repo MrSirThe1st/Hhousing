@@ -1,6 +1,7 @@
 import { listTenantConversations } from "../../../../../api";
 import { mapErrorCodeToHttpStatus } from "../../../../../api/shared";
 import { extractTenantSessionFromRequest } from "../../../../../auth/session-adapter";
+import { rejectIfV1FeatureDeferred } from "../../../../../lib/v1-deferred-feature-guard";
 import { createMessageRepo, jsonResponse } from "../../../shared";
 
 export async function GET(request: Request): Promise<Response> {
@@ -8,6 +9,11 @@ export async function GET(request: Request): Promise<Response> {
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
+  }
+
+  const deferred = rejectIfV1FeatureDeferred("messaging");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
   }
 
   const result = await listTenantConversations(

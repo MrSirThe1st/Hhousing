@@ -26,7 +26,7 @@ export default function SidebarToggleButton(): React.ReactElement {
     <button
       type="button"
       onClick={handleToggle}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-[#010a19] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#010a19] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
       aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
     >

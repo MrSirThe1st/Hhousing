@@ -24,4 +24,10 @@ export interface TenantFormState {
 
 export interface LeaseManagementPanelProps {
   leases: LeaseWithTenantView[];
+  statusCounts?: {
+    total: number;
+    active: number;
+    pending: number;
+    ended: number;
+  };
 }

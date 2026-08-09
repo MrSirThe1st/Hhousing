@@ -1,4 +1,5 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { DatabaseEnvSource } from "../database/database-env";
 import { readDatabaseEnv } from "../database/database-env";
 import type {
@@ -139,16 +140,6 @@ function mapTeamMemberInvitationPreview(row: TeamMemberInvitationPreviewRow): Te
   };
 }
 
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 async function createMembership(
   client: PoolClient,
@@ -508,5 +499,5 @@ export function createAuthRepositoryFromEnv(env: DatabaseEnvSource): AuthReposit
     throw new Error(envResult.error);
   }
 
-  return createPostgresAuthRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresAuthRepository(getSharedPool(envResult.data.connectionString));
 }

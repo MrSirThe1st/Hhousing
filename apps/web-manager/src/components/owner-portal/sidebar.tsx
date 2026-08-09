@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isV1DeferredNavHref } from "../../lib/v1-deferred-features";
 
 const NAV_ITEMS = [
   { href: "/owner-portal/dashboard", label: "Vue générale" },
@@ -28,7 +29,7 @@ export default function OwnerPortalSidebar(): React.ReactElement {
       </div>
 
       <nav className="mt-6 flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2 lg:overflow-visible">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter((item) => !isV1DeferredNavHref(item.href)).map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import {
   createAuthRepositoryFromEnv,
   createPlatformAdminRepositoryFromEnv,
@@ -216,8 +217,9 @@ export async function extractTenantSessionFromRequest(
 
 /**
  * Extract auth session from request cookies (for API routes).
+ * Request-scoped so multiple handlers in one render don't re-hit Supabase Auth.
  */
-export async function extractAuthSessionFromCookies(): Promise<AuthSession | null> {
+export const extractAuthSessionFromCookies = cache(async function extractAuthSessionFromCookies(): Promise<AuthSession | null> {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -245,4 +247,4 @@ export async function extractAuthSessionFromCookies(): Promise<AuthSession | nul
   }
 
   return resolveAuthSessionForUserId(user.id);
-}
+});

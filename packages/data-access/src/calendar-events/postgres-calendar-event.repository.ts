@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { ListCalendarEventsFilter } from "@hhousing/api-contracts";
 import type { CalendarEvent } from "@hhousing/domain";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
@@ -67,15 +68,6 @@ export interface CalendarEventQueryable {
   ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 const EVENT_COLUMNS = `
   id,
@@ -167,7 +159,8 @@ export function createPostgresCalendarEventRepository(client: CalendarEventQuery
         `select ${EVENT_COLUMNS}
          from calendar_events
          where ${conditions.join(" and ")}
-         order by start_at asc, created_at asc`,
+         order by start_at asc, created_at asc
+         limit 50`,
         values
       );
 
@@ -227,6 +220,6 @@ export function createCalendarEventRepositoryFromEnv(env: DatabaseEnvSource): Ca
     throw new Error(envResult.error);
   }
 
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresCalendarEventRepository(pool);
 }

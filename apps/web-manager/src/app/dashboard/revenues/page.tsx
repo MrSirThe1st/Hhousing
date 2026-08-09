@@ -1,12 +1,12 @@
+import Link from "next/link";
 import FinanceFilterForm from "../../../components/finance-filter-form";
 import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
 import RevenuesLedgerTable from "../../../components/revenues-ledger-table";
 import {
-  buildRevenueDataset,
-  formatCurrencySummary,
-  loadScopedPayments,
-  normalizeFinanceFilters
+  buildFinanceQueryString,
+  formatCurrencySummary
 } from "../../../lib/finance-reporting";
+import { loadRevenuesPageData } from "../../../lib/revenues-page-data";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 type RevenuesPageProps = {
@@ -17,9 +17,11 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
   const { session } = await requireDashboardSectionAccess("finances");
 
   const params = await searchParams;
-  const filters = normalizeFinanceFilters(params);
-  const { payments, scopedPortfolio } = await loadScopedPayments(session);
-  const dataset = buildRevenueDataset(payments, scopedPortfolio, filters);
+  const dataset = await loadRevenuesPageData(session, params);
+  const baseQuery = buildFinanceQueryString(dataset.filters);
+  const nextPageHref = dataset.nextCursor
+    ? `/dashboard/revenues?${buildFinanceQueryString(dataset.filters, { cursor: dataset.nextCursor })}`
+    : null;
 
   return (
     <div id="revenues-container" className="space-y-6 p-8">
@@ -48,7 +50,7 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Garanties (passif)</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Cautions (passif)</p>
           <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(dataset.depositLiabilityTotals)}</p>
           <p className="mt-1 text-xs text-slate-500">{dataset.recordedDepositCount.toLocaleString("fr-FR")} encaissement(s)</p>
         </div>
@@ -94,12 +96,29 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
 
         <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-[#010a19]">Grand livre des revenus</h2>
-          <p className="mt-1 text-sm text-gray-500">Un paiement payé devient un revenu ici. Rien n’est stocké en plus.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Un paiement payé devient un revenu ici.
+            {dataset.recordedPaymentCount > dataset.ledger.length
+              ? ` Affichage de ${dataset.ledger.length} sur ${dataset.recordedPaymentCount.toLocaleString("fr-FR")}.`
+              : null}
+          </p>
 
           {dataset.ledger.length === 0 ? (
             <p className="mt-5 text-sm text-gray-500">Aucun revenu enregistré pour les filtres actifs.</p>
           ) : (
-            <RevenuesLedgerTable entries={dataset.ledger} />
+            <>
+              <RevenuesLedgerTable entries={dataset.ledger} />
+              {nextPageHref ? (
+                <div className="mt-4 flex justify-end">
+                  <Link
+                    href={nextPageHref}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Page suivante
+                  </Link>
+                </div>
+              ) : null}
+            </>
           )}
         </article>
       </section>

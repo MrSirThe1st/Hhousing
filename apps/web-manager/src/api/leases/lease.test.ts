@@ -63,11 +63,32 @@ function createPaymentRepositoryMock(): PaymentRepository {
     }),
     markPaymentPaid: vi.fn(),
     listPayments: vi.fn(),
+    listPaymentsPage: vi.fn().mockResolvedValue({ payments: [], nextCursor: null }),
+    getPaymentStatusCounts: vi.fn().mockResolvedValue({
+      total: 0,
+      pending: 0,
+      paid: 0,
+      overdue: 0,
+      cancelled: 0
+    }),
+    sumRevenuePayments: vi.fn().mockResolvedValue({
+      revenueTotals: [],
+      depositLiabilityTotals: [],
+      recordedPaymentCount: 0,
+      recordedDepositCount: 0,
+      propertyRevenue: [],
+      monthlyRevenue: []
+    }),
+    listRevenuePaymentsPage: vi.fn().mockResolvedValue({ rows: [], nextCursor: null }),
     listPaymentsByTenantAuthUserId: vi.fn(),
     getPaymentById: vi.fn(),
     listOrganizationsWithActiveRecurringCharges: vi.fn().mockResolvedValue([]),
     updateOverduePayments: vi.fn(),
-    generateMonthlyCharges: vi.fn()
+    generateMonthlyCharges: vi.fn(),
+    getDashboardPaymentFinanceSnapshot: vi.fn(),
+    listDashboardWatchlistPayments: vi.fn(),
+    sumPaidPaymentsByMonth: vi.fn(),
+    countSidebarPaymentBadges: vi.fn()
   };
 }
 

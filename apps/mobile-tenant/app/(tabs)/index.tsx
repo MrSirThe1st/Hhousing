@@ -17,11 +17,11 @@ import type { Lease, Payment, Tenant } from "@/lib/domain-types";
 import { getWithAuth } from "@/lib/api-client";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { HomeContactsUtiles } from "@/components/home-contacts-utiles";
 import { MobileMoneyMethodsRow } from "@/components/mobile-money-logos";
 import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
 import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
 import { useAuth } from "@/contexts/auth-context";
-import { usePreferences } from "@/contexts/preferences-context";
 import {
   formatAmount,
   formatDueDate,
@@ -79,6 +79,8 @@ interface DashboardData {
   lease: Lease | null;
   rentalAddress: string;
   nextPayment: Payment | null;
+  duePayments: Payment[];
+  totalDue: number;
   recentPayments: Payment[];
 }
 
@@ -98,8 +100,11 @@ export default function HomeScreen(): React.ReactElement {
     lease: null,
     rentalAddress: "",
     nextPayment: null,
+    duePayments: [],
+    totalDue: 0,
     recentPayments: []
   });
+  const [contactsRefreshToken, setContactsRefreshToken] = useState(0);
 
   const load = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -143,9 +148,11 @@ export default function HomeScreen(): React.ReactElement {
       const allPayments = [...paymentsRes.data.payments].sort((a, b) =>
         b.dueDate.localeCompare(a.dueDate)
       );
-      const nextPayment = allPayments.find(
-        (p) => p.status === "pending" || p.status === "overdue"
-      ) ?? null;
+      const duePayments = allPayments
+        .filter((p) => p.status === "pending" || p.status === "overdue")
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+      const nextPayment = duePayments[0] ?? null;
+      const totalDue = duePayments.reduce((sum, payment) => sum + payment.amount, 0);
 
       const tenantName = profileRes.success ? (profileRes.data.tenant.fullName ?? "") : "";
       const unitSuffix = leaseRes.data.unitLabel ? `, ${leaseRes.data.unitLabel}` : "";
@@ -160,8 +167,12 @@ export default function HomeScreen(): React.ReactElement {
         lease: leaseRes.data.lease,
         rentalAddress,
         nextPayment,
-        recentPayments: allPayments.slice(0, 3)
+        duePayments,
+        totalDue,
+        // Enough proof on Accueil that Paiements is optional depth, not required survival
+        recentPayments: allPayments.slice(0, 5)
       });
+      setContactsRefreshToken((token) => token + 1);
     } finally {
       setIsLoading(false);
     }
@@ -234,13 +245,6 @@ export default function HomeScreen(): React.ReactElement {
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={() => { router.push("/(tabs)/account"); }}
-            hitSlop={10}
-            style={styles.gearBtn}
-          >
-            <Ionicons name="settings-outline" size={22} color={colors.textMuted} />
-          </Pressable>
         </View>
         <View style={styles.headerRule} />
 
@@ -248,14 +252,26 @@ export default function HomeScreen(): React.ReactElement {
         {data.nextPayment ? (
           <>
             <View style={styles.rentCard}>
-              <Text style={styles.rentLabel}>
-                {t("home.rentLabel", {
-                  month: monthNameFromYmd(data.nextPayment.dueDate).toUpperCase()
-                })}
-              </Text>
+              <View style={styles.rentCardTop}>
+                <Text style={styles.rentLabel}>
+                  {data.duePayments.length > 1
+                    ? t("home.totalDueLabel")
+                    : t("home.rentLabel", {
+                        month: monthNameFromYmd(data.nextPayment.dueDate).toUpperCase()
+                      })}
+                </Text>
+                <Text style={[styles.rentStatus, { color: colors.warning }]}>
+                  {t("home.status.toPay")}
+                </Text>
+              </View>
 
               <SensitiveAmount
-                value={formatAmount(data.nextPayment.amount, data.nextPayment.currencyCode ?? "CDF")}
+                value={formatAmount(
+                  data.duePayments.length > 1
+                    ? data.totalDue
+                    : data.nextPayment.amount,
+                  data.nextPayment.currencyCode ?? "CDF"
+                )}
                 revealed={amountsRevealed}
                 onToggle={amountsSensitive ? toggleAmountsRevealed : undefined}
                 showToggle={amountsSensitive}
@@ -266,7 +282,9 @@ export default function HomeScreen(): React.ReactElement {
               <View style={styles.cardRule} />
 
               <Text style={styles.dueText}>
-                {t("home.dueOn", { date: formatDueDate(data.nextPayment.dueDate) })}
+                {data.duePayments.length > 1
+                  ? t("home.dueCount", { count: data.duePayments.length })
+                  : t("home.dueOn", { date: formatDueDate(data.nextPayment.dueDate) })}
               </Text>
             </View>
 
@@ -308,7 +326,12 @@ export default function HomeScreen(): React.ReactElement {
           </>
         ) : data.lease ? (
           <View style={styles.rentCard}>
-            <Text style={styles.rentLabel}>{t("home.rentOfMonth")}</Text>
+            <View style={styles.rentCardTop}>
+              <Text style={styles.rentLabel}>{t("home.rentOfMonth")}</Text>
+              <Text style={[styles.rentStatus, { color: colors.success }]}>
+                {t("home.status.upToDate")}
+              </Text>
+            </View>
             <SensitiveAmount
               value={formatAmount(
                 data.lease.monthlyRentAmount ?? data.lease.monthlyRent ?? 0,
@@ -335,7 +358,7 @@ export default function HomeScreen(): React.ReactElement {
           <MobileMoneyMethodsRow />
         </View>
 
-        {/* History */}
+        {/* Proof / history */}
         <View style={styles.historyBlock}>
           <View style={styles.historyHeader}>
             <Text style={styles.historyTitle}>{t("home.recentPayments")}</Text>
@@ -391,6 +414,9 @@ export default function HomeScreen(): React.ReactElement {
             })
           )}
         </View>
+
+        {/* Help hub — Prestataires */}
+        <HomeContactsUtiles refreshToken={contactsRefreshToken} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -452,12 +478,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: fontSize.secondary,
       color: colors.textFaint
     },
-    gearBtn: {
-      width: 36,
-      height: 36,
-      alignItems: "center",
-      justifyContent: "center"
-    },
     headerRule: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.border,
@@ -475,11 +495,22 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: 12,
       gap: 8
     },
+    rentCardTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8
+    },
     rentLabel: {
       fontSize: fontSize.caption,
       fontWeight: fontWeight.semibold,
       letterSpacing: 0.5,
       color: colors.textFaint
+    },
+    rentStatus: {
+      fontSize: fontSize.caption,
+      fontWeight: "700",
+      letterSpacing: 0.3
     },
     rentAmount: {
       fontSize: fontSize.display,

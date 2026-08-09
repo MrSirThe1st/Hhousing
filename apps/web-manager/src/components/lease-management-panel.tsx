@@ -20,13 +20,24 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function LeaseManagementPanel({
-  leases
+  leases,
+  statusCounts
 }: LeaseManagementPanelProps): React.ReactElement {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<LeaseStatus | "all">("all");
-  const activeCount = useMemo(() => leases.filter((lease) => lease.status === "active").length, [leases]);
-  const pendingCount = useMemo(() => leases.filter((lease) => lease.status === "pending").length, [leases]);
-  const endedCount = useMemo(() => leases.filter((lease) => lease.status === "ended").length, [leases]);
+  const activeCount = useMemo(
+    () => statusCounts?.active ?? leases.filter((lease) => lease.status === "active").length,
+    [leases, statusCounts]
+  );
+  const pendingCount = useMemo(
+    () => statusCounts?.pending ?? leases.filter((lease) => lease.status === "pending").length,
+    [leases, statusCounts]
+  );
+  const endedCount = useMemo(
+    () => statusCounts?.ended ?? leases.filter((lease) => lease.status === "ended").length,
+    [leases, statusCounts]
+  );
+  const totalCount = statusCounts?.total ?? leases.length;
 
   const filteredLeases = useMemo(() => {
     if (statusFilter === "all") return leases;
@@ -37,20 +48,20 @@ export default function LeaseManagementPanel({
     <div className="space-y-6 p-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Contrats</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Baux</h1>
           <p className="mt-2 text-sm text-slate-500">
-            {leases.length} contrat(s), {activeCount} actif(s), {pendingCount} en attente, {endedCount} terminé(s).
+            {totalCount} bail(x), {activeCount} actif(s), {pendingCount} en attente, {endedCount} terminé(s).
           </p>
         </div>
         <Link href="/dashboard/leases/move-in" className="inline-flex items-center rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]">
-          Move in
+          Enregistrer un locataire
         </Link>
       </div>
 
       <div className="flex items-center gap-8 border-b border-slate-200 pb-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
-          <p className="text-xl font-semibold text-slate-900">{leases.length}</p>
+          <p className="text-xl font-semibold text-slate-900">{totalCount}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
@@ -78,7 +89,7 @@ export default function LeaseManagementPanel({
       {leases.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
           <h2 className="text-lg font-semibold text-[#010a19]">Aucun bail pour l&apos;instant</h2>
-          <p className="mt-2 text-sm text-slate-500">Créez un premier move-in pour ouvrir le suivi contractuel.</p>
+          <p className="mt-2 text-sm text-slate-500">Créez un premier bail pour commencer le suivi des locations.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">

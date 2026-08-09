@@ -1,14 +1,13 @@
 import ExpenseCreateForm from "../../../components/expense-create-form";
 import ExpensesLedgerTable from "../../../components/expenses-ledger-table";
 import {
-  buildExpenseDataset,
   buildFinanceQueryString,
-  formatCurrencySummary,
-  loadScopedFinanceData,
-  normalizeFinanceFilters
+  formatCurrencySummary
 } from "../../../lib/finance-reporting";
+import { loadExpensesPageData } from "../../../lib/expenses-page-data";
 import ReadOnlyBanner from "../../../components/read-only-banner";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
+import Link from "next/link";
 
 type ExpensesPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -18,13 +17,12 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
   const { session, access } = await requireDashboardSectionAccess("finances");
 
   const params = await searchParams;
-  const filters = normalizeFinanceFilters(params);
-  const { expenses, scopedPortfolio } = await loadScopedFinanceData(session);
-  const dataset = buildExpenseDataset(expenses, scopedPortfolio, filters);
-  const editExpenseId = typeof params?.editExpenseId === "string" ? params.editExpenseId : null;
-  const editingExpense = editExpenseId ? expenses.find((expense) => expense.id === editExpenseId) ?? null : null;
-  const baseQuery = buildFinanceQueryString(filters);
+  const dataset = await loadExpensesPageData(session, params);
+  const baseQuery = buildFinanceQueryString(dataset.filters);
   const baseHref = baseQuery.length > 0 ? `/dashboard/expenses?${baseQuery}` : "/dashboard/expenses";
+  const nextPageHref = dataset.nextCursor
+    ? `/dashboard/expenses?${buildFinanceQueryString(dataset.filters, { cursor: dataset.nextCursor })}`
+    : null;
 
   return (
     <>
@@ -41,18 +39,18 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
           organizationId={session.organizationId}
           propertyOptions={dataset.propertyOptions}
           propertyUnitOptions={dataset.propertyUnitOptions}
-          expenseId={editingExpense?.id}
-          initialValues={editingExpense ? {
-            propertyId: editingExpense.propertyId ?? "",
-            unitId: editingExpense.unitId ?? "",
-            title: editingExpense.title,
-            category: editingExpense.category,
-            vendorName: editingExpense.vendorName ?? "",
-            payeeName: editingExpense.payeeName ?? "",
-            amount: editingExpense.amount.toString(),
-            currencyCode: editingExpense.currencyCode,
-            expenseDate: editingExpense.expenseDate,
-            note: editingExpense.note ?? ""
+          expenseId={dataset.editingExpense?.expenseId}
+          initialValues={dataset.editingExpense ? {
+            propertyId: dataset.editingExpense.propertyId ?? "",
+            unitId: dataset.editingExpense.unitId ?? "",
+            title: dataset.editingExpense.title,
+            category: dataset.editingExpense.category,
+            vendorName: dataset.editingExpense.vendorName ?? "",
+            payeeName: dataset.editingExpense.payeeName ?? "",
+            amount: dataset.editingExpense.amount.toString(),
+            currencyCode: dataset.editingExpense.currencyCode,
+            expenseDate: dataset.editingExpense.expenseDate,
+            note: dataset.editingExpense.note ?? ""
           } : null}
           cancelHref={baseHref}
           displayMode="modal"
@@ -138,18 +136,35 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#010a19]">Journal des dépenses</h2>
-        <p className="mt-1 text-sm text-gray-500">Chaque dépense reflète une sortie d’argent déjà engagée.</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Chaque dépense reflète une sortie d’argent déjà engagée.
+          {dataset.recordedExpenseCount > dataset.ledger.length
+            ? ` Affichage de ${dataset.ledger.length} sur ${dataset.recordedExpenseCount.toLocaleString("fr-FR")}.`
+            : null}
+        </p>
 
         {dataset.ledger.length === 0 ? (
           <p className="mt-5 text-sm text-gray-500">Aucune dépense enregistrée pour les filtres actifs.</p>
         ) : (
-          <ExpensesLedgerTable
-            entries={dataset.ledger.map((entry) => ({
-              ...entry,
-              editHref: `/dashboard/expenses?${buildFinanceQueryString(filters, { editExpenseId: entry.expenseId })}`
-            }))}
-            redirectHref={baseHref}
-          />
+          <>
+            <ExpensesLedgerTable
+              entries={dataset.ledger.map((entry) => ({
+                ...entry,
+                editHref: `/dashboard/expenses?${buildFinanceQueryString(dataset.filters, { editExpenseId: entry.expenseId })}`
+              }))}
+              redirectHref={baseHref}
+            />
+            {nextPageHref ? (
+              <div className="mt-4 flex justify-end">
+                <Link
+                  href={nextPageHref}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Page suivante
+                </Link>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
     </div>

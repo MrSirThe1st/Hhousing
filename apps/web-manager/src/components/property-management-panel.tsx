@@ -16,7 +16,7 @@ type PropertyOwnerFilterOption = {
 };
 
 function formatPropertyTypeLabel(value: "single_unit" | "multi_unit"): string {
-  return value === "single_unit" ? "Simple" : "Multi-unités";
+  return value === "single_unit" ? "Simple" : "Multi-logements";
 }
 
 function formatPropertyStatusLabel(value: string): string {
@@ -35,7 +35,7 @@ function formatUnitStatusLabel(value: string): string {
   }
 
   if (value === "vacant") {
-    return "Vacante";
+    return "Libre";
   }
 
   return "Inactive";
@@ -216,7 +216,7 @@ export default function PropertyManagementPanel({
                     : "text-slate-600 hover:text-[#010a19]"
                 }`}
               >
-                Unités
+                Logements
               </button>
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function PropertyManagementPanel({
                   >
                     <option value="all">Tous</option>
                     <option value="single_unit">Simple</option>
-                    <option value="multi_unit">Multi-unités</option>
+                    <option value="multi_unit">Multi-logements</option>
                   </select>
                 </div>
                 <div>
@@ -402,7 +402,7 @@ export default function PropertyManagementPanel({
                   >
                     <option value="all">Tous</option>
                     <option value="occupied">Occupées</option>
-                    <option value="vacant">Vacantes</option>
+                    <option value="vacant">Libres</option>
                     <option value="inactive">Inactives</option>
                   </select>
                 </div>
@@ -433,7 +433,7 @@ export default function PropertyManagementPanel({
                   onRowClick={(item) => handleUnitRowNavigation(item.unit.id)}
                   columns={[
                     {
-                      header: "Unité",
+                      header: "Logement",
                       render: (item) => (
                         <span className="font-semibold text-[#10213d] hover:text-[#0063fe] hover:underline">
                           {item.unit.unitNumber}
@@ -469,7 +469,7 @@ export default function PropertyManagementPanel({
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <h3 className="font-semibold text-[#010a19]">Unité {item.unit.unitNumber}</h3>
+                          <h3 className="font-semibold text-[#010a19]">Logement {item.unit.unitNumber}</h3>
                           <p className="text-xs text-slate-500">{item.property.name}</p>
                         </div>
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${formatUnitStatusClassName(item.unit.status)}`}>

@@ -1,4 +1,5 @@
-import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import { type PoolClient, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { ApiResult } from "@hhousing/api-contracts";
 import type { Organization, Owner, OwnerType, Property, Unit } from "@hhousing/domain";
 import type { PropertyManagementContext } from "@hhousing/domain";
@@ -137,7 +138,6 @@ interface TransactionCapableClient extends DatabaseQueryable {
   connect?: () => Promise<PoolClient>;
 }
 
-const poolCache = new Map<string, Pool>();
 let propertyStorageSchemaPromise: Promise<PropertyStorageSchema> | null = null;
 
 interface PropertyStorageSchema {
@@ -159,33 +159,40 @@ interface PropertyStorageSchema {
 
 async function getPropertyStorageSchema(client: DatabaseQueryable): Promise<PropertyStorageSchema> {
   if (!propertyStorageSchemaPromise) {
-    propertyStorageSchemaPromise = (async () => {
-      const [columnResult, tableResult, ownerColumnResult] = await Promise.all([
-        client.query<{ column_name: string }>(
-          `select column_name
-           from information_schema.columns
-           where table_schema = current_schema()
-             and table_name = 'properties'
-             and column_name in ('client_id', 'client_name', 'owner_id', 'owner_name')`
-        ),
-        client.query<{ table_name: string; column_name?: string }>(
-          `select table_name
-           from information_schema.tables
-           where table_schema = current_schema()
-             and table_name in ('owner_clients', 'owners')`
-        ),
-        client.query<{ column_name: string }>(
-          `select column_name
-           from information_schema.columns
-           where table_schema = current_schema()
-             and table_name = 'owners'
-             and column_name in ('full_name', 'address', 'is_company', 'company_name', 'country', 'city', 'state', 'phone_number', 'profile_picture_url')`
-        )
-      ]);
+    const loading = (async (): Promise<PropertyStorageSchema> => {
+      // Single round-trip / single pool checkout — never Promise.all(pool.query×3),
+      // which exhausts the shared pool under dashboard fan-out.
+      const result = await client.query<{ source: string; name: string }>(
+        `select 'property_col' as source, column_name as name
+         from information_schema.columns
+         where table_schema = current_schema()
+           and table_name = 'properties'
+           and column_name in ('client_id', 'client_name', 'owner_id', 'owner_name')
+         union all
+         select 'owner_table' as source, table_name as name
+         from information_schema.tables
+         where table_schema = current_schema()
+           and table_name in ('owner_clients', 'owners')
+         union all
+         select 'owner_col' as source, column_name as name
+         from information_schema.columns
+         where table_schema = current_schema()
+           and table_name = 'owners'
+           and column_name in (
+             'full_name', 'address', 'is_company', 'company_name', 'country',
+             'city', 'state', 'phone_number', 'profile_picture_url'
+           )`
+      );
 
-      const columnNames = new Set(columnResult.rows.map((row) => row.column_name));
-      const tableNames = new Set(tableResult.rows.map((row) => row.table_name));
-      const ownerColumnNames = new Set(ownerColumnResult.rows.map((row) => row.column_name));
+      const columnNames = new Set(
+        result.rows.filter((row) => row.source === "property_col").map((row) => row.name)
+      );
+      const tableNames = new Set(
+        result.rows.filter((row) => row.source === "owner_table").map((row) => row.name)
+      );
+      const ownerColumnNames = new Set(
+        result.rows.filter((row) => row.source === "owner_col").map((row) => row.name)
+      );
 
       return {
         relationIdColumn: columnNames.has("owner_id") ? "owner_id" : "client_id",
@@ -204,6 +211,12 @@ async function getPropertyStorageSchema(client: DatabaseQueryable): Promise<Prop
         }
       };
     })();
+
+    propertyStorageSchemaPromise = loading.catch((error: unknown) => {
+      // Allow retry on the next request — do not cache a rejected promise forever.
+      propertyStorageSchemaPromise = null;
+      throw error;
+    });
   }
 
   return propertyStorageSchemaPromise;
@@ -397,20 +410,6 @@ async function withTransaction<T>(
   }
 }
 
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({
-    connectionString,
-    max: 5
-  });
-
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresOrganizationPropertyUnitRepository(
   client: DatabaseQueryable
@@ -1124,6 +1123,85 @@ export function createPostgresOrganizationPropertyUnitRepository(
       }
 
       return [...grouped.values()];
+    },
+
+    async listPropertyOptions(organizationId: string): Promise<Array<{ id: string; name: string }>> {
+      const result = await client.query<{ id: string; name: string }>(
+        `select id, name
+         from properties
+         where organization_id = $1
+         order by name asc`,
+        [organizationId]
+      );
+      return result.rows.map((row) => ({ id: row.id, name: row.name }));
+    },
+
+    async listPropertyUnitOptions(
+      organizationId: string
+    ): Promise<Array<{ propertyId: string; propertyName: string; units: Array<{ id: string; label: string }> }>> {
+      const result = await client.query<{
+        property_id: string;
+        property_name: string;
+        unit_id: string | null;
+        unit_number: string | null;
+      }>(
+        `select
+           p.id as property_id,
+           p.name as property_name,
+           u.id as unit_id,
+           u.unit_number as unit_number
+         from properties p
+         left join units u on u.property_id = p.id and u.organization_id = p.organization_id
+         where p.organization_id = $1
+         order by p.name asc, u.unit_number asc`,
+        [organizationId]
+      );
+
+      const byProperty = new Map<
+        string,
+        { propertyId: string; propertyName: string; units: Array<{ id: string; label: string }> }
+      >();
+
+      for (const row of result.rows) {
+        const entry = byProperty.get(row.property_id) ?? {
+          propertyId: row.property_id,
+          propertyName: row.property_name,
+          units: []
+        };
+        if (row.unit_id && row.unit_number) {
+          entry.units.push({ id: row.unit_id, label: row.unit_number });
+        }
+        byProperty.set(row.property_id, entry);
+      }
+
+      return [...byProperty.values()];
+    },
+
+    async getPortfolioCounts(organizationId: string): Promise<{
+      propertyCount: number;
+      unitCount: number;
+      occupiedUnitCount: number;
+    }> {
+      const result = await client.query<{
+        property_count: string | number;
+        unit_count: string | number;
+        occupied_unit_count: string | number;
+      }>(
+        `select
+           (select count(*)::int from properties where organization_id = $1) as property_count,
+           count(*)::int as unit_count,
+           count(*) filter (where status = 'occupied')::int as occupied_unit_count
+         from units
+         where organization_id = $1`,
+        [organizationId]
+      );
+
+      const row = result.rows[0];
+      return {
+        propertyCount: Number(row?.property_count ?? 0),
+        unitCount: Number(row?.unit_count ?? 0),
+        occupiedUnitCount: Number(row?.occupied_unit_count ?? 0)
+      };
     }
   };
 }
@@ -1131,7 +1209,7 @@ export function createPostgresOrganizationPropertyUnitRepository(
 export function createPostgresOrganizationPropertyUnitRepositoryFromConnectionString(
   connectionString: string
 ): OrganizationPropertyUnitRepository {
-  return createPostgresOrganizationPropertyUnitRepository(getOrCreatePool(connectionString));
+  return createPostgresOrganizationPropertyUnitRepository(getSharedPool(connectionString));
 }
 
 export function createOrganizationPropertyUnitRepositoryFromEnv(

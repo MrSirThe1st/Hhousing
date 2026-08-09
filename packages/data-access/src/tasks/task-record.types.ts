@@ -56,6 +56,11 @@ export interface UpsertSystemTaskRecordInput {
   systemKey: string;
 }
 
+export interface TaskStatusCounts {
+  open: number;
+  inProgress: number;
+}
+
 export interface TaskRepository {
   createTask(input: CreateTaskRecordInput): Promise<Task>;
   getTaskById(id: string, organizationId: string): Promise<Task | null>;
@@ -64,4 +69,5 @@ export interface TaskRepository {
   deleteTask(id: string, organizationId: string): Promise<boolean>;
   upsertSystemTask(input: UpsertSystemTaskRecordInput): Promise<Task>;
   closeInactiveSystemTasks(organizationId: string, activeSystemKeys: string[]): Promise<number>;
+  getTaskStatusCounts(organizationId: string): Promise<TaskStatusCounts>;
 }

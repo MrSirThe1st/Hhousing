@@ -391,7 +391,7 @@ export async function PATCH(
         return jsonResponse(400, {
           success: false,
           code: "VALIDATION_ERROR",
-          error: "Only pending move-ins can send draft email"
+          error: "Seuls les baux en attente peuvent envoyer un e-mail de brouillon"
         });
       }
 
@@ -542,7 +542,7 @@ export async function PATCH(
         return jsonResponse(400, {
           success: false,
           code: "VALIDATION_ERROR",
-          error: "Only pending move-ins can be finalized"
+          error: "Seuls les baux en attente peuvent être finalisés"
         });
       }
 
@@ -555,7 +555,7 @@ export async function PATCH(
         return jsonResponse(400, {
           success: false,
           code: "VALIDATION_ERROR",
-          error: "Initial move-in charges must exist before finalization"
+          error: "Les montants de départ doivent exister avant la finalisation"
         });
       }
 
@@ -564,7 +564,7 @@ export async function PATCH(
         return jsonResponse(400, {
           success: false,
           code: "VALIDATION_ERROR",
-          error: "All initial move-in charges must be marked as paid before finalization"
+          error: "Tous les montants de départ doivent être marqués comme payés avant la finalisation"
         });
       }
 

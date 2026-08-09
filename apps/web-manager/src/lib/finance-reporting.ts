@@ -1,8 +1,6 @@
-import type { AuthSession, MembershipAuthSession } from "@hhousing/api-contracts";
-import { listExpenses, listPayments } from "../api";
-import { createExpenseRepo, createPaymentRepo, createTeamFunctionsRepo } from "../app/api/shared";
+import type { MembershipAuthSession } from "@hhousing/api-contracts";
 import type { Expense, ExpenseCategory, Payment } from "@hhousing/domain";
-import { filterExpensesByScope, filterPaymentsByScope, getScopedPortfolioData, type ScopedPortfolioData } from "./operator-scope-portfolio";
+import { type ScopedPortfolioData } from "./operator-scope-portfolio";
 import { getNow } from "./time";
 import type {
   CurrencyTotal,
@@ -451,38 +449,25 @@ export function buildFinanceReportCsv(
   return lines.join("\n");
 }
 
+/**
+ * @deprecated Full-table finance loader. Do not use on UI paths.
+ * Prefer loadExpensesPageData / loadRevenuesPageData / loadReportsPageData / loadFinanceExportDatasets.
+ */
 export async function loadScopedFinanceData(
   session: MembershipAuthSession
 ): Promise<{ payments: Payment[]; expenses: Expense[]; scopedPortfolio: ScopedPortfolioData }> {
-  const paymentRepo = createPaymentRepo();
-  const expenseRepo = createExpenseRepo();
-  const teamFunctionsRepo = createTeamFunctionsRepo();
-  const [paymentsResult, expensesResult, scopedPortfolio] = await Promise.all([
-    listPayments(
-      { session, organizationId: session.organizationId ?? "", leaseId: null, status: null },
-      { repository: paymentRepo, teamFunctionsRepository: teamFunctionsRepo }
-    ),
-    listExpenses(
-      { session, organizationId: session.organizationId ?? "", propertyId: null, category: null },
-      { repository: expenseRepo, teamFunctionsRepository: teamFunctionsRepo }
-    ),
-    getScopedPortfolioData(session)
-  ]);
-
-  return {
-    payments: paymentsResult.body.success
-      ? filterPaymentsByScope(paymentsResult.body.data.payments, scopedPortfolio)
-      : [],
-    expenses: expensesResult.body.success
-      ? filterExpensesByScope(expensesResult.body.data.expenses, scopedPortfolio)
-      : [],
-    scopedPortfolio
-  };
+  throw new Error(
+    "loadScopedFinanceData is removed from UI paths. Use SQL aggregate + paginated loaders instead."
+  );
 }
 
+/**
+ * @deprecated Prefer loadRevenuesPageData.
+ */
 export async function loadScopedPayments(session: MembershipAuthSession): Promise<{ payments: Payment[]; scopedPortfolio: ScopedPortfolioData }> {
-  const data = await loadScopedFinanceData(session);
-  return { payments: data.payments, scopedPortfolio: data.scopedPortfolio };
+  throw new Error(
+    "loadScopedPayments is removed from UI paths. Use loadRevenuesPageData instead."
+  );
 }
 
 export function buildRevenueDataset(

@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { DatabaseEnvSource } from "../database/database-env";
 import { readDatabaseEnv } from "../database/database-env";
 import type {
@@ -116,18 +117,6 @@ export function createPostgresAuditLogRepository(pool: Pool): AuditLogRepository
   };
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createAuditLogRepositoryFromEnv(env: DatabaseEnvSource): AuditLogRepository {
   const envResult = readDatabaseEnv(env);
@@ -135,5 +124,5 @@ export function createAuditLogRepositoryFromEnv(env: DatabaseEnvSource): AuditLo
     throw new Error(envResult.error);
   }
 
-  return createPostgresAuditLogRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresAuditLogRepository(getSharedPool(envResult.data.connectionString));
 }

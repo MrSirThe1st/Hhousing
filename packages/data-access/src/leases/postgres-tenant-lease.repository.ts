@@ -1,4 +1,5 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { Lease, LeaseChargeFrequency, LeaseChargeType, LeaseSigningMethod, LeaseMoveInMode, MoveOut, MoveOutCharge, MoveOutInspection, Tenant } from "@hhousing/domain";
 import type { LeaseWithTenantView } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
@@ -11,6 +12,7 @@ import type {
   MoveOutListItem,
   ReplaceMoveOutChargeRecordInput,
   CloseMoveOutRecordInput,
+  CreateSimpleMoveOutRecordInput,
   CreateTenantInvitationRecordInput,
   TenantInvitationPreviewRecord,
   TenantInvitationRecord,
@@ -112,8 +114,12 @@ interface MoveOutListRow extends QueryResultRow {
   move_out_id: string;
   lease_id: string;
   move_out_date: string | Date;
+  departure_effective_date: string | Date;
+  lease_end_date: string | Date;
   reason: string | null;
-  status: "draft" | "confirmed" | "closed";
+  status: MoveOut["status"];
+  deposit_refund_amount: string | number | null;
+  currency_code: string | null;
   tenant_full_name: string;
   property_name: string | null;
   unit_label: string | null;
@@ -126,13 +132,28 @@ interface MoveOutRow extends QueryResultRow {
   lease_id: string;
   initiated_by_user_id: string | null;
   move_out_date: string | Date;
+  lease_end_date: string | Date | null;
+  departure_effective_date: string | Date | null;
+  ended_by: MoveOut["endedBy"];
+  reason_code: MoveOut["reasonCode"];
+  reason_note: string | null;
   reason: string | null;
-  status: "draft" | "confirmed" | "closed";
+  status: MoveOut["status"];
+  deposit_held_amount: string | number | null;
+  deposit_amount_overridden: boolean | null;
+  deposit_disposition: MoveOut["depositDisposition"];
+  deposit_retention_amount: string | number | null;
+  deposit_retention_reason_code: MoveOut["depositRetentionReasonCode"];
+  deposit_retention_note: string | null;
+  deposit_refund_amount: string | number | null;
+  currency_code: string | null;
   closure_ledger_event_id: number | null;
   finalized_statement_snapshot: unknown | null;
   finalized_statement_hash: string | null;
   confirmed_at: Date | string | null;
   closed_at: Date | string | null;
+  completed_at: Date | string | null;
+  cancelled_at: Date | string | null;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -283,19 +304,46 @@ function mapTenantInvitationPreview(row: TenantInvitationPreviewRow): TenantInvi
 }
 
 function mapMoveOut(row: MoveOutRow): MoveOut {
+  const moveOutDate = toIsoDate(row.move_out_date);
+  const departureEffectiveDate = row.departure_effective_date
+    ? toIsoDate(row.departure_effective_date)
+    : moveOutDate;
+  const leaseEndDate = row.lease_end_date ? toIsoDate(row.lease_end_date) : departureEffectiveDate;
+
   return {
     id: row.id,
     organizationId: row.organization_id,
     leaseId: row.lease_id,
     initiatedByUserId: row.initiated_by_user_id,
-    moveOutDate: toIsoDate(row.move_out_date),
+    moveOutDate,
+    leaseEndDate,
+    departureEffectiveDate,
+    endedBy: row.ended_by ?? null,
+    reasonCode: row.reason_code ?? null,
+    reasonNote: row.reason_note ?? null,
     reason: row.reason,
     status: row.status,
+    depositHeldAmount: row.deposit_held_amount === null || row.deposit_held_amount === undefined
+      ? null
+      : toNumber(row.deposit_held_amount),
+    depositAmountOverridden: row.deposit_amount_overridden === true,
+    depositDisposition: row.deposit_disposition ?? null,
+    depositRetentionAmount: row.deposit_retention_amount === null || row.deposit_retention_amount === undefined
+      ? 0
+      : toNumber(row.deposit_retention_amount),
+    depositRetentionReasonCode: row.deposit_retention_reason_code ?? null,
+    depositRetentionNote: row.deposit_retention_note ?? null,
+    depositRefundAmount: row.deposit_refund_amount === null || row.deposit_refund_amount === undefined
+      ? null
+      : toNumber(row.deposit_refund_amount),
+    currencyCode: row.currency_code ?? null,
     closureLedgerEventId: row.closure_ledger_event_id,
     finalizedStatementSnapshot: row.finalized_statement_snapshot,
     finalizedStatementHash: row.finalized_statement_hash,
     confirmedAtIso: row.confirmed_at ? toIso(row.confirmed_at) : null,
     closedAtIso: row.closed_at ? toIso(row.closed_at) : null,
+    completedAtIso: row.completed_at ? toIso(row.completed_at) : null,
+    cancelledAtIso: row.cancelled_at ? toIso(row.cancelled_at) : null,
     createdAtIso: toIso(row.created_at),
     updatedAtIso: toIso(row.updated_at)
   };
@@ -350,14 +398,6 @@ function mapMoveOutInspection(row: MoveOutInspectionRow): MoveOutInspection {
   };
 }
 
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 async function withTransaction<T>(
   databaseClient: TransactionCapableClient,
@@ -387,7 +427,7 @@ export function createPostgresTenantLeaseRepository(
 ): TenantLeaseRepository {
   const transactionCapableClient = client as TransactionCapableClient;
 
-  return {
+  const repository: TenantLeaseRepository = {
     async createTenant(input: CreateTenantRecordInput): Promise<Tenant> {
       const phoneNormalized = input.phone ? normalizeTenantPhoneNumber(input.phone) : null;
       const result = await client.query<TenantRow>(
@@ -652,7 +692,38 @@ export function createPostgresTenantLeaseRepository(
       });
     },
 
-    async listLeasesByOrganization(organizationId: string): Promise<LeaseWithTenantView[]> {
+    async listLeasesByOrganization(organizationId: string, options?: { limit?: number }): Promise<LeaseWithTenantView[]> {
+      const page = await repository.listLeasesPage({
+        organizationId,
+        status: null,
+        limit: options?.limit ?? 50,
+        cursor: null
+      });
+      return page.leases;
+    },
+
+    async listLeasesPage(input: {
+      organizationId: string;
+      status?: string | null;
+      limit: number;
+      cursor?: string | null;
+    }): Promise<{ leases: LeaseWithTenantView[]; nextCursor: string | null }> {
+      const limit = Math.min(Math.max(1, Math.floor(input.limit || 50)), 50);
+      const conditions = ["l.organization_id = $1"];
+      const values: unknown[] = [input.organizationId];
+      let idx = 2;
+      if (input.status) {
+        conditions.push(`l.status = $${idx++}`);
+        values.push(input.status);
+      }
+      if (input.cursor) {
+        const [createdAt, id] = input.cursor.split("|");
+        if (createdAt && id) {
+          conditions.push(`(l.created_at, l.id) < ($${idx++}::timestamptz, $${idx++})`);
+          values.push(createdAt, id);
+        }
+      }
+      values.push(limit + 1);
       const result = await client.query<LeaseWithTenantRow>(
         `select
            l.id, l.organization_id, l.unit_id, l.tenant_id,
@@ -665,12 +736,50 @@ export function createPostgresTenantLeaseRepository(
            t.email      as tenant_email
          from leases l
          join tenants t on t.id = l.tenant_id
-         where l.organization_id = $1
-         order by l.created_at desc`,
+         where ${conditions.join(" and ")}
+         order by l.created_at desc, l.id desc
+         limit $${idx}`,
+        values
+      );
+      const hasMore = result.rows.length > limit;
+      const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+      const last = rows[rows.length - 1];
+      return {
+        leases: rows.map(mapLeaseWithTenant),
+        nextCursor: hasMore && last ? `${toIso(last.created_at)}|${last.id}` : null
+      };
+    },
+
+    async getLeaseStatusCounts(organizationId: string): Promise<{
+      total: number;
+      active: number;
+      pending: number;
+      ended: number;
+    }> {
+      const result = await client.query<{
+        total: string | number;
+        active: string | number;
+        pending: string | number;
+        ended: string | number;
+      }>(
+        `select
+           count(*)::int as total,
+           count(*) filter (where status = 'active')::int as active,
+           count(*) filter (where status = 'pending')::int as pending,
+           count(*) filter (where status = 'ended')::int as ended
+         from leases
+         where organization_id = $1`,
         [organizationId]
       );
-      return result.rows.map(mapLeaseWithTenant);
+      const row = result.rows[0];
+      return {
+        total: Number(row?.total ?? 0),
+        active: Number(row?.active ?? 0),
+        pending: Number(row?.pending ?? 0),
+        ended: Number(row?.ended ?? 0)
+      };
     },
+
 
     async listLeasesByOrganizationAndUnitIds(
       organizationId: string,
@@ -699,6 +808,106 @@ export function createPostgresTenantLeaseRepository(
       );
 
       return result.rows.map(mapLeaseWithTenant);
+    },
+
+    async getDashboardLeaseSnapshot(
+      organizationId: string,
+      todayIsoDate: string,
+      withinDays: number,
+      limit: number
+    ): Promise<{
+      activeTenantCount: number;
+      endingSoonCount: number;
+      nextEndDate: string | null;
+      endingSoon: Array<{
+        id: string;
+        tenantFullName: string;
+        endDate: string;
+        daysUntil: number;
+      }>;
+    }> {
+      const result = await client.query<{
+        active_tenant_count: string | number;
+        ending_soon_count: string | number;
+        next_end_date: string | Date | null;
+        id: string | null;
+        tenant_full_name: string | null;
+        end_date: string | Date | null;
+        days_until: string | number | null;
+      }>(
+        `with stats as (
+           select
+             (select count(distinct tenant_id)::int
+              from leases
+              where organization_id = $1 and status = 'active') as active_tenant_count,
+             (select count(*)::int
+              from leases
+              where organization_id = $1
+                and status = 'active'
+                and end_date is not null
+                and end_date >= $2::date
+                and end_date <= ($2::date + $3::int)) as ending_soon_count,
+             (select min(end_date)
+              from leases
+              where organization_id = $1
+                and status = 'active'
+                and end_date is not null
+                and end_date >= $2::date
+                and end_date <= ($2::date + $3::int)) as next_end_date
+         ),
+         ending as (
+           select
+             l.id,
+             t.full_name as tenant_full_name,
+             l.end_date,
+             (l.end_date - $2::date)::int as days_until
+           from leases l
+           join tenants t on t.id = l.tenant_id
+           where l.organization_id = $1
+             and l.status = 'active'
+             and l.end_date is not null
+             and l.end_date >= $2::date
+             and l.end_date <= ($2::date + $3::int)
+           order by l.end_date asc
+           limit $4
+         )
+         select
+           s.active_tenant_count,
+           s.ending_soon_count,
+           s.next_end_date,
+           e.id,
+           e.tenant_full_name,
+           e.end_date,
+           e.days_until
+         from stats s
+         left join ending e on true`,
+        [organizationId, todayIsoDate, withinDays, limit]
+      );
+
+      const first = result.rows[0];
+      const endingSoon = result.rows
+        .filter((row) => row.id !== null && row.end_date !== null && row.tenant_full_name !== null)
+        .map((row) => ({
+          id: row.id as string,
+          tenantFullName: row.tenant_full_name as string,
+          endDate:
+            row.end_date instanceof Date
+              ? row.end_date.toISOString().slice(0, 10)
+              : String(row.end_date).slice(0, 10),
+          daysUntil: Number(row.days_until ?? 0)
+        }));
+
+      return {
+        activeTenantCount: Number(first?.active_tenant_count ?? 0),
+        endingSoonCount: Number(first?.ending_soon_count ?? 0),
+        nextEndDate:
+          first?.next_end_date == null
+            ? null
+            : first.next_end_date instanceof Date
+              ? first.next_end_date.toISOString().slice(0, 10)
+              : String(first.next_end_date).slice(0, 10),
+        endingSoon
+      };
     },
 
     async getCurrentLeaseByTenantAuthUserId(
@@ -735,7 +944,8 @@ export function createPostgresTenantLeaseRepository(
         `select ${TENANT_COLUMNS}
          from tenants
          where organization_id = $1
-         order by full_name asc`,
+         order by full_name asc
+         limit 50`,
         [organizationId]
       );
       return result.rows.map(mapTenant);
@@ -827,8 +1037,12 @@ export function createPostgresTenantLeaseRepository(
            mo.id          as move_out_id,
            mo.lease_id,
            mo.move_out_date,
+           coalesce(mo.departure_effective_date, mo.move_out_date) as departure_effective_date,
+           coalesce(mo.lease_end_date, mo.move_out_date) as lease_end_date,
            mo.reason,
            mo.status,
+           mo.deposit_refund_amount,
+           mo.currency_code,
            mo.updated_at,
            t.full_name    as tenant_full_name,
            p.name         as property_name,
@@ -847,8 +1061,14 @@ export function createPostgresTenantLeaseRepository(
         moveOutId: row.move_out_id,
         leaseId: row.lease_id,
         moveOutDate: toIsoDate(row.move_out_date),
+        departureEffectiveDate: toIsoDate(row.departure_effective_date),
+        leaseEndDate: toIsoDate(row.lease_end_date),
         reason: row.reason,
         status: row.status,
+        depositRefundAmount: row.deposit_refund_amount === null || row.deposit_refund_amount === undefined
+          ? null
+          : toNumber(row.deposit_refund_amount),
+        currencyCode: row.currency_code,
         tenantFullName: row.tenant_full_name,
         propertyName: row.property_name,
         unitLabel: row.unit_label,
@@ -859,9 +1079,13 @@ export function createPostgresTenantLeaseRepository(
     async getMoveOutByLeaseId(leaseId: string, organizationId: string): Promise<MoveOutAggregateRecord | null> {
       const moveOutResult = await client.query<MoveOutRow>(
         `select
-           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason,
-           status, closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
-           confirmed_at, closed_at, created_at, updated_at
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+           lease_end_date, departure_effective_date, ended_by, reason_code, reason_note, reason,
+           status, deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+           deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+           deposit_refund_amount, currency_code,
+           closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+           confirmed_at, closed_at, completed_at, cancelled_at, created_at, updated_at
          from move_outs
          where lease_id = $1 and organization_id = $2`,
         [leaseId, organizationId]
@@ -902,11 +1126,17 @@ export function createPostgresTenantLeaseRepository(
     async upsertMoveOut(input: UpsertMoveOutRecordInput): Promise<MoveOut> {
       const result = await client.query<MoveOutRow>(
         `insert into move_outs (
-           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason, status, confirmed_at
-         ) values ($1, $2, $3, $4, $5, $6, $7, case when $7 = 'confirmed' then now() else null end)
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+           lease_end_date, departure_effective_date, reason, status, confirmed_at
+         ) values (
+           $1, $2, $3, $4, $5, $5, $5, $6, $7,
+           case when $7 = 'confirmed' then now() else null end
+         )
          on conflict (lease_id)
          do update set
            move_out_date = excluded.move_out_date,
+           lease_end_date = excluded.lease_end_date,
+           departure_effective_date = excluded.departure_effective_date,
            reason = excluded.reason,
            status = excluded.status,
            initiated_by_user_id = coalesce(move_outs.initiated_by_user_id, excluded.initiated_by_user_id),
@@ -917,13 +1147,231 @@ export function createPostgresTenantLeaseRepository(
            updated_at = now()
          where move_outs.organization_id = excluded.organization_id
          returning
-           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason,
-           status, closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
-           confirmed_at, closed_at, created_at, updated_at`,
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+           lease_end_date, departure_effective_date, ended_by, reason_code, reason_note, reason,
+           status, deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+           deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+           deposit_refund_amount, currency_code,
+           closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+           confirmed_at, closed_at, completed_at, cancelled_at, created_at, updated_at`,
         [input.id, input.organizationId, input.leaseId, input.initiatedByUserId, input.moveOutDate, input.reason, input.status]
       );
 
       return mapMoveOut(result.rows[0]);
+    },
+
+    async createSimpleMoveOut(input: CreateSimpleMoveOutRecordInput): Promise<MoveOut> {
+      return withTransaction(transactionCapableClient, async (queryable) => {
+        const completedAt = input.status === "completed" ? new Date().toISOString() : null;
+        const result = await queryable.query<MoveOutRow>(
+          `insert into move_outs (
+             id, organization_id, lease_id, initiated_by_user_id,
+             move_out_date, lease_end_date, departure_effective_date,
+             ended_by, reason_code, reason_note, reason, status,
+             deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+             deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+             deposit_refund_amount, currency_code, completed_at
+           ) values (
+             $1, $2, $3, $4,
+             $5, $6, $5,
+             $7, $8, $9, $9, $10,
+             $11, $12, $13,
+             $14, $15, $16,
+             $17, $18, $19::timestamptz
+           )
+           on conflict (lease_id)
+           do update set
+             move_out_date = excluded.move_out_date,
+             lease_end_date = excluded.lease_end_date,
+             departure_effective_date = excluded.departure_effective_date,
+             ended_by = excluded.ended_by,
+             reason_code = excluded.reason_code,
+             reason_note = excluded.reason_note,
+             reason = excluded.reason,
+             status = excluded.status,
+             deposit_held_amount = excluded.deposit_held_amount,
+             deposit_amount_overridden = excluded.deposit_amount_overridden,
+             deposit_disposition = excluded.deposit_disposition,
+             deposit_retention_amount = excluded.deposit_retention_amount,
+             deposit_retention_reason_code = excluded.deposit_retention_reason_code,
+             deposit_retention_note = excluded.deposit_retention_note,
+             deposit_refund_amount = excluded.deposit_refund_amount,
+             currency_code = excluded.currency_code,
+             completed_at = excluded.completed_at,
+             cancelled_at = null,
+             initiated_by_user_id = coalesce(move_outs.initiated_by_user_id, excluded.initiated_by_user_id),
+             updated_at = now()
+           where move_outs.organization_id = excluded.organization_id
+             and move_outs.status not in ('completed', 'closed')
+           returning
+             id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+             lease_end_date, departure_effective_date, ended_by, reason_code, reason_note, reason,
+             status, deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+             deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+             deposit_refund_amount, currency_code,
+             closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+             confirmed_at, closed_at, completed_at, cancelled_at, created_at, updated_at`,
+          [
+            input.id,
+            input.organizationId,
+            input.leaseId,
+            input.initiatedByUserId,
+            input.departureEffectiveDate,
+            input.leaseEndDate,
+            input.endedBy,
+            input.reasonCode,
+            input.reasonNote,
+            input.status,
+            input.depositHeldAmount,
+            input.depositAmountOverridden,
+            input.depositDisposition,
+            input.depositRetentionAmount,
+            input.depositRetentionReasonCode,
+            input.depositRetentionNote,
+            input.depositRefundAmount,
+            input.currencyCode,
+            completedAt
+          ]
+        );
+
+        if (!result.rows[0]) {
+          throw new Error("MOVE_OUT_ALREADY_COMPLETED");
+        }
+
+        if (input.status === "completed") {
+          await queryable.query(
+            `with ended_lease as (
+               update leases
+               set status = 'ended',
+                   end_date = $1
+               where id = $2 and organization_id = $3
+               returning unit_id
+             )
+             update units
+             set status = 'vacant'
+             where id in (select unit_id from ended_lease)`,
+            [input.leaseEndDate, input.leaseId, input.organizationId]
+          );
+        }
+
+        return mapMoveOut(result.rows[0]);
+      });
+    },
+
+    async applyMoveOutDeparture(input: {
+      moveOutId: string;
+      organizationId: string;
+      leaseId: string;
+    }): Promise<MoveOut | null> {
+      return withTransaction(transactionCapableClient, async (queryable) => {
+        const moveOutResult = await queryable.query<MoveOutRow>(
+          `update move_outs
+           set status = 'completed',
+               completed_at = coalesce(completed_at, now()),
+               updated_at = now()
+           where id = $1
+             and organization_id = $2
+             and status = 'planned'
+           returning
+             id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+             lease_end_date, departure_effective_date, ended_by, reason_code, reason_note, reason,
+             status, deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+             deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+             deposit_refund_amount, currency_code,
+             closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+             confirmed_at, closed_at, completed_at, cancelled_at, created_at, updated_at`,
+          [input.moveOutId, input.organizationId]
+        );
+
+        const moveOutRow = moveOutResult.rows[0];
+        if (!moveOutRow) {
+          const existing = await queryable.query<MoveOutRow>(
+            `select
+               id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+               lease_end_date, departure_effective_date, ended_by, reason_code, reason_note, reason,
+               status, deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+               deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+               deposit_refund_amount, currency_code,
+               closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+               confirmed_at, closed_at, completed_at, cancelled_at, created_at, updated_at
+             from move_outs
+             where id = $1 and organization_id = $2`,
+            [input.moveOutId, input.organizationId]
+          );
+          const row = existing.rows[0];
+          return row && row.status === "completed" ? mapMoveOut(row) : null;
+        }
+
+        const leaseEndDate = moveOutRow.lease_end_date
+          ? toIsoDate(moveOutRow.lease_end_date)
+          : toIsoDate(moveOutRow.departure_effective_date ?? moveOutRow.move_out_date);
+
+        await queryable.query(
+          `with ended_lease as (
+             update leases
+             set status = 'ended',
+                 end_date = $1
+             where id = $2 and organization_id = $3
+             returning unit_id
+           )
+           update units
+           set status = 'vacant'
+           where id in (select unit_id from ended_lease)`,
+          [leaseEndDate, input.leaseId, input.organizationId]
+        );
+
+        return mapMoveOut(moveOutRow);
+      });
+    },
+
+    async cancelMoveOut(input: {
+      moveOutId: string;
+      organizationId: string;
+    }): Promise<MoveOut | null> {
+      const result = await client.query<MoveOutRow>(
+        `update move_outs
+         set status = 'cancelled',
+             cancelled_at = now(),
+             updated_at = now()
+         where id = $1
+           and organization_id = $2
+           and status = 'planned'
+         returning
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+           lease_end_date, departure_effective_date, ended_by, reason_code, reason_note, reason,
+           status, deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+           deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+           deposit_refund_amount, currency_code,
+           closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+           confirmed_at, closed_at, completed_at, cancelled_at, created_at, updated_at`,
+        [input.moveOutId, input.organizationId]
+      );
+
+      return result.rows[0] ? mapMoveOut(result.rows[0]) : null;
+    },
+
+    async applyDueMoveOutsForOrganization(organizationId: string, todayIsoDate: string): Promise<number> {
+      const due = await client.query<{ id: string; lease_id: string }>(
+        `select id, lease_id
+         from move_outs
+         where organization_id = $1
+           and status = 'planned'
+           and departure_effective_date <= $2::date`,
+        [organizationId, todayIsoDate]
+      );
+
+      let applied = 0;
+      for (const row of due.rows) {
+        const result = await repository.applyMoveOutDeparture({
+          moveOutId: row.id,
+          organizationId,
+          leaseId: row.lease_id
+        });
+        if (result?.status === "completed") {
+          applied += 1;
+        }
+      }
+      return applied;
     },
 
     async replaceMoveOutCharges(input: ReplaceMoveOutChargeRecordInput): Promise<MoveOutCharge[]> {
@@ -1005,9 +1453,13 @@ export function createPostgresTenantLeaseRepository(
            and organization_id = $2
            and status = 'confirmed'
          returning
-           id, organization_id, lease_id, initiated_by_user_id, move_out_date, reason,
-           status, closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
-           confirmed_at, closed_at, created_at, updated_at`,
+           id, organization_id, lease_id, initiated_by_user_id, move_out_date,
+           lease_end_date, departure_effective_date, ended_by, reason_code, reason_note, reason,
+           status, deposit_held_amount, deposit_amount_overridden, deposit_disposition,
+           deposit_retention_amount, deposit_retention_reason_code, deposit_retention_note,
+           deposit_refund_amount, currency_code,
+           closure_ledger_event_id, finalized_statement_snapshot, finalized_statement_hash,
+           confirmed_at, closed_at, completed_at, cancelled_at, created_at, updated_at`,
         [
           input.moveOutId,
           input.organizationId,
@@ -1292,6 +1744,7 @@ export function createPostgresTenantLeaseRepository(
       });
     }
   };
+  return repository;
 }
 
 export function createTenantLeaseRepositoryFromEnv(env: DatabaseEnvSource): TenantLeaseRepository {
@@ -1299,6 +1752,6 @@ export function createTenantLeaseRepositoryFromEnv(env: DatabaseEnvSource): Tena
   if (!envResult.success) {
     throw new Error(envResult.error);
   }
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresTenantLeaseRepository(pool);
 }

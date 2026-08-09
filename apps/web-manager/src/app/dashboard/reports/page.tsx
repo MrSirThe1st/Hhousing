@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import FinanceFilterForm from "../../../components/finance-filter-form";
 import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
 import {
-  buildExpenseDataset,
   buildFinanceQueryString,
-  buildPropertyFinanceSummary,
-  buildRevenueDataset,
-  formatCurrencySummary,
-  loadScopedFinanceData,
-  normalizeFinanceFilters,
-  subtractCurrencyTotals
+  formatCurrencySummary
 } from "../../../lib/finance-reporting";
+import { loadReportsPageData } from "../../../lib/reports-page-data";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
 
 type ReportsPageProps = {
@@ -22,13 +16,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
   const { session } = await requireDashboardSectionAccess("finances");
 
   const params = await searchParams;
-  const filters = normalizeFinanceFilters(params);
-  const { payments, expenses, scopedPortfolio } = await loadScopedFinanceData(session);
-  const revenueDataset = buildRevenueDataset(payments, scopedPortfolio, filters);
-  const expenseDataset = buildExpenseDataset(expenses, scopedPortfolio, filters);
-  const netTotals = subtractCurrencyTotals(revenueDataset.revenueTotals, expenseDataset.expenseTotals);
-  const propertySummary = buildPropertyFinanceSummary(revenueDataset, expenseDataset);
-  const exportQuery = buildFinanceQueryString(filters);
+  const data = await loadReportsPageData(session, params);
+  const exportQuery = buildFinanceQueryString(data.filters);
   const csvHref = `/api/reports/finance/export${exportQuery.length > 0 ? `?${exportQuery}` : ""}`;
   const pdfHref = `/reports/finance/print${exportQuery.length > 0 ? `?${exportQuery}` : ""}`;
 
@@ -62,40 +51,40 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
       <div className="flex flex-wrap items-center gap-8 border-b border-slate-200 pb-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Total revenus</p>
-          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(revenueDataset.revenueTotals)}</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(data.revenueDataset.revenueTotals)}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Total dépenses</p>
-          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(expenseDataset.expenseTotals)}</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(data.expenseDataset.expenseTotals)}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Garanties (passif)</p>
-          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(revenueDataset.depositLiabilityTotals)}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Cautions (passif)</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(data.revenueDataset.depositLiabilityTotals)}</p>
         </div>
 
         <div className="h-6 w-px bg-slate-200" />
 
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Reste</p>
-          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(netTotals)}</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrencySummary(data.netTotals)}</p>
         </div>
       </div>
 
-      <FinanceFilterForm actionPath="/dashboard/reports" filters={revenueDataset.filters} propertyOptions={revenueDataset.propertyOptions} />
+      <FinanceFilterForm actionPath="/dashboard/reports" filters={data.filters} propertyOptions={data.propertyOptions} />
 
       <section className="grid gap-6 xl:grid-cols-2">
         <FinanceMonthlyChart
-          buckets={revenueDataset.monthlyRevenue}
+          buckets={data.revenueDataset.monthlyRevenue}
           emptyLabel="Aucune donnée de revenu à agréger sur cette période."
         />
         <FinanceMonthlyChart
-          buckets={expenseDataset.monthlyExpenses}
+          buckets={data.expenseDataset.monthlyExpenses}
           emptyLabel="Aucune dépense à agréger sur cette période."
         />
       </section>
@@ -108,11 +97,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps): P
           </div>
         </div>
 
-        {revenueDataset.propertyRevenue.length === 0 && expenseDataset.propertyExpenses.length === 0 ? (
+        {data.revenueDataset.propertyRevenue.length === 0 && data.expenseDataset.propertyExpenses.length === 0 ? (
           <p className="mt-5 text-sm text-gray-500">Aucune donnée à agréger pour les filtres actifs.</p>
         ) : (
           <div className="mt-5 grid gap-4 xl:grid-cols-2">
-            {propertySummary.map((property) => (
+            {data.propertySummary.map((property) => (
               <article key={property.propertyId ?? "general"} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>

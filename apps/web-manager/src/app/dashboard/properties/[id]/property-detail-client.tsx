@@ -312,7 +312,7 @@ export default function PropertyDetailClient({
 
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-[#010a19]">Unités</h2>
+          <h2 className="text-lg font-semibold text-[#010a19]">Logements</h2>
           <span className="rounded-full bg-slate-50 px-3 py-1 text-sm text-slate-500 ring-1 ring-slate-200">{units.length}</span>
         </div>
 
@@ -323,7 +323,7 @@ export default function PropertyDetailClient({
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                 <tr>
-                  <th className="px-6 py-3 text-left">Unité</th>
+                  <th className="px-6 py-3 text-left">Logement</th>
                   <th className="px-6 py-3 text-left">Loyer</th>
                   <th className="px-6 py-3 text-left">Statut</th>
                 </tr>
@@ -354,7 +354,7 @@ export default function PropertyDetailClient({
                   >
                     <td className="px-6 py-4 font-semibold text-[#10213d]">
                       <Link href={`/dashboard/units/${unit.id}`} className="transition hover:text-[#0063fe] hover:underline">
-                        Unité {unit.unitNumber}
+                        Logement {unit.unitNumber}
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-slate-600">{formatCurrencyAmount(unit.monthlyRentAmount, unit.currencyCode)}/mois</td>
@@ -366,7 +366,7 @@ export default function PropertyDetailClient({
                             ? "bg-blue-50 text-[#0063fe] ring-1 ring-blue-100"
                             : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
                       }`}>
-                        {unit.status === "occupied" ? "Occupée" : unit.status === "vacant" ? "Vacante" : "Inactive"}
+                        {unit.status === "occupied" ? "Occupée" : unit.status === "vacant" ? "Libre" : "Inactive"}
                       </span>
                     </td>
                   </tr>

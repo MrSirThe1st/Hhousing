@@ -3,6 +3,7 @@ import { logOperatorAuditEvent } from "../../../api/audit-log";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
+import { rejectIfV1FeatureDeferred } from "../../../lib/v1-deferred-feature-guard";
 import { syncSystemTasks } from "../../../lib/dashboard-workflow";
 import { filterTasksByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { validateWorkflowEntitySelection } from "../../../lib/workflow-entity-validation";
@@ -19,6 +20,10 @@ export async function GET(): Promise<Response> {
   if (experienceDenied !== null) {
     return experienceDenied;
   }
+  const deferred = rejectIfV1FeatureDeferred("tasksCalendar");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
+  }
 
   await syncSystemTasks(session);
 
@@ -27,10 +32,14 @@ export async function GET(): Promise<Response> {
     getScopedPortfolioData(session)
   ]);
 
+  const visibleTasks = tasks.filter(
+    (task) => task.systemCode !== "maintenance_follow_up" && task.relatedEntityType !== "maintenance_request"
+  );
+
   return jsonResponse(200, {
     success: true,
     data: {
-      tasks: filterTasksByScope(tasks, scopedPortfolio)
+      tasks: filterTasksByScope(visibleTasks, scopedPortfolio)
     }
   });
 }
@@ -45,6 +54,10 @@ export async function POST(request: Request): Promise<Response> {
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
     return experienceDenied;
+  }
+  const deferred = rejectIfV1FeatureDeferred("tasksCalendar");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
   }
 
   let body: unknown;

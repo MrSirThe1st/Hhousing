@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Permission, type AuthSession, type MembershipAuthSession } from "@hhousing/api-contracts";
 import {
   createAuthRepositoryFromEnv,
@@ -119,7 +120,13 @@ function getAccessFromPermissions(permissions: string[], isAccountOwner: boolean
   };
 }
 
-export async function resolveDashboardAccess(session: MembershipAuthSession): Promise<DashboardAccess> {
+/**
+ * Request-memoized access resolution. Same session object from getServerAuthSession()
+ * within one RSC request will not re-query memberships/functions.
+ */
+export const resolveDashboardAccess = cache(async function resolveDashboardAccess(
+  session: MembershipAuthSession
+): Promise<DashboardAccess> {
   if (session.role === "tenant") {
     return getEmptyAccess();
   }
@@ -157,7 +164,7 @@ export async function resolveDashboardAccess(session: MembershipAuthSession): Pr
 
   const mergedPermissions = functions.flatMap((teamFunction) => teamFunction.permissions);
   return getAccessFromPermissions(mergedPermissions, isAccountOwner);
-}
+});
 
 export async function requireDashboardSectionAccess(section: DashboardSection): Promise<{
   session: MembershipAuthSession;

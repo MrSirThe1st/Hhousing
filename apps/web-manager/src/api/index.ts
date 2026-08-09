@@ -156,20 +156,6 @@ export {
   type UpdateExpenseResponse
 } from "./expenses/expense";
 export {
-  createMaintenanceRequest,
-  updateMaintenanceRequest,
-  listMaintenanceRequests,
-  type CreateMaintenanceRequestDeps,
-  type CreateMaintenanceRequestRequest,
-  type CreateMaintenanceRequestResponse,
-  type UpdateMaintenanceRequestDeps,
-  type UpdateMaintenanceRequestRequest,
-  type UpdateMaintenanceRequestResponse,
-  type ListMaintenanceRequestsDeps,
-  type ListMaintenanceRequestsRequest,
-  type ListMaintenanceRequestsResponse
-} from "./maintenance/maintenance-request";
-export {
   createDocument,
   listDocuments,
   deleteDocument,

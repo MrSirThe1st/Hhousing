@@ -18,7 +18,7 @@ const WIZARD_STEPS: Array<{ id: WizardStep; label: string }> = [
   { id: "who", label: "Qui ?" },
   { id: "where", label: "Où ?" },
   { id: "rent", label: "Loyer" },
-  { id: "deposit", label: "Garantie" },
+  { id: "deposit", label: "Caution" },
   { id: "confirm", label: "Confirmer" }
 ];
 
@@ -36,7 +36,7 @@ interface ChargeRowState {
 function createChargeRow(chargeType: ChargeType, currencyCode = "CDF"): ChargeRowState {
   return {
     id: `${chargeType}_${Math.random().toString(36).slice(2, 8)}`,
-    label: chargeType === "deposit" ? "Garantie locative" : "",
+    label: chargeType === "deposit" ? "Caution" : "",
     amount: "",
     currencyCode,
     frequency: chargeType === "deposit" ? "one_time" : "monthly",
@@ -201,8 +201,8 @@ export default function LeaseMoveInForm({
         : unitId;
       if (!propertyId || !selectedUnitId) {
         return moveInMode === "existing_tenant"
-          ? "Choisissez le bien et l'unité occupée."
-          : "Choisissez le bien et une unité vacante.";
+          ? "Choisissez le bien et le logement occupé."
+          : "Choisissez le bien et un logement libre.";
       }
       if (!tenantId) {
         return "Choisissez le locataire.";
@@ -488,7 +488,7 @@ export default function LeaseMoveInForm({
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-[#010a19]">Où et qui ?</h2>
-              <p className="mt-1 text-sm text-slate-600">Bien, unité, puis locataire.</p>
+              <p className="mt-1 text-sm text-slate-600">Bien, logement, puis locataire.</p>
             </div>
             <label className="block text-sm font-medium text-gray-700">
               <span className="mb-1.5 block">Bien</span>
@@ -510,13 +510,13 @@ export default function LeaseMoveInForm({
             </label>
             {selectedProperty?.property.propertyType === "multi_unit" ? (
               <label className="block text-sm font-medium text-gray-700">
-                <span className="mb-1.5 block">{moveInMode === "existing_tenant" ? "Unité" : "Unité vacante"}</span>
+                <span className="mb-1.5 block">{moveInMode === "existing_tenant" ? "Logement" : "Logement libre"}</span>
                 <select
                   value={unitId}
                   onChange={(event) => setUnitId(event.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
                 >
-                  <option value="">{moveInMode === "existing_tenant" ? "Sélectionner une unité" : "Sélectionner une unité vacante"}</option>
+                  <option value="">{moveInMode === "existing_tenant" ? "Sélectionner un logement" : "Sélectionner un logement libre"}</option>
                   {eligibleUnits.map((unit) => (
                     <option key={unit.id} value={unit.id}>
                       {unit.unitNumber}{unit.status === "occupied" ? " (occupée)" : ""}
@@ -527,8 +527,8 @@ export default function LeaseMoveInForm({
             ) : (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
                 {eligibleUnits[0]
-                  ? `Unité : ${eligibleUnits[0].unitNumber}`
-                  : "Aucune unité disponible pour ce type de move-in."}
+                  ? `Logement : ${eligibleUnits[0].unitNumber}`
+                  : "Aucun logement disponible pour ce type d'entrée."}
               </div>
             )}
             <label className="block text-sm font-medium text-gray-700">
@@ -652,7 +652,7 @@ export default function LeaseMoveInForm({
               <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-sm text-slate-700">
                 {prorationPreview?.isProrated ? (
                   <>
-                    <p className="font-medium text-[#010a19]">Prorata automatique</p>
+                    <p className="font-medium text-[#010a19]">Loyer partiel automatique</p>
                     <p className="mt-1">
                       {prorationPreview.label}: {formatMoney(prorationPreview.proratedAmount, currencyCode)} pour {prorationPreview.coveredDayCount} jour(s).
                     </p>
@@ -662,7 +662,7 @@ export default function LeaseMoveInForm({
                   </>
                 ) : (
                   <p className="text-sm text-slate-600">
-                    Pas de prorata. Première échéance le {formatDisplayDate(recurringStartDate)}.
+                    Pas de loyer partiel. Première échéance le {formatDisplayDate(recurringStartDate)}.
                   </p>
                 )}
               </div>
@@ -722,7 +722,7 @@ export default function LeaseMoveInForm({
         {step === "deposit" ? (
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Garantie</h2>
+              <h2 className="text-lg font-semibold text-[#010a19]">Caution</h2>
               <p className="mt-1 text-sm text-slate-600">
                 {moveInMode === "existing_tenant"
                   ? "Dans la plupart des cas, la caution est déjà payée hors plateforme."
@@ -791,7 +791,7 @@ export default function LeaseMoveInForm({
                         value={row.label}
                         onChange={(event) => updateChargeRow(setDepositRows, row.id, "label", event.target.value)}
                         className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
-                        placeholder="Garantie locative"
+                        placeholder="Caution"
                       />
                     </label>
                     <label className="block text-sm font-medium text-gray-700">
@@ -936,7 +936,7 @@ export default function LeaseMoveInForm({
                 <dd className="text-right font-medium text-[#010a19]">{selectedProperty?.property.name ?? "—"}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Unité</dt>
+                <dt className="text-slate-500">Logement</dt>
                 <dd className="text-right font-medium text-[#010a19]">{selectedUnit?.unitNumber ?? "—"}</dd>
               </div>
               <div className="flex justify-between gap-4">
@@ -962,7 +962,7 @@ export default function LeaseMoveInForm({
                 <dd className="text-right font-medium text-[#010a19]">{formatDisplayDate(recurringStartDate)}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Garantie</dt>
+                <dt className="text-slate-500">Caution</dt>
                 <dd className="text-right font-medium text-[#010a19]">{depositSummary}</dd>
               </div>
               <div className="flex justify-between gap-4">

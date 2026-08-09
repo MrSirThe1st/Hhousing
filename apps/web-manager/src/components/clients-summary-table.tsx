@@ -10,8 +10,6 @@ export interface ClientSummary {
   occupiedUnitCount: number;
   activeTenantCount: number;
   overduePaymentCount: number;
-  activeMaintenanceCount: number;
-  urgentMaintenanceCount: number;
 }
 
 function formatOwnerLocation(owner: Owner): string | null {
@@ -108,14 +106,8 @@ export default function ClientsSummaryTable({
                 {summary.activeTenantCount} locataire(s) actif(s)
               </div>
               <div className="mt-1 text-xs text-slate-500">
-                {summary.overduePaymentCount} retard(s),{" "}
-                {summary.activeMaintenanceCount} maintenance(s) ouverte(s)
+                {summary.overduePaymentCount} retard(s)
               </div>
-              {summary.urgentMaintenanceCount > 0 ? (
-                <div className="mt-2 inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
-                  {summary.urgentMaintenanceCount} urgence(s)
-                </div>
-              ) : null}
             </div>
           )
         },
@@ -177,16 +169,10 @@ export default function ClientsSummaryTable({
                 <p className="font-semibold text-slate-800">Opérations</p>
                 <p className="mt-0.5">{summary.activeTenantCount} locataires actifs</p>
                 <p className="mt-0.5 text-slate-400">
-                  {summary.overduePaymentCount} retards, {summary.activeMaintenanceCount} tickets
+                  {summary.overduePaymentCount} retards
                 </p>
               </div>
             </div>
-
-            {summary.urgentMaintenanceCount > 0 && (
-              <div className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
-                {summary.urgentMaintenanceCount} urgence(s) de maintenance
-              </div>
-            )}
 
             <div className="text-xs text-slate-400 border-t border-slate-100 pt-2 flex justify-between">
               <span>

@@ -3,19 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   extractAuthSessionFromCookiesMock,
   listMemberFunctionsMock,
-  loadScopedFinanceDataMock,
-  buildRevenueDatasetMock,
-  buildExpenseDatasetMock,
-  buildFinanceReportCsvMock,
-  normalizeFinanceFiltersMock
+  loadFinanceExportDatasetsMock,
+  buildFinanceReportCsvMock
 } = vi.hoisted(() => ({
   extractAuthSessionFromCookiesMock: vi.fn(),
   listMemberFunctionsMock: vi.fn(),
-  loadScopedFinanceDataMock: vi.fn(),
-  buildRevenueDatasetMock: vi.fn(),
-  buildExpenseDatasetMock: vi.fn(),
-  buildFinanceReportCsvMock: vi.fn(),
-  normalizeFinanceFiltersMock: vi.fn()
+  loadFinanceExportDatasetsMock: vi.fn(),
+  buildFinanceReportCsvMock: vi.fn()
 }));
 
 vi.mock("../../../../../auth/session-adapter", () => ({
@@ -23,11 +17,11 @@ vi.mock("../../../../../auth/session-adapter", () => ({
 }));
 
 vi.mock("../../../../../lib/finance-reporting", () => ({
-  loadScopedFinanceData: loadScopedFinanceDataMock,
-  buildRevenueDataset: buildRevenueDatasetMock,
-  buildExpenseDataset: buildExpenseDatasetMock,
-  buildFinanceReportCsv: buildFinanceReportCsvMock,
-  normalizeFinanceFilters: normalizeFinanceFiltersMock
+  buildFinanceReportCsv: buildFinanceReportCsvMock
+}));
+
+vi.mock("../../../../../lib/finance-export-data", () => ({
+  loadFinanceExportDatasets: loadFinanceExportDatasetsMock
 }));
 
 vi.mock("../../../shared", async () => {
@@ -45,14 +39,9 @@ import { GET } from "./route";
 describe("/api/reports/finance/export", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    normalizeFinanceFiltersMock.mockReturnValue({
-      propertyId: null,
-      from: "2026-01-01",
-      to: "2026-04-30"
-    });
   });
 
-  it("exports finance csv", async () => {
+  it("returns FEATURE_DISABLED while reports are deferred for V1", async () => {
     extractAuthSessionFromCookiesMock.mockResolvedValue({
       userId: "user-1",
       role: "property_manager",
@@ -81,23 +70,24 @@ describe("/api/reports/finance/export", () => {
         createdAt: new Date("2026-01-01T00:00:00.000Z")
       }
     ]);
-    loadScopedFinanceDataMock.mockResolvedValue({
-      payments: [],
-      expenses: [],
-      scopedPortfolio: { properties: [] }
+    loadFinanceExportDatasetsMock.mockResolvedValue({
+      filters: { propertyId: null, from: "2026-01-01", to: "2026-04-30" },
+      revenueDataset: { ledger: [], monthlyRevenue: [], propertyRevenue: [], revenueTotals: [] },
+      expenseDataset: { ledger: [], monthlyExpenses: [], propertyExpenses: [], expenseTotals: [] }
     });
-    buildRevenueDatasetMock.mockReturnValue({ ledger: [], monthlyRevenue: [], propertyRevenue: [], revenueTotals: [] });
-    buildExpenseDatasetMock.mockReturnValue({ ledger: [], monthlyExpenses: [], propertyExpenses: [], expenseTotals: [] });
     buildFinanceReportCsvMock.mockReturnValue("section,label\nsummary,total");
 
     const response = await GET(new Request("http://localhost/api/reports/finance/export?from=2026-01-01&to=2026-04-30"));
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("text/csv");
-    expect(await response.text()).toBe("section,label\nsummary,total");
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      success: false,
+      code: "FEATURE_DISABLED"
+    });
+    expect(loadFinanceExportDatasetsMock).not.toHaveBeenCalled();
   });
 
-  it("rejects tenant access", async () => {
+  it("rejects tenant access before feature gate", async () => {
     extractAuthSessionFromCookiesMock.mockResolvedValue({
       userId: "user-1",
       role: "tenant",
@@ -106,12 +96,8 @@ describe("/api/reports/finance/export", () => {
     });
 
     const response = await GET(new Request("http://localhost/api/reports/finance/export"));
-
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({
-      success: false,
-      code: "FORBIDDEN",
-      error: "Tenants are not permitted to access the operator system"
-    });
+    const body = await response.json();
+    expect(body.code).not.toBe("FEATURE_DISABLED");
   });
 });

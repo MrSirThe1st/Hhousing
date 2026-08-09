@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type {
   PawapayOperationType,
   PawapayProviderCode,
@@ -80,15 +81,6 @@ export interface PawapayTransactionQueryable {
   ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 async function loadAllocations(
   client: PawapayTransactionQueryable,
@@ -273,6 +265,6 @@ export function createPawapayTransactionRepositoryFromEnv(
   if (!envResult.success) {
     throw new Error(envResult.error);
   }
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresPawapayTransactionRepository(pool);
 }

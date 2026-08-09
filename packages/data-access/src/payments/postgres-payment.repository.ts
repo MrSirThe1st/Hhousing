@@ -1,11 +1,22 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { Payment, PropertyManagementContext } from "@hhousing/domain";
 import type { ListPaymentsFilter } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
   CreatePaymentRecordInput,
+  DashboardMonthlyTotalRow,
+  DashboardPaymentFinanceSnapshot,
+  DashboardWatchlistPaymentRow,
+  ListPaymentsPageInput,
+  ListPaymentsPageResult,
+  ListRevenuePaymentsPageInput,
+  ListRevenuePaymentsPageResult,
   MarkPaymentPaidRecordInput,
-  PaymentRepository
+  PaymentFinanceFilters,
+  PaymentRepository,
+  PaymentStatusCounts,
+  SumRevenuePaymentsResult
 } from "./payment-record.types";
 
 interface PaymentRow extends QueryResultRow {
@@ -70,20 +81,11 @@ export interface PaymentQueryable {
   ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresPaymentRepository(
   client: PaymentQueryable
 ): PaymentRepository {
-  return {
+  const repository: PaymentRepository = {
     async createPayment(input: CreatePaymentRecordInput): Promise<Payment> {
       const status = input.status ?? "pending";
       const paidDate = input.paidDate ?? null;
@@ -135,22 +137,42 @@ export function createPostgresPaymentRepository(
       return mapPayment(result.rows[0]);
     },
 
-    async listPayments(filter: ListPaymentsFilter): Promise<Payment[]> {
+    async listPayments(filter: ListPaymentsFilter & { limit?: number }): Promise<Payment[]> {
+      const page = await repository.listPaymentsPage({
+        organizationId: filter.organizationId,
+        leaseId: filter.leaseId ?? null,
+        status: filter.status ?? null,
+        limit: typeof filter.limit === "number" ? filter.limit : 50,
+        cursor: null
+      });
+      return page.payments;
+    },
+
+    async listPaymentsPage(input: ListPaymentsPageInput): Promise<ListPaymentsPageResult> {
+      const limit = Math.min(Math.max(1, Math.floor(input.limit || 50)), 50);
       const conditions: string[] = ["organization_id = $1"];
-      const values: unknown[] = [filter.organizationId];
+      const values: unknown[] = [input.organizationId];
       let idx = 2;
 
-      if (filter.leaseId !== undefined) {
+      if (input.leaseId) {
         conditions.push(`lease_id = $${idx++}`);
-        values.push(filter.leaseId);
+        values.push(input.leaseId);
       }
 
-      if (filter.status !== undefined) {
+      if (input.status) {
         conditions.push(`status = $${idx++}`);
-        values.push(filter.status);
+        values.push(input.status);
       }
 
-      const where = conditions.join(" and ");
+      if (input.cursor) {
+        const [dueDate, id] = input.cursor.split("|");
+        if (dueDate && id) {
+          conditions.push(`(due_date, id) < ($${idx++}::date, $${idx++})`);
+          values.push(dueDate, id);
+        }
+      }
+
+      values.push(limit + 1);
       const result = await client.query<PaymentRow>(
         `select
            id, organization_id, lease_id, tenant_id,
@@ -158,11 +180,47 @@ export function createPostgresPaymentRepository(
             payment_kind, billing_frequency, source_lease_charge_template_id, is_initial_charge,
             charge_period, created_at
          from payments
-         where ${where}
-         order by due_date desc`,
+         where ${conditions.join(" and ")}
+         order by due_date desc, id desc
+         limit $${idx}`,
         values
       );
-      return result.rows.map(mapPayment);
+
+      const hasMore = result.rows.length > limit;
+      const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+      const last = rows[rows.length - 1];
+      return {
+        payments: rows.map(mapPayment),
+        nextCursor: hasMore && last ? `${toIsoDate(last.due_date)}|${last.id}` : null
+      };
+    },
+
+    async getPaymentStatusCounts(organizationId: string): Promise<PaymentStatusCounts> {
+      const result = await client.query<{
+        total: string | number;
+        pending: string | number;
+        paid: string | number;
+        overdue: string | number;
+        cancelled: string | number;
+      }>(
+        `select
+           count(*)::int as total,
+           count(*) filter (where status = 'pending')::int as pending,
+           count(*) filter (where status = 'paid')::int as paid,
+           count(*) filter (where status = 'overdue')::int as overdue,
+           count(*) filter (where status = 'cancelled')::int as cancelled
+         from payments
+         where organization_id = $1`,
+        [organizationId]
+      );
+      const row = result.rows[0];
+      return {
+        total: Number(row?.total ?? 0),
+        pending: Number(row?.pending ?? 0),
+        paid: Number(row?.paid ?? 0),
+        overdue: Number(row?.overdue ?? 0),
+        cancelled: Number(row?.cancelled ?? 0)
+      };
     },
 
     async listPaymentsByOrganizationAndLeaseIds(
@@ -412,8 +470,311 @@ export function createPostgresPaymentRepository(
         values
       );
       return result.rowCount ?? 0;
+    },
+
+    async getDashboardPaymentFinanceSnapshot(
+      organizationId: string,
+      currencyCode: string,
+      monthStart: string,
+      monthEndExclusive: string
+    ): Promise<DashboardPaymentFinanceSnapshot> {
+      const result = await client.query<{
+        paid_amount: string | number | null;
+        overdue_amount: string | number | null;
+        overdue_count: string | number | null;
+      }>(
+        `select
+           coalesce(sum(case
+             when status = 'paid'
+              and paid_date is not null
+              and paid_date >= $3::date
+              and paid_date < $4::date
+             then amount
+           end), 0) as paid_amount,
+           coalesce(sum(case when status = 'overdue' then amount end), 0) as overdue_amount,
+           count(*) filter (where status = 'overdue') as overdue_count
+         from payments
+         where organization_id = $1
+           and currency_code = $2`,
+        [organizationId, currencyCode, monthStart, monthEndExclusive]
+      );
+
+      const row = result.rows[0];
+      return {
+        paidAmount: toNumber(row?.paid_amount ?? 0),
+        overdueAmount: toNumber(row?.overdue_amount ?? 0),
+        overdueCount: toNumber(row?.overdue_count ?? 0)
+      };
+    },
+
+    async listDashboardWatchlistPayments(
+      organizationId: string,
+      currencyCode: string,
+      limit: number
+    ): Promise<DashboardWatchlistPaymentRow[]> {
+      const result = await client.query<{
+        id: string;
+        status: "overdue" | "pending";
+        amount: string | number;
+        currency_code: string;
+        due_date: string | Date;
+        tenant_name: string;
+        unit_number: string;
+        property_name: string;
+      }>(
+        `select
+           p.id,
+           p.status,
+           p.amount,
+           p.currency_code,
+           p.due_date,
+           t.full_name as tenant_name,
+           u.unit_number,
+           prop.name as property_name
+         from payments p
+         join leases l on l.id = p.lease_id
+         join tenants t on t.id = p.tenant_id
+         join units u on u.id = l.unit_id
+         join properties prop on prop.id = u.property_id
+         where p.organization_id = $1
+           and p.currency_code = $2
+           and p.status in ('overdue', 'pending')
+         order by
+           case p.status when 'overdue' then 0 else 1 end,
+           p.due_date asc
+         limit $3`,
+        [organizationId, currencyCode, limit]
+      );
+
+      return result.rows.map((row) => ({
+        id: row.id,
+        status: row.status,
+        amount: toNumber(row.amount),
+        currencyCode: row.currency_code,
+        dueDate: toIsoDate(row.due_date),
+        tenantName: row.tenant_name,
+        unitLabel: `${row.unit_number} · ${row.property_name}`
+      }));
+    },
+
+    async sumPaidPaymentsByMonth(
+      organizationId: string,
+      currencyCode: string,
+      fromDate: string
+    ): Promise<DashboardMonthlyTotalRow[]> {
+      const result = await client.query<{
+        month: string | Date;
+        amount: string | number;
+      }>(
+        `select
+           to_char(date_trunc('month', paid_date), 'YYYY-MM') as month,
+           coalesce(sum(amount), 0) as amount
+         from payments
+         where organization_id = $1
+           and currency_code = $2
+           and status = 'paid'
+           and paid_date is not null
+           and paid_date >= $3::date
+         group by date_trunc('month', paid_date)
+         order by date_trunc('month', paid_date)`,
+        [organizationId, currencyCode, fromDate]
+      );
+
+      return result.rows.map((row) => ({
+        month: typeof row.month === "string" ? row.month.slice(0, 7) : toIsoDate(row.month).slice(0, 7),
+        amount: toNumber(row.amount)
+      }));
+    },
+
+
+    async sumRevenuePayments(filters: PaymentFinanceFilters): Promise<SumRevenuePaymentsResult> {
+      const conditions = [
+        "p.organization_id = $1",
+        "p.status = 'paid'",
+        "p.paid_date is not null",
+        "p.paid_date >= $2::date",
+        "p.paid_date <= $3::date"
+      ];
+      const values: unknown[] = [filters.organizationId, filters.from, filters.to];
+      let idx = 4;
+      if (filters.propertyId) {
+        conditions.push(`pr.id = $${idx++}`);
+        values.push(filters.propertyId);
+      }
+      const where = conditions.join(" and ");
+      const join = `from payments p
+         join leases l on l.id = p.lease_id
+         join units u on u.id = l.unit_id
+         join properties pr on pr.id = u.property_id`;
+
+      // Sequential queries: each pool.query() checks out a connection.
+      // Promise.all here previously opened 4 connections and timed out on PgBouncer.
+      const revenueResult = await client.query<{ currency_code: string; amount: string | number; payment_count: string | number }>(
+        `select p.currency_code, coalesce(sum(p.amount),0) as amount, count(*)::int as payment_count
+         ${join}
+         where ${where} and p.payment_kind <> 'deposit'
+         group by p.currency_code order by p.currency_code`,
+        values
+      );
+      const depositResult = await client.query<{ currency_code: string; amount: string | number; payment_count: string | number }>(
+        `select p.currency_code, coalesce(sum(p.amount),0) as amount, count(*)::int as payment_count
+         ${join}
+         where ${where} and p.payment_kind = 'deposit'
+         group by p.currency_code order by p.currency_code`,
+        values
+      );
+      const propertyResult = await client.query<{ property_id: string; property_name: string; currency_code: string; amount: string | number; payment_count: string | number }>(
+        `select pr.id as property_id, pr.name as property_name, p.currency_code,
+                coalesce(sum(p.amount),0) as amount, count(*)::int as payment_count
+         ${join}
+         where ${where} and p.payment_kind <> 'deposit'
+         group by pr.id, pr.name, p.currency_code
+         order by pr.name`,
+        values
+      );
+      const monthlyResult = await client.query<{ month: string; currency_code: string; amount: string | number }>(
+        `select to_char(date_trunc('month', p.paid_date), 'YYYY-MM') as month,
+                p.currency_code, coalesce(sum(p.amount),0) as amount
+         ${join}
+         where ${where} and p.payment_kind <> 'deposit'
+         group by date_trunc('month', p.paid_date), p.currency_code
+         order by date_trunc('month', p.paid_date), p.currency_code`,
+        values
+      );
+
+      const toTotals = (rows: Array<{ currency_code: string; amount: string | number }>) =>
+        rows.map((row) => ({ currencyCode: row.currency_code, amount: toNumber(row.amount) }));
+
+      const propertyMap = new Map<string, { propertyId: string; propertyName: string; paymentCount: number; totals: Map<string, number> }>();
+      for (const row of propertyResult.rows) {
+        const entry = propertyMap.get(row.property_id) ?? {
+          propertyId: row.property_id,
+          propertyName: row.property_name,
+          paymentCount: 0,
+          totals: new Map<string, number>()
+        };
+        entry.paymentCount += toNumber(row.payment_count);
+        entry.totals.set(row.currency_code, (entry.totals.get(row.currency_code) ?? 0) + toNumber(row.amount));
+        propertyMap.set(row.property_id, entry);
+      }
+
+      const monthlyMap = new Map<string, Map<string, number>>();
+      for (const row of monthlyResult.rows) {
+        const month = row.month.slice(0, 7);
+        const totals = monthlyMap.get(month) ?? new Map<string, number>();
+        totals.set(row.currency_code, (totals.get(row.currency_code) ?? 0) + toNumber(row.amount));
+        monthlyMap.set(month, totals);
+      }
+
+      return {
+        revenueTotals: toTotals(revenueResult.rows),
+        depositLiabilityTotals: toTotals(depositResult.rows),
+        recordedPaymentCount: revenueResult.rows.reduce((s, r) => s + toNumber(r.payment_count), 0),
+        recordedDepositCount: depositResult.rows.reduce((s, r) => s + toNumber(r.payment_count), 0),
+        propertyRevenue: [...propertyMap.values()].map((entry) => ({
+          propertyId: entry.propertyId,
+          propertyName: entry.propertyName,
+          paymentCount: entry.paymentCount,
+          totals: [...entry.totals.entries()].map(([currencyCode, amount]) => ({ currencyCode, amount }))
+            .sort((a, b) => a.currencyCode.localeCompare(b.currencyCode, "fr"))
+        })),
+        monthlyRevenue: [...monthlyMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, totals]) => ({
+          month,
+          totals: [...totals.entries()].map(([currencyCode, amount]) => ({ currencyCode, amount }))
+            .sort((a, b) => a.currencyCode.localeCompare(b.currencyCode, "fr"))
+        }))
+      };
+    },
+
+    async listRevenuePaymentsPage(input: ListRevenuePaymentsPageInput): Promise<ListRevenuePaymentsPageResult> {
+      const limit = Math.min(Math.max(1, Math.floor(input.limit || 50)), 50);
+      const conditions = [
+        "p.organization_id = $1",
+        "p.status = 'paid'",
+        "p.paid_date is not null",
+        "p.paid_date >= $2::date",
+        "p.paid_date <= $3::date",
+        "p.payment_kind <> 'deposit'"
+      ];
+      const values: unknown[] = [input.organizationId, input.from, input.to];
+      let idx = 4;
+      if (input.propertyId) {
+        conditions.push(`pr.id = $${idx++}`);
+        values.push(input.propertyId);
+      }
+      if (input.cursor) {
+        const [paidDate, id] = input.cursor.split("|");
+        if (paidDate && id) {
+          conditions.push(`(p.paid_date, p.id) < ($${idx++}::date, $${idx++})`);
+          values.push(paidDate, id);
+        }
+      }
+      values.push(limit + 1);
+
+      const result = await client.query<{
+        id: string;
+        property_id: string | null;
+        property_name: string | null;
+        unit_number: string | null;
+        tenant_name: string | null;
+        paid_date: string | Date;
+        due_date: string | Date;
+        payment_kind: string;
+        currency_code: string;
+        amount: string | number;
+        note: string | null;
+      }>(
+        `select
+           p.id, pr.id as property_id, pr.name as property_name, u.unit_number,
+           t.full_name as tenant_name, p.paid_date, p.due_date, p.payment_kind,
+           p.currency_code, p.amount, p.note
+         from payments p
+         join leases l on l.id = p.lease_id
+         join units u on u.id = l.unit_id
+         join properties pr on pr.id = u.property_id
+         join tenants t on t.id = p.tenant_id
+         where ${conditions.join(" and ")}
+         order by p.paid_date desc, p.id desc
+         limit $${idx}`,
+        values
+      );
+
+      const hasMore = result.rows.length > limit;
+      const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+      const last = rows[rows.length - 1];
+      return {
+        rows: rows.map((row) => ({
+          paymentId: row.id,
+          propertyId: row.property_id,
+          propertyName: row.property_name ?? "Portefeuille hors mapping",
+          unitNumber: row.unit_number ?? "-",
+          tenantName: row.tenant_name ?? "Locataire",
+          paidDate: toIsoDate(row.paid_date),
+          dueDate: toIsoDate(row.due_date),
+          paymentKind: row.payment_kind as import("@hhousing/domain").PaymentKind,
+          currencyCode: row.currency_code,
+          amount: toNumber(row.amount),
+          note: row.note
+        })),
+        nextCursor: hasMore && last ? `${toIsoDate(last.paid_date)}|${last.id}` : null
+      };
+    },
+
+    async countSidebarPaymentBadges(organizationId: string, todayIsoDate: string): Promise<number> {
+      const result = await client.query<{ count: string | number }>(
+        `select count(*)::int as count
+         from payments
+         where organization_id = $1
+           and (
+             status = 'overdue'
+             or (status = 'pending' and due_date < $2::date)
+           )`,
+        [organizationId, todayIsoDate]
+      );
+      return Number(result.rows[0]?.count ?? 0);
     }
   };
+  return repository;
 }
 
 export function createPaymentRepositoryFromEnv(env: DatabaseEnvSource): PaymentRepository {
@@ -421,6 +782,6 @@ export function createPaymentRepositoryFromEnv(env: DatabaseEnvSource): PaymentR
   if (!envResult.success) {
     throw new Error(envResult.error);
   }
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresPaymentRepository(pool);
 }

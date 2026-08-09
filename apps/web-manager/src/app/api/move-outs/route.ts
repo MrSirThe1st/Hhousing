@@ -1,9 +1,9 @@
 import { Permission } from "@hhousing/api-contracts";
 import type { MoveOutListItem } from "@hhousing/data-access";
+import { lazyApplyDueMoveOutsForOrganization } from "../../../api/leases/move-out";
 import { requirePermission } from "../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
-import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
 import { createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse } from "../shared";
 
 export type GetMoveOutsOutput = MoveOutListItem[];
@@ -13,11 +13,6 @@ export async function GET(): Promise<Response> {
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
-  }
-
-  const experienceDenied = await rejectIfIndividualExperience(access.data);
-  if (experienceDenied !== null) {
-    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(
@@ -30,6 +25,7 @@ export async function GET(): Promise<Response> {
   }
 
   const repository = createTenantLeaseRepo();
+  await lazyApplyDueMoveOutsForOrganization(access.data.organizationId, repository);
   const data: GetMoveOutsOutput = await repository.listMoveOutsByOrganization(access.data.organizationId);
 
   return jsonResponse(200, { success: true, data });

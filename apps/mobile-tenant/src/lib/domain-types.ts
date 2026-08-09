@@ -38,24 +38,6 @@ export interface Payment {
   currencyCode?: string;
 }
 
-export interface MaintenanceRequest {
-  id: string;
-  unitId: string;
-  description: string;
-  priority: "low" | "medium" | "high" | "urgent";
-  status: string;
-  createdAt: string;
-}
-
-export interface MaintenanceTimelineEvent {
-  id: string;
-  maintenanceRequestId: string;
-  type: string;
-  description: string;
-  createdAt: string;
-  createdBy?: string;
-}
-
 export interface Document {
   id: string;
   name?: string;
@@ -69,7 +51,7 @@ export interface Document {
   createdAtIso?: string;
 }
 
-export type DocumentType = "lease_agreement" | "receipt" | "notice" | "lease" | "agreement" | "invoice" | "maintenance" | "other";
+export type DocumentType = "lease_agreement" | "receipt" | "notice" | "lease" | "agreement" | "invoice" | "other";
 
 export interface Message {
   id: string;

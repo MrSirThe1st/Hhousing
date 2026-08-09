@@ -119,7 +119,7 @@ export function mapErrorCodeToHttpStatus(code: string): number {
     return 401;
   }
 
-  if (code === "FORBIDDEN" || code === "ACCOUNT_PENDING_DELETION") {
+  if (code === "FORBIDDEN" || code === "ACCOUNT_PENDING_DELETION" || code === "FEATURE_DISABLED") {
     return 403;
   }
 

@@ -41,7 +41,7 @@ export default async function OwnerPortalPropertiesPage(): Promise<React.ReactEl
               <tr>
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Bien</th>
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Adresse</th>
-                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Unités</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Logements</th>
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Baux actifs</th>
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Encaisse</th>
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">À suivre</th>

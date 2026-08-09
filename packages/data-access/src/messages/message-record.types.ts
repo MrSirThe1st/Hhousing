@@ -35,6 +35,7 @@ export interface SendTenantMessageRecordInput {
 
 export interface MessageRepository {
   listManagerConversations(filter: ListManagerConversationsFilter): Promise<ManagerConversationListItem[]>;
+  countManagerUnreadMessages(organizationId: string): Promise<number>;
   listTenantConversations(
     organizationId: string,
     tenantAuthUserId: string

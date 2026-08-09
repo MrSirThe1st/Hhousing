@@ -23,7 +23,6 @@
     "payments": "Paiements",
     "menu": "Menu",
     "messages": "Messages",
-    "maintenance": "Maintenance",
     "services": "Prestataires"
   },
   "services": {
@@ -146,6 +145,8 @@
     "defaultAddress": "Votre espace locataire",
     "rentLabel": "LOYER {{month}}",
     "rentOfMonth": "LOYER DU MOIS",
+    "totalDueLabel": "SOLDE TOTAL DÛ",
+    "dueCount": "{{count}} échéances en attente",
     "welcome": "BIENVENUE",
     "dueOn": "À payer le {{date}}",
     "payNow": "Payer maintenant",
@@ -154,9 +155,13 @@
     "noRentDue": "Aucun loyer à payer ce mois.",
     "noLeaseLinked": "Votre logement n'est pas encore lié. Contactez votre bailleur pour activer votre compte.",
     "recentPayments": "Derniers paiements",
-    "seeAll": "Tout voir",
+    "seeAll": "Voir historique",
     "noPaymentsYet": "Aucun paiement pour le moment. Quand un loyer sera enregistré, il apparaîtra ici.",
     "noPaymentsTitle": "Aucun paiement",
+    "contactsTitle": "Contacts utiles",
+    "contactsSeeAll": "Tout voir",
+    "contactsOpen": "Voir la liste",
+    "contactsEmpty": "Aucun prestataire partagé pour votre bien pour le moment.",
     "kind": {
       "deposit": "Garantie",
       "fee": "Frais",
@@ -168,7 +173,8 @@
     "status": {
       "paid": "PAYÉ",
       "cancelled": "ANNULÉ",
-      "toPay": "À PAYER"
+      "toPay": "À PAYER",
+      "upToDate": "À JOUR"
     }
   },
   "payments": {
@@ -217,6 +223,7 @@
   "account": {
     "profile": "Profil",
     "myHome": "Mon logement",
+    "services": "Prestataires",
     "terms": "Conditions d'utilisation",
     "privacy": "Politique de confidentialité",
     "support": "Support",
@@ -256,7 +263,7 @@
     "freqQuarterly": "Tous les 3 mois",
     "freqYearly": "Chaque année",
     "aboutTagline": "Votre espace locataire Haraka Property",
-    "aboutDescription": "Haraka Property aide locataires et bailleurs à gérer baux, loyers, maintenance et communication au même endroit.",
+    "aboutDescription": "Haraka Property aide locataires et bailleurs à gérer baux, loyers et communication au même endroit.",
     "madeInDrc": "Fait en RDC 🇨🇩",
     "visitWebsite": "Visiter harakaproperty.com",
     "version": "Version {{version}}",
@@ -315,72 +322,6 @@
     "cancelDeletion": "Annuler la suppression",
     "cancelledBody": "La suppression de votre compte a été annulée. Vous pouvez continuer à utiliser l'application.",
     "endpointUnavailable": "La suppression de compte n'est pas encore disponible sur ce serveur. Pointez l'app vers l'API locale, ou déployez le dernier web-manager."
-  },
-  "maintenance": {
-    "title": "Maintenance",
-    "subtitle": "Gérez vos demandes de service et réparations.",
-    "newRequest": "Nouvelle demande",
-    "formSubtitle": "Décrivez le problème à signaler.",
-    "titleLabel": "Titre *",
-    "descriptionLabel": "Description *",
-    "priorityLabel": "Priorité",
-    "photosLabel": "Photos (optionnel, max 4)",
-    "addPhoto": "+ Ajouter une photo",
-    "submit": "Envoyer la demande",
-    "filterAll": "Toutes",
-    "filterActive": "Actives",
-    "filterResolved": "Résolues",
-    "emptyTitle": "Aucune demande",
-    "emptyText": "Signalez une réparation ou un service et suivez-la ici.",
-    "emptyFilterTitle": "Aucun résultat",
-    "emptyFilterText": "Aucune demande ne correspond au filtre sélectionné.",
-    "urgencyTitle": "Urgence ?",
-    "urgencyBody": "Contactez notre ligne d'assistance disponible 24/7 pour les problèmes critiques.",
-    "titleRequired": "Le titre et la description sont requis.",
-    "maxPhotos": "Maximum 4 photos autorisées.",
-    "galleryDenied": "Accès à la galerie refusé.",
-    "galleryUnavailable": "Impossible d'ouvrir la galerie pour le moment.",
-    "status": {
-      "open": "Ouvert",
-      "inProgress": "En cours",
-      "resolved": "Résolu",
-      "cancelled": "Annulé"
-    },
-    "priority": {
-      "low": "Basse",
-      "medium": "Moyenne",
-      "high": "Haute",
-      "urgent": "Urgente"
-    },
-    "category": {
-      "low": "Entretien",
-      "medium": "Plomberie",
-      "high": "Électricité",
-      "urgent": "Urgence"
-    },
-    "detailSubtitle": "Détail de la demande",
-    "loadError": "Impossible de charger la demande.",
-    "loadErrorSubtitle": "Impossible de charger",
-    "invalidId": "ID manquant",
-    "invalidRequestId": "Identifiant de demande invalide",
-    "unknownError": "Erreur inconnue",
-    "assignedTo": "Assignée à",
-    "resolution": "Résolution",
-    "photos": "Photos",
-    "history": "Historique",
-    "backToList": "Retour à la liste",
-    "defaultTitle": "Demande de maintenance",
-    "event": {
-      "created": "Créée",
-      "statusChanged": "Statut modifié",
-      "assigned": "Assignée",
-      "internalNote": "Note interne ajoutée",
-      "resolutionNote": "Note de résolution",
-      "createdDesc": "Demande créée",
-      "statusChangedDesc": "Statut changé de {{from}} à {{to}}",
-      "assignedDesc": "Assignée à {{name}}",
-      "someone": "quelqu'un"
-    }
   },
   "messages": {
     "title": "Messages",

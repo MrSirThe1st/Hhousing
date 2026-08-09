@@ -2,6 +2,7 @@ import { createExpense, listExpenses } from "../../../api";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../auth/session-adapter";
 import { rejectIfIndividualExperience } from "../../../lib/entreprise-experience-guard";
+import { rejectIfV1FeatureDeferred } from "../../../lib/v1-deferred-feature-guard";
 import { filterExpensesByScope, getScopedPortfolioData } from "../../../lib/operator-scope-portfolio";
 import { createExpenseRepo, createId, createTeamFunctionsRepo, jsonResponse, parseJsonBody } from "../shared";
 
@@ -19,6 +20,10 @@ export async function POST(request: Request): Promise<Response> {
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
     return experienceDenied;
+  }
+  const deferred = rejectIfV1FeatureDeferred("expenses");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
   }
 
   let body: unknown;
@@ -95,6 +100,10 @@ export async function GET(request: Request): Promise<Response> {
   const experienceDenied = await rejectIfIndividualExperience(session);
   if (experienceDenied !== null) {
     return experienceDenied;
+  }
+  const deferred = rejectIfV1FeatureDeferred("expenses");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
   }
 
   const result = await listExpenses(

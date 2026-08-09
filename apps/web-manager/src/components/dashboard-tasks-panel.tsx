@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Task } from "@hhousing/domain";
 import { deleteWithAuth, patchWithAuth, postWithAuth } from "../lib/api-client";
 import type { DashboardTasksPanelProps } from "../lib/dashboard-workflow.types";
+import ResponsiveTable from "./responsive-table";
 import UniversalLoadingState from "./universal-loading-state";
 
 type TaskFormState = {
@@ -41,6 +43,10 @@ function getStatusLabel(status: string): string {
   if (status === "in_progress") return "En cours";
   if (status === "done") return "Terminée";
   return "Annulée";
+}
+
+function formatDueDate(dueDate: string): string {
+  return new Date(`${dueDate}T12:00:00`).toLocaleDateString("fr-FR");
 }
 
 export default function DashboardTasksPanel({
@@ -96,6 +102,16 @@ export default function DashboardTasksPanel({
     return relatedOptions.filter((option) => option.type === formState.relatedType);
   }, [formState.relatedType, relatedOptions]);
   const isActionBusy = formBusy || busyTaskId !== null;
+
+  function getRelatedLabel(task: Task): string | null {
+    if (!task.relatedEntityType || !task.relatedEntityId) {
+      return null;
+    }
+
+    return relatedOptions.find(
+      (option) => option.type === task.relatedEntityType && option.id === task.relatedEntityId
+    )?.label ?? task.relatedEntityId;
+  }
 
   async function handleCreateTask(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -174,53 +190,89 @@ export default function DashboardTasksPanel({
     router.refresh();
   }
 
-  return (
-    <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Centre d&apos;exécution</h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Tâches manuelles et système suivant automatiquement maintenance, paiements en retard et renouvellements de bail.
-            </p>
-          </div>
-
+  function renderTaskActions(task: Task): React.ReactNode {
+    return (
+      <div className="flex flex-wrap items-center gap-2" onClick={(event) => event.stopPropagation()}>
+        {task.status !== "done" && task.status !== "cancelled" ? (
           <button
             type="button"
-            onClick={() => setShowCreateForm((currentValue) => !currentValue)}
-            className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+            onClick={() => void handleStatusChange(task.id, "done")}
+            disabled={busyTaskId === task.id}
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
           >
-            {showCreateForm ? "Fermer" : "+ Nouvelle tâche"}
+            Terminer
           </button>
+        ) : null}
+        {task.source === "manual" ? (
+          <button
+            type="button"
+            onClick={() => void handleDeleteTask(task.id)}
+            disabled={busyTaskId === task.id}
+            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+          >
+            Supprimer
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Tâches</h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Tâches manuelles et système pour les retards de paiement et renouvellements de bail.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowCreateForm((currentValue) => !currentValue)}
+          className="inline-flex items-center rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+        >
+          {showCreateForm ? "Fermer" : "+ Nouvelle tâche"}
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-8 border-b border-slate-200 pb-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Ouvertes</p>
+          <p className="text-xl font-semibold text-slate-900">{summary.openCount}</p>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ouvertes</p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.openCount}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">En cours</p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.inProgressCount}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Terminées</p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.doneCount}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Manuelles</p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.manualCount}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Système</p>
-            <p className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">{summary.systemCount}</p>
-          </div>
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">En cours</p>
+          <p className="text-xl font-semibold text-slate-900">{summary.inProgressCount}</p>
         </div>
-      </section>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Terminées</p>
+          <p className="text-xl font-semibold text-slate-900">{summary.doneCount}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Manuelles</p>
+          <p className="text-xl font-semibold text-slate-900">{summary.manualCount}</p>
+        </div>
+
+        <div className="h-6 w-px bg-slate-200" />
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Système</p>
+          <p className="text-xl font-semibold text-slate-900">{summary.systemCount}</p>
+        </div>
+      </div>
 
       {showCreateForm ? (
-        <form onSubmit={handleCreateTask} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-[#010a19]">Nouvelle tâche</h3>
+        <form onSubmit={handleCreateTask} className="space-y-4 border-b border-slate-200 pb-6">
+          <h3 className="text-lg font-semibold text-[#010a19]">Nouvelle tâche</h3>
           <div className="grid gap-4 lg:grid-cols-2">
             <label className="space-y-2">
               <span className="text-sm font-medium text-slate-700">Titre</span>
@@ -228,7 +280,7 @@ export default function DashboardTasksPanel({
                 value={formState.title}
                 onChange={(event) => setFormState((current) => ({ ...current, title: event.target.value }))}
                 required
-                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               />
             </label>
             <label className="space-y-2">
@@ -238,7 +290,7 @@ export default function DashboardTasksPanel({
                 value={formState.dueDate}
                 onChange={(event) => setFormState((current) => ({ ...current, dueDate: event.target.value }))}
                 required
-                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               />
             </label>
             <label className="space-y-2 lg:col-span-2">
@@ -247,7 +299,7 @@ export default function DashboardTasksPanel({
                 value={formState.description}
                 onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
                 rows={3}
-                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               />
             </label>
             <label className="space-y-2">
@@ -255,7 +307,7 @@ export default function DashboardTasksPanel({
               <select
                 value={formState.priority}
                 onChange={(event) => setFormState((current) => ({ ...current, priority: event.target.value as TaskFormState["priority"] }))}
-                className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               >
                 <option value="low">Faible</option>
                 <option value="medium">Moyenne</option>
@@ -269,7 +321,7 @@ export default function DashboardTasksPanel({
                 <select
                   value={formState.relatedType}
                   onChange={(event) => setFormState((current) => ({ ...current, relatedType: event.target.value as TaskFormState["relatedType"], relatedId: "" }))}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                 >
                   <option value="">Aucun</option>
                   <option value="property">Propriété</option>
@@ -284,7 +336,7 @@ export default function DashboardTasksPanel({
                   value={formState.relatedId}
                   onChange={(event) => setFormState((current) => ({ ...current, relatedId: event.target.value }))}
                   disabled={!formState.relatedType}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition focus:border-[#0063fe] focus:outline-none focus:ring-2 focus:ring-[#0063fe]/20 disabled:bg-slate-50 disabled:text-slate-400"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15 disabled:bg-slate-50 disabled:text-slate-400"
                 >
                   <option value="">Aucun</option>
                   {availableRelatedOptions.map((option) => (
@@ -295,14 +347,11 @@ export default function DashboardTasksPanel({
             </div>
           </div>
 
-          {message ? <p className="mt-4 text-sm text-emerald-700">{message}</p> : null}
-          {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
-
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setShowCreateForm(false)}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Annuler
             </button>
@@ -317,109 +366,138 @@ export default function DashboardTasksPanel({
         </form>
       ) : null}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-[#010a19]">Backlog opérateur</h3>
-            <p className="mt-1 text-sm text-slate-500">Filtrez les tâches manuelles et système depuis une seule vue.</p>
-          </div>
+      {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
+      {error ? <p className="text-sm text-rose-700">{error}</p> : null}
 
-          <div className="flex flex-wrap gap-2">
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition hover:border-slate-300"
-            >
-              <option value="all">Tous statuts</option>
-              <option value="open">Ouvertes</option>
-              <option value="in_progress">En cours</option>
-              <option value="done">Terminées</option>
-              <option value="cancelled">Annulées</option>
-            </select>
-            <select
-              value={sourceFilter}
-              onChange={(event) => setSourceFilter(event.target.value as typeof sourceFilter)}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition hover:border-slate-300"
-            >
-              <option value="all">Tous types</option>
-              <option value="manual">Manuelles</option>
-              <option value="system">Système</option>
-            </select>
-          </div>
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-[#010a19]">Liste des tâches</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            {filteredTasks.length} tâche(s) affichée(s)
+          </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          >
+            <option value="all">Tous statuts</option>
+            <option value="open">Ouvertes</option>
+            <option value="in_progress">En cours</option>
+            <option value="done">Terminées</option>
+            <option value="cancelled">Annulées</option>
+          </select>
+          <select
+            value={sourceFilter}
+            onChange={(event) => setSourceFilter(event.target.value as typeof sourceFilter)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+          >
+            <option value="all">Tous types</option>
+            <option value="manual">Manuelles</option>
+            <option value="system">Système</option>
+          </select>
+        </div>
+      </div>
 
-        <div className="mt-6 space-y-3">
-          {filteredTasks.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 px-6 py-12 text-center">
-              <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <p className="mt-3 text-sm text-slate-500">Aucune tâche pour les filtres actuels</p>
+      {tasks.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+          <h3 className="text-lg font-semibold text-[#010a19]">Aucune tâche pour l&apos;instant</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Créez une tâche manuelle ou laissez le système en générer selon les retards et renouvellements.
+          </p>
+        </div>
+      ) : (
+        <ResponsiveTable<Task>
+          keyExtractor={(task) => task.id}
+          data={filteredTasks}
+          paginate
+          defaultPageSize={10}
+          emptyState={
+            <div className="px-4 py-8 text-center text-sm text-slate-500">
+              Aucune tâche pour les filtres actuels.
             </div>
-          ) : (
-            filteredTasks.map((task) => (
-              <article key={task.id} className="rounded-xl border border-slate-200 bg-white p-5 transition hover:shadow-md">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-base font-semibold text-[#010a19]">{task.title}</h4>
-                      <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${getStatusClass(task.status)}`}>
-                        {getStatusLabel(task.status)}
-                      </span>
-                      <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${getPriorityClass(task.priority)}`}>
-                        {getPriorityLabel(task.priority as TaskFormState["priority"])}
-                      </span>
-                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                        {task.source === "system" ? "Système" : "Manuelle"}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{task.description ?? "Aucune description."}</p>
-                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        {new Date(`${task.dueDate}T12:00:00`).toLocaleDateString("fr-FR")}
-                      </span>
-                      {task.relatedEntityType && task.relatedEntityId ? (
-                        <span className="flex items-center gap-1">
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                          </svg>
-                          {relatedOptions.find((option) => option.type === task.relatedEntityType && option.id === task.relatedEntityId)?.label ?? task.relatedEntityId}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {task.status !== "done" ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleStatusChange(task.id, "done")}
-                        disabled={busyTaskId === task.id}
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                      >
-                        Terminer
-                      </button>
-                    ) : null}
-                    {task.source === "manual" ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleDeleteTask(task.id)}
-                        disabled={busyTaskId === task.id}
-                        className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-                      >
-                        Supprimer
-                      </button>
-                    ) : null}
-                  </div>
+          }
+          columns={[
+            {
+              header: "Tâche",
+              render: (task) => (
+                <div className="min-w-0 max-w-md">
+                  <p className="font-semibold text-[#10213d]">{task.title}</p>
+                  {task.description ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-slate-500">{task.description}</p>
+                  ) : null}
                 </div>
-              </article>
-            ))
+              )
+            },
+            {
+              header: "Statut",
+              render: (task) => (
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusClass(task.status)}`}>
+                  {getStatusLabel(task.status)}
+                </span>
+              )
+            },
+            {
+              header: "Priorité",
+              render: (task) => (
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getPriorityClass(task.priority)}`}>
+                  {getPriorityLabel(task.priority)}
+                </span>
+              )
+            },
+            {
+              header: "Type",
+              render: (task) => (
+                <span className="text-slate-600">
+                  {task.source === "system" ? "Système" : "Manuelle"}
+                </span>
+              )
+            },
+            {
+              header: "Échéance",
+              render: (task) => (
+                <span className="text-slate-600">{formatDueDate(task.dueDate)}</span>
+              )
+            },
+            {
+              header: "Objet lié",
+              render: (task) => (
+                <span className="text-slate-600">{getRelatedLabel(task) ?? "—"}</span>
+              )
+            },
+            {
+              header: "Actions",
+              className: "w-0",
+              render: (task) => renderTaskActions(task)
+            }
+          ]}
+          renderMobileCard={(task) => (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-[#010a19]">{task.title}</h3>
+                  {task.description ? (
+                    <p className="mt-1 text-sm text-slate-500">{task.description}</p>
+                  ) : null}
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusClass(task.status)}`}>
+                  {getStatusLabel(task.status)}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                <span className={`rounded-full px-2.5 py-0.5 font-medium ${getPriorityClass(task.priority)}`}>
+                  {getPriorityLabel(task.priority)}
+                </span>
+                <span>{task.source === "system" ? "Système" : "Manuelle"}</span>
+                <span>Échéance {formatDueDate(task.dueDate)}</span>
+                {getRelatedLabel(task) ? <span>{getRelatedLabel(task)}</span> : null}
+              </div>
+              {renderTaskActions(task)}
+            </div>
           )}
-        </div>
-      </section>
+        />
+      )}
 
       {isActionBusy ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010a19]/35 backdrop-blur-[1px]">

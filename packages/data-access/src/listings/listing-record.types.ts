@@ -77,6 +77,7 @@ export interface ListingRepository {
   createApplication(input: CreateListingApplicationRecordInput): Promise<ListingApplication>;
   getApplicationById(applicationId: string, organizationId: string): Promise<ListingApplicationView | null>;
   listApplications(organizationId: string, managementContext?: PropertyManagementContext): Promise<ListingApplicationView[]>;
+  countOpenListingApplications(organizationId: string): Promise<number>;
   updateApplicationStatus(input: UpdateListingApplicationStatusRecordInput): Promise<ListingApplication | null>;
   markApplicationConverted(applicationId: string, organizationId: string, tenantId: string): Promise<ListingApplication | null>;
   getConvertedTenant(applicationId: string, organizationId: string): Promise<Tenant | null>;

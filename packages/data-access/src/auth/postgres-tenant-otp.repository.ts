@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
   CreateTenantLoginOtpInput,
@@ -43,17 +44,6 @@ export interface TenantOtpQueryable {
   ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresTenantLoginOtpRepository(
   client: TenantOtpQueryable
@@ -145,5 +135,5 @@ export function createTenantLoginOtpRepositoryFromEnv(
     throw new Error(envResult.error);
   }
 
-  return createPostgresTenantLoginOtpRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresTenantLoginOtpRepository(getSharedPool(envResult.data.connectionString));
 }

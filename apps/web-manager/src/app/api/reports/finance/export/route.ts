@@ -3,13 +3,9 @@ import { requirePermission } from "../../../../../api/organizations/permissions"
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
 import { rejectIfIndividualExperience } from "../../../../../lib/entreprise-experience-guard";
-import {
-  buildExpenseDataset,
-  buildFinanceReportCsv,
-  buildRevenueDataset,
-  loadScopedFinanceData,
-  normalizeFinanceFilters
-} from "../../../../../lib/finance-reporting";
+import { rejectIfV1FeatureDeferred } from "../../../../../lib/v1-deferred-feature-guard";
+import { buildFinanceReportCsv } from "../../../../../lib/finance-reporting";
+import { loadFinanceExportDatasets } from "../../../../../lib/finance-export-data";
 import { createTeamFunctionsRepo, jsonResponse } from "../../../shared";
 
 export async function GET(request: Request): Promise<Response> {
@@ -24,6 +20,11 @@ export async function GET(request: Request): Promise<Response> {
     return experienceDenied;
   }
 
+  const deferred = rejectIfV1FeatureDeferred("reports");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
+  }
+
   const permissionResult = await requirePermission(
     access.data,
     Permission.VIEW_PAYMENTS,
@@ -34,15 +35,11 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const { searchParams } = new URL(request.url);
-  const filters = normalizeFinanceFilters({
+  const { filters, revenueDataset, expenseDataset } = await loadFinanceExportDatasets(access.data, {
     propertyId: searchParams.get("propertyId") ?? undefined,
     from: searchParams.get("from") ?? undefined,
     to: searchParams.get("to") ?? undefined
   });
-
-  const { payments, expenses, scopedPortfolio } = await loadScopedFinanceData(access.data);
-  const revenueDataset = buildRevenueDataset(payments, scopedPortfolio, filters);
-  const expenseDataset = buildExpenseDataset(expenses, scopedPortfolio, filters);
   const csv = buildFinanceReportCsv(revenueDataset, expenseDataset);
 
   return new Response(csv, {

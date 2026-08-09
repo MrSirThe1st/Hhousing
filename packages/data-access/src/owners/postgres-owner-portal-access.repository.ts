@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { DatabaseEnvSource } from "../database/database-env";
 import { readDatabaseEnv } from "../database/database-env";
 import type {
@@ -88,16 +89,6 @@ function mapOwnerPortalAccess(row: OwnerPortalAccessRow): OwnerPortalAccessRecor
   };
 }
 
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresOwnerPortalAccessRepository(pool: Pool): OwnerPortalAccessRepository {
   return {
@@ -262,5 +253,5 @@ export function createOwnerPortalAccessRepositoryFromEnv(env: DatabaseEnvSource)
     throw new Error(envResult.error);
   }
 
-  return createPostgresOwnerPortalAccessRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresOwnerPortalAccessRepository(getSharedPool(envResult.data.connectionString));
 }

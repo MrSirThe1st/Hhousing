@@ -1,10 +1,12 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { ListTasksFilter } from "@hhousing/api-contracts";
 import type { Task } from "@hhousing/domain";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
   CreateTaskRecordInput,
   TaskRepository,
+  TaskStatusCounts,
   UpdateTaskRecordInput,
   UpsertSystemTaskRecordInput
 } from "./task-record.types";
@@ -76,15 +78,6 @@ export interface TaskQueryable {
   ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 const TASK_COLUMNS = `
   id,
@@ -186,7 +179,8 @@ export function createPostgresTaskRepository(client: TaskQueryable): TaskReposit
              else 3
            end,
            due_date asc,
-           created_at desc`,
+           created_at desc
+         limit 50`,
         values
       );
 
@@ -320,6 +314,28 @@ export function createPostgresTaskRepository(client: TaskQueryable): TaskReposit
       const values = activeSystemKeys.length > 0 ? [organizationId, activeSystemKeys] : [organizationId];
       const result = await client.query(query, values);
       return result.rowCount ?? 0;
+    },
+
+    async getTaskStatusCounts(organizationId: string): Promise<TaskStatusCounts> {
+      const result = await client.query<{
+        open: string | number;
+        in_progress: string | number;
+      }>(
+        `select
+           count(*) filter (where status = 'open') as open,
+           count(*) filter (where status = 'in_progress') as in_progress
+         from tasks
+         where organization_id = $1
+           and coalesce(system_code, '') <> 'maintenance_follow_up'
+           and coalesce(related_entity_type, '') <> 'maintenance_request'`,
+        [organizationId]
+      );
+
+      const row = result.rows[0];
+      return {
+        open: Number(row?.open ?? 0),
+        inProgress: Number(row?.in_progress ?? 0)
+      };
     }
   };
 }
@@ -330,6 +346,6 @@ export function createTaskRepositoryFromEnv(env: DatabaseEnvSource): TaskReposit
     throw new Error(envResult.error);
   }
 
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresTaskRepository(pool);
 }

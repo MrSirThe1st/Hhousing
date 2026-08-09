@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { DatabaseEnvSource } from "../database/database-env";
 import { readDatabaseEnv } from "../database/database-env";
 import type {
@@ -719,17 +720,6 @@ export function createPostgresPlatformBillingRepository(pool: Pool): PlatformBil
   };
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const cached = poolCache.get(connectionString);
-  if (cached) {
-    return cached;
-  }
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPlatformBillingRepositoryFromEnv(
   env: DatabaseEnvSource = process.env
@@ -739,5 +729,5 @@ export function createPlatformBillingRepositoryFromEnv(
     throw new Error(envResult.error);
   }
 
-  return createPostgresPlatformBillingRepository(getOrCreatePool(envResult.data.connectionString));
+  return createPostgresPlatformBillingRepository(getSharedPool(envResult.data.connectionString));
 }

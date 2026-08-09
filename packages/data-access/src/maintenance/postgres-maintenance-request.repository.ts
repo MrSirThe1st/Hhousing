@@ -1,11 +1,13 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { MaintenanceRequest, MaintenanceStatus, MaintenanceTimelineEvent } from "@hhousing/domain";
 import type { ListMaintenanceRequestsFilter } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
   CreateMaintenanceRequestRecordInput,
-  UpdateMaintenanceRequestRecordInput,
-  MaintenanceRequestRepository
+  DashboardUrgentMaintenanceSnapshot,
+  MaintenanceRequestRepository,
+  UpdateMaintenanceRequestRecordInput
 } from "./maintenance-request-record.types";
 
 interface MaintenanceRequestRow extends QueryResultRow {
@@ -83,20 +85,11 @@ export interface MaintenanceRequestQueryable {
   ): Promise<{ rows: Row[] }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresMaintenanceRequestRepository(
   client: MaintenanceRequestQueryable
 ): MaintenanceRequestRepository {
-  return {
+  const repository: MaintenanceRequestRepository = {
     async createMaintenanceRequest(
       input: CreateMaintenanceRequestRecordInput
     ): Promise<MaintenanceRequest> {
@@ -250,23 +243,49 @@ export function createPostgresMaintenanceRequestRepository(
     },
 
     async listMaintenanceRequests(
-      filter: ListMaintenanceRequestsFilter
+      filter: ListMaintenanceRequestsFilter & { limit?: number }
     ): Promise<MaintenanceRequest[]> {
+      const page = await repository.listMaintenanceRequestsPage({
+        organizationId: filter.organizationId,
+        unitId: filter.unitId ?? null,
+        status: filter.status ?? null,
+        limit: typeof filter.limit === "number" ? filter.limit : 50,
+        cursor: null
+      });
+      return page.requests;
+    },
+
+    async listMaintenanceRequestsPage(input: {
+      organizationId: string;
+      unitId?: string | null;
+      status?: string | null;
+      limit: number;
+      cursor?: string | null;
+    }): Promise<{ requests: MaintenanceRequest[]; nextCursor: string | null }> {
+      const limit = Math.min(Math.max(1, Math.floor(input.limit || 50)), 50);
       const conditions: string[] = ["organization_id = $1"];
-      const values: unknown[] = [filter.organizationId];
+      const values: unknown[] = [input.organizationId];
       let idx = 2;
 
-      if (filter.unitId !== undefined) {
+      if (input.unitId) {
         conditions.push(`unit_id = $${idx++}`);
-        values.push(filter.unitId);
+        values.push(input.unitId);
       }
 
-      if (filter.status !== undefined) {
+      if (input.status) {
         conditions.push(`status = $${idx++}`);
-        values.push(filter.status);
+        values.push(input.status);
       }
 
-      const where = conditions.join(" and ");
+      if (input.cursor) {
+        const [createdAt, id] = input.cursor.split("|");
+        if (createdAt && id) {
+          conditions.push(`(created_at, id) < ($${idx++}::timestamptz, $${idx++})`);
+          values.push(createdAt, id);
+        }
+      }
+
+      values.push(limit + 1);
       const result = await client.query<MaintenanceRequestRow>(
         `select
            id, organization_id, unit_id, tenant_id,
@@ -274,11 +293,56 @@ export function createPostgresMaintenanceRequestRepository(
             assigned_to_name, internal_notes, resolution_notes,
             resolved_at, photo_urls, updated_at, created_at
          from maintenance_requests
-         where ${where}
-         order by created_at desc`,
+         where ${conditions.join(" and ")}
+         order by created_at desc, id desc
+         limit $${idx}`,
         values
       );
-      return result.rows.map(mapMaintenanceRequest);
+      const hasMore = result.rows.length > limit;
+      const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+      const last = rows[rows.length - 1];
+      return {
+        requests: rows.map(mapMaintenanceRequest),
+        nextCursor: hasMore && last ? `${toIso(last.created_at)}|${last.id}` : null
+      };
+    },
+
+    async getMaintenanceStatusCounts(organizationId: string): Promise<{
+      total: number;
+      open: number;
+      inProgress: number;
+      resolved: number;
+      cancelled: number;
+      urgent: number;
+    }> {
+      const result = await client.query<{
+        total: string | number;
+        open: string | number;
+        in_progress: string | number;
+        resolved: string | number;
+        cancelled: string | number;
+        urgent: string | number;
+      }>(
+        `select
+           count(*)::int as total,
+           count(*) filter (where status = 'open')::int as open,
+           count(*) filter (where status = 'in_progress')::int as in_progress,
+           count(*) filter (where status = 'resolved')::int as resolved,
+           count(*) filter (where status = 'cancelled')::int as cancelled,
+           count(*) filter (where priority = 'urgent' and status in ('open', 'in_progress'))::int as urgent
+         from maintenance_requests
+         where organization_id = $1`,
+        [organizationId]
+      );
+      const row = result.rows[0];
+      return {
+        total: Number(row?.total ?? 0),
+        open: Number(row?.open ?? 0),
+        inProgress: Number(row?.in_progress ?? 0),
+        resolved: Number(row?.resolved ?? 0),
+        cancelled: Number(row?.cancelled ?? 0),
+        urgent: Number(row?.urgent ?? 0)
+      };
     },
 
     async getMaintenanceRequestById(
@@ -339,8 +403,53 @@ export function createPostgresMaintenanceRequestRepository(
         [tenantAuthUserId, organizationId]
       );
       return result.rows.map(mapMaintenanceRequest);
+    },
+
+    async getDashboardUrgentMaintenanceSnapshot(
+      organizationId: string,
+      limit: number
+    ): Promise<DashboardUrgentMaintenanceSnapshot> {
+      const result = await client.query<{
+        id: string;
+        title: string;
+        urgent_count: string | number;
+      }>(
+        `select
+           id,
+           title,
+           count(*) over() as urgent_count
+         from maintenance_requests
+         where organization_id = $1
+           and priority = 'urgent'
+           and status in ('open', 'in_progress')
+         order by created_at desc
+         limit $2`,
+        [organizationId, limit]
+      );
+
+      if (result.rows.length === 0) {
+        return { urgentCount: 0, topTitle: null, items: [] };
+      }
+
+      return {
+        urgentCount: Number(result.rows[0].urgent_count),
+        topTitle: result.rows[0].title,
+        items: result.rows.map((row) => ({ id: row.id, title: row.title }))
+      };
+    },
+
+    async countActiveMaintenanceRequests(organizationId: string): Promise<number> {
+      const result = await client.query<{ count: string | number }>(
+        `select count(*)::int as count
+         from maintenance_requests
+         where organization_id = $1
+           and status in ('open', 'in_progress')`,
+        [organizationId]
+      );
+      return Number(result.rows[0]?.count ?? 0);
     }
   };
+  return repository;
 }
 
 export function createMaintenanceRequestRepositoryFromEnv(
@@ -350,6 +459,6 @@ export function createMaintenanceRequestRepositoryFromEnv(
   if (!envResult.success) {
     throw new Error(envResult.error);
   }
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresMaintenanceRequestRepository(pool);
 }

@@ -1,19 +1,22 @@
 import {
   Permission,
-  parseUpsertMoveOutInput,
+  parseCreateMoveOutInput,
   type GetLeaseMoveOutOutput,
-  type UpsertMoveOutOutput
+  type CreateMoveOutOutput
 } from "@hhousing/api-contracts";
-import { buildLeaseMoveOutView, upsertLeaseMoveOut } from "../../../../../api/leases/move-out";
+import {
+  buildLeaseMoveOutView,
+  createLeaseMoveOut,
+  lazyApplyDueMoveOutsForLease
+} from "../../../../../api/leases/move-out";
 import { requirePermission } from "../../../../../api/organizations/permissions";
 import { mapErrorCodeToHttpStatus, requireOperatorSession } from "../../../../../api/shared";
 import { extractAuthSessionFromCookies } from "../../../../../auth/session-adapter";
-import { rejectIfIndividualExperience } from "../../../../../lib/entreprise-experience-guard";
 import { getScopedPortfolioData } from "../../../../../lib/operator-scope-portfolio";
 import { createId, createPaymentRepo, createTeamFunctionsRepo, createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../../shared";
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params;
@@ -21,11 +24,6 @@ export async function GET(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
-  }
-
-  const experienceDenied = await rejectIfIndividualExperience(access.data);
-  if (experienceDenied !== null) {
-    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(
@@ -49,12 +47,18 @@ export async function GET(
     return jsonResponse(404, { success: false, code: "NOT_FOUND", error: "Lease not found" });
   }
 
-  const data: GetLeaseMoveOutOutput = await buildLeaseMoveOutView(lease, repository, paymentRepository);
+  await lazyApplyDueMoveOutsForLease(lease, repository);
+  const refreshedLease = await repository.getLeaseById(id, access.data.organizationId);
+  const data: GetLeaseMoveOutOutput = await buildLeaseMoveOutView(
+    refreshedLease ?? lease,
+    repository,
+    paymentRepository
+  );
 
   return jsonResponse(200, { success: true, data });
 }
 
-export async function PATCH(
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
@@ -63,11 +67,6 @@ export async function PATCH(
 
   if (!access.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
-  }
-
-  const experienceDenied = await rejectIfIndividualExperience(access.data);
-  if (experienceDenied !== null) {
-    return experienceDenied;
   }
 
   const permissionResult = await requirePermission(
@@ -90,7 +89,7 @@ export async function PATCH(
     });
   }
 
-  const parsed = parseUpsertMoveOutInput(body);
+  const parsed = parseCreateMoveOutInput(body);
   if (!parsed.success) {
     return jsonResponse(mapErrorCodeToHttpStatus(parsed.code), parsed);
   }
@@ -107,7 +106,7 @@ export async function PATCH(
   }
 
   try {
-    await upsertLeaseMoveOut(
+    const data: CreateMoveOutOutput = await createLeaseMoveOut(
       lease,
       parsed.data,
       access.data.userId,
@@ -115,23 +114,43 @@ export async function PATCH(
       repository,
       createId
     );
-    const data = await buildLeaseMoveOutView(lease, repository, paymentRepository);
 
-    return jsonResponse(200, { success: true, data: data.moveOut as UpsertMoveOutOutput });
+    const depositContext = (await buildLeaseMoveOutView(lease, repository, paymentRepository)).depositContext;
+
+    return jsonResponse(200, {
+      success: true,
+      data: { moveOut: data.moveOut, depositContext }
+    });
   } catch (error) {
-    if (error instanceof Error && error.message === "MOVE_OUT_ALREADY_CLOSED") {
-      return jsonResponse(409, {
-        success: false,
-        code: "VALIDATION_ERROR",
-        error: "This move-out is already closed and cannot be edited"
-      });
+    if (error instanceof Error) {
+      if (error.message === "MOVE_OUT_ALREADY_COMPLETED") {
+        return jsonResponse(409, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Cette fin de location est déjà terminée."
+        });
+      }
+      if (error.message === "MOVE_OUT_ALREADY_PLANNED") {
+        return jsonResponse(409, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Une fin de location est déjà planifiée pour ce bail."
+        });
+      }
+      if (error.message === "LEASE_NOT_ACTIVE") {
+        return jsonResponse(400, {
+          success: false,
+          code: "VALIDATION_ERROR",
+          error: "Le bail doit être actif."
+        });
+      }
     }
 
-    console.error("Failed to upsert move-out", error);
+    console.error("Failed to create move-out", error);
     return jsonResponse(500, {
       success: false,
       code: "INTERNAL_ERROR",
-      error: "Failed to save move-out"
+      error: "Impossible d'enregistrer la fin de location"
     });
   }
 }

@@ -31,21 +31,31 @@ const SCREENING_STATUSES = [
 ] as const;
 
 function formatStatusLabel(status: string): string {
-  return status.replaceAll("_", " ");
+  const labels: Record<string, string> = {
+    published: "Publiée",
+    draft: "Brouillon",
+    unpublished: "Non publiée",
+    submitted: "Reçue",
+    under_review: "En cours d'examen",
+    approved: "Approuvée",
+    rejected: "Refusée",
+    needs_more_info: "Infos demandées"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
 }
 
 function formatStatusActionLabel(status: (typeof SCREENING_STATUSES)[number]): string {
   switch (status) {
     case "submitted":
-      return "Mark submitted";
+      return "Marquer reçue";
     case "under_review":
-      return "Move to review";
+      return "Mettre en examen";
     case "approved":
-      return "Approve";
+      return "Approuver";
     case "rejected":
-      return "Reject";
+      return "Refuser";
     case "needs_more_info":
-      return "Request info";
+      return "Demander des infos";
     default:
       return formatStatusLabel(status);
   }
@@ -54,17 +64,17 @@ function formatStatusActionLabel(status: (typeof SCREENING_STATUSES)[number]): s
 function formatStatusProgressLabel(status: (typeof SCREENING_STATUSES)[number]): string {
   switch (status) {
     case "submitted":
-      return "Marking as submitted...";
+      return "Marquage en cours…";
     case "under_review":
-      return "Moving to review...";
+      return "Mise en examen…";
     case "approved":
-      return "Approving application...";
+      return "Approbation…";
     case "rejected":
-      return "Rejecting application...";
+      return "Refus…";
     case "needs_more_info":
-      return "Requesting more info...";
+      return "Demande d'infos…";
     default:
-      return "Updating screening status...";
+      return "Mise à jour…";
   }
 }
 
@@ -97,7 +107,7 @@ export default function ListingManagementPanel({
 
   const listingColumns = useMemo<Column<ManagerListingView>[]>(() => [
     {
-      header: "Listing",
+      header: "Annonce",
       render: (item) => (
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">
@@ -105,22 +115,22 @@ export default function ListingManagementPanel({
           </p>
           <p className="font-medium text-[#010a19]">
             {item.property.propertyType === "multi_unit"
-              ? `${item.property.name} · Unit ${item.unit.unitNumber}`
+              ? `${item.property.name} · Logement ${item.unit.unitNumber}`
               : item.property.name}
           </p>
         </div>
       )
     },
     {
-      header: "Rent",
+      header: "Loyer",
       render: (item) => (
         <span className="text-slate-600">
-          {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month
+          {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / mois
         </span>
       )
     },
     {
-      header: "Status",
+      header: "Statut",
       render: (item) => (
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -129,12 +139,12 @@ export default function ListingManagementPanel({
               : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
           }`}
         >
-          {item.listing?.status ?? "unpublished"}
+          {formatStatusLabel(item.listing?.status ?? "unpublished")}
         </span>
       )
     },
     {
-      header: "Applications",
+      header: "Candidatures",
       render: (item) => <span className="text-slate-600">{item.applicationCount}</span>
     },
     {
@@ -145,14 +155,14 @@ export default function ListingManagementPanel({
             href={`/dashboard/listings/${item.unit.id}`}
             className="text-sm font-medium text-[#0063fe] hover:underline"
           >
-            {item.listing ? "Edit" : "Set up"}
+            {item.listing ? "Modifier" : "Configurer"}
           </Link>
           {item.listing?.status === "published" && (
             <Link
               href={`/listing/${item.listing.id}`}
               className="text-sm text-slate-600 hover:text-slate-900"
             >
-              View
+              Voir
             </Link>
           )}
         </div>
@@ -169,7 +179,7 @@ export default function ListingManagementPanel({
           </p>
           <p className="font-semibold text-slate-900 mt-0.5">
             {item.property.propertyType === "multi_unit"
-              ? `${item.property.name} · Unit ${item.unit.unitNumber}`
+              ? `${item.property.name} · Logement ${item.unit.unitNumber}`
               : item.property.name}
           </p>
         </div>
@@ -180,7 +190,7 @@ export default function ListingManagementPanel({
               : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
           }`}
         >
-          {item.listing?.status ?? "unpublished"}
+          {formatStatusLabel(item.listing?.status ?? "unpublished")}
         </span>
       </div>
       
@@ -214,7 +224,7 @@ export default function ListingManagementPanel({
 
   const applicationColumns = useMemo<Column<ListingApplicationView>[]>(() => [
     {
-      header: "Applicant",
+      header: "Candidat",
       render: (item) => (
         <div>
           <p className="font-medium text-[#010a19]">
@@ -225,15 +235,15 @@ export default function ListingManagementPanel({
       )
     },
     {
-      header: "Listing",
+      header: "Annonce",
       render: (item) => (
         <span className="text-slate-600">
-          {item.property.name} · Unit {item.unit.unitNumber}
+          {item.property.name} · Logement {item.unit.unitNumber}
         </span>
       )
     },
     {
-      header: "Status",
+      header: "Statut",
       render: (item) => (
         <span
           className={`text-xs font-medium ${getApplicationBadgeClass(
@@ -245,7 +255,7 @@ export default function ListingManagementPanel({
       )
     },
     {
-      header: "Income",
+      header: "Revenus",
       render: (item) => (
         <span className="text-slate-600">
           {item.application.monthlyIncome
@@ -287,7 +297,7 @@ export default function ListingManagementPanel({
 
       <div className="space-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100">
         <p>
-          <span className="text-slate-400">Logement:</span> {item.property.name} · Unit {item.unit.unitNumber}
+          <span className="text-slate-400">Logement:</span> {item.property.name} · Logement {item.unit.unitNumber}
         </p>
         <p>
           <span className="text-slate-400">Revenu:</span>{" "}
@@ -515,37 +525,37 @@ export default function ListingManagementPanel({
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-end">
             <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">Search listing</label>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">Rechercher une annonce</label>
               <input
                 value={listingSearchTerm}
                 onChange={(event) => setListingSearchTerm(event.target.value)}
-                placeholder="Property, unit or city"
+                placeholder="Bien, logement ou ville"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">Status</label>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">Statut</label>
               <select
                 value={listingStatusFilter}
                 onChange={(event) => setListingStatusFilter(event.target.value as "all" | "published" | "draft" | "not_configured")}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               >
-                <option value="all">All</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-                <option value="not_configured">Not configured</option>
+                <option value="all">Tous</option>
+                <option value="published">Publiée</option>
+                <option value="draft">Brouillon</option>
+                <option value="not_configured">Non configurée</option>
               </select>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">City</label>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">Ville</label>
               <select
                 value={listingCityFilter}
                 onChange={(event) => setListingCityFilter(event.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               >
-                <option value="all">All cities</option>
+                <option value="all">Toutes les villes</option>
                 {listingCityOptions.map((city) => (
                   <option key={city} value={city}>
                     {city}
@@ -555,13 +565,13 @@ export default function ListingManagementPanel({
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-[#010a19]">Property</label>
+              <label className="mb-2 block text-sm font-medium text-[#010a19]">Bien</label>
               <select
                 value={listingPropertyFilter}
                 onChange={(event) => setListingPropertyFilter(event.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
               >
-                <option value="all">All properties</option>
+                <option value="all">Tous les biens</option>
                 {listingPropertyOptions.map((property) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
@@ -578,7 +588,7 @@ export default function ListingManagementPanel({
             keyExtractor={(item) => item.unit.id}
             emptyState={
               <div className="px-6 py-10 text-center text-sm text-slate-500">
-                No listings match the selected filters.
+                Aucune annonce ne correspond aux filtres.
               </div>
             }
           />
@@ -624,7 +634,7 @@ export default function ListingManagementPanel({
                       {item.application.fullName}
                     </p>
                     <p className="text-sm text-slate-500">
-                      {item.property.name} · Unit {item.unit.unitNumber} ·{" "}
+                      {item.property.name} · Logement {item.unit.unitNumber} ·{" "}
                       {item.property.city}
                     </p>
                   </div>

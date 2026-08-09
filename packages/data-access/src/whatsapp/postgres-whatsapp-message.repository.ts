@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { WhatsAppMessage, WhatsAppMessageStatus } from "@hhousing/domain";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
@@ -48,18 +49,6 @@ export interface WhatsAppMessageQueryable {
   ): Promise<{ rows: Row[]; rowCount?: number | null }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresWhatsAppMessageRepository(
   client: WhatsAppMessageQueryable
@@ -130,6 +119,6 @@ export function createWhatsAppMessageRepositoryFromEnv(
   if (!envResult.success) {
     throw new Error(envResult.error);
   }
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresWhatsAppMessageRepository(pool);
 }

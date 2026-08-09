@@ -18,8 +18,12 @@ export type {
   MoveOut,
   MoveOutCharge,
   MoveOutChargeType,
+  MoveOutDepositDisposition,
+  MoveOutEndedBy,
   MoveOutInspection,
   MoveOutInspectionChecklistItem,
+  MoveOutReasonCode,
+  MoveOutRetentionReasonCode,
   MoveOutStatus
 } from "./entities/move-out.types";
 export type { EmailTemplate, EmailTemplateScenario } from "./entities/email-template.types";

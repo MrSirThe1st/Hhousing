@@ -88,7 +88,7 @@ export default function AdminServiceProviderCategoriesPageClient({
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
             <tr>
               <th className="px-4 py-3">Catégorie</th>
-              <th className="px-4 py-3">Prestataires</th>
+              <th className="px-4 py-3">Artisans</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>

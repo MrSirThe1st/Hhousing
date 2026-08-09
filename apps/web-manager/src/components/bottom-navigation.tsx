@@ -7,6 +7,7 @@ import type { SidebarAccess } from "./sidebar";
 import LogoutButton from "./logout-button";
 import ThemeToggle from "./theme-toggle";
 import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
+import { isV1DeferredNavHref } from "../lib/v1-deferred-features";
 
 interface BottomNavigationProps {
   access: SidebarAccess;
@@ -44,6 +45,10 @@ export default function BottomNavigation({
       return false;
     }
 
+    if (isV1DeferredNavHref(href)) {
+      return false;
+    }
+
     if (isIndividualExperience && isNavHrefHiddenInIndividualExperience(href)) {
       return false;
     }
@@ -52,7 +57,7 @@ export default function BottomNavigation({
   }
 
   const financesHref = isIndividualExperience ? "/dashboard/payments" : "/dashboard/revenues";
-  const servicesHref = isIndividualExperience ? "/dashboard/documents" : "/dashboard/maintenance";
+  const servicesHref = isIndividualExperience ? "/dashboard/documents" : "/dashboard/prestataires";
   const servicesLabel = isIndividualExperience ? "Documents" : "Services";
 
   const navItems = [
@@ -108,19 +113,20 @@ export default function BottomNavigation({
   const menuItems = [
     { href: "/dashboard/clients", label: "Propriétaires", icon: "clients", visible: access.operations },
     { href: "/dashboard/tenants", label: "Locataires", icon: "tenants", visible: access.operations },
-    { href: "/dashboard/leases", label: "Contrats", icon: "leases", visible: access.operations },
+    { href: "/dashboard/leases", label: "Baux", icon: "leases", visible: access.operations },
     { href: "/dashboard/listings", label: "Annonces", icon: "listings", visible: access.operations },
     { href: "/dashboard/move-outs", label: "Fin de location", icon: "move-outs", visible: access.operations },
     { href: "/dashboard/expenses", label: "Dépenses", icon: "expenses", visible: access.finances },
-    { href: "/dashboard/invoices", label: "Factures", icon: "invoices", visible: access.finances },
+    { href: "/dashboard/invoices", label: "Reçus", icon: "invoices", visible: access.finances },
     { href: "/dashboard/reports", label: "Rapports", icon: "reports", visible: access.finances },
     { href: "/dashboard/payments", label: "Paiements", icon: "payments", visible: access.finances },
     { href: "/dashboard/documents", label: "Documents", icon: "documents", visible: access.services },
-    { href: "/dashboard/prestataires", label: "Prestataires", icon: "team", visible: access.services },
+    { href: "/dashboard/prestataires", label: "Artisans et services", icon: "team", visible: access.services },
     { href: "/dashboard/team", label: "Équipe", icon: "team", visible: access.organization },
     { href: "/dashboard/audit", label: "Audit", icon: "audit", visible: access.audit },
     { href: "/dashboard/profile?tab=organisation", label: isIndividualExperience ? "Espace" : "Organisation", icon: "organization", visible: access.manageOrganization || isIndividualExperience },
     { href: "/dashboard/profile?tab=compte", label: "Mon Profil", icon: "profile", visible: true },
+    { href: "/dashboard/billing", label: "Abonnement Haraka", icon: "payments", visible: access.billing },
   ];
 
   return (
@@ -241,7 +247,7 @@ export default function BottomNavigation({
 
         {/* Quick actions & Logout at bottom of drawer */}
         <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-3 dark:border-slate-800">
-          <span className="text-xs text-slate-400 shrink-0">haraka property mobile v1.0</span>
+          <span className="text-xs text-slate-400 shrink-0">Haraka · v1.0</span>
           <div className="min-h-[44px] flex items-center gap-2">
             <ThemeToggle />
             <LogoutButton compact />

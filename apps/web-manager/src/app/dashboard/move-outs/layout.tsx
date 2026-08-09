@@ -1,10 +1,7 @@
-import { requireEntrepriseExperience } from "../../../lib/entreprise-experience-guard";
-
-export default async function MoveOutsEntrepriseLayout({
+export default async function MoveOutsLayout({
   children
 }: {
   children: React.ReactNode;
 }): Promise<React.ReactElement> {
-  await requireEntrepriseExperience();
   return <>{children}</>;
 }

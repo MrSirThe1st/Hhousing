@@ -133,6 +133,27 @@ export interface UpsertMoveOutRecordInput {
   status: "draft" | "confirmed";
 }
 
+export interface CreateSimpleMoveOutRecordInput {
+  id: string;
+  organizationId: string;
+  leaseId: string;
+  initiatedByUserId: string | null;
+  leaseEndDate: string;
+  departureEffectiveDate: string;
+  endedBy: "tenant" | "landlord";
+  reasonCode: string | null;
+  reasonNote: string | null;
+  status: "planned" | "completed";
+  depositHeldAmount: number;
+  depositAmountOverridden: boolean;
+  depositDisposition: "full_refund" | "partial_retention" | "full_retention";
+  depositRetentionAmount: number;
+  depositRetentionReasonCode: string | null;
+  depositRetentionNote: string | null;
+  depositRefundAmount: number;
+  currencyCode: string;
+}
+
 export interface ReplaceMoveOutChargeRecordInput {
   moveOutId: string;
   organizationId: string;
@@ -180,8 +201,12 @@ export interface MoveOutListItem {
   moveOutId: string;
   leaseId: string;
   moveOutDate: string;
+  departureEffectiveDate: string;
+  leaseEndDate: string;
   reason: string | null;
-  status: "draft" | "confirmed" | "closed";
+  status: MoveOut["status"];
+  depositRefundAmount: number | null;
+  currencyCode: string | null;
   tenantFullName: string;
   propertyName: string | null;
   unitLabel: string | null;
@@ -201,11 +226,39 @@ export interface TenantLeaseRepository {
     authUserId: string,
     phone: string | null
   ): Promise<Tenant | null>;
-  listLeasesByOrganization(organizationId: string): Promise<LeaseWithTenantView[]>;
+  listLeasesByOrganization(organizationId: string, options?: { limit?: number }): Promise<LeaseWithTenantView[]>;
+  listLeasesPage(input: {
+    organizationId: string;
+    status?: string | null;
+    limit: number;
+    cursor?: string | null;
+  }): Promise<{ leases: LeaseWithTenantView[]; nextCursor: string | null }>;
+  getLeaseStatusCounts(organizationId: string): Promise<{
+    total: number;
+    active: number;
+    pending: number;
+    ended: number;
+  }>;
   listLeasesByOrganizationAndUnitIds?(
     organizationId: string,
     unitIds: string[]
   ): Promise<LeaseWithTenantView[]>;
+  getDashboardLeaseSnapshot(
+    organizationId: string,
+    todayIsoDate: string,
+    withinDays: number,
+    limit: number
+  ): Promise<{
+    activeTenantCount: number;
+    endingSoonCount: number;
+    nextEndDate: string | null;
+    endingSoon: Array<{
+      id: string;
+      tenantFullName: string;
+      endDate: string;
+      daysUntil: number;
+    }>;
+  }>;
   getCurrentLeaseByTenantAuthUserId(
     tenantAuthUserId: string,
     organizationId: string
@@ -219,6 +272,17 @@ export interface TenantLeaseRepository {
   getLatestLedgerEventId(organizationId: string): Promise<number | null>;
   getMoveOutByLeaseId(leaseId: string, organizationId: string): Promise<MoveOutAggregateRecord | null>;
   upsertMoveOut(input: UpsertMoveOutRecordInput): Promise<MoveOut>;
+  createSimpleMoveOut(input: CreateSimpleMoveOutRecordInput): Promise<MoveOut>;
+  applyMoveOutDeparture(input: {
+    moveOutId: string;
+    organizationId: string;
+    leaseId: string;
+  }): Promise<MoveOut | null>;
+  cancelMoveOut(input: {
+    moveOutId: string;
+    organizationId: string;
+  }): Promise<MoveOut | null>;
+  applyDueMoveOutsForOrganization(organizationId: string, todayIsoDate: string): Promise<number>;
   replaceMoveOutCharges(input: ReplaceMoveOutChargeRecordInput): Promise<MoveOutCharge[]>;
   upsertMoveOutInspection(input: UpsertMoveOutInspectionRecordInput): Promise<MoveOutInspection>;
   closeMoveOut(input: CloseMoveOutRecordInput): Promise<MoveOut | null>;

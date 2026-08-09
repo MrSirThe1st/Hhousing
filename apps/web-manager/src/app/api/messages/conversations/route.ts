@@ -8,6 +8,7 @@ import {
   filterManagerConversationsByScope,
   getScopedPortfolioData
 } from "../../../../lib/operator-scope-portfolio";
+import { rejectIfV1FeatureDeferred } from "../../../../lib/v1-deferred-feature-guard";
 import {
   createId,
   createMessageRepo,
@@ -23,6 +24,10 @@ export async function GET(request: Request): Promise<Response> {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
   const session = access.data;
+  const deferred = rejectIfV1FeatureDeferred("messaging");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
+  }
 
   const result = await listManagerConversations(
     {
@@ -55,6 +60,10 @@ export async function POST(request: Request): Promise<Response> {
     return jsonResponse(mapErrorCodeToHttpStatus(access.code), access);
   }
   const session = access.data;
+  const deferred = rejectIfV1FeatureDeferred("messaging");
+  if (deferred !== null) {
+    return jsonResponse(403, deferred);
+  }
   let body: unknown;
 
   try {

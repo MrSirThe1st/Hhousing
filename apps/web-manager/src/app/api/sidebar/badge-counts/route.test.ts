@@ -27,9 +27,7 @@ describe("/api/sidebar/badge-counts", () => {
     });
     getSidebarBadgeCountsMock.mockResolvedValue({
       listings: 3,
-      payments: 2,
-      maintenance: 5,
-      messages: 7
+      payments: 2
     });
   });
 
@@ -43,9 +41,7 @@ describe("/api/sidebar/badge-counts", () => {
       success: true,
       data: {
         listings: 3,
-        payments: 2,
-        maintenance: 5,
-        messages: 7
+        payments: 2
       }
     });
   });

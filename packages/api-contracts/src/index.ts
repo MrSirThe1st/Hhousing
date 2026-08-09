@@ -110,28 +110,22 @@ export type {
   ListLeasesOutput,
   ListTenantsOutput
 } from "./leases/tenant-lease.types";
-export type {
-  UpsertMoveOutChargeInput,
-  UpsertMoveOutInput,
-  UpsertMoveOutInspectionInput,
-  CloseMoveOutInput,
-  MoveOutSettlementSummary,
-  MoveOutReconciliationIssue,
-  MoveOutReconciliationSeverity,
-  LeaseMoveOutView,
-  GetLeaseMoveOutOutput,
-  GetMoveOutReconciliationOutput,
-  UpsertMoveOutOutput,
-  UpsertMoveOutInspectionOutput,
-  CloseMoveOutOutput
-} from "./leases/move-out.types";
 export {
   parseCreateTenantInput,
   parseCreateLeaseInput,
   validateTenantPhoneForLease,
   parseFinalizeLeaseInput
 } from "./leases/tenant-lease.validation";
+export type {
+  CreateMoveOutInput,
+  CreateMoveOutOutput,
+  GetLeaseMoveOutOutput,
+  LeaseMoveOutView,
+  MoveOutDepositContext,
+  MoveOutListItemView
+} from "./leases/move-out.types";
 export {
+  parseCreateMoveOutInput,
   parseUpsertMoveOutInput,
   parseUpsertMoveOutInspectionInput,
   parseCloseMoveOutInput

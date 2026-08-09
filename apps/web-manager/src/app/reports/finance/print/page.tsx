@@ -1,18 +1,16 @@
 import { redirect } from "next/navigation";
 import ReportPrintTrigger from "../../../../components/report-print-trigger";
 import {
-  buildExpenseDataset,
   buildFinanceQueryString,
   buildMonthlyNetBuckets,
   buildPropertyFinanceSummary,
-  buildRevenueDataset,
   formatCurrencySummary,
   formatExpenseCategory,
-  loadScopedFinanceData,
-  normalizeFinanceFilters,
   subtractCurrencyTotals
 } from "../../../../lib/finance-reporting";
+import { loadFinanceExportDatasets } from "../../../../lib/finance-export-data";
 import { getServerAuthSession } from "../../../../lib/session";
+import { redirectIfV1FeatureDeferred } from "../../../../lib/v1-deferred-feature-guard";
 
 type PrintReportPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -24,13 +22,12 @@ export default async function PrintReportPage({ searchParams }: PrintReportPageP
   if (session.role === "platform_admin") redirect("/admin");
   if (session.role === "tenant" || !session.organizationId) redirect("/account-type");
 
+  redirectIfV1FeatureDeferred("reports");
+
   const params = await searchParams;
-  const filters = normalizeFinanceFilters(params);
+  const { filters, revenueDataset, expenseDataset } = await loadFinanceExportDatasets(session, params);
   const query = buildFinanceQueryString(filters);
   const backHref = `/dashboard/reports${query.length > 0 ? `?${query}` : ""}`;
-  const { payments, expenses, scopedPortfolio } = await loadScopedFinanceData(session);
-  const revenueDataset = buildRevenueDataset(payments, scopedPortfolio, filters);
-  const expenseDataset = buildExpenseDataset(expenses, scopedPortfolio, filters);
   const propertySummary = buildPropertyFinanceSummary(revenueDataset, expenseDataset);
   const monthlyNet = buildMonthlyNetBuckets(revenueDataset, expenseDataset);
   const netTotals = subtractCurrencyTotals(revenueDataset.revenueTotals, expenseDataset.expenseTotals);
@@ -56,7 +53,7 @@ export default async function PrintReportPage({ searchParams }: PrintReportPageP
             <p className="mt-2 text-lg font-semibold">{formatCurrencySummary(expenseDataset.expenseTotals)}</p>
           </article>
           <article className="rounded-xl border border-gray-200 p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Garanties (passif)</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Cautions (passif)</p>
             <p className="mt-2 text-lg font-semibold">{formatCurrencySummary(revenueDataset.depositLiabilityTotals)}</p>
           </article>
           <article className="rounded-xl border border-gray-200 p-4">
@@ -126,7 +123,7 @@ export default async function PrintReportPage({ searchParams }: PrintReportPageP
                   <th className="pb-3">Date</th>
                   <th className="pb-3">Libellé</th>
                   <th className="pb-3">Propriété</th>
-                  <th className="pb-3">Unité</th>
+                  <th className="pb-3">Logement</th>
                   <th className="pb-3">Catégorie</th>
                   <th className="pb-3">Fournisseur</th>
                   <th className="pb-3">Payé à</th>

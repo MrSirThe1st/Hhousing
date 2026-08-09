@@ -27,9 +27,7 @@ vi.mock("../../lib/operator-context", () => ({
 vi.mock("../../lib/sidebar-badge-counts", () => ({
   getSidebarBadgeCounts: vi.fn().mockResolvedValue({
     listings: 0,
-    payments: 0,
-    maintenance: 0,
-    messages: 0
+    payments: 0
   })
 }));
 
@@ -63,6 +61,19 @@ vi.mock("@hhousing/data-access", async (importOriginal) => {
 
 vi.mock("../../components/sidebar", () => ({
   default: () => "sidebar"
+}));
+
+vi.mock("../api/shared", () => ({
+  createRepositoryFromEnv: vi.fn(() => ({
+    success: true,
+    data: {
+      getOrganizationById: vi.fn().mockResolvedValue({
+        id: "org-1",
+        name: "Test Org",
+        status: "active"
+      })
+    }
+  }))
 }));
 
 vi.mock("../../components/operator-scope-switcher", () => ({

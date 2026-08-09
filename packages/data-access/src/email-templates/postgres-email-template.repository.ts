@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { EmailTemplate } from "@hhousing/domain";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
@@ -48,16 +49,6 @@ function mapEmailTemplate(row: EmailTemplateRow): EmailTemplate {
   };
 }
 
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) {
-    return existing;
-  }
-
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresEmailTemplateRepository(client: EmailTemplateQueryable): EmailTemplateRepository {
   return {
@@ -125,6 +116,6 @@ export function createEmailTemplateRepositoryFromEnv(env: DatabaseEnvSource): Em
     throw new Error(databaseEnv.error);
   }
 
-  const pool = getOrCreatePool(databaseEnv.data.connectionString);
+  const pool = getSharedPool(databaseEnv.data.connectionString);
   return createPostgresEmailTemplateRepository(pool);
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { createMaintenanceRepo, createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
+import { notFound } from "next/navigation";
+import { createPaymentRepo, createRepositoryFromEnv, createTenantLeaseRepo } from "../../../api/shared";
 import ClientDetailActions from "./ClientDetailActions";
 import ClientPortfolioTable from "../../../../components/client-portfolio-table";
 import OwnerDocumentsSectionClient from "../../../../components/owner-documents-section-client";
@@ -21,51 +21,6 @@ function addAmount(summary: Map<string, number>, currencyCode: string, amount: n
   summary.set(currencyCode, (summary.get(currencyCode) ?? 0) + amount);
 }
 
-function formatMaintenanceStatusLabel(status: "open" | "in_progress" | "resolved" | "cancelled"): string {
-  switch (status) {
-    case "open":
-      return "Ouverte";
-    case "in_progress":
-      return "En cours";
-    case "resolved":
-      return "Résolue";
-    case "cancelled":
-      return "Annulée";
-    default:
-      return status;
-  }
-}
-
-function formatMaintenancePriorityLabel(priority: "low" | "medium" | "high" | "urgent"): string {
-  switch (priority) {
-    case "low":
-      return "Faible";
-    case "medium":
-      return "Moyenne";
-    case "high":
-      return "Haute";
-    case "urgent":
-      return "Urgente";
-    default:
-      return priority;
-  }
-}
-
-function getMaintenanceStatusTone(status: "open" | "in_progress" | "resolved" | "cancelled"): string {
-  switch (status) {
-    case "open":
-      return "bg-amber-100 text-amber-800";
-    case "in_progress":
-      return "bg-blue-100 text-blue-800";
-    case "resolved":
-      return "bg-emerald-100 text-emerald-800";
-    case "cancelled":
-      return "bg-gray-100 text-gray-700";
-    default:
-      return "bg-gray-100 text-gray-700";
-  }
-}
-
 function formatOwnerLocation(city: string | null, state: string | null, country: string | null): string | null {
   const parts = [city, state, country].filter((value): value is string => Boolean(value));
   return parts.length > 0 ? parts.join(", ") : null;
@@ -84,13 +39,12 @@ export default async function ClientDetailPage(
   }
 
   const tenantLeaseRepo = createTenantLeaseRepo();
-  const [client, properties, leases, tenants, payments, maintenanceRequests] = await Promise.all([
+  const [client, properties, leases, tenants, payments] = await Promise.all([
     repoResult.data.getOwnerById(id, session.organizationId),
     repoResult.data.listPropertiesWithUnits(session.organizationId, { ownerId: id }),
     tenantLeaseRepo.listLeasesByOrganization(session.organizationId),
     tenantLeaseRepo.listTenantsByOrganization(session.organizationId),
-    createPaymentRepo().listPayments({ organizationId: session.organizationId }),
-    createMaintenanceRepo().listMaintenanceRequests({ organizationId: session.organizationId })
+    createPaymentRepo().listPayments({ organizationId: session.organizationId })
   ]);
 
   if (!client || client.ownerType !== "client") {
@@ -123,9 +77,6 @@ export default async function ClientDetailPage(
     .sort((left, right) => left.fullName.localeCompare(right.fullName, "fr"));
   const clientLeaseIds = new Set(clientLeases.map((lease) => lease.id));
   const clientPayments = payments.filter((payment) => clientLeaseIds.has(payment.leaseId));
-  const clientMaintenanceRequests = maintenanceRequests
-    .filter((request) => unitIds.has(request.unitId))
-    .sort((left, right) => right.createdAtIso.localeCompare(left.createdAtIso));
   const currentMonth = getNow().toISOString().slice(0, 7);
 
   const monthlyExpected = new Map<string, number>();
@@ -146,16 +97,10 @@ export default async function ClientDetailPage(
     }
   }
 
-  const openMaintenanceCount = clientMaintenanceRequests.filter((request) => request.status === "open").length;
-  const inProgressMaintenanceCount = clientMaintenanceRequests.filter((request) => request.status === "in_progress").length;
-  const urgentMaintenanceCount = clientMaintenanceRequests.filter(
-    (request) => request.priority === "urgent" && ["open", "in_progress"].includes(request.status)
-  ).length;
   const recentTenantLeases = activeLeases
     .slice()
     .sort((left, right) => right.startDate.localeCompare(left.startDate))
     .slice(0, 5);
-  const recentMaintenanceRequests = clientMaintenanceRequests.slice(0, 5);
   const location = formatOwnerLocation(client.city, client.state, client.country);
 
   return (
@@ -214,7 +159,7 @@ export default async function ClientDetailPage(
           <p className="mt-1 text-3xl font-semibold text-[#010a19]">{properties.length}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Unités</p>
+          <p className="text-sm text-gray-500">Logements</p>
           <p className="mt-1 text-3xl font-semibold text-[#010a19]">{unitCount}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -248,8 +193,7 @@ export default async function ClientDetailPage(
         properties={propertyRows}
       />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-[#010a19]">Locataires du portefeuille</h2>
@@ -276,7 +220,7 @@ export default async function ClientDetailPage(
                       <div>
                         <p className="font-medium text-[#010a19]">{tenant?.fullName ?? lease.tenantFullName}</p>
                         <p className="mt-1 text-sm text-gray-500">
-                          {unit ? `${unit.propertyName} • Unité ${unit.unitNumber}` : "Unité non disponible"}
+                          {unit ? `${unit.propertyName} • Logement ${unit.unitNumber}` : "Logement non disponible"}
                         </p>
                       </div>
                       <Link href={`/dashboard/tenants/${lease.tenantId}`} className="text-sm font-medium text-[#0063fe] hover:underline">
@@ -294,71 +238,6 @@ export default async function ClientDetailPage(
             </div>
           )}
         </section>
-
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-[#010a19]">Maintenance</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                {clientMaintenanceRequests.length} demande(s) sur ce portefeuille, dont {openMaintenanceCount + inProgressMaintenanceCount} en cours de traitement.
-              </p>
-            </div>
-            <Link href="/dashboard/maintenance" className="text-sm font-medium text-[#0063fe] hover:underline">
-              Voir toute la maintenance
-            </Link>
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-gray-500">Ouvertes</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{openMaintenanceCount}</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-gray-500">En cours</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{inProgressMaintenanceCount}</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-gray-500">Urgentes</p>
-              <p className="mt-1 text-lg font-semibold text-[#010a19]">{urgentMaintenanceCount}</p>
-            </div>
-          </div>
-
-          {recentMaintenanceRequests.length === 0 ? (
-            <p className="mt-4 text-sm text-gray-500">Aucune demande de maintenance sur ce portefeuille.</p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {recentMaintenanceRequests.map((request) => {
-                const unit = unitDetails.get(request.unitId);
-
-                return (
-                  <div key={request.id} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-medium text-[#010a19]">{request.title}</p>
-                        <p className="mt-1 text-sm text-gray-500">
-                          {unit ? `${unit.propertyName} • Unité ${unit.unitNumber}` : "Unité non disponible"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
-                        <span className={`rounded-full px-2.5 py-1 font-medium ${getMaintenanceStatusTone(request.status)}`}>
-                          {formatMaintenanceStatusLabel(request.status)}
-                        </span>
-                        <span className="rounded-full bg-rose-100 px-2.5 py-1 font-medium text-rose-700">
-                          {formatMaintenancePriorityLabel(request.priority)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
-                      <span>Maj le {new Date(request.updatedAtIso).toLocaleDateString("fr-FR")}</span>
-                      <span>{request.assignedToName ?? "Aucun intervenant assigné"}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      </div>
 
       <OwnerDocumentsSectionClient ownerId={client.id} />
     </div>

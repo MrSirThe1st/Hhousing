@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 const TABS = [
   { href: "/dashboard/prestataires", label: "Par bien", exact: true },
   { href: "/dashboard/prestataires/catalogue", label: "Catalogue", exact: false },
-  { href: "/dashboard/prestataires/mes-prestataires", label: "Mes prestataires", exact: false }
+  { href: "/dashboard/prestataires/mes-prestataires", label: "Mes artisans", exact: false }
 ] as const;
 
 export default function PrestatairesSubnav(): React.ReactElement {
@@ -16,7 +16,7 @@ export default function PrestatairesSubnav(): React.ReactElement {
   const query = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : "";
 
   return (
-    <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800" aria-label="Sections prestataires">
+    <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800" aria-label="Sections artisans et services">
       {TABS.map((tab) => {
         const active = tab.exact
           ? pathname === tab.href

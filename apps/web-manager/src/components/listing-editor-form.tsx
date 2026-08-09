@@ -279,13 +279,13 @@ export default function ListingEditorForm({
     setMessage(null);
 
     if (!form.coverImageUrl.trim() && coverUpload === null) {
-      setError("Ajoutez une image de couverture avant d'enregistrer le listing.");
+      setError("Ajoutez une image de couverture avant d'enregistrer l'annonce.");
       setBusyAction(null);
       return;
     }
 
     if (form.galleryImageUrls.length + galleryUploads.length < 1) {
-      setError("Ajoutez au moins une image de galerie avant d'enregistrer le listing.");
+      setError("Ajoutez au moins une image de galerie avant d'enregistrer l'annonce.");
       setBusyAction(null);
       return;
     }
@@ -347,7 +347,7 @@ export default function ListingEditorForm({
     setCoverUpload(null);
     setGalleryUploads([]);
 
-    setMessage(status === "published" ? "Listing published." : "Draft saved.");
+    setMessage(status === "published" ? "Annonce publiée." : "Brouillon enregistré.");
     setBusyAction(null);
 
     if (status === "published") {
@@ -370,14 +370,14 @@ export default function ListingEditorForm({
     setMessage(null);
 
     if (!form.coverImageUrl.trim() && coverUpload === null) {
-      setError("Ajoutez une image de couverture avant d'enregistrer le listing.");
+      setError("Ajoutez une image de couverture avant d'enregistrer l'annonce.");
       setBusyAction(null);
       setIsBulkModalOpen(false);
       return;
     }
 
     if (form.galleryImageUrls.length + galleryUploads.length < 1) {
-      setError("Ajoutez au moins une image de galerie avant d'enregistrer le listing.");
+      setError("Ajoutez au moins une image de galerie avant d'enregistrer l'annonce.");
       setBusyAction(null);
       setIsBulkModalOpen(false);
       return;
@@ -488,11 +488,11 @@ return (
             href="/dashboard/listings?tab=listings"
             className="text-sm font-medium text-blue-600 hover:underline"
           >
-            ← Back to listings
+            ← Retour aux annonces
           </Link>
 
           <h1 className="mt-3 text-2xl font-semibold text-slate-900">
-            {item.listing ? "Edit listing" : "Create listing"}
+            {item.listing ? "Modifier l'annonce" : "Créer l'annonce"}
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
@@ -503,10 +503,10 @@ return (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm">
           <p className="font-semibold text-slate-900">{item.property.name}</p>
           <p className="text-slate-500">
-            Unit {item.unit.unitNumber} · {item.property.city}
+            Logement {item.unit.unitNumber} · {item.property.city}
           </p>
           <p className="mt-1 font-medium text-slate-700">
-            {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / month
+            {formatCurrency(item.unit.monthlyRentAmount, item.unit.currencyCode)} / mois
           </p>
         </div>
       </div>
@@ -525,7 +525,7 @@ return (
               }}
               className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
             />
-            Apply these details & photos to similar units
+            Appliquer ces détails et photos aux logements similaires
           </label>
         )}
         <div className="flex items-center gap-3">
@@ -537,7 +537,7 @@ return (
             disabled={isSubmitting}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
           >
-            Save edits
+            Enregistrer
           </button>
           <button
             type="button"
@@ -545,7 +545,7 @@ return (
             disabled={isSubmitting}
             className="rounded-lg bg-[#0063fe] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60"
           >
-            Publish listing
+            Publier l'annonce
           </button>
         </div>
       </div>
@@ -558,9 +558,9 @@ return (
           {/* PUBLIC CONTENT */}
           <div className="rounded-2xl border border-slate-200 bg-white">
             <div className="border-b border-slate-100 px-5 py-4">
-              <h2 className="text-sm font-semibold text-slate-900">Public content</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Contenu public</h2>
               <p className="mt-1 text-xs text-slate-500">
-                This is what tenants will see on the listing page
+                Ce que les locataires verront sur l'annonce
               </p>
             </div>
 
@@ -569,7 +569,7 @@ return (
               {/* DESCRIPTION */}
               <div>
                 <label className="text-xs font-medium text-slate-600">
-                  Marketing description
+                  Description de l'annonce
                 </label>
 
                 <textarea
@@ -588,7 +588,7 @@ return (
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-slate-900">
-                        Property photos
+                        Photos du bien
                       </p>
                       <p className="text-xs text-slate-500">
                         Reuse existing property media
@@ -600,7 +600,7 @@ return (
                       onClick={useAllPropertyPhotos}
                       className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                     >
-                      Use all
+                      Utiliser toutes
                     </button>
                   </div>
 
@@ -624,12 +624,12 @@ return (
                           <div className="absolute top-2 left-2 flex gap-2">
                             {isCover && (
                               <span className="rounded-full bg-white px-2 py-1 text-[11px] font-medium">
-                                Cover
+                                Couverture
                               </span>
                             )}
                             {inGallery && (
                               <span className="rounded-full bg-white px-2 py-1 text-[11px] font-medium">
-                                Gallery
+                                Galerie
                               </span>
                             )}
                           </div>
@@ -639,14 +639,14 @@ return (
                               onClick={() => setCoverFromProperty(imageUrl)}
                               className="rounded-md bg-white px-2 py-1 text-[11px] shadow"
                             >
-                              Cover
+                              Couverture
                             </button>
 
                             <button
                               onClick={() => togglePropertyGalleryImage(imageUrl)}
                               className="rounded-md bg-white px-2 py-1 text-[11px] shadow"
                             >
-                              Gallery
+                              Galerie
                             </button>
                           </div>
                         </div>
@@ -661,7 +661,7 @@ return (
 
                 {/* COVER */}
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-600">Cover image</p>
+                  <p className="text-xs font-medium text-slate-600">Image de couverture</p>
 
                   <input
                     type="file"
@@ -681,14 +681,14 @@ return (
 
                       <div className="flex items-center justify-between px-3 py-2 text-xs">
                         <span className="truncate text-slate-500">
-                          {coverUpload?.file.name ?? "Current cover"}
+                          {coverUpload?.file.name ?? "Couverture actuelle"}
                         </span>
 
                         <button
                           onClick={removeCurrentCover}
                           className="text-red-600 font-medium"
                         >
-                          Remove
+                          Retirer
                         </button>
                       </div>
                     </div>
@@ -697,7 +697,7 @@ return (
 
                 {/* GALLERY */}
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-600">Gallery images</p>
+                  <p className="text-xs font-medium text-slate-600">Images de galerie</p>
 
                   <input
                     type="file"
@@ -719,7 +719,7 @@ return (
                             onClick={() => removeExistingGalleryImage(url)}
                             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-xs bg-white px-2 py-1 rounded shadow"
                           >
-                            Delete
+                            Supprimer
                           </button>
                         </div>
                       ))}
@@ -734,7 +734,7 @@ return (
                             onClick={() => removePendingGalleryImage(upload.id)}
                             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-xs bg-white px-2 py-1 rounded shadow"
                           >
-                            Delete
+                            Supprimer
                           </button>
                         </div>
                       ))}
@@ -767,22 +767,22 @@ return (
 
           <div className="rounded-2xl border border-slate-200 bg-white">
             <div className="border-b border-slate-100 px-5 py-4">
-              <h2 className="text-sm font-semibold">Visibility</h2>
+              <h2 className="text-sm font-semibold">Visibilité</h2>
               <p className="text-xs text-slate-500 mt-1">
-                Control tenant-facing data
+                Choisir ce que les locataires voient
               </p>
             </div>
 
             <div className="p-5 space-y-3">
               {[
-                ["showAddress", "Address"],
-                ["showRent", "Rent"],
-                ["showDeposit", "Deposit"],
-                ["showAmenities", "Amenities"],
-                ["showFeatures", "Features"],
-                ["showBedrooms", "Bedrooms"],
-                ["showBathrooms", "Bathrooms"],
-                ["showSizeSqm", "Size"],
+                ["showAddress", "Adresse"],
+                ["showRent", "Loyer"],
+                ["showDeposit", "Caution"],
+                ["showAmenities", "Équipements"],
+                ["showFeatures", "Caractéristiques"],
+                ["showBedrooms", "Chambres"],
+                ["showBathrooms", "Salles de bain"],
+                ["showSizeSqm", "Surface"],
                 ["showPostedBy", "Afficher l'auteur de l'annonce"]
               ].map(([key, label]) => (
                 <label
@@ -817,10 +817,10 @@ return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 animate-in fade-in-50 zoom-in-95 duration-150 text-left">
             <h3 className="text-lg font-bold text-slate-900">
-              Apply setup to similar units in {item.property.name}
+              Appliquer aux logements similaires de {item.property.name}
             </h3>
             <p className="text-xs text-slate-500 mt-2">
-              Select which units should inherit these photos, descriptions, and visibility settings. Uncheck units that have unique layouts.
+              Choisissez les logements qui doivent reprendre ces photos, descriptions et réglages de visibilité. Décochez les logements différents.
             </p>
 
             <div className="mt-4 border-t border-slate-100 pt-4">
@@ -837,7 +837,7 @@ return (
                   }}
                   className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
                 />
-                Select All
+                Tout sélectionner
               </label>
             </div>
 
@@ -862,7 +862,7 @@ return (
                         }}
                         className="rounded border-slate-300 text-[#0063FE] focus:ring-[#0063FE]"
                       />
-                      <span>Unit {entry.unit.unitNumber}</span>
+                      <span>Logement {entry.unit.unitNumber}</span>
                     </label>
                   );
                 })}
@@ -875,7 +875,7 @@ return (
                 onClick={() => setIsBulkModalOpen(false)}
                 className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
               >
-                Cancel
+                Annuler
               </button>
               <button
                 type="button"

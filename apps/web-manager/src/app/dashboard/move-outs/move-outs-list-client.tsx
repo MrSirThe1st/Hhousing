@@ -4,67 +4,70 @@ import { useState } from "react";
 import Link from "next/link";
 import type { MoveOutListItem } from "@hhousing/data-access";
 
-type FilterTab = "all" | "active" | "closed";
+type FilterTab = "all" | "active" | "done" | "cancelled";
 
 interface MoveOutsListClientProps {
   initialMoveOuts: MoveOutListItem[];
 }
 
 function statusLabel(status: MoveOutListItem["status"]): React.ReactElement {
-  if (status === "draft") {
+  if (status === "planned") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-        <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-        Brouillon
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+        Fin prévue
       </span>
     );
   }
-  if (status === "confirmed") {
+  if (status === "completed" || status === "closed") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-        Confirmé
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+        Terminée
+      </span>
+    );
+  }
+  if (status === "cancelled") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+        Annulée
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
-      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-      Clôturé
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+      {status}
     </span>
   );
 }
 
 function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  });
 }
 
-function formatRelative(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "à l'instant";
-  if (minutes < 60) return `il y a ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `il y a ${hours}h`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "hier";
-  if (days < 30) return `il y a ${days} j`;
-  return formatDate(isoDate);
+function formatMoney(amount: number | null, currencyCode: string | null): string {
+  if (amount === null) return "—";
+  return `${amount.toLocaleString("fr-FR")} ${currencyCode ?? ""}`.trim();
 }
 
 export default function MoveOutsListClient({ initialMoveOuts }: MoveOutsListClientProps): React.ReactElement {
   const [tab, setTab] = useState<FilterTab>("all");
 
   const filtered = initialMoveOuts.filter((mo) => {
-    if (tab === "active") return mo.status === "draft" || mo.status === "confirmed";
-    if (tab === "closed") return mo.status === "closed";
+    if (tab === "active") return mo.status === "planned" || mo.status === "draft" || mo.status === "confirmed";
+    if (tab === "done") return mo.status === "completed" || mo.status === "closed";
+    if (tab === "cancelled") return mo.status === "cancelled";
     return true;
   });
 
   const tabs: Array<{ id: FilterTab; label: string }> = [
     { id: "all", label: "Tous" },
     { id: "active", label: "En cours" },
-    { id: "closed", label: "Clôturés" }
+    { id: "done", label: "Terminées" },
+    { id: "cancelled", label: "Annulées" }
   ];
 
   return (
@@ -82,13 +85,6 @@ export default function MoveOutsListClient({ initialMoveOuts }: MoveOutsListClie
             }`}
           >
             {t.label}
-            <span className="ml-2 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-              {initialMoveOuts.filter((mo) => {
-                if (t.id === "active") return mo.status === "draft" || mo.status === "confirmed";
-                if (t.id === "closed") return mo.status === "closed";
-                return true;
-              }).length}
-            </span>
           </button>
         ))}
       </div>
@@ -96,11 +92,7 @@ export default function MoveOutsListClient({ initialMoveOuts }: MoveOutsListClie
       {filtered.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-sm text-gray-500">
-            {tab === "active"
-              ? "Aucun départ en cours. Initiez un départ depuis un bail actif."
-              : tab === "closed"
-              ? "Aucun départ clôturé."
-              : "Aucun dossier de départ."}
+            Aucune fin de location dans cette vue. Démarrez depuis un bail actif.
           </p>
         </div>
       ) : (
@@ -110,29 +102,25 @@ export default function MoveOutsListClient({ initialMoveOuts }: MoveOutsListClie
               <tr className="border-b border-gray-100 text-left">
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Locataire</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Bien</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Date de sortie</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Départ</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">À rembourser</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Statut</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Modifié</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {filtered.map((mo) => (
-                <tr key={mo.moveOutId} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                <tr key={mo.moveOutId} className="border-b border-gray-50 last:border-0">
                   <td className="px-4 py-3 font-medium text-[#010a19]">{mo.tenantFullName}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {mo.propertyName ?? "—"}
-                    {mo.unitLabel ? <span className="ml-1 text-gray-400">· {mo.unitLabel}</span> : null}
+                  <td className="px-4 py-3 text-slate-600">
+                    {[mo.propertyName, mo.unitLabel].filter(Boolean).join(" · ") || "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{formatDate(mo.moveOutDate)}</td>
+                  <td className="px-4 py-3 text-slate-600">{formatDate(mo.departureEffectiveDate)}</td>
+                  <td className="px-4 py-3 text-slate-600">{formatMoney(mo.depositRefundAmount, mo.currencyCode)}</td>
                   <td className="px-4 py-3">{statusLabel(mo.status)}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{formatRelative(mo.updatedAtIso)}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/dashboard/leases/${mo.leaseId}/move-out`}
-                      className="text-xs font-semibold text-[#0063fe] hover:underline"
-                    >
-                      {mo.status === "closed" ? "Voir" : "Reprendre"}
+                    <Link href={`/dashboard/leases/${mo.leaseId}`} className="text-sm font-medium text-[#0063fe] hover:underline">
+                      Voir le bail
                     </Link>
                   </td>
                 </tr>

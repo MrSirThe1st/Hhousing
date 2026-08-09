@@ -47,33 +47,18 @@ export function billingStatusLabel(status: PlatformBillingDisplayStatus): string
   }
 }
 
-export function billingStatusDot(status: PlatformBillingDisplayStatus): string {
-  switch (status) {
-    case "issued":
-      return "🟠";
-    case "paid":
-      return "🟢";
-    case "overdue":
-      return "🔴";
-    case "void":
-      return "⚫";
-    default:
-      return "";
-  }
-}
-
 export function billingStatusBadgeClass(status: PlatformBillingDisplayStatus): string {
   switch (status) {
     case "issued":
-      return "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200";
+      return "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-200 dark:ring-amber-400/30";
     case "paid":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300";
+      return "bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-200 dark:ring-emerald-400/30";
     case "overdue":
-      return "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200";
+      return "bg-red-50 text-red-800 ring-1 ring-inset ring-red-600/20 dark:bg-red-950/50 dark:text-red-200 dark:ring-red-400/30";
     case "void":
-      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
+      return "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/15 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30";
     default:
-      return "bg-slate-100 text-slate-600";
+      return "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/15";
   }
 }
 

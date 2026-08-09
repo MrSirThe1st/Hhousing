@@ -29,7 +29,7 @@ export default function SaasBillingOverdueBanner({
           </p>
         </div>
         <Link
-          href="/dashboard/billing"
+          href="/dashboard/billing/payments"
           className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-900 px-3 py-2 text-xs font-semibold text-white hover:bg-red-800 dark:bg-red-200 dark:text-red-950"
         >
           Payer maintenant

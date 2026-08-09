@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type { Document } from "@hhousing/domain";
 import type { ListDocumentsFilter } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
@@ -52,15 +53,6 @@ export interface DocumentQueryable {
   ): Promise<{ rows: Row[] }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 export function createPostgresDocumentRepository(
   client: DocumentQueryable
@@ -147,6 +139,6 @@ export function createDocumentRepositoryFromEnv(env: DatabaseEnvSource): Documen
   if (!envResult.success) {
     throw new Error(envResult.error);
   }
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresDocumentRepository(pool);
 }

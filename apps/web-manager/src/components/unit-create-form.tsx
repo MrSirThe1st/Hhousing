@@ -278,7 +278,7 @@ export default function UnitCreateForm({
     });
     setCreatedPropertyId(propertyId);
     setLastCreatedCount(createdCount);
-    setMessage(unitCount === 1 ? "Unité créée avec succès." : `${unitCount} unités créées avec succès.`);
+    setMessage(unitCount === 1 ? "Logement créé avec succès." : `${unitCount} logements créés avec succès.`);
     setUnitBusy(false);
     router.refresh();
   }
@@ -356,12 +356,12 @@ export default function UnitCreateForm({
             />
           </label>
           <label className="block text-sm font-medium text-gray-700">
-            <UnitFieldLabel icon="deposit" label="Garantie" />
+            <UnitFieldLabel icon="deposit" label="Caution" />
             <input
               value={unitForm.depositAmount}
               onChange={(event) => setUnitForm((previous) => ({ ...previous, depositAmount: event.target.value }))}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
-              placeholder="Garantie"
+              placeholder="Caution"
               inputMode="decimal"
               required
             />

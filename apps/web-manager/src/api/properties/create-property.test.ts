@@ -77,7 +77,10 @@ function createRepositoryMock(): OrganizationPropertyUnitRepository {
     getUnitById: vi.fn(),
     listOwners: vi.fn(),
     listOwnerClients: vi.fn(),
-    listPropertiesWithUnits: vi.fn()
+    listPropertiesWithUnits: vi.fn(),
+    getPortfolioCounts: vi.fn(),
+    listPropertyOptions: vi.fn().mockResolvedValue([]),
+    listPropertyUnitOptions: vi.fn().mockResolvedValue([])
   };
 }
 

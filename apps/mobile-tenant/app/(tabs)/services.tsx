@@ -9,9 +9,11 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLoader } from "@/components/universal-loading-state";
 import { getWithAuth, type ApiResult } from "@/lib/api-client";
+import { PageHeader } from "@/components/page-header";
 import { ScreenShell } from "@/components/screen-shell";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -65,6 +67,7 @@ function normalizeProvider(value: unknown, index: number): ServiceProviderItem {
 }
 
 export default function ServicesScreen(): React.ReactElement {
+  const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -129,6 +132,17 @@ export default function ServicesScreen(): React.ReactElement {
 
   return (
     <ScreenShell title={t("services.title")} subtitle={t("services.subtitle")}>
+      <PageHeader
+        title={t("services.title")}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+            return;
+          }
+          router.replace("/(tabs)");
+        }}
+      />
+      <Text style={styles.subtitle}>{t("services.subtitle")}</Text>
       {error ? (
         <ErrorState
           offline={isOffline}
@@ -224,6 +238,11 @@ function createStyles(colors: ThemeColors) {
     loadingRoot: {
       flex: 1,
       backgroundColor: colors.background
+    },
+    subtitle: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted,
+      marginBottom: 4
     },
     content: {
       paddingBottom: 40,

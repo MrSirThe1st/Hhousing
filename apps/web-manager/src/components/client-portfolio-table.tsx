@@ -40,7 +40,7 @@ export default function ClientPortfolioTable({
               <tr>
                 <th className="px-4 py-3">Propriété</th>
                 <th className="px-4 py-3">Ville</th>
-                <th className="px-4 py-3">Unités</th>
+                <th className="px-4 py-3">Logements</th>
                 <th className="px-4 py-3">Occupées</th>
               </tr>
             </thead>

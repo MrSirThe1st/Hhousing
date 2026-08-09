@@ -1,14 +1,13 @@
-import type { AuthSession, MembershipAuthSession, LeaseWithTenantView } from "@hhousing/api-contracts";
-import type { CalendarEvent, MaintenanceRequest, Payment, Task, Tenant } from "@hhousing/domain";
+import type { MembershipAuthSession, LeaseWithTenantView } from "@hhousing/api-contracts";
+import type { CalendarEvent, Payment, Task, Tenant } from "@hhousing/domain";
 import {
   createCalendarEventRepo,
   createId,
-  createMaintenanceRepo,
   createPaymentRepo,
+  createRepositoryFromEnv,
   createTaskRepo,
   createTenantLeaseRepo
 } from "../app/api/shared";
-import { filterCalendarEventsByScope, filterMaintenanceRequestsByScope, filterPaymentsByScope, filterTasksByScope, filterTenantsByScope, getScopedPortfolioData } from "./operator-scope-portfolio";
 import type { DashboardCalendarEntry } from "./dashboard-workflow.types";
 import { getNow } from "./time";
 
@@ -18,35 +17,6 @@ function getTodayIsoDate(): string {
 
 function createSystemTaskId(): string {
   return createId("tsk");
-}
-
-function getTaskLabelMap(tasks: Task[], events: CalendarEvent[], leases: LeaseWithTenantView[], tenants: Tenant[], scopedPortfolio: Awaited<ReturnType<typeof getScopedPortfolioData>>): Map<string, string> {
-  const labelMap = new Map<string, string>();
-
-  for (const item of scopedPortfolio.properties) {
-    labelMap.set(`property:${item.property.id}`, item.property.name);
-    for (const unit of item.units) {
-      labelMap.set(`unit:${unit.id}`, `${item.property.name} · Unité ${unit.unitNumber}`);
-    }
-  }
-
-  for (const lease of leases) {
-    labelMap.set(`lease:${lease.id}`, `${lease.tenantFullName} · Bail ${lease.startDate}`);
-  }
-
-  for (const tenant of tenants) {
-    labelMap.set(`tenant:${tenant.id}`, tenant.fullName);
-  }
-
-  for (const task of tasks) {
-    labelMap.set(`task:${task.id}`, task.title);
-  }
-
-  for (const event of events) {
-    labelMap.set(`event:${event.id}`, event.title);
-  }
-
-  return labelMap;
 }
 
 function resolveRelatedLabel(labelMap: Map<string, string>, type: string | null, id: string | null): string | null {
@@ -75,8 +45,11 @@ function getPaymentStatusLabel(payment: Payment): string {
   return payment.status === "overdue" ? "En retard" : "À encaisser";
 }
 
+function isMaintenanceSystemTask(task: Task): boolean {
+  return task.systemCode === "maintenance_follow_up" || task.relatedEntityType === "maintenance_request";
+}
+
 type SyncSystemTasksPrefetched = {
-  maintenanceRequests: MaintenanceRequest[];
   payments: Payment[];
   leases: LeaseWithTenantView[];
 };
@@ -85,54 +58,33 @@ export async function syncSystemTasks(session: MembershipAuthSession, prefetched
   const organizationId = session.organizationId;
   const taskRepo = createTaskRepo();
 
-  let maintenanceRequests: MaintenanceRequest[];
   let payments: Payment[];
   let leases: LeaseWithTenantView[];
 
   if (prefetched) {
-    ({ maintenanceRequests, payments, leases } = prefetched);
+    ({ payments, leases } = prefetched);
   } else {
-    const maintenanceRepo = createMaintenanceRepo();
     const paymentRepo = createPaymentRepo();
     const leaseRepo = createTenantLeaseRepo();
-    [maintenanceRequests, payments, leases] = await Promise.all([
-      maintenanceRepo.listMaintenanceRequests({ organizationId }),
-      paymentRepo.listPayments({ organizationId }),
-      leaseRepo.listLeasesByOrganization(organizationId)
+    [payments, leases] = await Promise.all([
+      paymentRepo.listPaymentsPage({
+        organizationId,
+        status: "overdue",
+        limit: 50,
+        cursor: null
+      }).then((page) => page.payments),
+      leaseRepo.listLeasesPage({
+        organizationId,
+        status: "active",
+        limit: 50,
+        cursor: null
+      }).then((page) => page.leases)
     ]);
   }
 
   const todayIsoDate = getTodayIsoDate();
   const activeSystemKeys: string[] = [];
   const upsertPromises: Promise<Task>[] = [];
-
-  for (const request of maintenanceRequests) {
-    if (request.status !== "open" && request.status !== "in_progress") {
-      continue;
-    }
-
-    const systemKey = `maintenance:${request.id}:follow_up`;
-    activeSystemKeys.push(systemKey);
-    upsertPromises.push(taskRepo.upsertSystemTask({
-      id: createSystemTaskId(),
-      organizationId,
-      title: `Suivre maintenance · ${request.title}`,
-      description: request.description,
-      priority: request.priority,
-      dueDate: request.createdAtIso.slice(0, 10),
-      assignedUserId: null,
-      relatedEntityType: "maintenance_request",
-      relatedEntityId: request.id,
-      propertyId: null,
-      unitId: request.unitId,
-      leaseId: null,
-      tenantId: request.tenantId,
-      paymentId: null,
-      maintenanceRequestId: request.id,
-      systemCode: "maintenance_follow_up",
-      systemKey
-    }));
-  }
 
   for (const payment of payments) {
     if (payment.status !== "overdue" && !(payment.status === "pending" && payment.dueDate < todayIsoDate)) {
@@ -197,6 +149,8 @@ export async function syncSystemTasks(session: MembershipAuthSession, prefetched
   }
 
   await Promise.all(upsertPromises);
+  // Closing inactive system tasks also retires legacy maintenance_follow_up entries
+  // that are no longer included in activeSystemKeys.
   await taskRepo.closeInactiveSystemTasks(organizationId, activeSystemKeys);
 }
 
@@ -208,32 +162,65 @@ export async function buildDashboardWorkflowData(session: MembershipAuthSession)
   const taskRepo = createTaskRepo();
   const calendarEventRepo = createCalendarEventRepo();
   const paymentRepo = createPaymentRepo();
-  const maintenanceRepo = createMaintenanceRepo();
   const leaseRepo = createTenantLeaseRepo();
+  const propertyRepo = createRepositoryFromEnv();
 
-  // Fetch all source data in one parallel batch (includes what syncSystemTasks needs)
-  const [scopedPortfolio, maintenanceRequests, payments, calendarEvents, tenants] = await Promise.all([
-    getScopedPortfolioData(session),
-    maintenanceRepo.listMaintenanceRequests({ organizationId: session.organizationId }),
-    paymentRepo.listPayments({ organizationId: session.organizationId }),
-    calendarEventRepo.listCalendarEvents({ organizationId: session.organizationId }),
-    leaseRepo.listTenantsByOrganization ? leaseRepo.listTenantsByOrganization(session.organizationId) : Promise.resolve([] as Tenant[])
-  ] as const);
+  if (!propertyRepo.success) {
+    throw new Error(propertyRepo.error);
+  }
 
-  // Sync system tasks using already-fetched data — no duplicate DB queries
-  await syncSystemTasks(session, { maintenanceRequests, payments, leases: scopedPortfolio.leases });
+  // Bounded reads only — never getScopedPortfolioData / unbounded list* on this path.
+  // System-task sync is intentionally skipped on page render (too write-heavy).
+  const [allTasks, calendarEvents, leasesPage, paymentsPage, propertyOptions, propertyUnitOptions, tenants] =
+    await Promise.all([
+      taskRepo.listTasks({ organizationId: session.organizationId }),
+      calendarEventRepo.listCalendarEvents({ organizationId: session.organizationId }),
+      leaseRepo.listLeasesPage({
+        organizationId: session.organizationId,
+        status: null,
+        limit: 50,
+        cursor: null
+      }),
+      paymentRepo.listPaymentsPage({
+        organizationId: session.organizationId,
+        status: "overdue",
+        limit: 50,
+        cursor: null
+      }),
+      propertyRepo.data.listPropertyOptions(session.organizationId),
+      propertyRepo.data.listPropertyUnitOptions(session.organizationId),
+      leaseRepo.listTenantsByOrganization
+        ? leaseRepo.listTenantsByOrganization(session.organizationId)
+        : Promise.resolve([] as Tenant[])
+    ]);
 
-  // Fetch tasks after sync so we see the latest upserted/closed state
-  const tasks = await taskRepo.listTasks({ organizationId: session.organizationId });
+  const tasks = allTasks.filter((task) => !isMaintenanceSystemTask(task));
+  const leases = leasesPage.leases;
+  const payments = paymentsPage.payments;
 
-  const scopedTasks = filterTasksByScope(tasks, scopedPortfolio);
-  const scopedEvents = filterCalendarEventsByScope(calendarEvents, scopedPortfolio);
-  const scopedPayments = filterPaymentsByScope(payments, scopedPortfolio);
-  const scopedMaintenance = filterMaintenanceRequestsByScope(maintenanceRequests, scopedPortfolio);
-  const scopedTenants = filterTenantsByScope(tenants as Tenant[], scopedPortfolio);
-  const labelMap = getTaskLabelMap(scopedTasks, scopedEvents, scopedPortfolio.leases, scopedTenants, scopedPortfolio);
+  const labelMap = new Map<string, string>();
+  for (const property of propertyOptions) {
+    labelMap.set(`property:${property.id}`, property.name);
+  }
+  for (const group of propertyUnitOptions) {
+    for (const unit of group.units) {
+      labelMap.set(`unit:${unit.id}`, `${group.propertyName} · Unité ${unit.label}`);
+    }
+  }
+  for (const lease of leases) {
+    labelMap.set(`lease:${lease.id}`, `${lease.tenantFullName} · Bail ${lease.startDate}`);
+  }
+  for (const tenant of tenants) {
+    labelMap.set(`tenant:${tenant.id}`, tenant.fullName);
+  }
+  for (const task of tasks) {
+    labelMap.set(`task:${task.id}`, task.title);
+  }
+  for (const event of calendarEvents) {
+    labelMap.set(`event:${event.id}`, event.title);
+  }
 
-  const manualEventEntries: DashboardCalendarEntry[] = scopedEvents.map((event) => ({
+  const manualEventEntries: DashboardCalendarEntry[] = calendarEvents.map((event) => ({
     id: `event:${event.id}`,
     title: event.title,
     detail: event.description ?? "Événement opérationnel personnalisé",
@@ -245,7 +232,7 @@ export async function buildDashboardWorkflowData(session: MembershipAuthSession)
     relatedLabel: resolveRelatedLabel(labelMap, event.relatedEntityType, event.relatedEntityId)
   }));
 
-  const taskEntries: DashboardCalendarEntry[] = scopedTasks
+  const taskEntries: DashboardCalendarEntry[] = tasks
     .filter((task) => task.status === "open" || task.status === "in_progress")
     .map((task) => ({
       id: `task:${task.id}`,
@@ -259,7 +246,7 @@ export async function buildDashboardWorkflowData(session: MembershipAuthSession)
       relatedLabel: resolveRelatedLabel(labelMap, task.relatedEntityType, task.relatedEntityId)
     }));
 
-  const leaseEntries: DashboardCalendarEntry[] = scopedPortfolio.leases.flatMap((lease) => {
+  const leaseEntries: DashboardCalendarEntry[] = leases.flatMap((lease) => {
     const entries: DashboardCalendarEntry[] = [
       {
         id: `lease-start:${lease.id}`,
@@ -291,7 +278,7 @@ export async function buildDashboardWorkflowData(session: MembershipAuthSession)
     return entries;
   });
 
-  const paymentEntries: DashboardCalendarEntry[] = scopedPayments.map((payment) => ({
+  const paymentEntries: DashboardCalendarEntry[] = payments.map((payment) => ({
     id: `payment:${payment.id}`,
     title: `Échéance loyer · ${payment.amount.toLocaleString("fr-FR")} ${payment.currencyCode}`,
     detail: payment.note ?? "Paiement à suivre dans le cycle de collecte",
@@ -303,29 +290,40 @@ export async function buildDashboardWorkflowData(session: MembershipAuthSession)
     relatedLabel: resolveRelatedLabel(labelMap, "lease", payment.leaseId)
   }));
 
-  const maintenanceEntries: DashboardCalendarEntry[] = scopedMaintenance
-    .filter((request) => request.status === "open" || request.status === "in_progress")
-    .map((request: MaintenanceRequest) => ({
-      id: `maintenance:${request.id}`,
-      title: `Suivi maintenance · ${request.title}`,
-      detail: request.description,
-      startAtIso: request.updatedAtIso,
-      endAtIso: null,
-      eventType: "maintenance",
-      statusLabel: request.status === "open" ? "Ouverte" : "En cours",
-      source: "derived",
-      relatedLabel: resolveRelatedLabel(labelMap, "unit", request.unitId)
-    }));
-
   return {
-    tasks: scopedTasks,
-    calendarEntries: [...manualEventEntries, ...taskEntries, ...leaseEntries, ...paymentEntries, ...maintenanceEntries]
+    tasks,
+    calendarEntries: [...manualEventEntries, ...taskEntries, ...leaseEntries, ...paymentEntries]
       .sort((left, right) => left.startAtIso.localeCompare(right.startAtIso)),
     relatedOptions: [
-      ...scopedPortfolio.properties.map((item) => ({ type: "property" as const, id: item.property.id, label: item.property.name, propertyId: item.property.id })),
-      ...scopedPortfolio.properties.flatMap((item) => item.units.map((unit) => ({ type: "unit" as const, id: unit.id, label: `${item.property.name} · Unité ${unit.unitNumber}`, propertyId: item.property.id, unitId: unit.id }))),
-      ...scopedPortfolio.leases.map((lease) => ({ type: "lease" as const, id: lease.id, label: `${lease.tenantFullName} · Bail ${lease.startDate}`, leaseId: lease.id, unitId: lease.unitId, tenantId: lease.tenantId })),
-      ...scopedTenants.map((tenant) => ({ type: "tenant" as const, id: tenant.id, label: tenant.fullName, tenantId: tenant.id }))
+      ...propertyOptions.map((property) => ({
+        type: "property" as const,
+        id: property.id,
+        label: property.name,
+        propertyId: property.id
+      })),
+      ...propertyUnitOptions.flatMap((group) =>
+        group.units.map((unit) => ({
+          type: "unit" as const,
+          id: unit.id,
+          label: `${group.propertyName} · Unité ${unit.label}`,
+          propertyId: group.propertyId,
+          unitId: unit.id
+        }))
+      ),
+      ...leases.map((lease) => ({
+        type: "lease" as const,
+        id: lease.id,
+        label: `${lease.tenantFullName} · Bail ${lease.startDate}`,
+        leaseId: lease.id,
+        unitId: lease.unitId,
+        tenantId: lease.tenantId
+      })),
+      ...tenants.map((tenant) => ({
+        type: "tenant" as const,
+        id: tenant.id,
+        label: tenant.fullName,
+        tenantId: tenant.id
+      }))
     ]
   };
 }

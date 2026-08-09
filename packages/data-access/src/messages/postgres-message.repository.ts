@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { getSharedPool } from "../pg-pool";
 import type {
   GetTenantConversationDetailOutput,
   GetManagerConversationDetailOutput,
@@ -100,15 +101,6 @@ export interface MessageQueryable {
   ): Promise<{ rows: Row[] }>;
 }
 
-const poolCache = new Map<string, Pool>();
-
-function getOrCreatePool(connectionString: string): Pool {
-  const existing = poolCache.get(connectionString);
-  if (existing) return existing;
-  const pool = new Pool({ connectionString, max: 5 });
-  poolCache.set(connectionString, pool);
-  return pool;
-}
 
 function toIso(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
@@ -325,6 +317,19 @@ export function createPostgresMessageRepository(client: MessageQueryable): Messa
       );
 
       return result.rows.map(mapConversationListRow);
+    },
+
+    async countManagerUnreadMessages(organizationId: string): Promise<number> {
+      const result = await client.query<{ count: string | number }>(
+        `select count(*)::int as count
+         from messages m
+         join conversations c on c.id = m.conversation_id
+         where c.organization_id = $1
+           and m.sender_side = 'tenant'
+           and (c.manager_last_read_at is null or m.created_at > c.manager_last_read_at)`,
+        [organizationId]
+      );
+      return Number(result.rows[0]?.count ?? 0);
     },
 
     async listTenantConversations(
@@ -714,6 +719,6 @@ export function createMessageRepositoryFromEnv(env: DatabaseEnvSource): MessageR
     throw new Error(envResult.error);
   }
 
-  const pool = getOrCreatePool(envResult.data.connectionString);
+  const pool = getSharedPool(envResult.data.connectionString);
   return createPostgresMessageRepository(pool);
 }

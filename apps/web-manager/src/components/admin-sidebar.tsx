@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import LogoutButton from "./logout-button";
 import { SIDEBAR_SET_COLLAPSED_EVENT, SIDEBAR_STORAGE_KEY } from "./sidebar-collapse";
 import { SidebarIcon, type IconName } from "./sidebar-icons";
+import SidebarToggleButton from "./sidebar-toggle-button";
 
 interface NavItem {
   href: string;
@@ -29,13 +30,13 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/admin/users", label: "Utilisateurs", icon: "team" },
       { href: "/admin/organizations", label: "Organisations", icon: "organizations" },
-      { href: "/admin/service-providers", label: "Prestataires", icon: "maintenance" }
+      { href: "/admin/service-providers", label: "Artisans et services", icon: "maintenance" }
     ]
   },
   {
     title: "Système",
     items: [
-      { href: "/admin/billing", label: "Facturation", icon: "payments" },
+      { href: "/admin/billing", label: "Abonnement Haraka", icon: "payments" },
       { href: "/admin/audit", label: "Audit", icon: "audit" }
     ]
   }
@@ -69,80 +70,89 @@ export default function AdminSidebar(): React.ReactElement {
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, isCollapsed ? "1" : "0");
   }, [isCollapsed]);
 
-  const shellWidthClassName = isCollapsed ? "w-[5.25rem]" : "w-[17.75rem]";
+  const shellWidthClassName = isCollapsed ? "w-14" : "w-56";
 
   return (
     <aside
-      className={`hidden md:flex h-full shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[#010a19] transition-[width] duration-300 dark:border-slate-800 dark:bg-[#0d1526] dark:text-slate-100 ${shellWidthClassName}`}
+      className={`hidden md:flex h-full shrink-0 flex-col overflow-hidden bg-white text-[#010a19] transition-[width] duration-300 dark:bg-[#0d1526] dark:text-slate-100 ${shellWidthClassName}`}
     >
-      <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
-        <div className={`flex min-w-0 flex-1 items-center ${isCollapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5"}`}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold uppercase text-[#10213d] ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
-            HP
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-slate-200 px-2 dark:border-slate-800">
+        {isCollapsed ? (
+          <div className="flex w-full items-center justify-center">
+            <SidebarToggleButton />
           </div>
-          {!isCollapsed ? (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-[#10213d] dark:text-slate-100">Haraka Property</p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">Admin plateforme</p>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="space-y-6">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.title}>
-              {!isCollapsed ? (
-                <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
-                  {section.title}
-                </p>
-              ) : null}
-              <div className="space-y-1">
-                {section.items.map((item) => {
-                  const isActive = item.exact
-                    ? pathname === item.href
-                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`group flex items-center ${isCollapsed ? "justify-center px-2" : "gap-3 px-3"} rounded-lg py-2.5 text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-[#f2f6fb] text-[#0f2748] dark:bg-slate-800 dark:text-white"
-                          : "text-[#243b5a] hover:bg-slate-50 hover:text-[#010a19] dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-white"
-                      }`}
-                      aria-label={isCollapsed ? item.label : undefined}
-                      title={isCollapsed ? item.label : undefined}
-                    >
-                      <span
-                        className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition ${
-                          isActive
-                            ? "bg-white text-[#0063fe] ring-1 ring-[#d9e7ff] dark:bg-slate-900 dark:ring-slate-700"
-                            : "text-slate-500 dark:text-slate-400"
-                        }`}
-                      >
-                        <SidebarIcon name={item.icon} active={isActive} />
-                      </span>
-                      {!isCollapsed ? <span className="min-w-0 flex-1 truncate">{item.label}</span> : null}
-                    </Link>
-                  );
-                })}
+        ) : (
+          <>
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 px-1.5 py-1">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-[11px] font-semibold uppercase text-[#10213d] ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
+                HP
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold leading-tight text-[#10213d] dark:text-slate-100">Haraka Property</p>
+                <p className="truncate text-[11px] leading-tight text-slate-500 dark:text-slate-400">Admin plateforme</p>
               </div>
             </div>
-          ))}
-        </div>
-      </nav>
-
-      <div className={`border-t border-slate-200 py-3 dark:border-slate-800 ${isCollapsed ? "flex justify-center px-2" : "px-3"}`}>
-        {isCollapsed ? (
-          <LogoutButton compact />
-        ) : (
-          <div className="[&>div]:w-full [&_button]:w-full">
-            <LogoutButton />
-          </div>
+            <SidebarToggleButton />
+          </>
         )}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col border-r border-slate-200 dark:border-slate-800">
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="space-y-4">
+            {NAV_SECTIONS.map((section) => (
+              <div key={section.title}>
+                {!isCollapsed ? (
+                  <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400">
+                    {section.title}
+                  </p>
+                ) : null}
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const isActive = item.exact
+                      ? pathname === item.href
+                      : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`group flex items-center ${isCollapsed ? "justify-center px-1.5" : "gap-2.5 px-2.5"} rounded-md py-2.5 text-sm font-medium leading-none transition-colors ${
+                          isActive
+                            ? "bg-[#f2f6fb] text-[#0f2748] dark:bg-slate-800 dark:text-white"
+                            : "text-[#243b5a] hover:bg-slate-50 hover:text-[#010a19] dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-white"
+                        }`}
+                        aria-label={isCollapsed ? item.label : undefined}
+                        title={isCollapsed ? item.label : undefined}
+                      >
+                        <span
+                          className={`relative flex shrink-0 items-center justify-center ${
+                            isActive
+                              ? "text-[#0063fe]"
+                              : "text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          <SidebarIcon name={item.icon} active={isActive} className="h-5 w-5" />
+                        </span>
+                        {!isCollapsed ? <span className="min-w-0 flex-1 truncate">{item.label}</span> : null}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </nav>
+
+        <div className={`border-t border-slate-200 py-2 dark:border-slate-800 ${isCollapsed ? "flex justify-center px-1.5" : "px-2"}`}>
+          {isCollapsed ? (
+            <LogoutButton compact />
+          ) : (
+            <div className="[&>div]:w-full [&_button]:w-full">
+              <LogoutButton />
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );

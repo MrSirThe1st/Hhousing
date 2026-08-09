@@ -767,7 +767,7 @@ describe("/api/leases/[id]", () => {
     expect(await response.json()).toEqual({
       success: false,
       code: "VALIDATION_ERROR",
-      error: "All initial move-in charges must be marked as paid before finalization"
+      error: "Tous les montants de départ doivent être marqués comme payés avant la finalisation"
     });
     expect(updateLeaseMock).not.toHaveBeenCalled();
     expect(createTenantInvitationMock).not.toHaveBeenCalled();

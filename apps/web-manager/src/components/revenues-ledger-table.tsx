@@ -9,9 +9,9 @@ function formatPaymentKind(paymentKind: PaymentKind): string {
     case "rent":
       return "Loyer";
     case "deposit":
-      return "Garantie";
+      return "Caution";
     case "prorated_rent":
-      return "Prorata";
+      return "Loyer partiel";
     case "fee":
       return "Frais";
     case "other":
@@ -42,7 +42,7 @@ export default function RevenuesLedgerTable({
           render: (entry) => (
             <div>
               <p className="font-medium text-[#010a19]">{entry.propertyName}</p>
-              <p className="text-xs text-gray-500">Unité {entry.unitNumber}</p>
+              <p className="text-xs text-gray-500">Logement {entry.unitNumber}</p>
             </div>
           )
         },
@@ -79,7 +79,7 @@ export default function RevenuesLedgerTable({
           <div>
             <p className="font-semibold text-[#010a19]">{entry.propertyName}</p>
             <p className="text-xs text-slate-500">
-              Unité {entry.unitNumber} • {entry.tenantName}
+              Logement {entry.unitNumber} • {entry.tenantName}
             </p>
           </div>
           <div className="flex justify-between items-center pt-2 border-t border-slate-100">

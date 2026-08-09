@@ -26,8 +26,8 @@ const STATUS_STYLES: Record<PaymentStatus, string> = {
 
 const PAYMENT_KIND_LABELS: Record<PaymentKind, string> = {
   rent: "Loyer",
-  deposit: "Garantie",
-  prorated_rent: "Loyer prorata",
+  deposit: "Caution",
+  prorated_rent: "Loyer partiel",
   fee: "Frais",
   other: "Autre"
 };
@@ -44,12 +44,20 @@ type PaymentManagementPanelProps = {
   organizationId: string;
   payments: Payment[];
   leases: LeaseWithTenantView[];
+  statusCounts?: {
+    total: number;
+    pending: number;
+    paid: number;
+    overdue: number;
+    cancelled: number;
+  };
 };
 
 export default function PaymentManagementPanel({
   organizationId,
   payments,
-  leases
+  leases,
+  statusCounts
 }: PaymentManagementPanelProps): React.ReactElement {
   const router = useRouter();
   const [showRecordForm, setShowRecordForm] = useState(false);
@@ -293,9 +301,19 @@ export default function PaymentManagementPanel({
   }
 
   const canCreatePayment = activeLeases.length > 0;
-  const pendingCount = useMemo(() => baseFilteredPayments.filter((payment) => payment.status === "pending").length, [baseFilteredPayments]);
-  const overdueCount = useMemo(() => baseFilteredPayments.filter((payment) => payment.status === "overdue").length, [baseFilteredPayments]);
-  const paidCount = useMemo(() => baseFilteredPayments.filter((payment) => payment.status === "paid").length, [baseFilteredPayments]);
+  const pendingCount = useMemo(
+    () => statusCounts?.pending ?? baseFilteredPayments.filter((payment) => payment.status === "pending").length,
+    [baseFilteredPayments, statusCounts]
+  );
+  const overdueCount = useMemo(
+    () => statusCounts?.overdue ?? baseFilteredPayments.filter((payment) => payment.status === "overdue").length,
+    [baseFilteredPayments, statusCounts]
+  );
+  const paidCount = useMemo(
+    () => statusCounts?.paid ?? baseFilteredPayments.filter((payment) => payment.status === "paid").length,
+    [baseFilteredPayments, statusCounts]
+  );
+  const totalCount = statusCounts?.total ?? payments.length;
   const sideOperationBusy = busy || markingPaid !== null;
 
   function resetFilters(): void {
@@ -317,7 +335,7 @@ export default function PaymentManagementPanel({
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Paiements</h1>
-          <p className="mt-2 text-sm text-slate-500">{payments.length} paiement(s), {overdueCount} en retard.</p>
+          <p className="mt-2 text-sm text-slate-500">{totalCount} paiement(s), {overdueCount} en retard.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
