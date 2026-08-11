@@ -120,12 +120,6 @@ export default function SettingsScreen(): React.ReactElement {
       onPress: () => { router.push("/(tabs)/account/change-password"); }
     },
     {
-      key: "notifications",
-      label: t("settings.notifications"),
-      icon: "notifications-outline",
-      onPress: () => { router.push("/(tabs)/account/notifications"); }
-    },
-    {
       key: "language",
       label: t("settings.language"),
       hint: languageHint,

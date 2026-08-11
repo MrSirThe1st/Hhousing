@@ -10,8 +10,6 @@ const BIOMETRIC_PROMPT_SHOWN_KEY = "hhousing.prefs.biometricPromptShown";
 const THEME_KEY = "hhousing.prefs.themeMode";
 const LANGUAGE_KEY = "hhousing.prefs.language";
 const LANGUAGE_SELECTED_KEY = "hhousing.prefs.languageSelected";
-const NOTIFY_INVOICES_KEY = "hhousing.prefs.notifyInvoices";
-const NOTIFY_RENT_DUE_KEY = "hhousing.prefs.notifyRentDue";
 const AMOUNTS_SENSITIVE_KEY = "hhousing.prefs.amountsSensitive";
 
 export type ThemeMode = "light" | "dark";
@@ -36,8 +34,6 @@ type PreferencesContextValue = {
   biometricEnabled: boolean;
   themeMode: ThemeMode;
   language: AppLanguage;
-  notifyInvoices: boolean;
-  notifyRentDue: boolean;
   amountsSensitive: boolean;
   setBiometricEnabled: (enabled: boolean) => Promise<void>;
   markLanguageSelected: () => Promise<void>;
@@ -46,8 +42,6 @@ type PreferencesContextValue = {
   /** Applies language in-memory for onboarding preview (not persisted). */
   previewLanguage: (language: AppLanguage) => Promise<void>;
   setLanguage: (language: AppLanguage) => Promise<void>;
-  setNotifyInvoices: (enabled: boolean) => Promise<void>;
-  setNotifyRentDue: (enabled: boolean) => Promise<void>;
   setAmountsSensitive: (enabled: boolean) => Promise<void>;
 };
 
@@ -66,8 +60,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
   const [language, setLanguageState] = useState<AppLanguage>("fr");
-  const [notifyInvoices, setNotifyInvoicesState] = useState(false);
-  const [notifyRentDue, setNotifyRentDueState] = useState(false);
   const [amountsSensitive, setAmountsSensitiveState] = useState(true);
 
   useEffect(() => {
@@ -81,8 +73,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
           themeRaw,
           languageRaw,
           languageSelectedRaw,
-          invoicesRaw,
-          rentDueRaw,
           amountsSensitiveRaw
         ] = await Promise.all([
           AsyncStorage.getItem(BIOMETRIC_KEY),
@@ -90,8 +80,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
           AsyncStorage.getItem(THEME_KEY),
           AsyncStorage.getItem(LANGUAGE_KEY),
           AsyncStorage.getItem(LANGUAGE_SELECTED_KEY),
-          AsyncStorage.getItem(NOTIFY_INVOICES_KEY),
-          AsyncStorage.getItem(NOTIFY_RENT_DUE_KEY),
           AsyncStorage.getItem(AMOUNTS_SENSITIVE_KEY)
         ]);
 
@@ -100,8 +88,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
         }
 
         setBiometricEnabledState(parseBoolean(biometricRaw, false));
-        setNotifyInvoicesState(parseBoolean(invoicesRaw, false));
-        setNotifyRentDueState(parseBoolean(rentDueRaw, false));
         setAmountsSensitiveState(parseBoolean(amountsSensitiveRaw, true));
 
         // Only skip the post-login offer when it was explicitly dismissed/completed,
@@ -174,16 +160,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
     await i18n.changeLanguage(next);
   }, []);
 
-  const setNotifyInvoices = useCallback(async (enabled: boolean): Promise<void> => {
-    setNotifyInvoicesState(enabled);
-    await AsyncStorage.setItem(NOTIFY_INVOICES_KEY, enabled ? "true" : "false");
-  }, []);
-
-  const setNotifyRentDue = useCallback(async (enabled: boolean): Promise<void> => {
-    setNotifyRentDueState(enabled);
-    await AsyncStorage.setItem(NOTIFY_RENT_DUE_KEY, enabled ? "true" : "false");
-  }, []);
-
   const setAmountsSensitive = useCallback(async (enabled: boolean): Promise<void> => {
     setAmountsSensitiveState(enabled);
     await AsyncStorage.setItem(AMOUNTS_SENSITIVE_KEY, enabled ? "true" : "false");
@@ -197,8 +173,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       biometricEnabled,
       themeMode,
       language,
-      notifyInvoices,
-      notifyRentDue,
       amountsSensitive,
       setBiometricEnabled,
       markLanguageSelected,
@@ -206,8 +180,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       setThemeMode,
       previewLanguage,
       setLanguage,
-      setNotifyInvoices,
-      setNotifyRentDue,
       setAmountsSensitive
     }),
     [
@@ -217,8 +189,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       biometricEnabled,
       themeMode,
       language,
-      notifyInvoices,
-      notifyRentDue,
       amountsSensitive,
       setBiometricEnabled,
       markLanguageSelected,
@@ -226,8 +196,6 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       setThemeMode,
       previewLanguage,
       setLanguage,
-      setNotifyInvoices,
-      setNotifyRentDue,
       setAmountsSensitive
     ]
   );

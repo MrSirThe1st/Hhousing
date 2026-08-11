@@ -7,7 +7,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "@/i18n";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { BiometricLockProvider } from "@/contexts/biometric-lock-context";
-import { InboxProvider } from "@/contexts/inbox-context";
 import { AmountPrivacyProvider } from "@/contexts/amount-privacy-context";
 import {
   applyNativeColorScheme,
@@ -205,10 +204,8 @@ function ThemedApp(): React.ReactElement {
       <AuthProvider>
         <BiometricLockProvider>
           <AmountPrivacyProvider>
-            <InboxProvider>
-              <RootNavigator />
-              <BiometricLockScreen />
-            </InboxProvider>
+            <RootNavigator />
+            <BiometricLockScreen />
           </AmountPrivacyProvider>
         </BiometricLockProvider>
       </AuthProvider>

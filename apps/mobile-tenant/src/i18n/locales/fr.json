@@ -22,7 +22,6 @@
     "home": "Accueil",
     "payments": "Paiements",
     "menu": "Menu",
-    "messages": "Messages",
     "services": "Prestataires"
   },
   "services": {
@@ -274,14 +273,13 @@
     "privacyBody1": "Nous collectons et traitons les données personnelles nécessaires à votre compte locataire : identité, coordonnées, informations de bail, paiements et messages de support.",
     "privacyBody2": "Vous pouvez demander l'accès, la rectification ou la suppression de vos données. Le détail figure dans notre politique de confidentialité complète.",
     "viewFullPrivacy": "Voir la politique complète",
-    "supportBody": "Besoin d'aide avec l'application ou votre compte ? Contactez notre équipe par e-mail. Pour les questions de bail ou de loyer, écrivez à votre bailleur dans l'app lorsque c'est possible.",
+    "supportBody": "Besoin d'aide avec l'application ou votre compte ? Contactez notre équipe par e-mail. Pour les questions de bail ou de loyer, contactez votre bailleur directement.",
     "supportEmail": "E-mail",
     "viewSupportPage": "Ouvrir la page support"
   },
   "settings": {
     "title": "Paramètres",
     "changePassword": "Changer le mot de passe",
-    "notifications": "Notifications",
     "language": "Langue",
     "languageFr": "Français",
     "languageEn": "English",
@@ -294,11 +292,7 @@
     "amountsSensitiveHint": "Loyer et paiements protégés par défaut",
     "deleteAccount": "Supprimer le compte",
     "deleteAccountHint": "Supprimer définitivement votre compte après un délai de grâce",
-    "comingSoonBody": "Bientôt disponible",
-    "invoices": "Factures",
-    "invoicesHint": "Recevoir une alerte à chaque nouvelle facture",
-    "rentDue": "Échéances de loyer",
-    "rentDueHint": "Rappel avant la date de paiement du loyer"
+    "comingSoonBody": "Bientôt disponible"
   },
   "deleteAccount": {
     "title": "Supprimer le compte",
@@ -322,18 +316,5 @@
     "cancelDeletion": "Annuler la suppression",
     "cancelledBody": "La suppression de votre compte a été annulée. Vous pouvez continuer à utiliser l'application.",
     "endpointUnavailable": "La suppression de compte n'est pas encore disponible sur ce serveur. Pointez l'app vers l'API locale, ou déployez le dernier web-manager."
-  },
-  "messages": {
-    "title": "Messages",
-    "subtitle": "Messages de votre gestion.",
-    "emptyTitle": "Aucun message",
-    "emptyText": "Votre gestion vous contactera ici.",
-    "fallbackOrg": "Gestion",
-    "fallbackProperty": "Propriété",
-    "conversation": "Conversation",
-    "conversationSubtitle": "Messages avec votre gestion",
-    "notFound": "Conversation introuvable.",
-    "placeholder": "Écrire un message",
-    "send": "Envoyer"
   }
 }

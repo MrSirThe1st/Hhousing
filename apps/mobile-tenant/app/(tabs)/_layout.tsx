@@ -53,7 +53,7 @@ export default function TabsLayout(): React.ReactElement {
         }}
         listeners={{
           tabPress: (event) => {
-            // Always open the menu root — don't restore nested routes like /documents
+            // Always open the menu root — don't restore nested account routes
             event.preventDefault();
             router.replace("/(tabs)/account");
           }
@@ -62,11 +62,6 @@ export default function TabsLayout(): React.ReactElement {
       {/* Support feature — reachable from Accueil + Menu, not a primary tab */}
       <Tabs.Screen
         name="services"
-        options={{ href: null }}
-      />
-      {/* Hidden for now — re-enable when inbox/messages is ready */}
-      <Tabs.Screen
-        name="messages"
         options={{ href: null }}
       />
     </Tabs>

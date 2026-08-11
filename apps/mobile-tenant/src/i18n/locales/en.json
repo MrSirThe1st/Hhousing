@@ -22,7 +22,6 @@
     "home": "Home",
     "payments": "Payments",
     "menu": "Menu",
-    "messages": "Messages",
     "services": "Services"
   },
   "services": {
@@ -274,14 +273,13 @@
     "privacyBody1": "We collect and process personal data needed to run your tenant account: identity, contact details, lease information, payments, and support messages.",
     "privacyBody2": "You can request access, correction, or deletion of your data. Details are in our full privacy policy.",
     "viewFullPrivacy": "View full privacy policy",
-    "supportBody": "Need help with the app or your account? Contact our team by email. For lease or rent questions, message your landlord in the app when possible.",
+    "supportBody": "Need help with the app or your account? Contact our team by email. For lease or rent questions, contact your landlord directly.",
     "supportEmail": "Email",
     "viewSupportPage": "Open support page"
   },
   "settings": {
     "title": "Settings",
     "changePassword": "Change password",
-    "notifications": "Notifications",
     "language": "Language",
     "languageFr": "Français",
     "languageEn": "English",
@@ -294,11 +292,7 @@
     "amountsSensitiveHint": "Rent and payments protected by default",
     "deleteAccount": "Delete account",
     "deleteAccountHint": "Permanently remove your account after a grace period",
-    "comingSoonBody": "Coming soon",
-    "invoices": "Invoices",
-    "invoicesHint": "Get an alert for each new invoice",
-    "rentDue": "Rent due dates",
-    "rentDueHint": "Reminder before rent is due"
+    "comingSoonBody": "Coming soon"
   },
   "deleteAccount": {
     "title": "Delete account",
@@ -322,18 +316,5 @@
     "cancelDeletion": "Cancel deletion",
     "cancelledBody": "Your account deletion was cancelled. You can continue using the app.",
     "endpointUnavailable": "Account deletion is not available on this server yet. Point the app at your local API, or deploy the latest web-manager."
-  },
-  "messages": {
-    "title": "Messages",
-    "subtitle": "Messages from your property manager.",
-    "emptyTitle": "No messages",
-    "emptyText": "Your property manager will contact you here.",
-    "fallbackOrg": "Management",
-    "fallbackProperty": "Property",
-    "conversation": "Conversation",
-    "conversationSubtitle": "Messages with your property manager",
-    "notFound": "Conversation not found.",
-    "placeholder": "Write a message",
-    "send": "Send"
   }
 }
