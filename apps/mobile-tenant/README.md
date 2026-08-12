@@ -1,17 +1,16 @@
 # mobile-tenant
 
-Tenant mobile application (Expo).
+Tenant mobile application (Expo) — **Mon Espace**.
 
-## Slice 5 status
+## Current surface
 
-Implemented now:
-- Foundation scaffold (Expo + Expo Router + tabs)
-- Auth foundation (Supabase login/logout + persisted session + route guards)
+- Auth (login, forgot password, invite accept)
+- Home + payments history (in-app pay gated off by default)
+- Services / prestataires
+- Account (profile, lease, settings, about, delete account)
+- Biometrics + language onboarding
 
-Next slices:
-- Lease read view
-- Maintenance submit flow
-- Payments read view
+Out of scope for this release: maintenance, messages, documents, push notifications.
 
 ## Setup
 
@@ -28,17 +27,10 @@ Next slices:
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `EXPO_PUBLIC_API_BASE_URL` — set this to `https://www.harakaproperty.com` for the hosted web-manager API
-
-## Screens scaffolded
-
-- `/(auth)/login`
-- `/(tabs)/index`
-- `/(tabs)/lease`
-- `/(tabs)/maintenance`
-- `/(tabs)/payments`
-- `/(tabs)/account`
+- `EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED` — leave `false` until PawaPay production is ready
 
 ## Notes
 
-- This app currently uses Supabase email/password auth directly on mobile.
-- API client foundation exists in `src/lib/api-client.ts` for next slices.
+- Bundle ID: `com.hhousing.tenant`
+- Version: `1.0.0` / iOS buildNumber `1` (bump on every store upload)
+- Auth uses Supabase phone/password on mobile against the web-manager mobile API.

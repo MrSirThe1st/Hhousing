@@ -89,6 +89,21 @@ const nextConfig: NextConfig = {
           { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization, Accept, X-Requested-With" },
           { key: "Access-Control-Max-Age", value: "86400" }
         ]
+      },
+      {
+        // Apple Universal Links — must be application/json (not HTML)
+        source: "/.well-known/apple-app-site-association",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" }
+        ]
+      },
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" }
+        ]
       }
     ];
   }

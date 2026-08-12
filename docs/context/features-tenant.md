@@ -2,50 +2,43 @@
 
 ## Tenant Scope
 
-**Goal:** "Live in the property, pay rent, report issues, communicate"
+**Goal:** "Live in the property, see rent status, contact building services"
 
-Tenant app is mobile-only.
+Tenant app is mobile-only (`apps/mobile-tenant`, Mon Espace).
 
-## Core Features (Must-Have)
+## Current Release (Must-Have)
 
 **Home:**
 - Current lease summary (unit, address, rent amount)
-- Next rent due date
-- Payment status (paid/due/late)
-- Quick actions: pay rent, report maintenance, message manager
+- Next rent due date / payment status (paid/due/late)
+- Recent payments
 
 **Payments:**
-- Pay rent
-- Payment methods
 - Payment history
-- Receipts download
-- Pending/overdue rent alerts
-
-**Maintenance:**
-- Create maintenance request
-- Upload photos
-- Track status: `open -> in_progress -> resolved`
-- Chat updates per request
+- Pending/overdue visibility
+- In-app Mobile Money pay is gated off until production-ready (`EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED`)
 
 **Services / Prestataires:**
 - View providers enabled for the tenant's building
 - Trust labels (platform-verified vs manager-added)
 - Call (`tel:`) and WhatsApp contact
 
-**Messaging:**
-- Chat with landlord/manager
-- Receive announcements
-- Attach images/files
+**Profile / Account:**
+- Personal info edit
+- Lease / "my home" view
+- Settings (language, biometrics, theme, hide amounts, change password, delete account)
+- About / privacy / terms / support
 
-**Documents:**
-- Lease agreement
-- Receipts
-- Notices
+**Auth / Onboarding:**
+- Login, forgot password, invite accept
+- Language + biometric onboarding
 
-**Profile:**
-- Personal info
-- Unit info
-- Notifications settings
+## Explicitly Out of Scope (Do Not Re-Add for This Release)
+
+- **Maintenance** requests (create, photos, status tracking) — removed; no camera/mic/photo permissions
+- **Messaging** inbox with landlord/manager
+- **Documents** viewer/downloads in-app
+- **Push / in-app notification settings**
 
 ## Tenant Cannot
 
@@ -54,57 +47,34 @@ Tenant app is mobile-only.
 - Manage properties
 - Access web app
 
-## UI Screen Flows
+## UI Screen Flows (Current)
 
 ### Auth
 - Splash
 - Login
-- Sign up
 - Forgot password
-- Verify email/SMS (optional)
+- Accept invite
 
 ### Home Dashboard
 - Rent due card (amount, due date, status)
-- Quick actions: pay rent, report issue, message manager
-- Notifications preview
+- Useful contacts / services preview
+- Recent payments
 
-### Lease
+### Lease (under Menu)
 - Current unit info
 - Lease start/end dates
-- Monthly rent breakdown
-- Deposit info (if applicable)
-- Contact landlord/manager action
+- Monthly rent
 
 ### Payments
-- Pay rent primary action
-- Payment method selection
-- Payment confirmation
+- Due summary
 - Payment history (month-by-month)
-- Receipt detail
-
-### Maintenance
-- Create request action
-- Request form: title, description, image upload
-- Past requests list
-- Request detail: status timeline, updates/messages
 
 ### Services / Prestataires
 - Provider list by category
 - Detail with trust badge
 - Call / WhatsApp actions
 
-### Messages
-- Conversation list
-- Tenant <-> manager chat
-- Optional attachments (images/files)
-
-### Documents
-- Lease agreement viewer
-- Receipts list
-- Download document view
-
-### Profile
+### Profile / Menu
 - Personal details
-- Unit info
-- Logout
-- Settings (notifications, language)
+- Settings (language, biometrics, theme — no notifications)
+- Logout / delete account
