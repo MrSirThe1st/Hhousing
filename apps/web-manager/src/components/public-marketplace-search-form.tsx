@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicMarketplaceSearchParams } from "../app/public-site-data";
-import { firstSearchParam } from "../app/public-site-data";
+import { firstSearchParam, parseStringListParam } from "../app/public-site-data";
+import { AMENITY_OPTIONS, FEATURE_OPTIONS } from "./property-form-options";
 
 interface PublicMarketplaceSearchFormProps {
   action: string;
@@ -31,6 +32,11 @@ export default function PublicMarketplaceSearchForm({
   const [propertyType, setPropertyType] = useState(firstSearchParam(values?.propertyType) ?? "");
   const [minRent, setMinRent] = useState(firstSearchParam(values?.minRent) ?? "");
   const [maxRent, setMaxRent] = useState(firstSearchParam(values?.maxRent) ?? "");
+  const [minBedrooms, setMinBedrooms] = useState(firstSearchParam(values?.minBedrooms) ?? "");
+  const [minBathrooms, setMinBathrooms] = useState(firstSearchParam(values?.minBathrooms) ?? "");
+  const [amenities, setAmenities] = useState<string[]>(() => parseStringListParam(values?.amenities));
+  const [features, setFeatures] = useState<string[]>(() => parseStringListParam(values?.features));
+  const [sort, setSort] = useState(firstSearchParam(values?.sort) ?? "newest");
 
   useEffect(() => {
     setQ(firstSearchParam(values?.q) ?? "");
@@ -38,17 +44,45 @@ export default function PublicMarketplaceSearchForm({
     setPropertyType(firstSearchParam(values?.propertyType) ?? "");
     setMinRent(firstSearchParam(values?.minRent) ?? "");
     setMaxRent(firstSearchParam(values?.maxRent) ?? "");
+    setMinBedrooms(firstSearchParam(values?.minBedrooms) ?? "");
+    setMinBathrooms(firstSearchParam(values?.minBathrooms) ?? "");
+    setAmenities(parseStringListParam(values?.amenities));
+    setFeatures(parseStringListParam(values?.features));
+    setSort(firstSearchParam(values?.sort) ?? "newest");
   }, [values]);
 
-  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>): void {
-    e.preventDefault();
+  function toggleListValue(list: string[], value: string, setter: (next: string[]) => void): void {
+    if (list.includes(value)) {
+      setter(list.filter((item) => item !== value));
+      return;
+    }
+    setter([...list, value]);
+  }
+
+  function buildParams(): URLSearchParams {
     const params = new URLSearchParams();
     if (q.trim()) params.set("q", q.trim());
     if (city.trim()) params.set("city", city.trim());
     if (propertyType) params.set("propertyType", propertyType);
     if (minRent) params.set("minRent", minRent);
     if (maxRent) params.set("maxRent", maxRent);
-    router.push(`${action}?${params.toString()}`);
+    if (minBedrooms) params.set("minBedrooms", minBedrooms);
+    if (minBathrooms) params.set("minBathrooms", minBathrooms);
+    for (const amenity of amenities) {
+      params.append("amenities", amenity);
+    }
+    for (const feature of features) {
+      params.append("features", feature);
+    }
+    if (sort && sort !== "newest") params.set("sort", sort);
+    return params;
+  }
+
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>): void {
+    e.preventDefault();
+    const params = buildParams();
+    const query = params.toString();
+    router.push(query ? `${action}?${query}` : action);
   }
 
   if (actualVariant === "hero") {
@@ -65,12 +99,12 @@ export default function PublicMarketplaceSearchForm({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </span>
-              <span className="sr-only">Ville, commune ou quartier</span>
+              <span className="sr-only">Ville</span>
               <input
                 type="text"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Ville, commune ou quartier"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Ville (ex. Lubumbashi)"
                 className="w-full min-w-0 border-0 bg-transparent p-0 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
             </label>
@@ -98,6 +132,26 @@ export default function PublicMarketplaceSearchForm({
               </span>
             </label>
 
+            <label className="relative flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 md:w-[9rem] md:rounded-none md:border-r md:border-slate-200 md:py-1.5 dark:md:border-slate-700 lg:w-[10rem]">
+              <span className="sr-only">Chambres</span>
+              <select
+                value={minBedrooms}
+                onChange={(e) => setMinBedrooms(e.target.value)}
+                className="w-full min-w-0 cursor-pointer appearance-none border-0 bg-transparent p-0 pr-5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 dark:text-slate-100"
+              >
+                <option value="">Chambres</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+              </select>
+              <span className="pointer-events-none absolute right-3 text-slate-400" aria-hidden="true">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </label>
+
             <label className="flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 md:w-[11.5rem] md:rounded-none md:py-1.5 lg:w-[13rem]">
               <span className="shrink-0 text-slate-400" aria-hidden="true">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -112,7 +166,7 @@ export default function PublicMarketplaceSearchForm({
                 step={50}
                 value={maxRent}
                 onChange={(e) => setMaxRent(e.target.value)}
-                placeholder="Budget maximum"
+                placeholder="Budget max"
                 className="w-full min-w-0 border-0 bg-transparent p-0 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             </label>
@@ -135,37 +189,29 @@ export default function PublicMarketplaceSearchForm({
   }
 
   return (
-    <form action={action} method="get" className={`border border-slate-200 bg-white shadow-sm ${compact ? "rounded-3xl px-4 py-4" : "rounded-4xl px-5 py-5"}`}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+    <form onSubmit={handleFormSubmit} className={`border border-slate-200 bg-white shadow-sm ${compact ? "rounded-3xl px-4 py-4" : "rounded-4xl px-5 py-5"}`}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:flex-wrap">
         <label className="block min-w-0 flex-1 text-sm font-medium text-slate-700">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Recherche</span>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-              <img src="/brand/haraka-pay-logo.svg" alt="" className="h-5 w-5 opacity-55" />
-            </div>
-            <input
-              name="q"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 py-3 pl-11 pr-4"
-              placeholder="Ville, immeuble ou unité"
-            />
-          </div>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            placeholder="Nom, adresse ou description"
+          />
         </label>
         <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-44">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Ville</span>
           <input
-            name="city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="Kinshasa"
+            placeholder="Lubumbashi"
           />
         </label>
         <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-44">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Type</span>
           <select
-            name="propertyType"
             value={propertyType}
             onChange={(e) => setPropertyType(e.target.value)}
             className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
@@ -176,9 +222,35 @@ export default function PublicMarketplaceSearchForm({
           </select>
         </label>
         <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-36">
+          <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Chambres</span>
+          <select
+            value={minBedrooms}
+            onChange={(e) => setMinBedrooms(e.target.value)}
+            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+          >
+            <option value="">Tous</option>
+            <option value="1">1+</option>
+            <option value="2">2+</option>
+            <option value="3">3+</option>
+            <option value="4">4+</option>
+          </select>
+        </label>
+        <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-36">
+          <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Salles de bain</span>
+          <select
+            value={minBathrooms}
+            onChange={(e) => setMinBathrooms(e.target.value)}
+            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+          >
+            <option value="">Tous</option>
+            <option value="1">1+</option>
+            <option value="2">2+</option>
+            <option value="3">3+</option>
+          </select>
+        </label>
+        <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-36">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Loyer min</span>
           <input
-            name="minRent"
             value={minRent}
             onChange={(e) => setMinRent(e.target.value)}
             inputMode="decimal"
@@ -189,13 +261,24 @@ export default function PublicMarketplaceSearchForm({
         <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-36">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Loyer max</span>
           <input
-            name="maxRent"
             value={maxRent}
             onChange={(e) => setMaxRent(e.target.value)}
             inputMode="decimal"
             className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            placeholder="2500"
+            placeholder="800000"
           />
+        </label>
+        <label className="block min-w-0 text-sm font-medium text-slate-700 lg:w-44">
+          <span className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-slate-400">Tri</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+          >
+            <option value="newest">Plus récent</option>
+            <option value="price_asc">Prix : croissant</option>
+            <option value="price_desc">Prix : décroissant</option>
+          </select>
         </label>
         <div className="flex gap-3 lg:pb-0.5">
           <button type="submit" className="cursor-pointer rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white">
@@ -207,6 +290,57 @@ export default function PublicMarketplaceSearchForm({
             </Link>
           ) : null}
         </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 md:grid-cols-2">
+        <fieldset>
+          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Équipements</legend>
+          <div className="flex flex-wrap gap-2">
+            {AMENITY_OPTIONS.map((amenity) => {
+              const checked = amenities.includes(amenity);
+              return (
+                <label
+                  key={amenity}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                    checked ? "border-[#0063fe] bg-blue-50 text-[#0063fe]" : "border-slate-200 text-slate-600"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={checked}
+                    onChange={() => toggleListValue(amenities, amenity, setAmenities)}
+                  />
+                  {amenity}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Caractéristiques</legend>
+          <div className="flex flex-wrap gap-2">
+            {FEATURE_OPTIONS.map((feature) => {
+              const checked = features.includes(feature);
+              return (
+                <label
+                  key={feature}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                    checked ? "border-[#0063fe] bg-blue-50 text-[#0063fe]" : "border-slate-200 text-slate-600"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={checked}
+                    onChange={() => toggleListValue(features, feature, setFeatures)}
+                  />
+                  {feature}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
       </div>
     </form>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import type { MembershipAuthSession } from "@hhousing/api-contracts";
-import DashboardOccupancyBar from "./dashboard-occupancy-bar";
+import DashboardOccupancyChart from "./dashboard-occupancy-chart";
 import DashboardTrendsSection from "./dashboard-trends-section";
 import type { DashboardInitialData, DashboardWatchlistItem } from "../lib/dashboard-overview.types";
 import { getNow } from "../lib/time";
@@ -38,7 +38,7 @@ export function getFinanceMonthLabel(): string {
 function ChartSkeleton(): React.ReactElement {
   return (
     <div
-      className="h-55 animate-pulse rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900/50"
+      className="h-full min-h-72 animate-pulse rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900/50"
       aria-hidden
     />
   );
@@ -104,9 +104,18 @@ export default function DashboardOverviewView({
         </div>
       </section>
 
-      <Suspense fallback={<ChartSkeleton />}>
-        <DashboardTrendsSection session={session} selectedCurrency={selectedCurrency} />
-      </Suspense>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="min-h-72 lg:col-span-2">
+          <Suspense fallback={<ChartSkeleton />}>
+            <DashboardTrendsSection session={session} selectedCurrency={selectedCurrency} />
+          </Suspense>
+        </div>
+        <DashboardOccupancyChart
+          occupiedUnits={portfolio.occupiedUnits}
+          units={portfolio.units}
+          occupancyRate={portfolio.occupancyRate}
+        />
+      </div>
 
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
@@ -130,16 +139,6 @@ export default function DashboardOverviewView({
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Locataires</p>
             <p className="text-xl font-semibold text-slate-900 dark:text-white">{portfolio.tenants}</p>
-          </div>
-
-          <div className="hidden h-6 w-px bg-slate-200 sm:block dark:bg-slate-700" />
-
-          <div className="min-w-[12rem] flex-1">
-            <DashboardOccupancyBar
-              occupiedUnits={portfolio.occupiedUnits}
-              units={portfolio.units}
-              occupancyRate={portfolio.occupancyRate}
-            />
           </div>
         </div>
       </section>

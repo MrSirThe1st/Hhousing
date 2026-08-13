@@ -5,8 +5,8 @@ import type { ListPaymentsFilter } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
 import type {
   CreatePaymentRecordInput,
-  DashboardMonthlyTotalRow,
   DashboardPaymentFinanceSnapshot,
+  DashboardRentTrendMonthRow,
   DashboardWatchlistPaymentRow,
   ListPaymentsPageInput,
   ListPaymentsPageResult,
@@ -557,32 +557,58 @@ export function createPostgresPaymentRepository(
       }));
     },
 
-    async sumPaidPaymentsByMonth(
+    async sumDashboardRentTrendByMonth(
       organizationId: string,
       currencyCode: string,
-      fromDate: string
-    ): Promise<DashboardMonthlyTotalRow[]> {
+      fromDate: string,
+      toDateExclusive: string
+    ): Promise<DashboardRentTrendMonthRow[]> {
       const result = await client.query<{
         month: string | Date;
-        amount: string | number;
+        collected_amount: string | number;
+        expected_amount: string | number;
       }>(
-        `select
-           to_char(date_trunc('month', paid_date), 'YYYY-MM') as month,
-           coalesce(sum(amount), 0) as amount
-         from payments
-         where organization_id = $1
-           and currency_code = $2
-           and status = 'paid'
-           and paid_date is not null
-           and paid_date >= $3::date
-         group by date_trunc('month', paid_date)
-         order by date_trunc('month', paid_date)`,
-        [organizationId, currencyCode, fromDate]
+        `with collected as (
+           select
+             to_char(date_trunc('month', paid_date), 'YYYY-MM') as month,
+             coalesce(sum(amount), 0) as amount
+           from payments
+           where organization_id = $1
+             and currency_code = $2
+             and status = 'paid'
+             and payment_kind in ('rent', 'prorated_rent')
+             and paid_date is not null
+             and paid_date >= $3::date
+             and paid_date < $4::date
+           group by 1
+         ),
+         expected as (
+           select
+             to_char(date_trunc('month', due_date), 'YYYY-MM') as month,
+             coalesce(sum(amount), 0) as amount
+           from payments
+           where organization_id = $1
+             and currency_code = $2
+             and status <> 'cancelled'
+             and payment_kind in ('rent', 'prorated_rent')
+             and due_date >= $3::date
+             and due_date < $4::date
+           group by 1
+         )
+         select
+           coalesce(collected.month, expected.month) as month,
+           coalesce(collected.amount, 0) as collected_amount,
+           coalesce(expected.amount, 0) as expected_amount
+         from collected
+         full outer join expected on expected.month = collected.month
+         order by 1`,
+        [organizationId, currencyCode, fromDate, toDateExclusive]
       );
 
       return result.rows.map((row) => ({
         month: typeof row.month === "string" ? row.month.slice(0, 7) : toIsoDate(row.month).slice(0, 7),
-        amount: toNumber(row.amount)
+        collectedAmount: toNumber(row.collected_amount),
+        expectedAmount: toNumber(row.expected_amount)
       }));
     },
 

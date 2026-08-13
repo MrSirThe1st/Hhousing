@@ -8,13 +8,12 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (code) {
     const supabase = await createSupabaseServerClient();
-    
-    // Exchange the one-time code for a session cookie
+
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    
+
     if (!error) {
       const next = requestUrl.searchParams.get("next");
-      if (next && next.startsWith("/")) {
+      if (next && next.startsWith("/") && !next.startsWith("/account")) {
         return NextResponse.redirect(`${origin}${next}`);
       }
 
@@ -23,7 +22,6 @@ export async function GET(request: Request): Promise<NextResponse> {
       } = await supabase.auth.getUser();
 
       if (user) {
-        // 1. Platform admin (same login, role-based routing)
         const { data: platformAdmins } = await supabase
           .from("platform_admins")
           .select("user_id")
@@ -35,7 +33,6 @@ export async function GET(request: Request): Promise<NextResponse> {
           return NextResponse.redirect(`${origin}/admin`);
         }
 
-        // 2. Organization membership → operator dashboard
         const { data: memberships } = await supabase
           .from("organization_memberships")
           .select("id")
@@ -46,7 +43,6 @@ export async function GET(request: Request): Promise<NextResponse> {
           return NextResponse.redirect(`${origin}/dashboard`);
         }
 
-        // 3. Active owner portal access
         const { data: ownerAccesses } = await supabase
           .from("owner_portal_accesses")
           .select("id")
@@ -58,12 +54,10 @@ export async function GET(request: Request): Promise<NextResponse> {
           return NextResponse.redirect(`${origin}/owner-portal/dashboard`);
         }
 
-        // 4. Fallback: new oauth signup takes the user to the account-type picker
         return NextResponse.redirect(`${origin}/account-type`);
       }
     }
   }
 
-  // Fallback on failure
   return NextResponse.redirect(`${origin}/login?error=oauth_callback_failed`);
 }

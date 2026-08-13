@@ -18,10 +18,16 @@ export type PlatformAdminAuthSession = AuthSessionBase & {
   organizationId: null;
 };
 
+/** Catalogue seeker: marketplace profile, no organization required. */
+export type MarketplaceAuthSession = AuthSessionBase & {
+  role: "marketplace_user";
+  organizationId: null;
+};
+
 /** Tenant or operator: always scoped to an organization membership. */
 export type MembershipAuthSession = AuthSessionBase & {
   role: Exclude<UserRole, "platform_admin">;
   organizationId: string;
 };
 
-export type AuthSession = PlatformAdminAuthSession | MembershipAuthSession;
+export type AuthSession = PlatformAdminAuthSession | MembershipAuthSession | MarketplaceAuthSession;

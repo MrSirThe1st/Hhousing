@@ -26,14 +26,22 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage(): Promise<React.ReactElement> {
-  let items: Awaited<ReturnType<ReturnType<typeof createListingRepo>["listPublicListings"]>> = [];
+  let previewItems: Awaited<ReturnType<ReturnType<typeof createListingRepo>["listPublicListings"]>>["items"] = [];
+  let totalCount = 0;
+  let loadError = false;
   try {
     const listingRepo = createListingRepo();
-    items = await listingRepo.listPublicListings({ featuredOnly: false });
+    const result = await listingRepo.listPublicListings({
+      sort: "newest",
+      limit: MARKETPLACE_PREVIEW_LIMIT,
+      offset: 0
+    });
+    previewItems = result.items;
+    totalCount = result.totalCount;
   } catch (error) {
     console.error("Failed to fetch public listings on homepage:", error);
+    loadError = true;
   }
-  const previewItems = items.slice(0, MARKETPLACE_PREVIEW_LIMIT);
 
   return (
     <main className="min-h-screen bg-white text-slate-950 dark:bg-[#0a1120] dark:text-slate-100">
@@ -51,17 +59,17 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="marketplace" className="pt-8 pb-14 md:pt-12 md:pb-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           <div className="text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Trouvez votre prochain logement</h2>
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Nouveaux logements</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
               Parcourez les annonces publiées par nos gestionnaires partenaires
             </p>
-            {items.length > 0 ? (
+            {!loadError && totalCount > 0 ? (
               <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
                 <p className="text-sm text-slate-500">
                   <span className="font-semibold text-slate-800">
-                    {items.length} logement{items.length > 1 ? "s" : ""} disponible{items.length > 1 ? "s" : ""}
+                    {totalCount} logement{totalCount > 1 ? "s" : ""} disponible{totalCount > 1 ? "s" : ""}
                   </span>
-                  {" · "}Explorez toutes les annonces sur notre marketplace.
+                  {" · "}Explorez toutes les annonces dans le catalogue.
                 </p>
                 <Link
                   href="/marketplace"
@@ -76,7 +84,12 @@ export default async function HomePage(): Promise<React.ReactElement> {
             ) : null}
           </div>
 
-          {items.length === 0 ? (
+          {loadError ? (
+            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 px-4 py-8 text-center max-w-xl mx-auto">
+              <p className="text-sm font-medium text-red-800">Impossible de charger les annonces pour le moment.</p>
+              <p className="mt-1 text-xs text-red-600">Réessayez plus tard — ce n&apos;est pas un catalogue vide.</p>
+            </div>
+          ) : previewItems.length === 0 ? (
             <div className="mt-8 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 sm:py-10 text-center max-w-xl mx-auto">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-slate-400">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -88,7 +101,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                   Publier une annonce
                 </Link>
                 <Link href="/signup" className="rounded-full border border-slate-300 bg-white px-5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
-                  M'alerter des disponibilités
+                  M&apos;alerter des disponibilités
                 </Link>
               </div>
             </div>

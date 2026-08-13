@@ -12,6 +12,7 @@ import {
   createEmailTemplateRepositoryFromEnv,
   createMessageRepositoryFromEnv,
   createListingRepositoryFromEnv,
+  createMarketplaceRepositoryFromEnv,
   createTaskRepositoryFromEnv,
   createCalendarEventRepositoryFromEnv,
   createTeamFunctionsRepositoryFromEnv,
@@ -31,6 +32,7 @@ import {
   type EmailTemplateRepository,
   type MessageRepository,
   type ListingRepository,
+  type MarketplaceRepository,
   type TaskRepository,
   type ServiceProviderRepository,
   TeamFunctionsRepository
@@ -113,6 +115,10 @@ export function createMessageRepo(): MessageRepository {
 
 export function createListingRepo(): ListingRepository {
   return createListingRepositoryFromEnv(process.env);
+}
+
+export function createMarketplaceRepo(): MarketplaceRepository {
+  return createMarketplaceRepositoryFromEnv(process.env);
 }
 
 export function createTaskRepo(): TaskRepository {

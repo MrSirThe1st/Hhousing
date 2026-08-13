@@ -278,25 +278,16 @@ export default function PublicHeroCarousel(): React.ReactElement {
   const [reducedMotion, setReducedMotion] = useState(false);
   const regionId = useId();
   const sectionRef = useRef<HTMLElement | null>(null);
-  const indexRef = useRef(0);
 
   const slideCount = SLIDES.length;
   const slide = SLIDES[index] ?? SLIDES[0];
 
-  useEffect(() => {
-    indexRef.current = index;
-  }, [index]);
-
-  function goTo(next: number): void {
-    setIndex(((next % slideCount) + slideCount) % slideCount);
-  }
-
   function goPrev(): void {
-    goTo(indexRef.current - 1);
+    setIndex((current) => (current - 1 + slideCount) % slideCount);
   }
 
   function goNext(): void {
-    goTo(indexRef.current + 1);
+    setIndex((current) => (current + 1) % slideCount);
   }
 
   useEffect(() => {
@@ -422,7 +413,11 @@ export default function PublicHeroCarousel(): React.ReactElement {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
-              <span className="ml-2 text-sm font-medium tabular-nums text-white/80" aria-live="polite">
+              <span
+                key={`slide-index-${index}`}
+                className="ml-2 text-sm font-medium tabular-nums text-white/80"
+                aria-live="polite"
+              >
                 {index + 1}/{slideCount}
               </span>
             </div>

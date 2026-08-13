@@ -1,4 +1,4 @@
-const { withAndroidManifest } = require("@expo/config-plugins");
+const { withAndroidManifest } = require("expo/config-plugins");
 
 /**
  * Keep the window from resizing/panning when the soft keyboard opens.

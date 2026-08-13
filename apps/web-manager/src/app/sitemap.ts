@@ -7,7 +7,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let listingUrls: MetadataRoute.Sitemap = [];
   try {
     const listingRepo = createListingRepo();
-    const items = await listingRepo.listPublicListings({ featuredOnly: false });
+    const items: Awaited<ReturnType<typeof listingRepo.listPublicListings>>["items"] = [];
+    const pageSize = 200;
+    let offset = 0;
+    let totalCount = Infinity;
+
+    while (offset < totalCount) {
+      const result = await listingRepo.listPublicListings({
+        sort: "newest",
+        limit: pageSize,
+        offset
+      });
+      totalCount = result.totalCount;
+      items.push(...result.items);
+      if (result.items.length === 0) {
+        break;
+      }
+      offset += pageSize;
+    }
 
     listingUrls = items.map((item) => ({
       url: `${baseUrl}/listing/${item.listing.id}`,

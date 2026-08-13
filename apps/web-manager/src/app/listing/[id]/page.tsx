@@ -92,12 +92,17 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
       "addressLocality": item.locationLabel,
       "addressCountry": "CD"
     },
-    "offers": {
-      "@type": "Offer",
-      "price": item.unit.depositAmount || undefined,
-      "priceCurrency": item.unit.currencyCode || "USD",
-      "availability": "https://schema.org/InStock"
-    }
+    "offers": item.listing.visibility.showRent
+      ? {
+          "@type": "Offer",
+          "price": item.unit.monthlyRentAmount,
+          "priceCurrency": item.unit.currencyCode || "CDF",
+          "availability": "https://schema.org/InStock"
+        }
+      : {
+          "@type": "Offer",
+          "availability": "https://schema.org/InStock"
+        }
   };
 
   return (
@@ -113,7 +118,7 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Retour au marketplace
+            Retour au catalogue
           </Link>
         </div>
       </div>
@@ -144,12 +149,6 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                       {organization.name}
                     </h3>
                   </div>
-                </div>
-                <div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-100">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Vérifié
-                  </span>
                 </div>
               </div>
             )}
@@ -238,6 +237,11 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
               </div>
 
               <div className="border-b border-slate-100 pb-6">
+                <div className="mb-3">
+                  <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-100">
+                    Disponible maintenant
+                  </span>
+                </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">{displayTitle}</h1>
                 <p className="mt-2 text-sm text-slate-500 flex items-center gap-1 font-semibold">
                   <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -279,10 +283,16 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
               <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
                 {/* Price block */}
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-slate-900">
-                    {item.unit.monthlyRentAmount.toLocaleString("fr-FR")} {item.unit.currencyCode}
-                  </span>
-                  <span className="text-xs font-bold text-slate-400 lowercase">/ mois</span>
+                  {item.listing.visibility.showRent ? (
+                    <>
+                      <span className="text-3xl font-black text-slate-900">
+                        {item.unit.monthlyRentAmount.toLocaleString("fr-FR")} {item.unit.currencyCode}
+                      </span>
+                      <span className="text-xs font-bold text-slate-400 lowercase">/ mois</span>
+                    </>
+                  ) : (
+                    <span className="text-xl font-bold text-slate-600">Prix sur demande</span>
+                  )}
                 </div>
 
                 {/* Characteristics light inline grid */}

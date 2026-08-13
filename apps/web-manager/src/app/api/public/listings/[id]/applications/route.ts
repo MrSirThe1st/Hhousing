@@ -1,6 +1,7 @@
 import { parseSubmitListingApplicationInput } from "@hhousing/api-contracts";
 import { createId, createListingRepo, jsonResponse, parseJsonBody } from "../../../../shared";
 import { mapErrorCodeToHttpStatus } from "../../../../../../api/shared";
+import { extractUserIdFromRequest } from "../../../../../../auth/session-adapter";
 
 export async function POST(
   request: Request,
@@ -35,10 +36,13 @@ export async function POST(
     });
   }
 
+  const userId = await extractUserIdFromRequest(request);
+
   const application = await listingRepo.createApplication({
     id: createId("app"),
     listingId: listing.listing.id,
     organizationId: listing.listing.organizationId,
+    userId,
     fullName: parsed.data.fullName,
     email: parsed.data.email,
     phone: parsed.data.phone,

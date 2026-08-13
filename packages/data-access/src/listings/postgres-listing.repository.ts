@@ -14,6 +14,7 @@ import type {
   ListingApplicationView,
   ManagerListingView,
   PublicListingFilter,
+  PublicListingsOutput,
   PublicListingView
 } from "@hhousing/api-contracts";
 import { readDatabaseEnv, type DatabaseEnvSource } from "../database/database-env";
@@ -126,6 +127,7 @@ interface ApplicationRow extends QueryResultRow {
   application_id: string;
   application_listing_id: string;
   application_organization_id: string;
+  application_user_id: string | null;
   application_full_name: string;
   application_email: string;
   application_phone: string;
@@ -354,6 +356,7 @@ function mapApplication(row: ApplicationRow): ListingApplication {
     id: row.application_id,
     listingId: row.application_listing_id,
     organizationId: row.application_organization_id,
+    userId: row.application_user_id ?? null,
     fullName: row.application_full_name,
     email: row.application_email,
     phone: row.application_phone,
@@ -649,7 +652,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
       }));
     },
 
-    async listPublicListings(filter?: PublicListingFilter): Promise<PublicListingView[]> {
+    async listPublicListings(filter?: PublicListingFilter): Promise<PublicListingsOutput> {
       const schema = await getPropertyOwnershipSchema(client);
       const values: unknown[] = [];
       const clauses = ["p.status = 'active'", "u.status = 'vacant'", "l.status = 'published'"];
@@ -669,6 +672,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
         clauses.push(`(
           lower(p.name) like $${values.length}
           or lower(p.city) like $${values.length}
+          or lower(p.address) like $${values.length}
           or lower(u.unit_number) like $${values.length}
           or lower(coalesce(l.marketing_description, '')) like $${values.length}
         )`);
@@ -684,8 +688,62 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
         clauses.push(`u.monthly_rent_amount <= $${values.length}`);
       }
 
+      if (filter?.minBedrooms !== null && filter?.minBedrooms !== undefined) {
+        values.push(filter.minBedrooms);
+        clauses.push(`u.bedroom_count >= $${values.length}`);
+      }
+
+      if (filter?.minBathrooms !== null && filter?.minBathrooms !== undefined) {
+        values.push(filter.minBathrooms);
+        clauses.push(`u.bathroom_count >= $${values.length}`);
+      }
+
+      if (filter?.amenities && filter.amenities.length > 0) {
+        values.push(filter.amenities);
+        clauses.push(`u.amenities @> $${values.length}::text[]`);
+      }
+
+      if (filter?.features && filter.features.length > 0) {
+        values.push(filter.features);
+        clauses.push(`u.features @> $${values.length}::text[]`);
+      }
+
       if (filter?.featuredOnly) {
         clauses.push("l.is_featured = true");
+      }
+
+      const sort = filter?.sort ?? "newest";
+      let orderBySql =
+        "coalesce(l.published_at, l.updated_at) desc, p.name asc, u.unit_number asc";
+      if (sort === "price_asc") {
+        orderBySql = "u.monthly_rent_amount asc, coalesce(l.published_at, l.updated_at) desc";
+      } else if (sort === "price_desc") {
+        orderBySql = "u.monthly_rent_amount desc, coalesce(l.published_at, l.updated_at) desc";
+      }
+
+      const baseFromWhere = `${propertyUnitJoinClause()}
+         where ${clauses.join(" and ")}`;
+
+      const countResult = await client.query<{ total_count: string | number }>(
+        `select count(*)::int as total_count
+         ${baseFromWhere}`,
+        values
+      );
+      const totalCount = Number(countResult.rows[0]?.total_count ?? 0);
+
+      let limitOffsetSql = "";
+      const pageValues = [...values];
+      if (filter?.limit !== null && filter?.limit !== undefined) {
+        const limit = Math.max(1, Math.floor(filter.limit));
+        const offset =
+          filter.offset !== null && filter.offset !== undefined
+            ? Math.max(0, Math.floor(filter.offset))
+            : 0;
+        pageValues.push(limit);
+        const limitParam = pageValues.length;
+        pageValues.push(offset);
+        const offsetParam = pageValues.length;
+        limitOffsetSql = ` limit $${limitParam} offset $${offsetParam}`;
       }
 
       const result = await client.query<PublicListingRow>(
@@ -721,13 +779,15 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
            ${listingSelectClause()},
            0 as application_count,
            null as last_application_at
-         ${propertyUnitJoinClause()}
-         where ${clauses.join(" and ")}
-         order by l.is_featured desc, coalesce(l.published_at, l.updated_at) desc, p.name asc, u.unit_number asc`,
-        values
+         ${baseFromWhere}
+         order by ${orderBySql}${limitOffsetSql}`,
+        pageValues
       );
 
-      return result.rows.map(mapPublicListing);
+      return {
+        items: result.rows.map(mapPublicListing),
+        totalCount
+      };
     },
 
     async getPublicListingById(listingId: string): Promise<PublicListingView | null> {
@@ -776,13 +836,14 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
     async createApplication(input: CreateListingApplicationRecordInput): Promise<ListingApplication> {
       const result = await client.query<ApplicationRow>(
         `insert into listing_applications (
-           id, listing_id, organization_id, full_name, email, phone,
+           id, listing_id, organization_id, user_id, full_name, email, phone,
            date_of_birth, employment_status, job_title, employment_info, monthly_income, number_of_occupants, notes
-         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          returning
            id as application_id,
            listing_id as application_listing_id,
            organization_id as application_organization_id,
+           user_id as application_user_id,
            full_name as application_full_name,
            email as application_email,
            phone as application_phone,
@@ -805,6 +866,7 @@ export function createPostgresListingRepository(client: ListingQueryable): Listi
           input.id,
           input.listingId,
           input.organizationId,
+          input.userId ?? null,
           input.fullName,
           input.email,
           input.phone,

@@ -1,4 +1,10 @@
-import type { ApiResult, AuthSession, MembershipAuthSession, PlatformAdminAuthSession } from "@hhousing/api-contracts";
+import type {
+  ApiResult,
+  AuthSession,
+  MarketplaceAuthSession,
+  MembershipAuthSession,
+  PlatformAdminAuthSession
+} from "@hhousing/api-contracts";
 
 export type OperatorAuthSession = MembershipAuthSession & {
   role: "landlord" | "property_manager";
@@ -32,6 +38,14 @@ export function requireOperatorSession(session: AuthSession | null): ApiResult<O
     };
   }
 
+  if (session.role === "marketplace_user") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Marketplace accounts cannot access the operator system"
+    };
+  }
+
   if (session.role !== "landlord" && session.role !== "property_manager") {
     return {
       success: false,
@@ -43,6 +57,60 @@ export function requireOperatorSession(session: AuthSession | null): ApiResult<O
   return {
     success: true,
     data: session as OperatorAuthSession
+  };
+}
+
+/**
+ * Require any authenticated session that may use marketplace features.
+ * Operators and marketplace seekers are both allowed (same auth.users identity).
+ */
+export function requireMarketplaceCapableSession(
+  session: AuthSession | null
+): ApiResult<AuthSession> {
+  if (session === null) {
+    return {
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    };
+  }
+
+  if (session.role === "tenant") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Use the mobile app for tenant features"
+    };
+  }
+
+  return {
+    success: true,
+    data: session
+  };
+}
+
+export function requireMarketplaceSession(
+  session: AuthSession | null
+): ApiResult<MarketplaceAuthSession> {
+  if (session === null) {
+    return {
+      success: false,
+      code: "UNAUTHORIZED",
+      error: "Authentication required"
+    };
+  }
+
+  if (session.role !== "marketplace_user") {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Marketplace account required"
+    };
+  }
+
+  return {
+    success: true,
+    data: session
   };
 }
 

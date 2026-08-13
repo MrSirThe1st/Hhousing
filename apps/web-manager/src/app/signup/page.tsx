@@ -83,7 +83,6 @@ export default function SignupPage(): React.ReactElement {
       });
     }
 
-    // Redirect to account type picker
     router.push("/account-type");
   }
 
@@ -118,7 +117,9 @@ export default function SignupPage(): React.ReactElement {
         <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
           <div className="mb-4">
             <h1 className="text-xl font-bold text-slate-900">Inscription</h1>
-            <p className="mt-1 text-xs text-slate-600">Commencez à gérer vos propriétés</p>
+            <p className="mt-1 text-xs text-slate-600">
+              Commencez à gérer vos propriétés
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3.5">

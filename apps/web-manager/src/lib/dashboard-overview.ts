@@ -15,7 +15,7 @@ import type {
 
 const WATCHLIST_LIMIT = 8;
 const LEASE_ENDING_SOON_DAYS = 30;
-const TREND_MONTHS = 6;
+const TREND_MONTHS = 12;
 
 function zeroTotal(currencyCode: string): DashboardCurrencyTotal {
   return { currencyCode, amount: 0 };
@@ -59,10 +59,15 @@ function getCurrentMonthBounds(): { monthStart: string; monthEndExclusive: strin
   };
 }
 
-function getTrendFromDate(): string {
+function getTrendWindow(): { fromDate: string; toDateExclusive: string } {
   const now = getNow();
-  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (TREND_MONTHS - 1), 1));
-  return from.toISOString().slice(0, 10);
+  const fromDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (TREND_MONTHS - 1), 1))
+    .toISOString()
+    .slice(0, 10);
+  const toDateExclusive = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+    .toISOString()
+    .slice(0, 10);
+  return { fromDate, toDateExclusive };
 }
 
 function getRecentMonthKeys(count: number): string[] {
@@ -253,31 +258,34 @@ export async function loadDashboardInitial(
 }
 
 /**
- * Deferred 6-month trend series. SQL-aggregated with a hard date window.
- * V1: revenue-only (expenses deferred — do not fetch or fabricate $0 series).
+ * Deferred rent trend series. SQL-aggregated with a hard 12-month window.
+ * V1: collected vs expected rent only (expenses deferred — do not fetch or fabricate $0 series).
  */
 export async function loadDashboardTrends(
   session: MembershipAuthSession,
   selectedCurrency: string
 ): Promise<DashboardTrendBucket[]> {
-  const fromDate = getTrendFromDate();
+  const { fromDate, toDateExclusive } = getTrendWindow();
   const monthKeys = getRecentMonthKeys(TREND_MONTHS);
 
   try {
-    const paidByMonth = await createPaymentRepo().sumPaidPaymentsByMonth(
+    const rows = await createPaymentRepo().sumDashboardRentTrendByMonth(
       session.organizationId,
       selectedCurrency,
-      fromDate
+      fromDate,
+      toDateExclusive
     );
 
-    const revenueMap = new Map(paidByMonth.map((row) => [row.month, row.amount]));
+    const byMonth = new Map(rows.map((row) => [row.month, row]));
 
     return monthKeys.map((month) => {
-      const revenue = revenueMap.get(month) ?? 0;
+      const match = byMonth.get(month);
       return {
         month,
         label: formatTrendMonthLabel(month),
-        revenueTotals: [{ currencyCode: selectedCurrency, amount: revenue }]
+        currencyCode: selectedCurrency,
+        collectedAmount: match?.collectedAmount ?? 0,
+        expectedAmount: match?.expectedAmount ?? 0
       };
     });
   } catch (error) {
@@ -285,7 +293,9 @@ export async function loadDashboardTrends(
     return monthKeys.map((month) => ({
       month,
       label: formatTrendMonthLabel(month),
-      revenueTotals: [zeroTotal(selectedCurrency)]
+      currencyCode: selectedCurrency,
+      collectedAmount: 0,
+      expectedAmount: 0
     }));
   }
 }

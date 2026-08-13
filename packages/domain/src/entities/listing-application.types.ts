@@ -10,6 +10,7 @@ export interface ListingApplication {
   id: string;
   listingId: string;
   organizationId: string;
+  userId: string | null;
   fullName: string;
   email: string;
   phone: string;

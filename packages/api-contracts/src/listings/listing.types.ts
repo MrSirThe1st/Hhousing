@@ -54,13 +54,23 @@ export interface UpdateListingApplicationInput {
   requestedInfoMessage?: string | null;
 }
 
+export type PublicListingSort = "newest" | "price_asc" | "price_desc";
+
 export interface PublicListingFilter {
   q?: string | null;
   city?: string | null;
   minRent?: number | null;
   maxRent?: number | null;
   propertyType?: PropertyType | null;
+  minBedrooms?: number | null;
+  minBathrooms?: number | null;
+  amenities?: string[] | null;
+  features?: string[] | null;
+  /** @deprecated Featured ranking is disabled; do not use for public Catalogue sort. */
   featuredOnly?: boolean;
+  sort?: PublicListingSort | null;
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface PublicListingView {
@@ -79,6 +89,7 @@ export interface PublicListingDetailOutput {
 
 export interface PublicListingsOutput {
   items: PublicListingView[];
+  totalCount: number;
 }
 
 export interface ManagerListingView {

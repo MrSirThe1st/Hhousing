@@ -1,4 +1,24 @@
-import type { PublicListingFilter } from "@hhousing/api-contracts";
+import type { PublicListingFilter, PublicListingSort } from "@hhousing/api-contracts";
+
+/** Must match manager amenity catalog in property-form-options.ts */
+const ALLOWED_AMENITIES = new Set([
+  "Parking",
+  "Eau courante",
+  "Electricite",
+  "Gardien",
+  "Internet fibre",
+  "Ascenseur"
+]);
+
+/** Must match manager feature catalog in property-form-options.ts */
+const ALLOWED_FEATURES = new Set([
+  "Balcon",
+  "Cuisine equipee",
+  "Climatisation",
+  "Jardin",
+  "Piscine",
+  "Groupe electrogene"
+]);
 
 export type PublicMarketplaceSearchParams = {
   q?: string | string[];
@@ -6,6 +26,11 @@ export type PublicMarketplaceSearchParams = {
   minRent?: string | string[];
   maxRent?: string | string[];
   propertyType?: string | string[];
+  minBedrooms?: string | string[];
+  minBathrooms?: string | string[];
+  amenities?: string | string[];
+  features?: string | string[];
+  sort?: string | string[];
   page?: string | string[];
 };
 
@@ -110,6 +135,25 @@ export function parseMarketplacePage(value: string | string[] | undefined): numb
   return Math.floor(parsed);
 }
 
+export function parseMarketplaceSort(value: string | string[] | undefined): PublicListingSort {
+  const raw = firstSearchParam(value);
+  if (raw === "price_asc" || raw === "price_desc" || raw === "newest") {
+    return raw;
+  }
+  return "newest";
+}
+
+export function parseStringListParam(value: string | string[] | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+  const parts = Array.isArray(value) ? value : value.split(",");
+  return parts
+    .flatMap((part) => part.split(","))
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 export function buildMarketplaceHref(
   params: PublicMarketplaceSearchParams | undefined,
   page: number
@@ -120,12 +164,26 @@ export function buildMarketplaceHref(
   const propertyType = firstSearchParam(params?.propertyType);
   const minRent = firstSearchParam(params?.minRent);
   const maxRent = firstSearchParam(params?.maxRent);
+  const minBedrooms = firstSearchParam(params?.minBedrooms);
+  const minBathrooms = firstSearchParam(params?.minBathrooms);
+  const sort = parseMarketplaceSort(params?.sort);
+  const amenities = parseStringListParam(params?.amenities).filter((item) => ALLOWED_AMENITIES.has(item));
+  const features = parseStringListParam(params?.features).filter((item) => ALLOWED_FEATURES.has(item));
 
   if (q) search.set("q", q);
   if (city) search.set("city", city);
   if (propertyType) search.set("propertyType", propertyType);
   if (minRent) search.set("minRent", minRent);
   if (maxRent) search.set("maxRent", maxRent);
+  if (minBedrooms) search.set("minBedrooms", minBedrooms);
+  if (minBathrooms) search.set("minBathrooms", minBathrooms);
+  for (const amenity of amenities) {
+    search.append("amenities", amenity);
+  }
+  for (const feature of features) {
+    search.append("features", feature);
+  }
+  if (sort !== "newest") search.set("sort", sort);
   if (page > 1) search.set("page", String(page));
   const query = search.toString();
   return query ? `/marketplace?${query}` : "/marketplace";
@@ -141,8 +199,18 @@ export function parseOptionalNumber(value: string | string[] | undefined): numbe
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function buildPublicListingFilter(params?: PublicMarketplaceSearchParams): PublicListingFilter {
+export function buildPublicListingFilter(
+  params?: PublicMarketplaceSearchParams,
+  options?: { pageSize?: number; page?: number; limit?: number; offset?: number }
+): PublicListingFilter {
   const propertyType = firstSearchParam(params?.propertyType);
+  const amenities = parseStringListParam(params?.amenities).filter((item) => ALLOWED_AMENITIES.has(item));
+  const features = parseStringListParam(params?.features).filter((item) => ALLOWED_FEATURES.has(item));
+  const pageSize = options?.pageSize ?? MARKETPLACE_PAGE_SIZE;
+  const page = options?.page ?? parseMarketplacePage(params?.page);
+  const limit = options?.limit ?? pageSize;
+  const offset = options?.offset ?? (page - 1) * pageSize;
+
   return {
     q: firstSearchParam(params?.q)?.trim() || null,
     city: firstSearchParam(params?.city)?.trim() || null,
@@ -152,6 +220,12 @@ export function buildPublicListingFilter(params?: PublicMarketplaceSearchParams)
       propertyType === "single_unit" || propertyType === "multi_unit"
         ? propertyType
         : null,
-    featuredOnly: false
+    minBedrooms: parseOptionalNumber(params?.minBedrooms),
+    minBathrooms: parseOptionalNumber(params?.minBathrooms),
+    amenities: amenities.length > 0 ? amenities : null,
+    features: features.length > 0 ? features : null,
+    sort: parseMarketplaceSort(params?.sort),
+    limit,
+    offset
   };
 }

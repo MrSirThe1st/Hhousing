@@ -45,6 +45,12 @@ export interface DashboardMonthlyTotalRow {
   amount: number;
 }
 
+export interface DashboardRentTrendMonthRow {
+  month: string;
+  collectedAmount: number;
+  expectedAmount: number;
+}
+
 
 export interface PaymentFinanceFilters {
   organizationId: string;
@@ -156,10 +162,11 @@ export interface PaymentRepository {
     currencyCode: string,
     limit: number
   ): Promise<DashboardWatchlistPaymentRow[]>;
-  sumPaidPaymentsByMonth(
+  sumDashboardRentTrendByMonth(
     organizationId: string,
     currencyCode: string,
-    fromDate: string
-  ): Promise<DashboardMonthlyTotalRow[]>;
+    fromDate: string,
+    toDateExclusive: string
+  ): Promise<DashboardRentTrendMonthRow[]>;
   countSidebarPaymentBadges(organizationId: string, todayIsoDate: string): Promise<number>;
 }

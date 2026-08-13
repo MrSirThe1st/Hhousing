@@ -42,6 +42,10 @@ export default async function DashboardLayout({
     redirect("/account-type");
   }
 
+  if (session.role === "marketplace_user") {
+    redirect("/account-type");
+  }
+
   if (session.role === "platform_admin") {
     redirect("/admin");
   }

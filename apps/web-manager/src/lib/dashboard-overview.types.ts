@@ -6,7 +6,9 @@ export type DashboardCurrencyTotal = {
 export type DashboardTrendBucket = {
   month: string;
   label: string;
-  revenueTotals: DashboardCurrencyTotal[];
+  currencyCode: string;
+  collectedAmount: number;
+  expectedAmount: number;
 };
 
 export type DashboardWatchlistKind = "overdue" | "lease" | "pending";

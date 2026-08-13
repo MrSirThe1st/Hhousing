@@ -9,6 +9,13 @@ export type { Owner, OwnerClient, OwnerType } from "./entities/owner.types";
 export type { Property, PropertyManagementContext, PropertyOwnerType, PropertyStatus, PropertyType } from "./entities/property.types";
 export type { Listing, ListingStatus, ListingVisibility } from "./entities/listing.types";
 export type { ListingApplication, ListingApplicationStatus } from "./entities/listing-application.types";
+export type {
+  MarketplaceProfile,
+  SavedListing,
+  UserMarketingPreferences,
+  ViewingRequest,
+  ViewingRequestStatus
+} from "./entities/marketplace.types";
 export type { Unit, UnitStatus } from "./entities/unit.types";
 export type { Tenant, TenantAccountStatus } from "./entities/tenant.types";
 export type { WhatsAppMessage, WhatsAppMessageStatus } from "./entities/whatsapp-message.types";

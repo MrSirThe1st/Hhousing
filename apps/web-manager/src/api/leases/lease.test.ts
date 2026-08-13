@@ -87,7 +87,7 @@ function createPaymentRepositoryMock(): PaymentRepository {
     generateMonthlyCharges: vi.fn(),
     getDashboardPaymentFinanceSnapshot: vi.fn(),
     listDashboardWatchlistPayments: vi.fn(),
-    sumPaidPaymentsByMonth: vi.fn(),
+    sumDashboardRentTrendByMonth: vi.fn(),
     countSidebarPaymentBadges: vi.fn()
   };
 }

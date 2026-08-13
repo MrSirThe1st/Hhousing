@@ -1,5 +1,5 @@
 export type { ApiResult } from "./api-result.types";
-export type { AuthSession, MembershipAuthSession, PlatformAdminAuthSession, UserRole } from "./auth.types";
+export type { AuthSession, MarketplaceAuthSession, MembershipAuthSession, PlatformAdminAuthSession, UserRole } from "./auth.types";
 export type {
   ListOrganizationMembersOutput,
   ListTeamMemberInvitationsOutput,
@@ -85,6 +85,7 @@ export type {
   SubmitListingApplicationInput,
   UpdateListingApplicationInput,
   PublicListingFilter,
+  PublicListingSort,
   PublicListingView,
   PublicListingDetailOutput,
   PublicListingsOutput,

@@ -22,9 +22,13 @@ export async function requireEntrepriseExperience(): Promise<PlatformExperience>
     redirect("/admin");
   }
 
+  if (session.role === "marketplace_user" || session.role === "tenant" || !("organizationId" in session) || !session.organizationId) {
+    redirect("/account-type");
+  }
+
   // Prefer the session already resolved for dashboard layout (same RSC request).
   const dashboardContext = await getDashboardRequestContext();
-  const membershipSession = dashboardContext?.session ?? (session as MembershipAuthSession);
+  const membershipSession: MembershipAuthSession = dashboardContext?.session ?? session;
 
   if (!membershipSession.organizationId) {
     redirect("/dashboard");
@@ -54,6 +58,14 @@ export async function requireEntrepriseExperienceForApi(
       success: false,
       code: "FORBIDDEN",
       error: "Platform admins must use the admin console"
+    };
+  }
+
+  if (session.role === "marketplace_user" || session.role === "tenant" || !session.organizationId) {
+    return {
+      success: false,
+      code: "FORBIDDEN",
+      error: "Operator organization access required"
     };
   }
 

@@ -41,7 +41,6 @@ export default function LoginPage(): React.ReactElement {
       });
     }
 
-    // Route back through /login so middleware can redirect by access type.
     router.replace("/login");
     router.refresh();
   }
@@ -68,7 +67,7 @@ export default function LoginPage(): React.ReactElement {
   }
 
   return (
-    <main 
+    <main
       className="min-h-screen flex items-center justify-center bg-white px-4 py-4 relative"
       style={{
         backgroundImage: "url('/brand/MOTIFS.png')",
@@ -103,10 +102,7 @@ export default function LoginPage(): React.ReactElement {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-xs font-semibold text-slate-700 mb-1"
-              >
+              <label htmlFor="email" className="block text-xs font-semibold text-slate-700 mb-1">
                 Adresse e-mail
               </label>
               <input
@@ -122,20 +118,9 @@ export default function LoginPage(): React.ReactElement {
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label
-                  htmlFor="password"
-                  className="block text-xs font-semibold text-slate-700"
-                >
-                  Mot de passe
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-[11px] font-medium text-[#0063fe] hover:text-[#0052d4] transition"
-                >
-                  Mot de passe oublié ?
-                </Link>
-              </div>
+              <label htmlFor="password" className="block text-xs font-semibold text-slate-700 mb-1">
+                Mot de passe
+              </label>
               <div className="relative">
                 <input
                   id="password"

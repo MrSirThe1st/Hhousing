@@ -132,6 +132,20 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
+  // Marketplace seeker account area is paused: send users to login/dashboard flows instead.
+  if (pathname === "/account" || pathname.startsWith("/account/")) {
+    if (user === null) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (await hasPlatformAdmin(user.id)) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    if (await hasMembership(user.id)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return NextResponse.redirect(new URL("/account-type", request.url));
+  }
+
   // Onboarding/account-type: only for authenticated users; platform admins skip to /admin
   if (pathname === "/account-type" || pathname === "/onboarding") {
     if (user === null) {
@@ -223,6 +237,8 @@ export const config = {
     "/login",
     "/signup",
     "/account-type",
+    "/account",
+    "/account/:path*",
     "/onboarding",
     "/dashboard/:path*",
     "/admin",

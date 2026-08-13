@@ -10,6 +10,7 @@ import type {
   ListingApplicationView,
   ManagerListingView,
   PublicListingFilter,
+  PublicListingsOutput,
   PublicListingView
 } from "@hhousing/api-contracts";
 
@@ -45,6 +46,7 @@ export interface CreateListingApplicationRecordInput {
   id: string;
   listingId: string;
   organizationId: string;
+  userId?: string | null;
   fullName: string;
   email: string;
   phone: string;
@@ -72,7 +74,7 @@ export interface ListingRepository {
   getListingById(listingId: string, organizationId: string): Promise<Listing | null>;
   getListingByUnitId(unitId: string, organizationId: string): Promise<Listing | null>;
   listManagerListings(organizationId: string, managementContext?: PropertyManagementContext): Promise<ManagerListingView[]>;
-  listPublicListings(filter?: PublicListingFilter): Promise<PublicListingView[]>;
+  listPublicListings(filter?: PublicListingFilter): Promise<PublicListingsOutput>;
   getPublicListingById(listingId: string): Promise<PublicListingView | null>;
   createApplication(input: CreateListingApplicationRecordInput): Promise<ListingApplication>;
   getApplicationById(applicationId: string, organizationId: string): Promise<ListingApplicationView | null>;

@@ -184,6 +184,19 @@ export type {
   CreateListingApplicationRecordInput,
   UpdateListingApplicationStatusRecordInput
 } from "./listings/listing-record.types";
+export {
+  createPostgresMarketplaceRepository,
+  createMarketplaceRepositoryFromEnv
+} from "./marketplace/postgres-marketplace.repository";
+export type {
+  MarketplaceRepository,
+  UpsertMarketplaceProfileInput,
+  UpdateMarketplaceProfileInput,
+  UpsertMarketingPreferencesInput,
+  SavedListingView,
+  MarketplaceApplicationView,
+  MarketplaceViewingRequestView
+} from "./marketplace/marketplace-record.types";
 export { TeamFunctionsRepository, createTeamFunctionsRepositoryFromEnv } from "./auth/team-functions.repository";
 export {
   createPostgresAuditLogRepository,

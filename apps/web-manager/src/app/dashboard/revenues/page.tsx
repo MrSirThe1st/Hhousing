@@ -1,6 +1,5 @@
 import CurrencyTotalStack from "../../../components/currency-total-stack";
 import FinanceFilterForm from "../../../components/finance-filter-form";
-import FinanceMonthlyChart from "../../../components/finance-monthly-chart";
 import RevenuesLedgerTable from "../../../components/revenues-ledger-table";
 import { loadRevenuesPageData } from "../../../lib/revenues-page-data";
 import { requireDashboardSectionAccess } from "../../../lib/dashboard-access";
@@ -68,11 +67,6 @@ export default async function RevenuesPage({ searchParams }: RevenuesPageProps):
         actionPath="/dashboard/revenues"
         filters={dataset.filters}
         propertyOptions={dataset.propertyOptions}
-      />
-
-      <FinanceMonthlyChart
-        buckets={dataset.monthlyRevenue}
-        emptyLabel="Aucun revenu encaissé sur cette période."
       />
 
       <section className="grid items-stretch gap-6 xl:grid-cols-12">
