@@ -193,117 +193,117 @@ export default function LoginScreen(): React.ReactElement {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.root}>
-          <View style={styles.brandBlock}>
-            <Image
-              source={require("../../assets/door_logo.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={styles.brandName}>{t("common.appName")}</Text>
-            <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("auth.phoneLabel")}</Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name="call-outline" size={18} color={colors.iconMuted} />
-                <Text style={styles.prefix}>+243</Text>
-                <TextInput
-                  value={formatDrcNationalDisplay(phoneNational)}
-                  onChangeText={handlePhoneChange}
-                  keyboardType="phone-pad"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={styles.input}
-                  placeholder="990 000 000"
-                  placeholderTextColor={colors.textFaint}
-                  maxLength={11}
+              <View style={styles.brandBlock}>
+                <Image
+                  source={require("../../assets/door_logo.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
                 />
+                <Text style={styles.brandName}>{t("common.appName")}</Text>
+                <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
               </View>
-              <Text style={styles.hint}>{t("auth.phoneHint")}</Text>
-            </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("auth.passwordLabel")}</Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.iconMuted} />
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={styles.input}
-                  placeholder={t("auth.passwordPlaceholder")}
-                  placeholderTextColor={colors.textFaint}
-                />
+              <View style={styles.card}>
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>{t("auth.phoneLabel")}</Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="call-outline" size={18} color={colors.iconMuted} />
+                    <Text style={styles.prefix}>+243</Text>
+                    <TextInput
+                      value={formatDrcNationalDisplay(phoneNational)}
+                      onChangeText={handlePhoneChange}
+                      keyboardType="phone-pad"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={styles.input}
+                      placeholder="990 000 000"
+                      placeholderTextColor={colors.textFaint}
+                      maxLength={11}
+                    />
+                  </View>
+                  <Text style={styles.hint}>{t("auth.phoneHint")}</Text>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>{t("auth.passwordLabel")}</Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="lock-closed-outline" size={18} color={colors.iconMuted} />
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={styles.input}
+                      placeholder={t("auth.passwordPlaceholder")}
+                      placeholderTextColor={colors.textFaint}
+                    />
+                    <Pressable
+                      onPress={() => setShowPassword((value) => !value)}
+                      hitSlop={12}
+                      style={styles.iconBtn}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-off-outline" : "eye-outline"}
+                        size={18}
+                        color={colors.iconMuted}
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+
+                {error ? <Text style={styles.error}>{error}</Text> : null}
+
                 <Pressable
-                  onPress={() => setShowPassword((value) => !value)}
-                  hitSlop={12}
-                  style={styles.iconBtn}
+                  style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
+                  onPress={() => {
+                    void handleLogin();
+                  }}
+                  disabled={isSubmitting}
                 >
-                  <Ionicons
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={18}
-                    color={colors.iconMuted}
-                  />
+                  <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    router.push("/(auth)/forgot-password");
+                  }}
+                  style={styles.forgotWrap}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
+                </Pressable>
+
+                {isBiometricReady ? (
+                  <Pressable
+                    style={[styles.biometricButton, isSubmitting ? styles.buttonDisabled : null]}
+                    onPress={() => {
+                      void handleBiometricLogin();
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <Ionicons name="finger-print-outline" size={20} color={colors.brand} />
+                    <Text style={styles.biometricButtonText}>{t("auth.signInBiometric")}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <View style={styles.marketplaceWrap}>
+                <Text style={styles.marketplaceText}>{t("auth.marketplacePrompt")}</Text>
+                <Pressable
+                  onPress={handleOpenMarketplace}
+                  style={styles.marketplacePressable}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.marketplaceLink}>{t("auth.marketplaceLink")}</Text>
+                  <Ionicons name="open-outline" size={14} color={colors.brand} />
                 </Pressable>
               </View>
-            </View>
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <Pressable
-              style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
-              onPress={() => {
-                void handleLogin();
-              }}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => {
-                router.push("/(auth)/forgot-password");
-              }}
-              style={styles.forgotWrap}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
-            </Pressable>
-
-            {isBiometricReady ? (
-              <Pressable
-                style={[styles.biometricButton, isSubmitting ? styles.buttonDisabled : null]}
-                onPress={() => {
-                  void handleBiometricLogin();
-                }}
-                disabled={isSubmitting}
-              >
-                <Ionicons name="finger-print-outline" size={20} color={colors.brand} />
-                <Text style={styles.biometricButtonText}>{t("auth.signInBiometric")}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          <View style={styles.marketplaceWrap}>
-            <Text style={styles.marketplaceText}>{t("auth.marketplacePrompt")}</Text>
-            <Pressable
-              onPress={handleOpenMarketplace}
-              style={styles.marketplacePressable}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.marketplaceLink}>{t("auth.marketplaceLink")}</Text>
-              <Ionicons name="open-outline" size={14} color={colors.brand} />
-            </Pressable>
-          </View>
-
-          <View style={styles.footerWrap}>
-            <Text style={styles.footerText}>{t("auth.noAccount")}</Text>
-            <Text style={styles.footerLink}>{t("auth.inviteHint")}</Text>
-          </View>
+              <View style={styles.footerWrap}>
+                <Text style={styles.footerText}>{t("auth.noAccount")}</Text>
+                <Text style={styles.footerLink}>{t("auth.inviteHint")}</Text>
+              </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
