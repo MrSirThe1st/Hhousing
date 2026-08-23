@@ -21,12 +21,9 @@ import { clearPendingBiometricCredentials } from "@/lib/pending-biometric-creden
 import { maxFontSizeMultiplier, useTheme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
-SplashScreen.setOptions({
-  duration: 200,
-  fade: true
-});
-// Prefer light splash immediately; prefs may switch to dark before hide.
-applyNativeColorScheme("light");
+// Do not call SplashScreen.setOptions here. On iOS 26 + New Architecture, an
+// NSException from a void TurboModule is rethrown on a dispatch queue and
+// aborts the process before the first screen (TestFlight SIGABRT).
 
 const TextWithDefaults = Text as typeof Text & {
   defaultProps?: { maxFontSizeMultiplier?: number };

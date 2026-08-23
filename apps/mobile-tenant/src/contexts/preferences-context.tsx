@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { Appearance } from "react-native";
+import { Appearance, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import i18n from "@/i18n";
 import { detectDeviceLanguage, isAppLanguage, type AppLanguage } from "@/i18n/types";
@@ -14,6 +14,13 @@ const AMOUNTS_SENSITIVE_KEY = "hhousing.prefs.amountsSensitive";
 
 export type ThemeMode = "light" | "dark";
 
+function iosMajorVersion(): number {
+  if (Platform.OS !== "ios") {
+    return 0;
+  }
+  return parseInt(String(Platform.Version), 10) || 0;
+}
+
 export function applyNativeColorScheme(mode: ThemeMode): void {
   // Keep splash / system chrome in sync with the in-app theme (default light),
   // instead of following the OS appearance when the app theme differs.
@@ -21,7 +28,16 @@ export function applyNativeColorScheme(mode: ThemeMode): void {
   if (typeof Appearance.setColorScheme !== "function") {
     return;
   }
-  Appearance.setColorScheme(mode);
+  // iOS 26: void TurboModule NSExceptions abort TestFlight builds
+  // (RCTTurboModule performVoidMethodInvocation). Skip native override there.
+  if (iosMajorVersion() >= 26) {
+    return;
+  }
+  try {
+    Appearance.setColorScheme(mode);
+  } catch {
+    // Native throw is still fatal if it happens async; this covers sync JS errors.
+  }
 }
 
 // Default to light before prefs hydrate so the splash does not stay on a dark OS theme.

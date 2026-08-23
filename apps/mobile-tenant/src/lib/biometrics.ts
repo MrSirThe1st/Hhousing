@@ -8,12 +8,15 @@ import * as SecureStore from "expo-secure-store";
 import i18n from "@/i18n";
 
 const CREDENTIALS_KEY = "hhousing.biometric.credentials";
+const KEYCHAIN_SERVICE = "hhousing.monespace.secure-store";
 
 const SECURE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainService: KEYCHAIN_SERVICE,
   keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY
 };
 
 const SECURE_STORE_FALLBACK_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainService: KEYCHAIN_SERVICE,
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY
 };
 
