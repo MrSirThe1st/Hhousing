@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
-import { Appearance, Text, TextInput } from "react-native";
+import { Text, TextInput } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -22,9 +22,6 @@ SplashScreen.setOptions({
   duration: 200,
   fade: true
 });
-// Prefer light splash immediately; prefs may switch to dark before hide.
-Appearance.setColorScheme("light");
-
 const TextWithDefaults = Text as typeof Text & {
   defaultProps?: { maxFontSizeMultiplier?: number };
 };
@@ -62,8 +59,7 @@ function RootNavigator(): React.ReactElement {
   const pendingDeletionRef = useRef(false);
 
   useEffect(() => {
-    // Keep the native splash up until prefs + auth are ready and the color
-    // scheme matches the in-app theme (light by default).
+    // Keep the native splash up until prefs + auth are ready.
     if (!isReady || isLoading) {
       return;
     }
@@ -181,15 +177,8 @@ function RootNavigator(): React.ReactElement {
 }
 
 function ThemedApp(): React.ReactElement {
-  const { isReady, themeMode } = usePreferences();
+  const { isReady } = usePreferences();
   const { colors } = useTheme();
-
-  useEffect(() => {
-    if (!isReady) {
-      return;
-    }
-    Appearance.setColorScheme(themeMode);
-  }, [isReady, themeMode]);
 
   if (!isReady) {
     return <BlockingLoadingScreen />;

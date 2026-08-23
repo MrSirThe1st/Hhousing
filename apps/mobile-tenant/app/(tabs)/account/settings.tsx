@@ -48,6 +48,14 @@ type ToggleRowProps = {
   styles: ReturnType<typeof createStyles>;
 };
 
+type InfoRowProps = {
+  icon: IoniconName;
+  label: string;
+  hint?: string;
+  colors: ThemeColors;
+  styles: ReturnType<typeof createStyles>;
+};
+
 type ProfileOutput = {
   tenant: Tenant;
 };
@@ -88,6 +96,26 @@ function ToggleRow({
   );
 }
 
+function InfoRow({
+  icon,
+  label,
+  hint,
+  colors,
+  styles
+}: InfoRowProps): React.ReactElement {
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={22} color={colors.brand} />
+      </View>
+      <View style={styles.rowCopy}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {hint ? <Text style={styles.rowHint}>{hint}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
 export default function SettingsScreen(): React.ReactElement {
   const router = useRouter();
   const { t } = useTranslation();
@@ -100,10 +128,10 @@ export default function SettingsScreen(): React.ReactElement {
     amountsSensitive,
     setBiometricEnabled,
     markBiometricPromptShown,
-    setThemeMode,
     setAmountsSensitive
   } = usePreferences();
   const isDarkMode = themeMode === "dark";
+  const themeHint = isDarkMode ? t("settings.themeActiveDark") : t("settings.themeActiveLight");
   const languageHint = language === "en" ? t("settings.languageEn") : t("settings.languageFr");
 
   const [biometricBusy, setBiometricBusy] = useState(false);
@@ -299,12 +327,10 @@ export default function SettingsScreen(): React.ReactElement {
           styles={styles}
         />
         <View style={styles.separator} />
-        <ToggleRow
+        <InfoRow
           icon={isDarkMode ? "moon-outline" : "sunny-outline"}
-          label={t("settings.darkMode")}
-          hint={isDarkMode ? t("settings.themeDark") : t("settings.themeLight")}
-          value={isDarkMode}
-          onValueChange={(next) => { void setThemeMode(next ? "dark" : "light"); }}
+          label={t("settings.appearance")}
+          hint={`${themeHint} · ${t("settings.themeSystemHint")}`}
           colors={colors}
           styles={styles}
         />
