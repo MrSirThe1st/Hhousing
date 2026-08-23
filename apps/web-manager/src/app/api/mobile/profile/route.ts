@@ -3,6 +3,26 @@ import { mapErrorCodeToHttpStatus } from "../../../../api/shared";
 import { validateTenantPhoneForLease } from "@hhousing/api-contracts";
 import { normalizeWhatsAppPhoneNumber } from "../../../../lib/whatsapp/phone";
 import { createTenantLeaseRepo, jsonResponse, parseJsonBody } from "../../shared";
+import type { Tenant } from "@hhousing/domain";
+import type { TenantLeaseRepository } from "@hhousing/data-access";
+
+async function resolveTenantForSession(
+  repo: TenantLeaseRepository,
+  userId: string,
+  organizationId: string
+): Promise<Tenant | null> {
+  const byAuth = await repo.getTenantByAuthUserId(userId);
+  if (byAuth && byAuth.organizationId === organizationId && byAuth.accountStatus !== "deleted") {
+    return byAuth;
+  }
+
+  const lease = await repo.getCurrentLeaseByTenantAuthUserId(userId, organizationId);
+  if (!lease) {
+    return null;
+  }
+
+  return repo.getTenantById(lease.tenantId, organizationId);
+}
 
 export async function GET(request: Request): Promise<Response> {
   const access = await extractTenantSessionFromRequest(request);
@@ -14,20 +34,11 @@ export async function GET(request: Request): Promise<Response> {
   const repo = createTenantLeaseRepo();
 
   try {
-    const lease = await repo.getCurrentLeaseByTenantAuthUserId(
+    const tenant = await resolveTenantForSession(
+      repo,
       access.data.userId,
       access.data.organizationId
     );
-
-    if (!lease) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "No active lease found"
-      });
-    }
-
-    const tenant = await repo.getTenantById(lease.tenantId, access.data.organizationId);
 
     if (!tenant) {
       return jsonResponse(404, {
@@ -108,20 +119,11 @@ export async function PATCH(request: Request): Promise<Response> {
   const repo = createTenantLeaseRepo();
 
   try {
-    const lease = await repo.getCurrentLeaseByTenantAuthUserId(
+    const existing = await resolveTenantForSession(
+      repo,
       access.data.userId,
       access.data.organizationId
     );
-
-    if (!lease) {
-      return jsonResponse(404, {
-        success: false,
-        code: "NOT_FOUND",
-        error: "No active lease found"
-      });
-    }
-
-    const existing = await repo.getTenantById(lease.tenantId, access.data.organizationId);
 
     if (!existing) {
       return jsonResponse(404, {

@@ -17,11 +17,17 @@ import { subscribeAccountDeletionChanged } from "@/lib/account-deletion-gate";
 import { clearPendingBiometricCredentials } from "@/lib/pending-biometric-credentials";
 import { maxFontSizeMultiplier, useTheme } from "@/theme";
 
-void SplashScreen.preventAutoHideAsync();
-SplashScreen.setOptions({
-  duration: 200,
-  fade: true
+void SplashScreen.preventAutoHideAsync().catch(() => {
+  // Expo Go / remounts can reject; ignore.
 });
+try {
+  SplashScreen.setOptions({
+    duration: 200,
+    fade: true
+  });
+} catch {
+  // setOptions is unavailable in Expo Go.
+}
 const TextWithDefaults = Text as typeof Text & {
   defaultProps?: { maxFontSizeMultiplier?: number };
 };
@@ -63,7 +69,9 @@ function RootNavigator(): React.ReactElement {
     if (!isReady || isLoading) {
       return;
     }
-    void SplashScreen.hideAsync();
+    void SplashScreen.hideAsync().catch(() => {
+      // Expo Go may reject when no splash controller is registered.
+    });
   }, [isReady, isLoading]);
 
   // Soft deletion check — only redirects when true; never blanks the UI.

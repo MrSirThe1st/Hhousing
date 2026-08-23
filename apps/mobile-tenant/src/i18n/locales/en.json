@@ -21,7 +21,8 @@
   "tabs": {
     "home": "Home",
     "payments": "Payments",
-    "menu": "Menu",
+    "menu": "Settings",
+    "settings": "Settings",
     "messages": "Messages",
     "maintenance": "Maintenance"
   },
@@ -208,6 +209,9 @@
     "privacy": "Privacy policy",
     "support": "Support",
     "settings": "Settings",
+    "sectionAccount": "Account",
+    "sectionPreferences": "Preferences",
+    "sectionAbout": "About",
     "about": "About",
     "rateApp": "Rate the app",
     "signOut": "Sign out",
@@ -269,6 +273,7 @@
     "biometricHint": "Face ID / fingerprint to unlock and sign in",
     "darkMode": "Dark mode",
     "appearance": "Appearance",
+    "appearanceHint": "Enable dark mode",
     "themeDark": "Dark theme",
     "themeLight": "Light theme",
     "themeActiveDark": "Dark mode active",

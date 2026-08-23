@@ -234,13 +234,6 @@ export default function HomeScreen(): React.ReactElement {
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={() => { router.push("/(tabs)/account"); }}
-            hitSlop={10}
-            style={styles.gearBtn}
-          >
-            <Ionicons name="settings-outline" size={22} color={colors.textMuted} />
-          </Pressable>
         </View>
         <View style={styles.headerRule} />
 
@@ -451,12 +444,6 @@ function createStyles(colors: ThemeColors) {
     address: {
       fontSize: fontSize.secondary,
       color: colors.textFaint
-    },
-    gearBtn: {
-      width: 44,
-      height: 44,
-      alignItems: "center",
-      justifyContent: "center"
     },
     headerRule: {
       height: StyleSheet.hairlineWidth,

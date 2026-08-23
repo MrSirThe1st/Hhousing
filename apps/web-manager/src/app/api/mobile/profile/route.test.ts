@@ -4,11 +4,13 @@ const {
   extractTenantSessionFromRequestMock,
   getCurrentLeaseByTenantAuthUserIdMock,
   getTenantByIdMock,
+  getTenantByAuthUserIdMock,
   updateTenantMobileProfileMock
 } = vi.hoisted(() => ({
   extractTenantSessionFromRequestMock: vi.fn(),
   getCurrentLeaseByTenantAuthUserIdMock: vi.fn(),
   getTenantByIdMock: vi.fn(),
+  getTenantByAuthUserIdMock: vi.fn(),
   updateTenantMobileProfileMock: vi.fn()
 }));
 
@@ -23,10 +25,12 @@ vi.mock("../../shared", async () => {
     createTenantLeaseRepo: (): {
       getCurrentLeaseByTenantAuthUserId: typeof getCurrentLeaseByTenantAuthUserIdMock;
       getTenantById: typeof getTenantByIdMock;
+      getTenantByAuthUserId: typeof getTenantByAuthUserIdMock;
       updateTenantMobileProfile: typeof updateTenantMobileProfileMock;
     } => ({
       getCurrentLeaseByTenantAuthUserId: getCurrentLeaseByTenantAuthUserIdMock,
       getTenantById: getTenantByIdMock,
+      getTenantByAuthUserId: getTenantByAuthUserIdMock,
       updateTenantMobileProfile: updateTenantMobileProfileMock
     })
   };
@@ -68,6 +72,9 @@ const sampleTenant = {
   jobTitle: null,
   monthlyIncome: null,
   numberOfOccupants: null,
+  accountStatus: "active" as const,
+  deletionRequestedAtIso: null,
+  deletedAtIso: null,
   createdAtIso: "2026-01-01T00:00:00.000Z"
 };
 
@@ -82,17 +89,17 @@ describe("GET /api/mobile/profile", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 404 when tenant has no active lease", async () => {
+  it("returns 404 when tenant profile cannot be resolved", async () => {
     extractTenantSessionFromRequestMock.mockResolvedValue(tenantSession);
+    getTenantByAuthUserIdMock.mockResolvedValue(null);
     getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(null);
     const res = await GET(new Request("http://localhost/api/mobile/profile"));
     expect(res.status).toBe(404);
   });
 
-  it("returns tenant profile for authenticated tenant", async () => {
+  it("returns tenant profile by auth user without requiring a lease", async () => {
     extractTenantSessionFromRequestMock.mockResolvedValue(tenantSession);
-    getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(sampleLease);
-    getTenantByIdMock.mockResolvedValue(sampleTenant);
+    getTenantByAuthUserIdMock.mockResolvedValue(sampleTenant);
 
     const res = await GET(new Request("http://localhost/api/mobile/profile"));
 
@@ -100,6 +107,19 @@ describe("GET /api/mobile/profile", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
     expect(json.data.tenant.id).toBe("tenant-1");
+    expect(getCurrentLeaseByTenantAuthUserIdMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to lease lookup when auth mapping is missing", async () => {
+    extractTenantSessionFromRequestMock.mockResolvedValue(tenantSession);
+    getTenantByAuthUserIdMock.mockResolvedValue(null);
+    getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(sampleLease);
+    getTenantByIdMock.mockResolvedValue(sampleTenant);
+
+    const res = await GET(new Request("http://localhost/api/mobile/profile"));
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
     expect(json.data.tenant.fullName).toBe("Alice Martin");
   });
 });
@@ -127,10 +147,9 @@ describe("PATCH /api/mobile/profile", () => {
     expect(res.status).toBe(400);
   });
 
-  it("updates fullName and phone", async () => {
+  it("updates fullName and phone without requiring a lease", async () => {
     extractTenantSessionFromRequestMock.mockResolvedValue(tenantSession);
-    getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(sampleLease);
-    getTenantByIdMock.mockResolvedValue(sampleTenant);
+    getTenantByAuthUserIdMock.mockResolvedValue(sampleTenant);
     const updatedTenant = { ...sampleTenant, fullName: "Alice Dupont", phone: "+243899999999" };
     updateTenantMobileProfileMock.mockResolvedValue(updatedTenant);
 
@@ -155,8 +174,7 @@ describe("PATCH /api/mobile/profile", () => {
 
   it("stores whatsapp preferences when opted in", async () => {
     extractTenantSessionFromRequestMock.mockResolvedValue(tenantSession);
-    getCurrentLeaseByTenantAuthUserIdMock.mockResolvedValue(sampleLease);
-    getTenantByIdMock.mockResolvedValue(sampleTenant);
+    getTenantByAuthUserIdMock.mockResolvedValue(sampleTenant);
     updateTenantMobileProfileMock.mockResolvedValue({
       ...sampleTenant,
       whatsappOptIn: true,

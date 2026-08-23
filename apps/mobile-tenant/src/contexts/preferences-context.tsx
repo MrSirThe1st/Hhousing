@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -7,6 +7,8 @@ import { detectDeviceLanguage, isAppLanguage, type AppLanguage } from "@/i18n/ty
 
 const BIOMETRIC_KEY = "hhousing.prefs.biometricEnabled";
 const BIOMETRIC_PROMPT_SHOWN_KEY = "hhousing.prefs.biometricPromptShown";
+const THEME_KEY = "hhousing.prefs.themeMode";
+const THEME_MANUAL_KEY = "hhousing.prefs.themeManual";
 const LANGUAGE_KEY = "hhousing.prefs.language";
 const LANGUAGE_SELECTED_KEY = "hhousing.prefs.languageSelected";
 const NOTIFY_INVOICES_KEY = "hhousing.prefs.notifyInvoices";
@@ -23,12 +25,17 @@ function followSystemColorScheme(): void {
   Appearance.setColorScheme(null);
 }
 
+function applyThemeColorScheme(mode: ThemeMode): void {
+  Appearance.setColorScheme(mode);
+}
+
 type PreferencesContextValue = {
   isReady: boolean;
   languageSelected: boolean;
   biometricPromptShown: boolean;
   biometricEnabled: boolean;
   themeMode: ThemeMode;
+  themeFollowsSystem: boolean;
   language: AppLanguage;
   notifyInvoices: boolean;
   notifyRentDue: boolean;
@@ -36,6 +43,7 @@ type PreferencesContextValue = {
   setBiometricEnabled: (enabled: boolean) => Promise<void>;
   markLanguageSelected: () => Promise<void>;
   markBiometricPromptShown: () => Promise<void>;
+  setThemeMode: (mode: ThemeMode) => Promise<void>;
   /** Applies language in-memory for onboarding preview (not persisted). */
   previewLanguage: (language: AppLanguage) => Promise<void>;
   setLanguage: (language: AppLanguage) => Promise<void>;
@@ -58,10 +66,16 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
   const [biometricPromptShown, setBiometricPromptShownState] = useState(false);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [themeMode, setThemeModeState] = useState<ThemeMode>(resolveSystemThemeMode);
+  const [themeFollowsSystem, setThemeFollowsSystemState] = useState(true);
   const [language, setLanguageState] = useState<AppLanguage>("fr");
   const [notifyInvoices, setNotifyInvoicesState] = useState(false);
   const [notifyRentDue, setNotifyRentDueState] = useState(false);
   const [amountsSensitive, setAmountsSensitiveState] = useState(true);
+  const themeFollowsSystemRef = useRef(true);
+
+  useEffect(() => {
+    themeFollowsSystemRef.current = themeFollowsSystem;
+  }, [themeFollowsSystem]);
 
   useEffect(() => {
     let mounted = true;
@@ -71,6 +85,8 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
         const [
           biometricRaw,
           biometricPromptRaw,
+          themeRaw,
+          themeManualRaw,
           languageRaw,
           languageSelectedRaw,
           invoicesRaw,
@@ -79,6 +95,8 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
         ] = await Promise.all([
           AsyncStorage.getItem(BIOMETRIC_KEY),
           AsyncStorage.getItem(BIOMETRIC_PROMPT_SHOWN_KEY),
+          AsyncStorage.getItem(THEME_KEY),
+          AsyncStorage.getItem(THEME_MANUAL_KEY),
           AsyncStorage.getItem(LANGUAGE_KEY),
           AsyncStorage.getItem(LANGUAGE_SELECTED_KEY),
           AsyncStorage.getItem(NOTIFY_INVOICES_KEY),
@@ -106,8 +124,18 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
           languageSelectedRaw === "true" || languageRaw !== null
         );
 
-        setThemeModeState(resolveSystemThemeMode());
-        followSystemColorScheme();
+        const themeManual = themeManualRaw === "true";
+        const followsSystem = !themeManual;
+        setThemeFollowsSystemState(followsSystem);
+        themeFollowsSystemRef.current = followsSystem;
+
+        if (themeManual && (themeRaw === "light" || themeRaw === "dark")) {
+          setThemeModeState(themeRaw);
+          applyThemeColorScheme(themeRaw);
+        } else {
+          setThemeModeState(resolveSystemThemeMode());
+          followSystemColorScheme();
+        }
 
         const nextLanguage: AppLanguage = isAppLanguage(languageRaw)
           ? languageRaw
@@ -131,6 +159,9 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      if (!themeFollowsSystemRef.current) {
+        return;
+      }
       setThemeModeState(colorScheme === "dark" ? "dark" : "light");
     });
     return () => {
@@ -151,6 +182,15 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
   const markBiometricPromptShown = useCallback(async (): Promise<void> => {
     setBiometricPromptShownState(true);
     await AsyncStorage.setItem(BIOMETRIC_PROMPT_SHOWN_KEY, "true");
+  }, []);
+
+  const setThemeMode = useCallback(async (mode: ThemeMode): Promise<void> => {
+    setThemeModeState(mode);
+    setThemeFollowsSystemState(false);
+    themeFollowsSystemRef.current = false;
+    applyThemeColorScheme(mode);
+    await AsyncStorage.setItem(THEME_KEY, mode);
+    await AsyncStorage.setItem(THEME_MANUAL_KEY, "true");
   }, []);
 
   const previewLanguage = useCallback(async (next: AppLanguage): Promise<void> => {
@@ -186,6 +226,7 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       biometricPromptShown,
       biometricEnabled,
       themeMode,
+      themeFollowsSystem,
       language,
       notifyInvoices,
       notifyRentDue,
@@ -193,6 +234,7 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       setBiometricEnabled,
       markLanguageSelected,
       markBiometricPromptShown,
+      setThemeMode,
       previewLanguage,
       setLanguage,
       setNotifyInvoices,
@@ -205,6 +247,7 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       biometricPromptShown,
       biometricEnabled,
       themeMode,
+      themeFollowsSystem,
       language,
       notifyInvoices,
       notifyRentDue,
@@ -212,6 +255,7 @@ export function PreferencesProvider({ children }: PropsWithChildren): React.Reac
       setBiometricEnabled,
       markLanguageSelected,
       markBiometricPromptShown,
+      setThemeMode,
       previewLanguage,
       setLanguage,
       setNotifyInvoices,

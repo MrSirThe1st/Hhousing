@@ -21,7 +21,8 @@
   "tabs": {
     "home": "Accueil",
     "payments": "Paiements",
-    "menu": "Menu",
+    "menu": "Paramètres",
+    "settings": "Paramètres",
     "messages": "Messages",
     "maintenance": "Maintenance"
   },
@@ -208,6 +209,9 @@
     "privacy": "Politique de confidentialité",
     "support": "Support",
     "settings": "Paramètres",
+    "sectionAccount": "Compte",
+    "sectionPreferences": "Préférences",
+    "sectionAbout": "À propos",
     "about": "À propos",
     "rateApp": "Noter l'application",
     "signOut": "Se déconnecter",
@@ -269,6 +273,7 @@
     "biometricHint": "Face ID / empreinte pour déverrouiller et se connecter",
     "darkMode": "Mode sombre",
     "appearance": "Apparence",
+    "appearanceHint": "Activer le mode sombre",
     "themeDark": "Thème sombre",
     "themeLight": "Thème clair",
     "themeActiveDark": "Mode sombre actif",

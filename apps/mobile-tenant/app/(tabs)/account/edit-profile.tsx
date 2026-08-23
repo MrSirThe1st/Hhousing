@@ -68,7 +68,7 @@ export default function EditProfileScreen(): React.ReactElement {
       setIsOffline(false);
       setTenant(profileResult.data.tenant);
       setFullName(profileResult.data.tenant.fullName ?? "");
-      setPhone(nationalFromStoredPhone(profileResult.data.tenant.phone));
+      setPhone(nationalFromStoredPhone(profileResult.data.tenant.phone ?? profileResult.data.tenant.phoneNumber));
       setWhatsappOptIn(Boolean(profileResult.data.tenant.whatsappOptIn));
       setError(null);
     } else {
@@ -80,12 +80,26 @@ export default function EditProfileScreen(): React.ReactElement {
           id: lease.tenantId,
           organizationId: lease.organizationId,
           fullName: lease.tenantFullName ?? "",
-          email: lease.tenantEmail ?? session.user.email ?? "",
+          email: lease.tenantEmail ?? session?.user?.email ?? "",
           phone: ""
         };
 
         setTenant(derivedTenant);
         setFullName(derivedTenant.fullName ?? "");
+        setPhone("");
+        setError(null);
+        setIsOffline(false);
+      } else if (profileUnavailable) {
+        // Allow editing basics even when no lease is linked yet.
+        const fallbackEmail = session?.user?.email ?? "";
+        setTenant({
+          id: session?.user?.id ?? "local",
+          organizationId: undefined,
+          fullName: "",
+          email: fallbackEmail,
+          phone: ""
+        });
+        setFullName("");
         setPhone("");
         setError(null);
         setIsOffline(false);
@@ -98,7 +112,7 @@ export default function EditProfileScreen(): React.ReactElement {
     }
 
     setIsLoading(false);
-  }, [session?.access_token, t]);
+  }, [session?.access_token, session?.user?.email, session?.user?.id, t]);
 
   useEffect(() => {
     if (isAuthLoading) {

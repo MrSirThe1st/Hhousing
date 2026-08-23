@@ -58,10 +58,13 @@ export default function TabsLayout(): React.ReactElement {
       />
       <Tabs.Screen
         name="account"
-        options={{ title: t("tabs.menu"), tabBarIcon: tabIcon("menu-outline", "menu") }}
+        options={{
+          title: t("tabs.settings"),
+          tabBarIcon: tabIcon("settings-outline", "settings")
+        }}
         listeners={{
           tabPress: (event) => {
-            // Always open the menu root — don't restore nested routes like /documents
+            // Always open settings root — don't restore nested routes like /documents
             event.preventDefault();
             router.replace("/(tabs)/account");
           }
