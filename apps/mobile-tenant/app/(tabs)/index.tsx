@@ -195,7 +195,7 @@ export default function HomeScreen(): React.ReactElement {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView style={styles.root} edges={["top"]}>
         <View style={styles.padded}>
           <ErrorState
             offline={isOffline}
@@ -453,8 +453,8 @@ function createStyles(colors: ThemeColors) {
       color: colors.textFaint
     },
     gearBtn: {
-      width: 36,
-      height: 36,
+      width: 44,
+      height: 44,
       alignItems: "center",
       justifyContent: "center"
     },

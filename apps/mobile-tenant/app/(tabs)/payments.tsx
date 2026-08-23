@@ -534,7 +534,7 @@ export default function PaymentsScreen(): React.ReactElement {
                     </View>
 
                     <View style={styles.paymentRight}>
-                      <Text style={styles.paymentAmount}>
+                      <Text style={styles.paymentAmount} numberOfLines={1} adjustsFontSizeToFit>
                         {amountsRevealed
                           ? formatAmount(payment.amount, payment.currencyCode ?? "CDF")
                           : maskSensitiveAmount(
@@ -578,7 +578,8 @@ export default function PaymentsScreen(): React.ReactElement {
         }}
       >
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <SafeAreaView edges={["bottom"]}>
+            <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t("payments.modalTitle")}</Text>
             <Text style={styles.modalSubtitle}>
               {t("payments.modalAmount", {
@@ -651,7 +652,8 @@ export default function PaymentsScreen(): React.ReactElement {
                 </Text>
               </Pressable>
             </View>
-          </View>
+            </View>
+          </SafeAreaView>
         </View>
       </Modal>
       ) : null}
@@ -819,6 +821,7 @@ function createStyles(colors: ThemeColors) {
     },
     paymentInfo: {
       flex: 1,
+      minWidth: 0,
       gap: 2
     },
     paymentTitle: {
@@ -832,12 +835,15 @@ function createStyles(colors: ThemeColors) {
     },
     paymentRight: {
       alignItems: "flex-end",
-      gap: 4
+      gap: 4,
+      flexShrink: 0,
+      maxWidth: "42%"
     },
     paymentAmount: {
       fontSize: fontSize.secondary,
       fontWeight: "700",
-      color: colors.text
+      color: colors.text,
+      textAlign: "right"
     },
     badge: {
       borderRadius: 6,

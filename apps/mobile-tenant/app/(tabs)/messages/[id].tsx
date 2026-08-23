@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,7 +10,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import type { ApiResult } from "@/lib/api-client";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
@@ -98,6 +100,7 @@ export default function ConversationScreen(): React.ReactElement {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id?: string }>();
+  const router = useRouter();
   const conversationId = typeof params.id === "string" ? params.id : null;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -233,50 +236,63 @@ export default function ConversationScreen(): React.ReactElement {
     <ScreenShell
       title={detail?.conversation.organizationName ?? t("messages.conversation")}
       subtitle={detail?.conversation.propertyName ?? t("messages.conversationSubtitle")}
+      onBack={() => { router.back(); }}
     >
-      {error ? (
-        <ErrorState
-          error={error}
-          onRetry={() => { void load(); }}
-        />
-      ) : null}
+      <KeyboardAvoidingView
+        style={styles.keyboardRoot}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={8}
+      >
+        {error ? (
+          <ErrorState
+            error={error}
+            onRetry={() => { void load(); }}
+          />
+        ) : null}
 
-      {!error && detail ? (
-        <>
-          <ScrollView ref={scrollViewRef} style={styles.thread} showsVerticalScrollIndicator={false} onContentSizeChange={() => { scrollViewRef.current?.scrollToEnd({ animated: false }); }}>
-            {messageRows.map(({ message, timeLabel }) => {
-              const isMine = message.senderSide === "tenant";
-
-              return (
-                <View key={message.id} style={[styles.messageBubble, isMine ? styles.messageMine : styles.messageTheirs]}>
-                  <Text style={[styles.messageBody, isMine && styles.messageBodyMine]}>{message.body}</Text>
-                  <Text style={[styles.messageMeta, isMine && styles.messageMetaMine]}>
-                    {timeLabel}
-                  </Text>
-                </View>
-              );
-            })}
-          </ScrollView>
-
-          <View style={styles.composerRow}>
-            <TextInput
-              style={styles.composerInput}
-              value={messageBody}
-              onChangeText={setMessageBody}
-              placeholder={t("messages.placeholder")}
-              placeholderTextColor={colors.textFaint}
-              multiline
-            />
-            <Pressable
-              style={[styles.sendBtn, (isSending || !messageBody.trim()) && styles.sendBtnDisabled]}
-              onPress={() => { void handleSend(); }}
-              disabled={isSending || !messageBody.trim()}
+        {!error && detail ? (
+          <>
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.thread}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              onContentSizeChange={() => { scrollViewRef.current?.scrollToEnd({ animated: false }); }}
             >
-              {isSending ? <AppLoader size="small" tone="onBrand" /> : <Text style={styles.sendBtnText}>{t("messages.send")}</Text>}
-            </Pressable>
-          </View>
-        </>
-      ) : null}
+              {messageRows.map(({ message, timeLabel }) => {
+                const isMine = message.senderSide === "tenant";
+
+                return (
+                  <View key={message.id} style={[styles.messageBubble, isMine ? styles.messageMine : styles.messageTheirs]}>
+                    <Text style={[styles.messageBody, isMine && styles.messageBodyMine]}>{message.body}</Text>
+                    <Text style={[styles.messageMeta, isMine && styles.messageMetaMine]}>
+                      {timeLabel}
+                    </Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.composerRow}>
+              <TextInput
+                style={styles.composerInput}
+                value={messageBody}
+                onChangeText={setMessageBody}
+                placeholder={t("messages.placeholder")}
+                placeholderTextColor={colors.textFaint}
+                multiline
+              />
+              <Pressable
+                style={[styles.sendBtn, (isSending || !messageBody.trim()) && styles.sendBtnDisabled]}
+                onPress={() => { void handleSend(); }}
+                disabled={isSending || !messageBody.trim()}
+              >
+                {isSending ? <AppLoader size="small" tone="onBrand" /> : <Text style={styles.sendBtnText}>{t("messages.send")}</Text>}
+              </Pressable>
+            </View>
+          </>
+        ) : null}
+      </KeyboardAvoidingView>
     </ScreenShell>
   );
 }
@@ -286,6 +302,9 @@ function createStyles(colors: ThemeColors) {
     loadingRoot: {
       flex: 1,
       backgroundColor: colors.background
+    },
+    keyboardRoot: {
+      flex: 1
     },
     info: { color: colors.textMuted, fontSize: fontSize.secondary },
     notice: {
@@ -337,9 +356,10 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 10,
       backgroundColor: colors.brand,
       paddingHorizontal: 14,
-      paddingVertical: 11,
+      minHeight: 44,
       minWidth: 82,
-      alignItems: "center"
+      alignItems: "center",
+      justifyContent: "center"
     },
     sendBtnDisabled: { backgroundColor: colors.brandMuted },
     sendBtnText: { color: colors.onBrand, fontSize: fontSize.secondary, fontWeight: "700" }

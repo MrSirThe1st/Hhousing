@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -270,13 +272,17 @@ export default function MaintenanceScreen(): React.ReactElement {
 
   if (view === "form") {
     return (
-      <SafeAreaView style={styles.root}>
-        <ScrollView
-          style={styles.formScroll}
-          contentContainerStyle={styles.formContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <KeyboardAvoidingView
+          style={styles.keyboardRoot}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
+          <ScrollView
+            style={styles.formScroll}
+            contentContainerStyle={styles.formContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           <Text style={styles.formTitle}>{t("maintenance.newRequest")}</Text>
           <Text style={styles.formSubtitle}>{t("maintenance.formSubtitle")}</Text>
 
@@ -360,7 +366,8 @@ export default function MaintenanceScreen(): React.ReactElement {
           <Pressable style={styles.cancelBtn} onPress={() => { setView("list"); }}>
             <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
           </Pressable>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -375,7 +382,7 @@ export default function MaintenanceScreen(): React.ReactElement {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView style={styles.root} edges={["top"]}>
         <View style={styles.screenPadding}>
           <ErrorState
             offline={isOffline}
@@ -388,7 +395,7 @@ export default function MaintenanceScreen(): React.ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={["top"]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -513,6 +520,9 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.backgroundAlt
     },
+    keyboardRoot: {
+      flex: 1
+    },
     screenPadding: {
       flex: 1,
       paddingHorizontal: 16,
@@ -556,6 +566,7 @@ function createStyles(colors: ThemeColors) {
     },
     filterRow: {
       flexDirection: "row",
+      flexWrap: "wrap",
       gap: 8,
       marginBottom: 4
     },
@@ -714,9 +725,11 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.inputBg
     },
     multiline: { minHeight: 100 },
-    priorityRow: { flexDirection: "row", gap: 8 },
+    priorityRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     priorityBtn: {
-      flex: 1,
+      flexGrow: 1,
+      flexBasis: "30%",
+      minWidth: 96,
       borderWidth: 1,
       borderColor: colors.inputBorder,
       borderRadius: 8,
@@ -741,12 +754,12 @@ function createStyles(colors: ThemeColors) {
     thumbImage: { width: 80, height: 80, borderRadius: 8, backgroundColor: colors.surfaceMuted },
     removePhoto: {
       position: "absolute",
-      top: -6,
-      right: -6,
+      top: -8,
+      right: -8,
       backgroundColor: colors.danger,
-      borderRadius: 10,
-      width: 20,
-      height: 20,
+      borderRadius: 16,
+      width: 32,
+      height: 32,
       alignItems: "center",
       justifyContent: "center"
     },

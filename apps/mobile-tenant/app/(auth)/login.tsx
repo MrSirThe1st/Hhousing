@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Stack, useRouter } from "expo-router";
 import {
   Image,
+  KeyboardAvoidingView,
   Linking,
+  Platform,
   Pressable,
-  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { FullScreenLoadingOverlay } from "@/components/universal-loading-state";
@@ -32,7 +35,7 @@ import {
   toDrcE164,
   validateDrcPhoneInput
 } from "@/lib/phone-input";
-import { fontSize, useTheme } from "@/theme";
+import { fontSize, spacing, touchTarget, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
 
 type PhonePasswordLoginOutput = {
@@ -179,8 +182,17 @@ export default function LoginScreen(): React.ReactElement {
   return (
     <>
       <Stack.Screen options={{ title: t("auth.loginTitle"), headerShown: false }} />
-      <SafeAreaView style={styles.safeRoot}>
-        <View style={styles.root}>
+      <SafeAreaView style={styles.safeRoot} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView
+          style={styles.keyboardRoot}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.root}>
           <View style={styles.brandBlock}>
             <Image
               source={require("../../assets/door_logo.png")}
@@ -226,7 +238,11 @@ export default function LoginScreen(): React.ReactElement {
                   placeholder={t("auth.passwordPlaceholder")}
                   placeholderTextColor={colors.textFaint}
                 />
-                <Pressable onPress={() => setShowPassword((value) => !value)} hitSlop={8}>
+                <Pressable
+                  onPress={() => setShowPassword((value) => !value)}
+                  hitSlop={12}
+                  style={styles.iconBtn}
+                >
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                     size={18}
@@ -288,7 +304,9 @@ export default function LoginScreen(): React.ReactElement {
             <Text style={styles.footerText}>{t("auth.noAccount")}</Text>
             <Text style={styles.footerLink}>{t("auth.inviteHint")}</Text>
           </View>
-        </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
       <FullScreenLoadingOverlay visible={isSubmitting} />
     </>
@@ -301,11 +319,17 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.backgroundAlt
     },
-    root: {
-      flex: 1,
-      backgroundColor: colors.backgroundAlt,
+    keyboardRoot: {
+      flex: 1
+    },
+    scrollContent: {
+      flexGrow: 1,
       justifyContent: "center",
-      paddingHorizontal: 12,
+      paddingVertical: spacing.lg
+    },
+    root: {
+      backgroundColor: colors.backgroundAlt,
+      paddingHorizontal: spacing.lg,
       gap: 18
     },
     brandBlock: {
@@ -366,7 +390,15 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 0,
       fontSize: fontSize.body,
       color: colors.text,
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      minHeight: touchTarget - 16
+    },
+    iconBtn: {
+      width: touchTarget,
+      height: touchTarget,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: -8
     },
     hint: {
       color: colors.textFaint,

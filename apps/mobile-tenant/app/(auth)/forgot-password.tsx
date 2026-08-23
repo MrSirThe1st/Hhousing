@@ -1,16 +1,20 @@
 import { useMemo, useState } from "react";
 import { Stack, useRouter } from "expo-router";
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
-  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { AppLoader } from "@/components/universal-loading-state";
+import { PageHeader } from "@/components/page-header";
 import { postWithoutAuth } from "@/lib/api-client";
 import {
   extractDrcNationalNumber,
@@ -18,7 +22,7 @@ import {
   toDrcE164,
   validateDrcPhoneInput
 } from "@/lib/phone-input";
-import { fontSize, fontWeight, useTheme } from "@/theme";
+import { fontSize, fontWeight, spacing, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
 
 type Mode = "phone" | "email";
@@ -79,17 +83,19 @@ export default function ForgotPasswordScreen(): React.ReactElement {
   return (
     <>
       <Stack.Screen options={{ title: t("auth.forgotTitle"), headerShown: false }} />
-      <SafeAreaView style={styles.safeRoot}>
-        <View style={styles.root}>
-          <View style={styles.topBar}>
-            <Pressable style={styles.backBtn} onPress={() => { router.back(); }} hitSlop={10}>
-              <Ionicons name="arrow-back" size={22} color={colors.brand} />
-            </Pressable>
-            <Text style={styles.topTitle}>{t("auth.forgotTitle")}</Text>
-            <View style={styles.topSpacer} />
-          </View>
+      <SafeAreaView style={styles.safeRoot} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView
+          style={styles.keyboardRoot}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <PageHeader title={t("auth.forgotTitle")} onBack={() => { router.back(); }} />
 
-          {sent ? (
+            {sent ? (
             <View style={styles.card}>
               <Ionicons name="mail-outline" size={36} color={colors.brand} />
               <Text style={styles.successTitle}>{t("auth.forgotSentTitle")}</Text>
@@ -180,8 +186,9 @@ export default function ForgotPasswordScreen(): React.ReactElement {
 
               <Text style={styles.helpText}>{t("auth.forgotNoEmailAccess")}</Text>
             </View>
-          )}
-        </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </>
   );
@@ -193,30 +200,15 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.backgroundAlt
     },
-    root: {
-      flex: 1,
-      paddingHorizontal: 12,
-      gap: 12
+    keyboardRoot: {
+      flex: 1
     },
-    topBar: {
-      minHeight: 48,
-      flexDirection: "row",
-      alignItems: "center"
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.xl,
+      gap: spacing.sm
     },
-    backBtn: {
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent: "center"
-    },
-    topTitle: {
-      flex: 1,
-      textAlign: "center",
-      fontSize: fontSize.body,
-      fontWeight: fontWeight.semibold,
-      color: colors.text
-    },
-    topSpacer: { width: 40 },
     card: {
       backgroundColor: colors.surface,
       borderRadius: 14,
