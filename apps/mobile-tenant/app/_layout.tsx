@@ -93,7 +93,7 @@ function RootNavigator(): React.ReactElement {
 
       const next =
         (result.success && result.data.deletion.accountStatus === "pending_deletion")
-        || result.code === "ACCOUNT_PENDING_DELETION";
+        || (!result.success && result.code === "ACCOUNT_PENDING_DELETION");
 
       if (next !== pendingDeletionRef.current) {
         pendingDeletionRef.current = next;
