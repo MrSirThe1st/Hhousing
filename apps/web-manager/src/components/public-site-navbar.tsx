@@ -97,17 +97,19 @@ export default function PublicSiteNavbar(): React.ReactElement {
       ref={headerRef}
       className="relative sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/90"
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6 lg:px-10">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-6 lg:gap-6 lg:px-10">
         <Link
           href="/"
           onClick={closeMenu}
-          className="flex min-w-0 items-center gap-2 text-[#010A19] dark:text-slate-100 sm:gap-3"
+          className="flex shrink-0 items-center gap-2 text-[#010A19] dark:text-slate-100 sm:gap-3"
         >
           <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
-          <span className="truncate text-base font-semibold tracking-tight sm:text-lg">Haraka Property</span>
+          <span className="whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
+            Haraka Property
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 xl:gap-2 lg:flex">
+        <nav className="hidden items-center gap-0.5 xl:gap-1.5 lg:flex">
           <MenuButton
             label="Solutions"
             isOpen={openMenu === "solutions"}
@@ -120,7 +122,6 @@ export default function PublicSiteNavbar(): React.ReactElement {
           />
           <NavLink href="/#pricing" onClick={closeMenu}>Tarifs</NavLink>
           <NavLink href="/marketplace" onClick={closeMenu}>Catalogue</NavLink>
-          <NavLink href="/demo" onClick={closeMenu}>Démo</NavLink>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
