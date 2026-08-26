@@ -81,14 +81,14 @@ export const FEATURE_GROUPS = [
 export const OPERATION_FEATURES = [
   {
     id: "rent",
-    title: "Encaissez vos loyers à temps",
+    title: "Recevez vos loyers par Mobile Money ou virement bancaire",
     description:
-      "Suivez paiements, retards et relances sur tout votre portefeuille. Enregistrez les règlements Mobile Money ou espèces — vos tableaux se mettent à jour.",
+      "Vos locataires vous paient comme d’habitude — Orange Money, Airtel Money, M-Pesa ou virement bancaire. Vous suivez chaque règlement, les retards et les relances au même endroit.",
     items: [
-      "Suivi payé / en retard / en attente",
-      "Enregistrement manuel (Mobile Money, cash)",
-      "Vue claire des impayés du mois",
-      "Rapports et exports pour votre comptabilité"
+      "Paiements Mobile Money (Orange, Airtel, M-Pesa)",
+      "Virements bancaires suivis dans le dossier",
+      "Statuts payé / en retard / en attente",
+      "Rapports clairs pour votre comptabilité"
     ]
   },
   {

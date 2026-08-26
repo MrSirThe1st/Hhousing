@@ -38,7 +38,7 @@ const FEATURE_LINKS = [
   },
   {
     title: "Paiements",
-    description: "Suivi des loyers, retards et quittances en temps réel.",
+    description: "Loyers reçus par Mobile Money ou virement, retards et suivi en un lieu.",
     href: "/#features"
   },
   {
@@ -104,10 +104,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
           className="flex min-w-0 items-center gap-2 text-[#010A19] dark:text-slate-100 sm:gap-3"
         >
           <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
-          <span className="min-w-0">
-            <span className="block truncate text-base font-semibold tracking-tight sm:text-lg">Haraka Property</span>
-            <span className="hidden text-[11px] uppercase tracking-[0.18em] text-slate-500 sm:block">Gestion de vos locations</span>
-          </span>
+          <span className="truncate text-base font-semibold tracking-tight sm:text-lg">Haraka Property</span>
         </Link>
 
         <nav className="hidden items-center gap-1 xl:gap-2 lg:flex">

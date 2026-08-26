@@ -4,6 +4,12 @@ Use this file as the first project memory source before searching the codebase.
 
 ## 2026-08-26
 - Type: Frontend
+- Description: Landing polish — removed navbar subtitle under Haraka Property; reframed rent feature copy around receiving rents via Mobile Money or bank transfer (no fake product screenshots; none exist in repo assets).
+- Impact: `public-site-navbar.tsx`, `public-site-data.ts`, rent visual block in `page.tsx`.
+- Tests: deferred (marketing copy/UI)
+
+## 2026-08-26
+- Type: Frontend
 - Description: Redesigned the public landing page in a DoorLoop-inspired layout for landlords/managers: brand-forward hero, operations feature sections, secondary one-row marketplace carousel (search bar removed from homepage), demo booking page + API, and compact WhatsApp contact. No unsupported product claims (AI, screening, QuickBooks, etc.).
 - Impact: `apps/web-manager/src/app/page.tsx`, `public-site-data.ts`, `globals.css`, new `public-landing-hero.tsx`, `public-marketplace-carousel.tsx`, `public-whatsapp-contact.tsx`, `public-demo-request-form.tsx`, `/demo`, `/api/demo-requests`; removed `public-hero-carousel.tsx`; navbar/footer CTAs updated; `NEXT_PUBLIC_CONTACT_WHATSAPP` in `.env.example`.
 - Tests: deferred (marketing UI; typecheck clean for new files; pre-existing test fixture TS errors unrelated)
