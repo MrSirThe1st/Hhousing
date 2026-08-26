@@ -201,7 +201,7 @@ export const FAQS = [
   {
     question: "Comment réserver une démo ?",
     answer:
-      "Utilisez la page « Réserver une démo » ou contactez-nous sur WhatsApp. Nous planifions une session courte adaptée à votre portefeuille."
+      "Utilisez « Réserver une démo » sur la page d'accueil ou contactez-nous sur WhatsApp. Nous planifions une session courte adaptée à votre portefeuille."
   }
 ] as const;
 

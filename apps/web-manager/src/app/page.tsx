@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createListingRepo } from "./api/shared";
+import BookDemoButton from "../components/book-demo-button";
 import PublicLandingHero from "../components/public-landing-hero";
 import PublicMarketplaceCarousel from "../components/public-marketplace-carousel";
 import PublicSiteFooter from "../components/public-site-footer";
@@ -70,12 +71,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
               équipe arrête de coordonner entre dix outils.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/demo"
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-6 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
-              >
-                Réserver une démo
-              </Link>
+              <BookDemoButton className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-6 text-sm font-semibold text-white transition hover:bg-[#3B73BC]" />
               <Link
                 href="/signup"
                 className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
@@ -463,12 +459,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             Gagnez du temps et gérez plus de logements. Voyez si Haraka Property vous convient.
           </p>
           <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center">
-            <Link
-              href="/demo"
-              className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-7 text-sm font-semibold text-[#4A86D4] transition hover:bg-slate-100 sm:w-auto"
-            >
-              Réserver une démo
-            </Link>
+            <BookDemoButton className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-7 text-sm font-semibold text-[#4A86D4] transition hover:bg-slate-100 sm:w-auto" />
             <Link
               href="/signup"
               className="inline-flex h-12 w-full items-center justify-center rounded-lg border border-white/30 px-7 text-sm font-semibold text-white transition hover:bg-white/10 sm:w-auto"

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BookDemoButton from "./book-demo-button";
 
 export default function PublicLandingHero(): React.ReactElement {
   return (
@@ -29,15 +30,12 @@ export default function PublicLandingHero(): React.ReactElement {
           </h1>
 
           <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-9 sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
-            <Link
-              href="/demo"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#4A86D4] px-7 text-sm font-semibold text-white shadow-md shadow-[#4A86D4]/25 transition hover:bg-[#3B73BC] sm:w-auto sm:text-base"
-            >
+            <BookDemoButton className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#4A86D4] px-7 text-sm font-semibold text-white shadow-md shadow-[#4A86D4]/25 transition hover:bg-[#3B73BC] sm:w-auto sm:text-base">
               Réserver une démo
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
-            </Link>
+            </BookDemoButton>
             <Link
               href="/signup"
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-[#9CB8D6] bg-white/70 px-7 text-sm font-semibold text-[#1F3B63] backdrop-blur-sm transition hover:border-[#4A86D4] hover:bg-white sm:w-auto sm:text-base"

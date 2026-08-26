@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import BookDemoButton from "./book-demo-button";
 
 export default function PublicSiteFooter(): React.ReactElement {
   return (
@@ -20,7 +21,7 @@ export default function PublicSiteFooter(): React.ReactElement {
             <Link href="/#use-cases" className="block hover:text-white">Solutions</Link>
             <Link href="/#features" className="block hover:text-white">Fonctionnalités</Link>
             <Link href="/#pricing" className="block hover:text-white">Tarifs</Link>
-            <Link href="/demo" className="block hover:text-white">Réserver une démo</Link>
+            <BookDemoButton className="block text-left hover:text-white" />
             <Link href="/marketplace" className="block hover:text-white">Catalogue</Link>
             <Link href="/#faq" className="block hover:text-white">FAQ</Link>
           </div>

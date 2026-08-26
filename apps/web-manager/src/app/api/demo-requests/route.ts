@@ -1,4 +1,9 @@
-import { LEGAL_CONTACT_EMAIL } from "../../../lib/legal/site-legal";
+import {
+  createDemoGoogleCalendarEvent,
+  DEMO_REQUEST_TO_EMAIL,
+  formatDemoSlotForDisplay,
+  isValidDemoSlot
+} from "../../../lib/demo-booking";
 import { jsonResponse } from "../shared";
 
 type DemoRequestBody = {
@@ -7,7 +12,7 @@ type DemoRequestBody = {
   phone: string;
   company: string;
   unitsCount: string;
-  message: string;
+  scheduledAt: string;
 };
 
 function readString(value: unknown, max: number): string {
@@ -31,13 +36,16 @@ function parseDemoRequest(body: unknown): DemoRequestBody | null {
   const phone = readString(record.phone, 40);
   const company = readString(record.company, 160);
   const unitsCount = readString(record.unitsCount, 40);
-  const message = readString(record.message, 2000);
+  const scheduledAt = readString(record.scheduledAt, 40);
 
   if (fullName.length < 2 || !isValidEmail(email) || phone.length < 8) {
     return null;
   }
+  if (!isValidDemoSlot(scheduledAt)) {
+    return null;
+  }
 
-  return { fullName, email, phone, company, unitsCount, message };
+  return { fullName, email, phone, company, unitsCount, scheduledAt };
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -56,14 +64,25 @@ export async function POST(request: Request): Promise<Response> {
   if (!data) {
     return jsonResponse(400, {
       success: false,
-      error: "Vérifiez les champs du formulaire.",
+      error: "Vérifiez les champs du formulaire et le créneau choisi.",
       code: "VALIDATION_ERROR"
     });
   }
 
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const fromEmail = process.env.RESEND_FROM_EMAIL?.trim();
-  const toEmail = LEGAL_CONTACT_EMAIL;
+  const toEmail = DEMO_REQUEST_TO_EMAIL;
+  const scheduledLabel = formatDemoSlotForDisplay(data.scheduledAt);
+
+  // Google Calendar will be wired later; keep the call site stable.
+  const calendarResult = await createDemoGoogleCalendarEvent({
+    startsAt: data.scheduledAt,
+    fullName: data.fullName,
+    email: data.email,
+    phone: data.phone,
+    company: data.company,
+    unitsCount: data.unitsCount
+  });
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
@@ -73,8 +92,11 @@ export async function POST(request: Request): Promise<Response> {
       <p style="margin:0 0 8px;"><strong>Téléphone :</strong> ${escapeHtml(data.phone)}</p>
       <p style="margin:0 0 8px;"><strong>Organisation :</strong> ${escapeHtml(data.company || "—")}</p>
       <p style="margin:0 0 8px;"><strong>Logements :</strong> ${escapeHtml(data.unitsCount || "—")}</p>
-      <p style="margin:16px 0 8px;"><strong>Message :</strong></p>
-      <p style="margin:0;white-space:pre-wrap;color:#334155;">${escapeHtml(data.message || "—")}</p>
+      <p style="margin:0 0 8px;"><strong>Créneau demandé :</strong> ${escapeHtml(scheduledLabel)}</p>
+      <p style="margin:0 0 8px;"><strong>Créneau (ISO) :</strong> ${escapeHtml(data.scheduledAt)}</p>
+      <p style="margin:16px 0 0;color:#64748b;font-size:12px;">
+        Google Calendar : ${calendarResult.created ? "créé" : "non branché (à venir)"}
+      </p>
     </div>
   `;
 
@@ -84,9 +106,14 @@ export async function POST(request: Request): Promise<Response> {
       email: data.email,
       phone: data.phone,
       company: data.company,
-      unitsCount: data.unitsCount
+      unitsCount: data.unitsCount,
+      scheduledAt: data.scheduledAt,
+      calendar: calendarResult
     });
-    return jsonResponse(200, { success: true, data: { queued: false, logged: true } });
+    return jsonResponse(200, {
+      success: true,
+      data: { queued: false, logged: true, calendar: calendarResult }
+    });
   }
 
   try {
@@ -100,7 +127,7 @@ export async function POST(request: Request): Promise<Response> {
         from: fromEmail,
         to: [toEmail],
         reply_to: data.email,
-        subject: `Demande de démo — ${data.fullName}`,
+        subject: `Demande de démo — ${data.fullName} — ${scheduledLabel}`,
         html
       })
     });
@@ -123,7 +150,10 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  return jsonResponse(200, { success: true, data: { queued: true } });
+  return jsonResponse(200, {
+    success: true,
+    data: { queued: true, calendar: calendarResult }
+  });
 }
 
 function escapeHtml(value: string): string {

@@ -3,6 +3,12 @@
 Use this file as the first project memory source before searching the codebase.
 
 ## 2026-08-26
+- Type: Frontend + API
+- Description: Book Demo popup on the landing page — email gate, 2-step form (details + Kinshasa weekday slots 09:00–17:00 / 30 min / 14 days), Resend to marcilungambuyu@gmail.com, Google Calendar stubbed. Removed dedicated `/demo` page.
+- Impact: `book-demo-modal.tsx`, `book-demo-button.tsx`, `book-demo-context.tsx`, `lib/demo-booking.ts`, `api/demo-requests`, landing/nav/footer/WhatsApp CTAs, root layout provider; deleted `demo/page.tsx` and `public-demo-request-form.tsx`.
+- Tests: `demo-booking.test.ts` (slot rules)
+
+## 2026-08-26
 - Type: Frontend
 - Description: Mobile responsiveness for public landing + auth — hamburger menu (replacing chip strip), tighter mobile paddings/CTAs, footer 2-col on small screens, auth pages use min-h-dvh with compact logo and 44px touch targets.
 - Impact: `public-site-navbar.tsx`, `public-landing-hero.tsx`, `public-site-footer.tsx`, `public-whatsapp-contact.tsx`, `public-marketplace-carousel.tsx`, `platform-logo-link.tsx`, `page.tsx`, `demo/page.tsx`, `login`, `signup`, `forgot-password`, `reset-password`, `account-type`.

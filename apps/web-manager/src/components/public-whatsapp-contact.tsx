@@ -1,4 +1,5 @@
 import { buildWhatsAppContactUrl, getPublicContactEmail } from "../lib/public-contact";
+import BookDemoButton from "./book-demo-button";
 
 export default function PublicWhatsAppContact(): React.ReactElement {
   const whatsappUrl = buildWhatsAppContactUrl(
@@ -38,12 +39,7 @@ export default function PublicWhatsAppContact(): React.ReactElement {
               Écrire à {email}
             </a>
           )}
-          <a
-            href="/demo"
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 sm:w-auto"
-          >
-            Réserver une démo
-          </a>
+          <BookDemoButton className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 sm:w-auto" />
         </div>
       </div>
     </section>
