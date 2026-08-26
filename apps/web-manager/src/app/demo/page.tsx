@@ -17,10 +17,7 @@ export default function DemoPage(): React.ReactElement {
       <PublicSiteNavbar />
       <section className="border-b border-slate-200 bg-[#010A19] px-4 py-10 text-white sm:px-6 sm:py-14 lg:px-10">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">
-            Démonstration
-          </p>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
             Réservez une démo Haraka Property
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm text-blue-100/85 sm:text-base">

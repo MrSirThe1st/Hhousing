@@ -10,8 +10,7 @@ export default function PublicWhatsAppContact(): React.ReactElement {
     <section id="contact" className="border-y border-slate-200 bg-white py-8 sm:py-10 md:py-12">
       <div className="mx-auto flex max-w-7xl flex-col items-stretch justify-between gap-5 px-4 sm:flex-row sm:items-center sm:px-6 lg:px-10">
         <div className="max-w-xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#25D366]">WhatsApp</p>
-          <h2 className="mt-2 text-lg font-bold tracking-tight text-[#010A19] sm:text-2xl">
+          <h2 className="text-lg font-bold tracking-tight text-[#010A19] sm:text-2xl">
             Une question ? Écrivez-nous sur WhatsApp
           </h2>
           <p className="mt-1.5 text-sm text-slate-600 sm:text-base">
