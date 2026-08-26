@@ -92,15 +92,15 @@ export const OPERATION_FEATURES = [
     ]
   },
   {
-    id: "maintenance",
-    title: "Une maintenance qui avance",
+    id: "owner-portal",
+    title: "Un espace propriétaire, sans le désordre",
     description:
-      "Les locataires signalent un problème depuis l'app. Vous recevez la demande, assignez un intervenant et suivez jusqu'à la résolution — sans chaînes d'e-mails perdues.",
+      "Donnez à vos investisseurs une vue claire de leurs biens, loyers et occupation — en lecture seule. Ils suivent sans vous appeler pour chaque chiffre.",
     items: [
-      "Demandes avec photos et statut",
-      "Assignation prestataire ou équipe",
-      "Suivi jusqu'à clôture",
-      "Historique par logement"
+      "Portail propriétaire en lecture seule",
+      "Loyers et occupation par bien",
+      "Transparence sans accès à vos opérations",
+      "Moins de relances WhatsApp et Excel"
     ]
   },
   {
