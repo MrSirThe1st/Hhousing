@@ -30,7 +30,7 @@ export default function PublicMarketplaceCarousel({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <h2 className="text-xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+            <h2 className="text-xl font-bold tracking-tight text-[#1F3B63] sm:text-3xl">
               Quelques logements disponibles
             </h2>
             <p className="mt-2 text-base text-slate-600">
@@ -41,7 +41,7 @@ export default function PublicMarketplaceCarousel({
             {!loadError && totalCount > 0 ? (
               <Link
                 href="/marketplace"
-                className="mr-2 text-sm font-semibold text-[#0063FE] transition hover:text-[#0052d4]"
+                className="mr-2 text-sm font-semibold text-[#4A86D4] transition hover:text-[#3B73BC]"
               >
                 Voir tout ({totalCount})
               </Link>
@@ -76,7 +76,7 @@ export default function PublicMarketplaceCarousel({
         {loadError ? (
           <p className="mt-8 text-sm text-slate-600">
             Impossible de charger les annonces pour le moment.{" "}
-            <Link href="/marketplace" className="font-semibold text-[#0063FE]">
+            <Link href="/marketplace" className="font-semibold text-[#4A86D4]">
               Ouvrir le catalogue
             </Link>
           </p>
@@ -87,7 +87,7 @@ export default function PublicMarketplaceCarousel({
             </p>
             <Link
               href="/signup"
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#0063FE] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#4A86D4] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
             >
               Créer un compte
             </Link>

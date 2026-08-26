@@ -61,7 +61,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
       <section className="border-b border-slate-200 bg-white px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-lg font-semibold tracking-tight text-[#010A19] sm:text-xl md:text-2xl">
+          <p className="text-lg font-semibold tracking-tight text-[#1F3B63] sm:text-xl md:text-2xl">
             Moins de temps à gérer des outils. Plus de temps à gérer votre portefeuille.
           </p>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
@@ -73,7 +73,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="features" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#1F3B63] sm:text-4xl">
               Une plateforme de gestion. Toutes vos opérations.
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -83,7 +83,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href="/demo"
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#0063FE] px-6 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-6 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
               >
                 Réserver une démo
               </Link>
@@ -107,7 +107,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                   }`}
                 >
                   <div>
-                    <h3 className="text-xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+                    <h3 className="text-xl font-bold tracking-tight text-[#1F3B63] sm:text-3xl">
                       {feature.title}
                     </h3>
                     <p className="mt-4 text-base leading-relaxed text-slate-600">
@@ -117,7 +117,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                       {feature.items.map((item) => (
                         <li key={item} className="flex items-start gap-3 text-sm text-slate-700">
                           <svg
-                            className="mt-0.5 h-5 w-5 shrink-0 text-[#0063FE]"
+                            className="mt-0.5 h-5 w-5 shrink-0 text-[#4A86D4]"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                             aria-hidden="true"
@@ -136,22 +136,22 @@ export default async function HomePage(): Promise<React.ReactElement> {
                   <div
                     className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br p-6 sm:p-8 ${
                       index % 4 === 0
-                        ? "from-[#eef4ff] to-slate-50"
+                        ? "from-[#EAF2FA] to-slate-50"
                         : index % 4 === 1
-                          ? "from-slate-50 to-[#eef4ff]"
+                          ? "from-slate-50 to-[#EAF2FA]"
                           : index % 4 === 2
-                            ? "from-[#f0f7ff] to-white"
-                            : "from-white to-[#eef4ff]"
+                            ? "from-[#F3F7FC] to-white"
+                            : "from-white to-[#EAF2FA]"
                     }`}
                   >
-                    <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#0063FE]/10 blur-2xl" />
+                    <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#4A86D4]/10 blur-2xl" />
                     {feature.id === "rent" ? (
                       <div className="relative space-y-3">
                         <div className="rounded-xl border border-white/80 bg-white p-4 shadow-sm">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                             Paiements du mois
                           </p>
-                          <p className="mt-2 text-2xl font-bold text-[#010A19]">1 820 000 FC</p>
+                          <p className="mt-2 text-2xl font-bold text-[#1F3B63]">1 820 000 FC</p>
                           <p className="mt-1 text-xs text-emerald-600">12 reçus · 2 en attente</p>
                         </div>
                         <div className="space-y-2">
@@ -165,7 +165,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                               className="flex items-center justify-between rounded-xl border border-white/80 bg-white px-3 py-2.5 shadow-sm"
                             >
                               <div>
-                                <p className="text-sm font-semibold text-[#010A19]">{row.label}</p>
+                                <p className="text-sm font-semibold text-[#1F3B63]">{row.label}</p>
                                 <p className="text-xs text-slate-500">{row.detail}</p>
                               </div>
                               <p className="text-sm font-semibold text-slate-700">{row.amount}</p>
@@ -175,7 +175,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                       </div>
                     ) : (
                       <div className="relative space-y-3">
-                        <div className="h-3 w-24 rounded-full bg-[#0063FE]/30" />
+                        <div className="h-3 w-24 rounded-full bg-[#4A86D4]/30" />
                         <div className="rounded-xl border border-white/80 bg-white/90 p-4 shadow-sm">
                           <div className="h-2.5 w-2/3 rounded bg-slate-200" />
                           <div className="mt-3 h-2 w-1/2 rounded bg-slate-100" />
@@ -201,7 +201,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section className="bg-[#010A19] px-4 py-12 text-white sm:px-6 sm:py-16 lg:px-10 lg:py-20">
+      <section className="bg-[#3A6BA8] px-4 py-12 text-white sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">
@@ -212,7 +212,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             {WHY_HARAKA.map((item) => (
               <div key={item.title}>
                 <h3 className="text-lg font-semibold text-white">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-blue-100/75">{item.description}</p>
+                <p className="mt-3 text-sm leading-relaxed text-white/75">{item.description}</p>
               </div>
             ))}
           </div>
@@ -222,7 +222,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="use-cases" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#1F3B63] sm:text-4xl">
               Adapté à votre façon d&apos;opérer
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -231,8 +231,8 @@ export default async function HomePage(): Promise<React.ReactElement> {
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {USE_CASES.map((useCase) => (
-              <article key={useCase.title} className="border-t-2 border-[#0063FE] pt-5">
-                <h3 className="text-lg font-bold text-[#010A19]">{useCase.title}</h3>
+              <article key={useCase.title} className="border-t-2 border-[#4A86D4] pt-5">
+                <h3 className="text-lg font-bold text-[#1F3B63]">{useCase.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600">{useCase.description}</p>
               </article>
             ))}
@@ -243,7 +243,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section className="border-y border-slate-200 bg-slate-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
-            <h2 className="text-xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+            <h2 className="text-xl font-bold tracking-tight text-[#1F3B63] sm:text-3xl">
               Pour chaque type de portefeuille
             </h2>
             <p className="mt-3 text-slate-600">
@@ -254,9 +254,9 @@ export default async function HomePage(): Promise<React.ReactElement> {
             {PORTFOLIO_TYPES.map((type) => (
               <div
                 key={type.title}
-                className="rounded-xl border border-slate-200 bg-white px-5 py-6 transition hover:border-[#0063FE]/40"
+                className="rounded-xl border border-slate-200 bg-white px-5 py-6 transition hover:border-[#4A86D4]/40"
               >
-                <p className="font-semibold text-[#010A19]">{type.title}</p>
+                <p className="font-semibold text-[#1F3B63]">{type.title}</p>
                 <p className="mt-1 text-sm text-slate-500">{type.description}</p>
               </div>
             ))}
@@ -267,7 +267,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#1F3B63] sm:text-3xl">
               Une meilleure expérience pour vos locataires
             </h2>
             <p className="mt-4 text-base leading-relaxed text-slate-600">
@@ -279,7 +279,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                 href={APP_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#010A19] px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#3A6BA8] px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 App Store
               </a>
@@ -293,27 +293,27 @@ export default async function HomePage(): Promise<React.ReactElement> {
               </a>
               <Link
                 href="/mobile-app"
-                className="inline-flex h-11 items-center justify-center px-2 text-sm font-semibold text-[#0063FE] hover:underline"
+                className="inline-flex h-11 items-center justify-center px-2 text-sm font-semibold text-[#4A86D4] hover:underline"
               >
                 En savoir plus
               </Link>
             </div>
           </div>
           <div className="relative mx-auto w-full max-w-sm">
-            <div className="absolute -inset-4 rounded-[2rem] bg-[#0063FE]/15 blur-2xl" aria-hidden="true" />
-            <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#010A19] p-3 shadow-xl">
+            <div className="absolute -inset-4 rounded-[2rem] bg-[#4A86D4]/15 blur-2xl" aria-hidden="true" />
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#3A6BA8] p-3 shadow-xl">
               <div className="rounded-[1.35rem] bg-white p-5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Haraka · Locataire
                 </p>
-                <p className="mt-4 text-2xl font-bold text-[#010A19]">Loyer du mois</p>
+                <p className="mt-4 text-2xl font-bold text-[#1F3B63]">Loyer du mois</p>
                 <p className="mt-1 text-sm text-slate-500">Appartement · Gombe</p>
                 <div className="mt-6 rounded-xl bg-slate-50 p-4">
                   <p className="text-xs text-slate-500">À régler</p>
-                  <p className="mt-1 text-xl font-bold text-[#010A19]">850 000 FC</p>
+                  <p className="mt-1 text-xl font-bold text-[#1F3B63]">850 000 FC</p>
                 </div>
                 <div className="mt-4 space-y-2">
-                  <div className="h-10 rounded-lg bg-[#0063FE]/10" />
+                  <div className="h-10 rounded-lg bg-[#4A86D4]/10" />
                   <div className="h-10 rounded-lg bg-slate-100" />
                 </div>
               </div>
@@ -331,7 +331,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#1F3B63] sm:text-4xl">
               Tout ce dont vous avez besoin
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -341,13 +341,13 @@ export default async function HomePage(): Promise<React.ReactElement> {
           <div className="mt-12 grid gap-8 lg:grid-cols-3">
             {FEATURE_GROUPS.map((group) => (
               <article key={group.title} className="border-t border-slate-200 pt-6">
-                <h3 className="text-xl font-bold text-[#010A19]">{group.title}</h3>
+                <h3 className="text-xl font-bold text-[#1F3B63]">{group.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600">{group.description}</p>
                 <ul className="mt-5 space-y-2.5">
                   {group.items.map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5 text-sm text-slate-700">
                       <svg
-                        className="mt-0.5 h-4 w-4 shrink-0 text-[#0063FE]"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[#4A86D4]"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                         aria-hidden="true"
@@ -371,7 +371,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="pricing" className="border-y border-slate-200 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#1F3B63] sm:text-4xl">
               Tarification simple
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -385,23 +385,23 @@ export default async function HomePage(): Promise<React.ReactElement> {
                 key={tier.name}
                 className={`relative bg-white p-8 ${
                   tier.name === "Professionnel"
-                    ? "border-2 border-[#0063FE]"
+                    ? "border-2 border-[#4A86D4]"
                     : "border border-slate-200"
                 }`}
               >
                 {tier.name === "Professionnel" ? (
-                  <p className="absolute right-6 top-6 text-xs font-bold uppercase tracking-wide text-[#0063FE]">
+                  <p className="absolute right-6 top-6 text-xs font-bold uppercase tracking-wide text-[#4A86D4]">
                     Usage
                   </p>
                 ) : null}
-                <h3 className="text-lg font-bold text-[#010A19]">{tier.name}</h3>
-                <p className="mt-4 text-4xl font-bold tracking-tight text-[#010A19]">{tier.price}</p>
+                <h3 className="text-lg font-bold text-[#1F3B63]">{tier.name}</h3>
+                <p className="mt-4 text-4xl font-bold tracking-tight text-[#1F3B63]">{tier.price}</p>
                 <p className="mt-4 text-sm leading-relaxed text-slate-600">{tier.description}</p>
                 <ul className="mt-8 space-y-3">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3 text-sm text-slate-600">
                       <svg
-                        className="mt-0.5 h-5 w-5 shrink-0 text-[#0063FE]"
+                        className="mt-0.5 h-5 w-5 shrink-0 text-[#4A86D4]"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                         aria-hidden="true"
@@ -418,7 +418,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                 </ul>
                 <Link
                   href="/signup"
-                  className="mt-8 block bg-[#0063FE] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                  className="mt-8 block bg-[#4A86D4] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
                 >
                   Commencer maintenant
                 </Link>
@@ -433,7 +433,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section id="faq" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#1F3B63] sm:text-4xl">
               Questions fréquentes
             </h2>
             <p className="mt-4 text-base text-slate-600">
@@ -444,9 +444,9 @@ export default async function HomePage(): Promise<React.ReactElement> {
             {FAQS.map((item) => (
               <details
                 key={item.question}
-                className="group border border-slate-200 bg-white px-5 py-4 open:border-[#0063FE]/30"
+                className="group border border-slate-200 bg-white px-5 py-4 open:border-[#4A86D4]/30"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-[#010A19]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-[#1F3B63]">
                   {item.question}
                   <svg
                     className="h-5 w-5 shrink-0 text-slate-400 transition group-open:rotate-180"
@@ -465,18 +465,18 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section className="bg-[#010A19] px-4 py-12 text-white sm:px-6 sm:py-16 lg:px-10 lg:py-20">
+      <section className="bg-[#3A6BA8] px-4 py-12 text-white sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">
             Sérieux sur la gestion locative ?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-blue-100/80">
+          <p className="mx-auto mt-4 max-w-xl text-base text-white/80">
             Gagnez du temps et gérez plus de logements. Voyez si Haraka Property vous convient.
           </p>
           <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center">
             <Link
               href="/demo"
-              className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-7 text-sm font-semibold text-[#0063FE] transition hover:bg-slate-100 sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-7 text-sm font-semibold text-[#4A86D4] transition hover:bg-slate-100 sm:w-auto"
             >
               Réserver une démo
             </Link>

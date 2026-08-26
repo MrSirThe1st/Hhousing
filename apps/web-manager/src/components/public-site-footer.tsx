@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function PublicSiteFooter(): React.ReactElement {
   return (
-    <footer className="border-t border-slate-200 bg-[#010A19] text-white">
+    <footer className="border-t border-slate-200 bg-[#3A6BA8] text-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 sm:px-6 sm:py-12 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_0.8fr] lg:gap-10 lg:px-10">
         <div className="sm:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-3">

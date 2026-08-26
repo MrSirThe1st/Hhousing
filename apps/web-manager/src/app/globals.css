@@ -410,8 +410,8 @@
 
   .landing-hero-glow {
     background:
-      radial-gradient(ellipse at 18% 20%, rgba(0, 99, 254, 0.45), transparent 55%),
-      radial-gradient(ellipse at 88% 70%, rgba(0, 99, 254, 0.22), transparent 50%);
+      radial-gradient(ellipse at 20% 15%, rgba(139, 180, 224, 0.45), transparent 55%),
+      radial-gradient(ellipse at 85% 75%, rgba(169, 200, 232, 0.4), transparent 50%);
     animation: landing-hero-glow 10s ease-in-out infinite;
     transform-origin: center;
   }

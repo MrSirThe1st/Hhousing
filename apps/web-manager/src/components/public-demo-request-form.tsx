@@ -54,7 +54,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
         </p>
         <Link
           href="/"
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-[#0063FE] px-5 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+          className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-5 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
         >
           Retour à l&apos;accueil
         </Link>
@@ -71,7 +71,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
             name="fullName"
             required
             autoComplete="name"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#4A86D4] focus:ring-2 focus:ring-[#4A86D4]/20"
             placeholder="Jean Mukendi"
           />
         </label>
@@ -82,7 +82,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
             type="email"
             required
             autoComplete="email"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#4A86D4] focus:ring-2 focus:ring-[#4A86D4]/20"
             placeholder="vous@agence.com"
           />
         </label>
@@ -94,7 +94,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
             name="phone"
             required
             autoComplete="tel"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#4A86D4] focus:ring-2 focus:ring-[#4A86D4]/20"
             placeholder="+243 ..."
           />
         </label>
@@ -103,7 +103,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
           <input
             name="company"
             autoComplete="organization"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#4A86D4] focus:ring-2 focus:ring-[#4A86D4]/20"
             placeholder="Nom de l'agence ou du portefeuille"
           />
         </label>
@@ -112,7 +112,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
         Nombre approximatif de logements
         <select
           name="unitsCount"
-          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#4A86D4] focus:ring-2 focus:ring-[#4A86D4]/20"
           defaultValue="1-5"
         >
           <option value="1-5">1 à 5</option>
@@ -126,7 +126,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
         <textarea
           name="message"
           rows={3}
-          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#4A86D4] focus:ring-2 focus:ring-[#4A86D4]/20"
           placeholder="Parlez-nous brièvement de votre portefeuille ou de vos besoins."
         />
       </label>
@@ -140,7 +140,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
       <button
         type="submit"
         disabled={status === "loading"}
-        className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#0063FE] px-6 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#4A86D4] px-6 text-sm font-semibold text-white transition hover:bg-[#3B73BC] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {status === "loading" ? "Envoi en cours…" : "Réserver ma démo"}
       </button>

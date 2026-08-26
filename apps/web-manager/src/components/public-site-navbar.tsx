@@ -127,7 +127,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
         <Link
           href="/"
           onClick={closeMobile}
-          className="flex shrink-0 items-center gap-2 text-[#010A19] dark:text-slate-100 sm:gap-3"
+          className="flex shrink-0 items-center gap-2 text-[#1F3B63] dark:text-slate-100 sm:gap-3"
         >
           <Image
             src="/brand/haraka-pay-logo.svg"
@@ -163,7 +163,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
             <Link
               href="/dashboard"
               onClick={closeMobile}
-              className="hidden whitespace-nowrap rounded-lg bg-[#0063FE] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] sm:inline-flex"
+              className="hidden whitespace-nowrap rounded-lg bg-[#4A86D4] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3B73BC] sm:inline-flex"
             >
               Mon tableau de bord
             </Link>
@@ -186,7 +186,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
               <Link
                 href="/signup"
                 onClick={closeMobile}
-                className="hidden rounded-lg bg-[#0063FE] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-[#0052d4] sm:inline-block sm:px-6 sm:py-2.5 sm:text-sm"
+                className="hidden rounded-lg bg-[#4A86D4] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#4A86D4]/20 transition hover:bg-[#3B73BC] sm:inline-block sm:px-6 sm:py-2.5 sm:text-sm"
               >
                 Créer un compte
               </Link>
@@ -257,7 +257,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
               <Link
                 href="/dashboard"
                 onClick={closeMobile}
-                className="flex h-11 items-center justify-center rounded-lg bg-[#0063FE] px-4 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                className="flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-4 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
               >
                 Mon tableau de bord
               </Link>
@@ -266,7 +266,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
                 <Link
                   href="/signup"
                   onClick={closeMobile}
-                  className="flex h-11 items-center justify-center rounded-lg bg-[#0063FE] px-4 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                  className="flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-4 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
                 >
                   Créer un compte
                 </Link>

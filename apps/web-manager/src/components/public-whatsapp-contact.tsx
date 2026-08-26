@@ -10,7 +10,7 @@ export default function PublicWhatsAppContact(): React.ReactElement {
     <section id="contact" className="border-y border-slate-200 bg-white py-8 sm:py-10 md:py-12">
       <div className="mx-auto flex max-w-7xl flex-col items-stretch justify-between gap-5 px-4 sm:flex-row sm:items-center sm:px-6 lg:px-10">
         <div className="max-w-xl">
-          <h2 className="text-lg font-bold tracking-tight text-[#010A19] sm:text-2xl">
+          <h2 className="text-lg font-bold tracking-tight text-[#1F3B63] sm:text-2xl">
             Une question ? Écrivez-nous sur WhatsApp
           </h2>
           <p className="mt-1.5 text-sm text-slate-600 sm:text-base">
@@ -33,7 +33,7 @@ export default function PublicWhatsAppContact(): React.ReactElement {
           ) : (
             <a
               href={`mailto:${email}?subject=${encodeURIComponent("Contact Haraka Property")}`}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-5 text-sm font-semibold text-white transition hover:bg-[#0052d4] sm:w-auto"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#4A86D4] px-5 text-sm font-semibold text-white transition hover:bg-[#3B73BC] sm:w-auto"
             >
               Écrire à {email}
             </a>
