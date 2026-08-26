@@ -121,7 +121,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
   return (
     <header
       ref={headerRef}
-      className="relative sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/95"
+      className="relative sticky top-0 z-40 border-b border-[#C5D9EC]/50 bg-[#EAF2FA]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/95"
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:gap-6 lg:px-10">
         <Link
@@ -158,7 +158,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {loading ? (
-            <div className="hidden h-9 w-24 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800 sm:block sm:h-10 sm:w-40" />
+            <div className="hidden h-9 w-24 animate-pulse rounded-lg bg-[#D7E7F7] dark:bg-slate-800 sm:block sm:h-10 sm:w-40" />
           ) : user !== null ? (
             <Link
               href="/dashboard"
@@ -172,14 +172,14 @@ export default function PublicSiteNavbar(): React.ReactElement {
               <Link
                 href="/login"
                 onClick={closeMobile}
-                className="hidden rounded-lg px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
+                className="hidden rounded-lg px-4 py-2 text-xs font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
               >
                 Se connecter
               </Link>
               <Link
                 href="/demo"
                 onClick={closeMobile}
-                className="hidden rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 lg:inline-block lg:px-5 lg:py-2.5 lg:text-sm"
+                className="hidden rounded-lg border border-[#9CB8D6] bg-white/60 px-4 py-2 text-xs font-semibold text-[#1F3B63] transition hover:border-[#4A86D4] hover:bg-white dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 lg:inline-block lg:px-5 lg:py-2.5 lg:text-sm"
               >
                 Réserver une démo
               </Link>
@@ -195,7 +195,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
 
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-800 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800 lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#9CB8D6] bg-white/50 text-[#1F3B63] transition hover:bg-white dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800 lg:hidden"
             aria-expanded={mobileOpen}
             aria-controls="public-mobile-menu"
             aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
@@ -216,7 +216,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
 
       {/* Desktop mega panel */}
       <div
-        className={`absolute left-0 right-0 top-full z-50 hidden border-b border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition duration-150 dark:border-slate-800 dark:bg-[#0a1120] lg:block ${
+        className={`absolute left-0 right-0 top-full z-50 hidden border-b border-[#C5D9EC] bg-[#EAF2FA] shadow-[0_18px_40px_rgba(31,59,99,0.12)] transition duration-150 dark:border-slate-800 dark:bg-[#0a1120] lg:block ${
           openMenu
             ? "visible translate-y-0 opacity-100"
             : "pointer-events-none invisible -translate-y-1 opacity-0"
@@ -232,7 +232,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
       {/* Mobile drawer */}
       <div
         id="public-mobile-menu"
-        className={`border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-[#0a1120] lg:hidden ${
+        className={`border-t border-[#C5D9EC]/70 bg-[#EAF2FA] dark:border-slate-800 dark:bg-[#0a1120] lg:hidden ${
           mobileOpen ? "block" : "hidden"
         }`}
       >
@@ -243,16 +243,16 @@ export default function PublicSiteNavbar(): React.ReactElement {
                 key={item.href}
                 href={item.href}
                 onClick={closeMobile}
-                className="block rounded-lg px-3 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800"
+                className="block rounded-lg px-3 py-3 text-base font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-100 dark:hover:bg-slate-800"
               >
                 {item.label}
               </Link>
             ))}
           </nav>
 
-          <div className="mt-5 space-y-2 border-t border-slate-200 pt-5 dark:border-slate-700">
+          <div className="mt-5 space-y-2 border-t border-[#C5D9EC] pt-5 dark:border-slate-700">
             {loading ? (
-              <div className="h-11 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+              <div className="h-11 animate-pulse rounded-lg bg-[#D7E7F7] dark:bg-slate-800" />
             ) : user !== null ? (
               <Link
                 href="/dashboard"
@@ -273,7 +273,7 @@ export default function PublicSiteNavbar(): React.ReactElement {
                 <Link
                   href="/login"
                   onClick={closeMobile}
-                  className="flex h-11 items-center justify-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
+                  className="flex h-11 items-center justify-center rounded-lg border border-[#9CB8D6] bg-white/70 px-4 text-sm font-semibold text-[#1F3B63] transition hover:bg-white dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
                 >
                   Se connecter
                 </Link>
