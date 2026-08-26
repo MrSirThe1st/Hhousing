@@ -4,6 +4,12 @@ Use this file as the first project memory source before searching the codebase.
 
 ## 2026-08-26
 - Type: Frontend
+- Description: Mobile responsiveness for public landing + auth — hamburger menu (replacing chip strip), tighter mobile paddings/CTAs, footer 2-col on small screens, auth pages use min-h-dvh with compact logo and 44px touch targets.
+- Impact: `public-site-navbar.tsx`, `public-landing-hero.tsx`, `public-site-footer.tsx`, `public-whatsapp-contact.tsx`, `public-marketplace-carousel.tsx`, `platform-logo-link.tsx`, `page.tsx`, `demo/page.tsx`, `login`, `signup`, `forgot-password`, `reset-password`, `account-type`.
+- Tests: deferred (manual mobile viewport QA)
+
+## 2026-08-26
+- Type: Frontend
 - Description: Landing polish — removed navbar subtitle under Haraka Property; reframed rent feature copy around receiving rents via Mobile Money or bank transfer (no fake product screenshots; none exist in repo assets).
 - Impact: `public-site-navbar.tsx`, `public-site-data.ts`, rent visual block in `page.tsx`.
 - Tests: deferred (marketing copy/UI)

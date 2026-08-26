@@ -50,8 +50,8 @@ function ForgotPasswordContent(): React.ReactElement {
 
   // Styles based on operator type
   const mainClass = isOwner
-    ? "min-h-screen bg-[radial-gradient(circle_at_top,rgba(0,99,254,0.10),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef4fb_100%)] px-6 py-12 flex items-center justify-center"
-    : "min-h-screen flex items-center justify-center bg-white px-4 py-4 relative";
+    ? "min-h-dvh bg-[radial-gradient(circle_at_top,rgba(0,99,254,0.10),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef4fb_100%)] px-4 py-8 sm:px-6 sm:py-12 flex items-center justify-center"
+    : "relative flex min-h-dvh items-center justify-center bg-white px-4 py-8 sm:py-10";
 
   const wrapperStyle = isOwner
     ? {}
@@ -63,12 +63,12 @@ function ForgotPasswordContent(): React.ReactElement {
       };
 
   const cardClass = isOwner
-    ? "w-full max-w-md rounded-4xl border border-slate-200 bg-white px-8 py-10 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.35)]"
-    : "relative w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6 my-auto";
+    ? "w-full max-w-md rounded-4xl border border-slate-200 bg-white px-5 py-8 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.35)] sm:px-8 sm:py-10"
+    : "relative my-auto w-full max-w-md rounded-2xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-6";
 
   const buttonClass = isOwner
-    ? "w-full rounded-full bg-[#0063fe] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60 shadow-lg shadow-blue-500/10 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40"
-    : "w-full rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none";
+    ? "flex h-11 w-full items-center justify-center rounded-full bg-[#0063fe] px-5 text-sm font-semibold text-white transition hover:bg-[#0052d4] disabled:opacity-60 shadow-lg shadow-blue-500/10 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40"
+    : "flex h-11 w-full items-center justify-center rounded-lg bg-[#0063fe] px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none";
 
   const inputClass = isOwner
     ? "mt-1.5 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/20"
@@ -86,9 +86,9 @@ function ForgotPasswordContent(): React.ReactElement {
             </div>
           ) : (
             <div className="mb-4">
-              <PlatformLogoLink centered subtitle="Retour à la connexion" />
+              <PlatformLogoLink centered />
               <div className="mt-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/50 px-4 py-1 text-xs font-semibold text-blue-700">
+                <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/50 px-3.5 py-1 text-xs font-semibold text-blue-700">
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>

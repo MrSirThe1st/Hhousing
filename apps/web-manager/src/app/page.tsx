@@ -59,7 +59,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <PublicSiteNavbar />
       <PublicLandingHero />
 
-      <section className="border-b border-slate-200 bg-white px-6 py-10 lg:px-10">
+      <section className="border-b border-slate-200 bg-white px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-lg font-semibold tracking-tight text-[#010A19] sm:text-xl md:text-2xl">
             Moins de temps à gérer des outils. Plus de temps à gérer votre portefeuille.
@@ -70,13 +70,13 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="features" className="px-6 py-16 lg:px-10 lg:py-24">
+      <section id="features" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0063FE]">
               Plateforme
             </p>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
               Une plateforme de gestion. Toutes vos opérations.
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -110,7 +110,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                   }`}
                 >
                   <div>
-                    <h3 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+                    <h3 className="text-xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
                       {feature.title}
                     </h3>
                     <p className="mt-4 text-base leading-relaxed text-slate-600">
@@ -204,13 +204,13 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section className="bg-[#010A19] px-6 py-16 text-white lg:px-10 lg:py-20">
+      <section className="bg-[#010A19] px-4 py-12 text-white sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
               Pourquoi Haraka Property
             </p>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-4xl">
               Conçu pour les opérateurs immobiliers en RDC
             </h2>
           </div>
@@ -225,13 +225,13 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="use-cases" className="px-6 py-16 lg:px-10 lg:py-20">
+      <section id="use-cases" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0063FE]">
               Solutions
             </p>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
               Adapté à votre façon d&apos;opérer
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -249,10 +249,10 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section className="border-y border-slate-200 bg-slate-50 px-6 py-14 lg:px-10">
+      <section className="border-y border-slate-200 bg-slate-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
-            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+            <h2 className="text-xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
               Pour chaque type de portefeuille
             </h2>
             <p className="mt-3 text-slate-600">
@@ -273,7 +273,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section className="px-6 py-16 lg:px-10 lg:py-20">
+      <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0063FE]">
@@ -340,10 +340,10 @@ export default async function HomePage(): Promise<React.ReactElement> {
         loadError={loadError}
       />
 
-      <section className="px-6 py-16 lg:px-10 lg:py-20">
+      <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
               Tout ce dont vous avez besoin
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -380,10 +380,10 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="pricing" className="border-y border-slate-200 bg-slate-50 px-6 py-16 lg:px-10 lg:py-20">
+      <section id="pricing" className="border-y border-slate-200 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
               Tarification simple
             </h2>
             <p className="mt-4 text-base text-slate-600 sm:text-lg">
@@ -442,10 +442,10 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
       <PublicWhatsAppContact />
 
-      <section id="faq" className="px-6 py-16 lg:px-10 lg:py-20">
+      <section id="faq" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
               Questions fréquentes
             </h2>
             <p className="mt-4 text-base text-slate-600">
@@ -477,15 +477,15 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section className="bg-[#010A19] px-6 py-16 text-white lg:px-10 lg:py-20">
+      <section className="bg-[#010A19] px-4 py-12 text-white sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">
             Sérieux sur la gestion locative ?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-blue-100/80">
             Gagnez du temps et gérez plus de logements. Voyez si Haraka Property vous convient.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center">
             <Link
               href="/demo"
               className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-7 text-sm font-semibold text-[#0063FE] transition hover:bg-slate-100 sm:w-auto"

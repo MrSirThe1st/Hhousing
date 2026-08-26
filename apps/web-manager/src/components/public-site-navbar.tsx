@@ -53,15 +53,27 @@ const FEATURE_LINKS = [
   }
 ] as const;
 
+const MOBILE_LINKS = [
+  { href: "/#use-cases", label: "Solutions" },
+  { href: "/#features", label: "Fonctionnalités" },
+  { href: "/#pricing", label: "Tarifs" },
+  { href: "/marketplace", label: "Catalogue" },
+  { href: "/demo", label: "Réserver une démo" },
+  { href: "/#contact", label: "WhatsApp" },
+  { href: "/#faq", label: "FAQ" }
+] as const;
+
 export default function PublicSiteNavbar(): React.ReactElement {
   const { user, loading } = useAuth();
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent): void {
       if (event.key === "Escape") {
         setOpenMenu(null);
+        setMobileOpen(false);
       }
     }
 
@@ -84,6 +96,15 @@ export default function PublicSiteNavbar(): React.ReactElement {
     };
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
+
   function toggleMenu(menuId: MenuId): void {
     setOpenMenu((current) => (current === menuId ? null : menuId));
   }
@@ -92,18 +113,29 @@ export default function PublicSiteNavbar(): React.ReactElement {
     setOpenMenu(null);
   }
 
+  function closeMobile(): void {
+    setMobileOpen(false);
+    setOpenMenu(null);
+  }
+
   return (
     <header
       ref={headerRef}
-      className="relative sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/90"
+      className="relative sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/95"
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-6 lg:gap-6 lg:px-10">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:gap-6 lg:px-10">
         <Link
           href="/"
-          onClick={closeMenu}
+          onClick={closeMobile}
           className="flex shrink-0 items-center gap-2 text-[#010A19] dark:text-slate-100 sm:gap-3"
         >
-          <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
+          <Image
+            src="/brand/haraka-pay-logo.svg"
+            alt="Haraka Property"
+            width={44}
+            height={44}
+            className="h-9 w-9 shrink-0 sm:h-11 sm:w-11"
+          />
           <span className="whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
             Haraka Property
           </span>
@@ -126,45 +158,63 @@ export default function PublicSiteNavbar(): React.ReactElement {
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {loading ? (
-            <div className="h-9 w-28 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800 sm:h-10 sm:w-40" />
+            <div className="hidden h-9 w-24 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800 sm:block sm:h-10 sm:w-40" />
           ) : user !== null ? (
             <Link
               href="/dashboard"
-              onClick={closeMenu}
-              className="whitespace-nowrap rounded-lg bg-[#0063FE] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0052d4] sm:px-6 sm:py-2.5 sm:text-sm"
+              onClick={closeMobile}
+              className="hidden whitespace-nowrap rounded-lg bg-[#0063FE] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0052d4] sm:inline-flex"
             >
-              <span className="sm:hidden">Tableau de bord</span>
-              <span className="hidden sm:inline">Mon tableau de bord</span>
+              Mon tableau de bord
             </Link>
           ) : (
             <>
               <Link
                 href="/login"
-                onClick={closeMenu}
+                onClick={closeMobile}
                 className="hidden rounded-lg px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
               >
                 Se connecter
               </Link>
               <Link
                 href="/demo"
-                onClick={closeMenu}
-                className="hidden rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
+                onClick={closeMobile}
+                className="hidden rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 lg:inline-block lg:px-5 lg:py-2.5 lg:text-sm"
               >
                 Réserver une démo
               </Link>
               <Link
                 href="/signup"
-                onClick={closeMenu}
-                className="rounded-lg bg-[#0063FE] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-[#0052d4] hover:shadow-md hover:shadow-blue-500/25 sm:px-6 sm:py-2.5 sm:text-sm"
+                onClick={closeMobile}
+                className="hidden rounded-lg bg-[#0063FE] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-[#0052d4] sm:inline-block sm:px-6 sm:py-2.5 sm:text-sm"
               >
                 Créer un compte
               </Link>
             </>
           )}
+
+          <button
+            type="button"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-800 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800 lg:hidden"
+            aria-expanded={mobileOpen}
+            aria-controls="public-mobile-menu"
+            aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            onClick={() => setMobileOpen((current) => !current)}
+          >
+            {mobileOpen ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Overlay mega panel — does not push page content */}
+      {/* Desktop mega panel */}
       <div
         className={`absolute left-0 right-0 top-full z-50 hidden border-b border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition duration-150 dark:border-slate-800 dark:bg-[#0a1120] lg:block ${
           openMenu
@@ -179,16 +229,57 @@ export default function PublicSiteNavbar(): React.ReactElement {
         </div>
       </div>
 
-      <div className="border-t border-slate-200 px-3 py-2.5 dark:border-slate-800 sm:px-4 sm:py-3 lg:hidden">
-        <div className="mx-auto flex max-w-7xl gap-1.5 overflow-x-auto sm:gap-2">
-          <MobileChip href="/#use-cases">Solutions</MobileChip>
-          <MobileChip href="/#features">Fonctionnalités</MobileChip>
-          <MobileChip href="/#pricing">Tarifs</MobileChip>
-          <MobileChip href="/marketplace">Catalogue</MobileChip>
-          <MobileChip href="/demo">Démo</MobileChip>
-          {user === null && !loading ? (
-            <MobileChip href="/login">Se connecter</MobileChip>
-          ) : null}
+      {/* Mobile drawer */}
+      <div
+        id="public-mobile-menu"
+        className={`border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-[#0a1120] lg:hidden ${
+          mobileOpen ? "block" : "hidden"
+        }`}
+      >
+        <div className="max-h-[min(78vh,40rem)] overflow-y-auto px-4 py-4 sm:px-6">
+          <nav className="space-y-1">
+            {MOBILE_LINKS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={closeMobile}
+                className="block rounded-lg px-3 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="mt-5 space-y-2 border-t border-slate-200 pt-5 dark:border-slate-700">
+            {loading ? (
+              <div className="h-11 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+            ) : user !== null ? (
+              <Link
+                href="/dashboard"
+                onClick={closeMobile}
+                className="flex h-11 items-center justify-center rounded-lg bg-[#0063FE] px-4 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+              >
+                Mon tableau de bord
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  onClick={closeMobile}
+                  className="flex h-11 items-center justify-center rounded-lg bg-[#0063FE] px-4 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                >
+                  Créer un compte
+                </Link>
+                <Link
+                  href="/login"
+                  onClick={closeMobile}
+                  className="flex h-11 items-center justify-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
+                >
+                  Se connecter
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
@@ -249,17 +340,6 @@ function NavLink({
   );
 }
 
-function MobileChip({ href, children }: { href: string; children: React.ReactNode }): React.ReactElement {
-  return (
-    <Link
-      href={href}
-      className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 sm:px-4 sm:py-2 sm:text-sm"
-    >
-      {children}
-    </Link>
-  );
-}
-
 function SolutionsPanel({ onNavigate }: { onNavigate: () => void }): React.ReactElement {
   return (
     <div>
@@ -299,7 +379,7 @@ function FeaturesPanel({ onNavigate }: { onNavigate: () => void }): React.ReactE
         <Link
           href="/#features"
           onClick={onNavigate}
-          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           Tout voir
         </Link>

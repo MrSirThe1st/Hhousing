@@ -23,34 +23,34 @@ export default function PublicLandingHero(): React.ReactElement {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto grid min-h-[min(88vh,52rem)] w-full max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:px-10 lg:py-20">
+      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-14 lg:min-h-[min(88vh,52rem)] lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:px-10 lg:py-20">
         <div className="landing-fade-up">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <Image
               src="/brand/haraka-pay-logo.svg"
               alt=""
               width={52}
               height={52}
-              className="h-12 w-12 sm:h-14 sm:w-14"
+              className="h-10 w-10 sm:h-14 sm:w-14"
               priority
             />
-            <p className="text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
+            <p className="text-xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
               Haraka Property
             </p>
           </div>
 
-          <h1 className="mt-8 max-w-xl text-3xl font-bold leading-[1.12] tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[3.15rem]">
+          <h1 className="mt-6 max-w-xl text-[1.65rem] font-bold leading-[1.15] tracking-tight text-white sm:mt-8 sm:text-4xl md:text-5xl lg:text-[3.15rem] lg:leading-[1.12]">
             Logiciel de gestion locative pour bailleurs et gestionnaires modernes
           </h1>
-          <p className="mt-5 max-w-lg text-base leading-relaxed text-blue-100/90 sm:text-lg">
+          <p className="mt-4 max-w-lg text-sm leading-relaxed text-blue-100/90 sm:mt-5 sm:text-lg">
             Moins de temps à jongler entre Excel, WhatsApp et les carnets. Plus de temps à gérer
             votre portefeuille — en RDC.
           </p>
 
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               href="/demo"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-7 text-sm font-semibold text-[#0063FE] shadow-lg shadow-black/25 transition hover:bg-slate-100 sm:text-base"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-white px-7 text-sm font-semibold text-[#0063FE] shadow-lg shadow-black/25 transition hover:bg-slate-100 sm:w-auto sm:text-base"
             >
               Réserver une démo
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -59,13 +59,13 @@ export default function PublicLandingHero(): React.ReactElement {
             </Link>
             <Link
               href="/signup"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/5 px-7 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/50 hover:bg-white/10 sm:text-base"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/5 px-7 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/50 hover:bg-white/10 sm:w-auto sm:text-base"
             >
               Démarrer gratuitement
             </Link>
           </div>
 
-          <p className="mt-6 text-sm text-blue-100/70">
+          <p className="mt-5 text-xs leading-relaxed text-blue-100/70 sm:mt-6 sm:text-sm">
             Gratuit sous 2 biens · Paiement Mobile Money · Sans carte bancaire
           </p>
         </div>

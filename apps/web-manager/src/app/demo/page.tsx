@@ -15,25 +15,25 @@ export default function DemoPage(): React.ReactElement {
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <PublicSiteNavbar />
-      <section className="border-b border-slate-200 bg-[#010A19] px-6 py-14 text-white lg:px-10">
+      <section className="border-b border-slate-200 bg-[#010A19] px-4 py-10 text-white sm:px-6 sm:py-14 lg:px-10">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">
             Démonstration
           </p>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-4xl">
             Réservez une démo Haraka Property
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-blue-100/85">
+          <p className="mx-auto mt-4 max-w-xl text-sm text-blue-100/85 sm:text-base">
             En quelques minutes, découvrez comment centraliser loyers, contrats, maintenance et
             communication — adapté à la RDC.
           </p>
         </div>
       </section>
 
-      <section className="px-6 py-12 lg:px-10 lg:py-16">
-        <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <section className="px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-16">
+        <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-10">
           <div>
-            <h2 className="text-xl font-bold text-[#010A19]">Ce que vous verrez</h2>
+            <h2 className="text-lg font-bold text-[#010A19] sm:text-xl">Ce que vous verrez</h2>
             <ul className="mt-5 space-y-3 text-sm text-slate-600">
               {[
                 "Tableau de bord loyers, occupation et retards",
@@ -66,7 +66,7 @@ export default function DemoPage(): React.ReactElement {
               </Link>
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6 lg:p-8">
             <PublicDemoRequestForm />
           </div>
         </div>

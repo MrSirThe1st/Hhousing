@@ -71,7 +71,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
             name="fullName"
             required
             autoComplete="name"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
             placeholder="Jean Mukendi"
           />
         </label>
@@ -82,7 +82,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
             type="email"
             required
             autoComplete="email"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
             placeholder="vous@agence.com"
           />
         </label>
@@ -94,7 +94,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
             name="phone"
             required
             autoComplete="tel"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
             placeholder="+243 ..."
           />
         </label>
@@ -103,7 +103,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
           <input
             name="company"
             autoComplete="organization"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
             placeholder="Nom de l'agence ou du portefeuille"
           />
         </label>
@@ -112,7 +112,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
         Nombre approximatif de logements
         <select
           name="unitsCount"
-          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
           defaultValue="1-5"
         >
           <option value="1-5">1 à 5</option>
@@ -126,7 +126,7 @@ export default function PublicDemoRequestForm(): React.ReactElement {
         <textarea
           name="message"
           rows={3}
-          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
+          className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-[#0063FE] focus:ring-2 focus:ring-[#0063FE]/20"
           placeholder="Parlez-nous brièvement de votre portefeuille ou de vos besoins."
         />
       </label>

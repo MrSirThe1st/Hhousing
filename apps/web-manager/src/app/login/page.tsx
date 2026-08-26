@@ -68,7 +68,7 @@ export default function LoginPage(): React.ReactElement {
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center bg-white px-4 py-4 relative"
+      className="relative flex min-h-dvh items-center justify-center bg-white px-4 py-8 sm:py-10"
       style={{
         backgroundImage: "url('/brand/MOTIFS.png')",
         backgroundSize: "cover",
@@ -76,16 +76,13 @@ export default function LoginPage(): React.ReactElement {
         backgroundRepeat: "no-repeat"
       }}
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-slate-50/30" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden bg-slate-50/30" />
 
-      <div className="relative w-full max-w-md my-auto">
-        <div className="mb-4 text-center">
-          <PlatformLogoLink
-            centered
-            subtitle="Retour à l'accueil public de la plateforme"
-          />
+      <div className="relative my-auto w-full max-w-md">
+        <div className="mb-5 text-center sm:mb-6">
+          <PlatformLogoLink centered />
           <div className="mt-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/50 px-4 py-1 text-xs font-semibold text-blue-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/50 px-3.5 py-1 text-xs font-semibold text-blue-700">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -94,7 +91,7 @@ export default function LoginPage(): React.ReactElement {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-6">
           <div className="mb-4">
             <h1 className="text-xl font-bold text-slate-900">Connexion</h1>
             <p className="mt-1 text-xs text-slate-600">Accédez à votre tableau de bord</p>
@@ -112,7 +109,7 @@ export default function LoginPage(): React.ReactElement {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                 placeholder="vous@example.com"
               />
             </div>
@@ -129,7 +126,7 @@ export default function LoginPage(): React.ReactElement {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white pl-3.5 pr-10 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                   placeholder="••••••••"
                 />
                 <button
@@ -164,7 +161,7 @@ export default function LoginPage(): React.ReactElement {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-[#0063fe] px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
             >
               {loading ? "Connexion…" : "Se connecter"}
             </button>
@@ -183,7 +180,7 @@ export default function LoginPage(): React.ReactElement {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
               <path

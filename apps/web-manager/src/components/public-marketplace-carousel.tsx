@@ -26,14 +26,14 @@ export default function PublicMarketplaceCarousel({
   }
 
   return (
-    <section id="marketplace" className="border-y border-slate-200/80 bg-slate-50 py-14 md:py-16">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section id="marketplace" className="border-y border-slate-200/80 bg-slate-50 py-10 sm:py-14 md:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0063FE]">
               Catalogue (optionnel)
             </p>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+            <h2 className="mt-3 text-xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
               Quelques logements disponibles
             </h2>
             <p className="mt-2 text-base text-slate-600">
