@@ -121,18 +121,19 @@ export default function PublicSiteNavbar(): React.ReactElement {
             isOpen={openMenu === "features"}
             onClick={() => toggleMenu("features")}
           />
-          <NavLink href="/marketplace" onClick={closeMenu}>Catalogue</NavLink>
           <NavLink href="/#pricing" onClick={closeMenu}>Tarifs</NavLink>
+          <NavLink href="/marketplace" onClick={closeMenu}>Catalogue</NavLink>
+          <NavLink href="/demo" onClick={closeMenu}>Démo</NavLink>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {loading ? (
-            <div className="h-9 w-28 animate-pulse rounded-full bg-slate-100 dark:bg-slate-800 sm:h-10 sm:w-40" />
+            <div className="h-9 w-28 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800 sm:h-10 sm:w-40" />
           ) : user !== null ? (
             <Link
               href="/dashboard"
               onClick={closeMenu}
-              className="whitespace-nowrap rounded-full bg-[#0063FE] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0052d4] sm:px-6 sm:py-2.5 sm:text-sm"
+              className="whitespace-nowrap rounded-lg bg-[#0063FE] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0052d4] sm:px-6 sm:py-2.5 sm:text-sm"
             >
               <span className="sm:hidden">Tableau de bord</span>
               <span className="hidden sm:inline">Mon tableau de bord</span>
@@ -142,14 +143,21 @@ export default function PublicSiteNavbar(): React.ReactElement {
               <Link
                 href="/login"
                 onClick={closeMenu}
-                className="hidden rounded-full px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
+                className="hidden rounded-lg px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
               >
                 Se connecter
               </Link>
               <Link
+                href="/demo"
+                onClick={closeMenu}
+                className="hidden rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
+              >
+                Réserver une démo
+              </Link>
+              <Link
                 href="/signup"
                 onClick={closeMenu}
-                className="rounded-full bg-[#0063FE] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-[#0052d4] hover:shadow-md hover:shadow-blue-500/25 sm:px-6 sm:py-2.5 sm:text-sm"
+                className="rounded-lg bg-[#0063FE] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-[#0052d4] hover:shadow-md hover:shadow-blue-500/25 sm:px-6 sm:py-2.5 sm:text-sm"
               >
                 Créer un compte
               </Link>
@@ -177,8 +185,9 @@ export default function PublicSiteNavbar(): React.ReactElement {
         <div className="mx-auto flex max-w-7xl gap-1.5 overflow-x-auto sm:gap-2">
           <MobileChip href="/#use-cases">Solutions</MobileChip>
           <MobileChip href="/#features">Fonctionnalités</MobileChip>
-          <MobileChip href="/marketplace">Catalogue</MobileChip>
           <MobileChip href="/#pricing">Tarifs</MobileChip>
+          <MobileChip href="/marketplace">Catalogue</MobileChip>
+          <MobileChip href="/demo">Démo</MobileChip>
           {user === null && !loading ? (
             <MobileChip href="/login">Se connecter</MobileChip>
           ) : null}
@@ -202,7 +211,7 @@ function MenuButton({
       type="button"
       onClick={onClick}
       aria-expanded={isOpen}
-      className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+      className={`inline-flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
         isOpen
           ? "bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-white"
           : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -235,7 +244,7 @@ function NavLink({
     <Link
       href={href}
       onClick={onClick}
-      className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
     >
       {children}
     </Link>
@@ -246,7 +255,7 @@ function MobileChip({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 sm:px-4 sm:py-2 sm:text-sm"
+      className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 sm:px-4 sm:py-2 sm:text-sm"
     >
       {children}
     </Link>

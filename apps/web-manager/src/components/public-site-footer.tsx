@@ -22,8 +22,9 @@ export default function PublicSiteFooter(): React.ReactElement {
           <div className="mt-4 space-y-3 text-sm text-slate-300">
             <Link href="/#use-cases" className="block hover:text-white">Solutions</Link>
             <Link href="/#features" className="block hover:text-white">Fonctionnalités</Link>
-            <Link href="/marketplace" className="block hover:text-white">Catalogue</Link>
             <Link href="/#pricing" className="block hover:text-white">Tarifs</Link>
+            <Link href="/demo" className="block hover:text-white">Réserver une démo</Link>
+            <Link href="/marketplace" className="block hover:text-white">Catalogue</Link>
             <Link href="/#faq" className="block hover:text-white">FAQ</Link>
           </div>
         </div>
@@ -49,6 +50,7 @@ export default function PublicSiteFooter(): React.ReactElement {
           <div className="mt-4 space-y-3 text-sm text-slate-300">
             <Link href="/login" className="block hover:text-white">Se connecter</Link>
             <Link href="/signup" className="block hover:text-white">Créer un compte</Link>
+            <Link href="/#contact" className="block hover:text-white">WhatsApp</Link>
             <Link href="/marketplace" className="block hover:text-white">Catalogue</Link>
           </div>
         </div>

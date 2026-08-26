@@ -43,51 +43,150 @@ export function firstSearchParam(value: string | string[] | undefined): string |
 
 export const FEATURE_GROUPS = [
   {
-    title: "Votre quotidien simplifié",
-    description: "Fini les carnets et les fichiers Excel. Créez vos contrats en quelques clics, suivez qui a payé le loyer, et gardez vos documents (contrats, pièces d'identité) sous la main.",
-    items: ["Création rapide de contrats", "Suivi en direct des loyers", "Alertes de réparations", "Mes documents"]
+    title: "Opérations du quotidien",
+    description:
+      "Fini les carnets et les fichiers Excel. Créez vos contrats, suivez qui a payé, et gardez documents et dossiers sous la main.",
+    items: [
+      "Création rapide de contrats",
+      "Suivi en direct des loyers",
+      "Alertes de maintenance",
+      "Documents centralisés"
+    ]
   },
   {
-    title: "Des échanges fluides",
-    description: "Restez en contact avec vos locataires sans y passer vos soirées. Discutez via WhatsApp ou la messagerie, recevez les demandes, et organisez les visites simplement.",
-    items: ["Messagerie intégrée", "Dossiers de candidature en ligne", "Gestion d'équipe à plusieurs", "Partage simple d'annonces"]
+    title: "Communication fluide",
+    description:
+      "Restez en contact avec vos locataires sans y passer vos soirées. Messagerie intégrée, demandes structurées, coordination d'équipe.",
+    items: [
+      "Messagerie intégrée",
+      "Demandes de maintenance avec photos",
+      "Gestion d'équipe à plusieurs",
+      "Annonces optionnelles"
+    ]
   },
   {
-    title: "Une vision claire de l'argent",
-    description: "Sachez exactement où vous en êtes. D'un coup d'œil, voyez les loyers en retard, les logements occupés, et générez vos rapports.",
-    items: ["Suivi par bien et logement", "Occupation de vos biens", "Espace de collaboration", "Rapports simples"]
+    title: "Vision claire de l'argent",
+    description:
+      "Voyez d'un coup d'œil les loyers en retard, l'occupation et les tendances — puis exportez vos rapports.",
+    items: [
+      "Suivi par bien et logement",
+      "Taux d'occupation",
+      "Espace propriétaire (lecture)",
+      "Rapports financiers"
+    ]
+  }
+] as const;
+
+/** DoorLoop-style deep feature blocks — only capabilities the product offers. */
+export const OPERATION_FEATURES = [
+  {
+    id: "rent",
+    title: "Encaissez vos loyers à temps",
+    description:
+      "Suivez paiements, retards et relances sur tout votre portefeuille. Enregistrez les règlements Mobile Money ou espèces — vos tableaux se mettent à jour.",
+    items: [
+      "Suivi payé / en retard / en attente",
+      "Enregistrement manuel (Mobile Money, cash)",
+      "Vue claire des impayés du mois",
+      "Rapports et exports pour votre comptabilité"
+    ]
+  },
+  {
+    id: "maintenance",
+    title: "Une maintenance qui avance",
+    description:
+      "Les locataires signalent un problème depuis l'app. Vous recevez la demande, assignez un intervenant et suivez jusqu'à la résolution — sans chaînes d'e-mails perdues.",
+    items: [
+      "Demandes avec photos et statut",
+      "Assignation prestataire ou équipe",
+      "Suivi jusqu'à clôture",
+      "Historique par logement"
+    ]
+  },
+  {
+    id: "leases",
+    title: "Contrats et locataires, un seul flux",
+    description:
+      "De l'affectation au bail actif : créez le contrat, suivez dépôt et échéances, et gardez le dossier locataire complet au même endroit.",
+    items: [
+      "Biens, logements et baux liés",
+      "Invitations locataires",
+      "Documents de bail et pièces jointes",
+      "Entrées et sorties structurées"
+    ]
+  },
+  {
+    id: "messaging",
+    title: "Messagerie et documents au même endroit",
+    description:
+      "Échangez avec vos locataires dans la plateforme, diffusez des messages par bien, et stockez contrats, quittances et notices sans chercher dans WhatsApp.",
+    items: [
+      "Conversations locataire ↔ gestionnaire",
+      "Messages groupés par bien",
+      "Bibliothèque de documents",
+      "Référence claire par dossier"
+    ]
   }
 ] as const;
 
 export const USE_CASES = [
   {
     title: "Bailleurs particuliers",
-    description: "Que vous gériez un studio ou plusieurs maisons en ville, suivez vos contrats, encaissez vos loyers et gérez les imprévus sans stress."
+    description:
+      "Un studio ou plusieurs maisons en ville : suivez contrats, loyers et interventions sans Excel ni carnets."
   },
   {
-    title: "Gestionnaires & Agences",
-    description: "Pilotez beaucoup de maisons et d'immeubles. Centralisez les demandes de vos clients, suivez l'argent et coordonnez les équipes sur le terrain."
+    title: "Gestionnaires & agences",
+    description:
+      "Pilotez plusieurs immeubles, centralisez les demandes clients, coordonnez l'équipe et suivez l'argent."
   },
   {
-    title: "Recherche résidentielle & commerciale",
-    description: "Trouvez votre futur logement (maison, appartement, studio) ou dénichez les locaux pour votre activité (bureaux, boutiques, entrepôts)."
+    title: "Portefeuilles mixtes",
+    description:
+      "Résidentiel, immeubles et locaux : une même plateforme pour chaque bien, chaque logement, chaque transaction."
   },
   {
-    title: "Locataires au quotidien",
-    description: "Accédez à vos quittances de loyer, signalez un problème (eau, électricité, plomberie) et communiquez facilement avec votre bailleur."
+    title: "Locataires (app mobile)",
+    description:
+      "Vos locataires paient, signalent un problème et communiquent depuis l'application — vous gardez le contrôle côté web."
   }
+] as const;
+
+export const WHY_HARAKA = [
+  {
+    title: "Une plateforme qui scale avec vous",
+    description:
+      "Ajoutez biens et logements au fur et à mesure. Tableau de bord, alertes et historiques restent lisibles."
+  },
+  {
+    title: "Pensé pour la RDC",
+    description:
+      "Interface en français, Mobile Money, et workflows adaptés aux réalités du terrain — pas un clone importé."
+  },
+  {
+    title: "Moins de friction, plus de contrôle",
+    description:
+      "Moins d'outils éparpillés. Loyers, maintenance, messagerie et documents dans un seul endroit."
+  }
+] as const;
+
+export const PORTFOLIO_TYPES = [
+  { title: "Résidentiel", description: "Appartements et maisons" },
+  { title: "Immeubles", description: "Multi-logements" },
+  { title: "Maisons individuelles", description: "Villas et compounds" },
+  { title: "Locaux commerciaux", description: "Bureaux et boutiques" }
 ] as const;
 
 export const FAQS = [
   {
     question: "Haraka Property est-il seulement une marketplace ?",
     answer:
-      "Non. Les annonces aident à trouver des locataires. Le cœur du produit, c'est la gestion : biens, logements, locataires, contrats, paiements, réparations, messagerie et documents."
+      "Non. Les annonces aident à trouver des locataires. Le cœur du produit, c'est la gestion : biens, logements, locataires, contrats, paiements, maintenance, messagerie et documents."
   },
   {
     question: "Qui peut utiliser la plateforme aujourd'hui ?",
     answer:
-      "L'espace web sert d'abord aux bailleurs et gestionnaires immobiliers. Les locataires utilisent l'expérience mobile, et la visibilité propriétaire en lecture seule est prévue ensuite."
+      "L'espace web est conçu pour les bailleurs et gestionnaires immobiliers. Les locataires utilisent l'application mobile. Les propriétaires investisseurs disposent d'un portail en lecture seule."
   },
   {
     question: "Faut-il publier des annonces pour utiliser Haraka Property ?",
@@ -98,6 +197,11 @@ export const FAQS = [
     question: "Comment fonctionne la tarification ?",
     answer:
       "Gratuit sous 2 biens. À partir de 2 biens, le tarif est de 5$ par logement et par mois. Vous réglez par Mobile Money en fin de mois — sans prélèvement automatique."
+  },
+  {
+    question: "Comment réserver une démo ?",
+    answer:
+      "Utilisez la page « Réserver une démo » ou contactez-nous sur WhatsApp. Nous planifions une session courte adaptée à votre portefeuille."
   }
 ] as const;
 
@@ -124,7 +228,7 @@ export const PRICING_TIERS = [
 ] as const;
 
 
-export const MARKETPLACE_PREVIEW_LIMIT = 8;
+export const MARKETPLACE_PREVIEW_LIMIT = 10;
 export const MARKETPLACE_PAGE_SIZE = 12;
 
 export function parseMarketplacePage(value: string | string[] | undefined): number {

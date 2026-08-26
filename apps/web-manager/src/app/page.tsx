@@ -1,29 +1,40 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createListingRepo } from "./api/shared";
-import PublicHeroCarousel from "../components/public-hero-carousel";
-import PublicListingCard from "../components/public-listing-card";
-import PublicMarketplaceSearchForm from "../components/public-marketplace-search-form";
+import PublicLandingHero from "../components/public-landing-hero";
+import PublicMarketplaceCarousel from "../components/public-marketplace-carousel";
 import PublicSiteFooter from "../components/public-site-footer";
 import PublicSiteNavbar from "../components/public-site-navbar";
+import PublicWhatsAppContact from "../components/public-whatsapp-contact";
 import {
   FAQS,
   FEATURE_GROUPS,
   MARKETPLACE_PREVIEW_LIMIT,
+  OPERATION_FEATURES,
+  PORTFOLIO_TYPES,
   PRICING_TIERS,
-  USE_CASES
+  USE_CASES,
+  WHY_HARAKA
 } from "./public-site-data";
 
 export const metadata: Metadata = {
-  title: "Haraka Property — Gestion de vos locations en RDC",
-  description: "Gérez vos maisons et immeubles en République Démocratique du Congo : contrats, loyers, réparations, communication et annonces.",
+  title: "Haraka Property — Logiciel de gestion locative en RDC",
+  description:
+    "Logiciel de gestion locative pour bailleurs et gestionnaires en République Démocratique du Congo : contrats, loyers, maintenance, messagerie et documents.",
   openGraph: {
-    title: "Haraka Property — Gestion de vos locations en RDC",
-    description: "Gérez vos maisons et immeubles en République Démocratique du Congo : contrats, loyers, réparations, communication et annonces.",
+    title: "Haraka Property — Logiciel de gestion locative en RDC",
+    description:
+      "Centralisez biens, contrats, loyers et maintenance. Pensé pour les opérateurs immobiliers en RDC.",
     type: "website",
     locale: "fr_FR"
   }
 };
+
+const APP_STORE_URL =
+  process.env.NEXT_PUBLIC_TENANT_APP_STORE_URL?.trim() || "https://apps.apple.com/app/hhousing";
+const PLAY_STORE_URL =
+  process.env.NEXT_PUBLIC_TENANT_PLAY_STORE_URL?.trim()
+  || "https://play.google.com/store/apps/details?id=com.hhousing.tenant";
 
 export default async function HomePage(): Promise<React.ReactElement> {
   let previewItems: Awaited<ReturnType<ReturnType<typeof createListingRepo>["listPublicListings"]>>["items"] = [];
@@ -44,208 +55,353 @@ export default async function HomePage(): Promise<React.ReactElement> {
   }
 
   return (
-    <main className="min-h-screen bg-white text-slate-950 dark:bg-[#0a1120] dark:text-slate-100">
+    <main className="min-h-screen bg-white text-slate-950">
       <PublicSiteNavbar />
+      <PublicLandingHero />
 
-      <PublicHeroCarousel />
+      <section className="border-b border-slate-200 bg-white px-6 py-10 lg:px-10">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-lg font-semibold tracking-tight text-[#010A19] sm:text-xl md:text-2xl">
+            Moins de temps à gérer des outils. Plus de temps à gérer votre portefeuille.
+          </p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
+            Une plateforme pour les opérations locatives — pas une marketplace déguisée.
+          </p>
+        </div>
+      </section>
 
-      <section className="relative z-10 -mt-6 border-b border-slate-200/80 bg-white px-4 pb-8 pt-2 dark:border-slate-800 dark:bg-[#0a1120] sm:-mt-8 sm:px-6 lg:px-10">
+      <section id="features" className="px-6 py-16 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-7xl">
-          <PublicMarketplaceSearchForm action="/marketplace" submitLabel="Rechercher" variant="hero" />
-        </div>
-      </section>
-
-      {/* Marketplace Section (Listings catalog preview placed right after Hero for higher visibility on mobile) */}
-      <section id="marketplace" className="pt-8 pb-14 md:pt-12 md:pb-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Nouveaux logements</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Parcourez les annonces publiées par nos gestionnaires partenaires
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0063FE]">
+              Plateforme
             </p>
-            {!loadError && totalCount > 0 ? (
-              <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-                <p className="text-sm text-slate-500">
-                  <span className="font-semibold text-slate-800">
-                    {totalCount} logement{totalCount > 1 ? "s" : ""} disponible{totalCount > 1 ? "s" : ""}
-                  </span>
-                  {" · "}Explorez toutes les annonces dans le catalogue.
-                </p>
-                <Link
-                  href="/marketplace"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-[#0063fe] transition hover:text-[#0052d4]"
-                >
-                  Voir tout
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Link>
-              </div>
-            ) : null}
-          </div>
-
-          {loadError ? (
-            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 px-4 py-8 text-center max-w-xl mx-auto">
-              <p className="text-sm font-medium text-red-800">Impossible de charger les annonces pour le moment.</p>
-              <p className="mt-1 text-xs text-red-600">Réessayez plus tard — ce n&apos;est pas un catalogue vide.</p>
-            </div>
-          ) : previewItems.length === 0 ? (
-            <div className="mt-8 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 sm:py-10 text-center max-w-xl mx-auto">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-slate-400">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-              </div>
-              <p className="mt-3 text-sm font-medium text-slate-700">Aucun logement disponible pour le moment</p>
-              <p className="mt-1 text-xs text-slate-500">Nouvelles annonces bientôt disponibles</p>
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Link href="/signup" className="rounded-full bg-[#0063FE] px-5 py-2 text-xs font-semibold text-white shadow hover:bg-[#0052d4] transition">
-                  Publier une annonce
-                </Link>
-                <Link href="/signup" className="rounded-full border border-slate-300 bg-white px-5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
-                  M&apos;alerter des disponibilités
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {previewItems.map((item) => (
-                <PublicListingCard
-                  key={item.listing.id}
-                  item={item}
-                  compact
-                  showShareActions={false}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden border-b border-slate-100">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/40 via-transparent to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-20">
-          <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
-            <div>
-              <h1 className="mt-6 max-w-2xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900 lg:leading-tight">
-                Gérez vos biens immobiliers en toute simplicité
-              </h1>
-              <p className="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600">
-                Suivez vos contrats, loyers et réparations, restez en contact avec vos locataires, et publiez des annonces — le tout depuis une seule plateforme pensée pour la RDC.
-              </p>
-              <div className="mt-10 flex flex-wrap gap-4">
-                <Link href="/signup" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0063FE] px-6 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-xl hover:shadow-blue-500/30 w-full sm:w-auto">
-                  Démarrer gratuitement
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                </Link>
-                <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-6 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 w-full sm:w-auto">
-                  Explorer les annonces
-                </Link>
-              </div>
-              <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-slate-600">
-                <div className="flex items-center gap-2">
-                  <svg className="h-5 w-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                  Gratuit pour démarrer
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="h-5 w-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                  Aucune carte requise
-                </div>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 blur-3xl" />
-              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex gap-1.5">
-                      <div className="h-3 w-3 rounded-full bg-red-400" />
-                      <div className="h-3 w-3 rounded-full bg-yellow-400" />
-                      <div className="h-3 w-3 rounded-full bg-green-400" />
-                    </div>
-                    <div className="text-xs font-medium text-slate-500">Tableau de bord</div>
-                  </div>
-                </div>
-                <div className="space-y-3 p-6">
-                  <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
-                    <div>
-                      <div className="text-sm text-slate-600">Loyers du mois</div>
-                      <div className="mt-1 text-2xl font-bold text-slate-900">2,450,000 FC</div>
-                    </div>
-                    <div className="rounded-lg bg-emerald-100 p-3 text-emerald-600">
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
-                      <div className="text-[10px] sm:text-xs text-slate-500">Contrats actifs</div>
-                      <div className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold">24</div>
-                    </div>
-                    <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
-                      <div className="text-[10px] sm:text-xs text-slate-500">Paiements</div>
-                      <div className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold">18</div>
-                    </div>
-                    <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
-                      <div className="text-[10px] sm:text-xs text-slate-500">En retard</div>
-                      <div className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold text-amber-600">3</div>
-                    </div>
-                  </div>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500" />
-                      <div className="flex-1">
-                        <div className="h-3 w-24 rounded bg-slate-200" />
-                        <div className="mt-1.5 h-2 w-16 rounded bg-slate-100" />
-                      </div>
-                      <div className="h-6 w-6 rounded-full bg-emerald-100" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="bg-slate-50 py-12 md:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Tarification simple</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Gratuit sous 2 biens. Ensuite, 5$ par logement et par mois — payé en Mobile Money, sans
-              prélèvement automatique.
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+              Une plateforme de gestion. Toutes vos opérations.
+            </h2>
+            <p className="mt-4 text-base text-slate-600 sm:text-lg">
+              Loyers, maintenance, contrats, messagerie et documents — connectés pour que votre
+              équipe arrête de coordonner entre dix outils.
             </p>
-          </div>
-          <div className="mt-16 grid gap-6 md:grid-cols-2 md:justify-center md:max-w-4xl md:mx-auto">
-            {PRICING_TIERS.map((tier) => (
-              <article
-                key={tier.name}
-                className={`relative w-full overflow-hidden rounded-2xl border bg-white p-8 shadow-lg ${
-                  tier.name === "Professionnel"
-                    ? "border-2 border-blue-500 ring-4 ring-blue-100/50"
-                    : "border-slate-200"
-                }`}
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/demo"
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#0063FE] px-6 text-sm font-semibold text-white transition hover:bg-[#0052d4]"
               >
-                {tier.name === "Professionnel" ? (
-                  <div className="absolute right-6 top-6 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold text-white">
-                    Usage
+                Réserver une démo
+              </Link>
+              <Link
+                href="/signup"
+                className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              >
+                Démarrer gratuitement
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-16 space-y-16 lg:mt-20 lg:space-y-24">
+            {OPERATION_FEATURES.map((feature, index) => {
+              const reversed = index % 2 === 1;
+              return (
+                <article
+                  key={feature.id}
+                  className={`grid items-center gap-10 lg:grid-cols-2 lg:gap-16 ${
+                    reversed ? "lg:[&>*:first-child]:order-2" : ""
+                  }`}
+                >
+                  <div>
+                    <h3 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+                      {feature.title}
+                    </h3>
+                    <p className="mt-4 text-base leading-relaxed text-slate-600">
+                      {feature.description}
+                    </p>
+                    <ul className="mt-6 space-y-3">
+                      {feature.items.map((item) => (
+                        <li key={item} className="flex items-start gap-3 text-sm text-slate-700">
+                          <svg
+                            className="mt-0.5 h-5 w-5 shrink-0 text-[#0063FE]"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ) : null}
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{tier.name}</h3>
-                  <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">{tier.price}</span>
+                  <div
+                    className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br p-8 ${
+                      index % 4 === 0
+                        ? "from-[#eef4ff] to-slate-50"
+                        : index % 4 === 1
+                          ? "from-slate-50 to-[#eef4ff]"
+                          : index % 4 === 2
+                            ? "from-[#f0f7ff] to-white"
+                            : "from-white to-[#eef4ff]"
+                    }`}
+                  >
+                    <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#0063FE]/10 blur-2xl" />
+                    <div className="relative space-y-3">
+                      <div className="h-3 w-24 rounded-full bg-[#0063FE]/30" />
+                      <div className="rounded-xl border border-white/80 bg-white/90 p-4 shadow-sm">
+                        <div className="h-2.5 w-2/3 rounded bg-slate-200" />
+                        <div className="mt-3 h-2 w-1/2 rounded bg-slate-100" />
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <div className="h-16 rounded-lg bg-slate-50" />
+                          <div className="h-16 rounded-lg bg-slate-50" />
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-white/80 bg-white/90 p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="h-2.5 w-1/3 rounded bg-slate-200" />
+                          <div className="h-6 w-6 rounded-full bg-emerald-100" />
+                        </div>
+                        <div className="mt-3 h-2 w-full rounded bg-slate-100" />
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-4 text-sm text-slate-600 leading-relaxed">{tier.description}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#010A19] px-6 py-16 text-white lg:px-10 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
+              Pourquoi Haraka Property
+            </p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+              Conçu pour les opérateurs immobiliers en RDC
+            </h2>
+          </div>
+          <div className="mt-12 grid gap-8 md:grid-cols-3">
+            {WHY_HARAKA.map((item) => (
+              <div key={item.title}>
+                <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-blue-100/75">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="use-cases" className="px-6 py-16 lg:px-10 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0063FE]">
+              Solutions
+            </p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+              Adapté à votre façon d&apos;opérer
+            </h2>
+            <p className="mt-4 text-base text-slate-600 sm:text-lg">
+              Bailleur, agence ou portefeuille mixte — Haraka Property s&apos;aligne sur votre rôle.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {USE_CASES.map((useCase) => (
+              <article key={useCase.title} className="border-t-2 border-[#0063FE] pt-5">
+                <h3 className="text-lg font-bold text-[#010A19]">{useCase.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{useCase.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-200 bg-slate-50 px-6 py-14 lg:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#010A19] sm:text-3xl">
+              Pour chaque type de portefeuille
+            </h2>
+            <p className="mt-3 text-slate-600">
+              Un système pour chaque bien, chaque locataire et chaque transaction.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {PORTFOLIO_TYPES.map((type) => (
+              <div
+                key={type.title}
+                className="rounded-xl border border-slate-200 bg-white px-5 py-6 transition hover:border-[#0063FE]/40"
+              >
+                <p className="font-semibold text-[#010A19]">{type.title}</p>
+                <p className="mt-1 text-sm text-slate-500">{type.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-16 lg:px-10 lg:py-20">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0063FE]">
+              Application locataire
+            </p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#010A19]">
+              Une meilleure expérience pour vos locataires
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-slate-600">
+              Ils consultent leur bail, suivent les paiements, signalent un problème et vous
+              écrivent — depuis l&apos;app mobile. Vous restez sur le tableau de bord web.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#010A19] px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                App Store
+              </a>
+              <a
+                href={PLAY_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              >
+                Google Play
+              </a>
+              <Link
+                href="/mobile-app"
+                className="inline-flex h-11 items-center justify-center px-2 text-sm font-semibold text-[#0063FE] hover:underline"
+              >
+                En savoir plus
+              </Link>
+            </div>
+          </div>
+          <div className="relative mx-auto w-full max-w-sm">
+            <div className="absolute -inset-4 rounded-[2rem] bg-[#0063FE]/15 blur-2xl" aria-hidden="true" />
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#010A19] p-3 shadow-xl">
+              <div className="rounded-[1.35rem] bg-white p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Haraka · Locataire
+                </p>
+                <p className="mt-4 text-2xl font-bold text-[#010A19]">Loyer du mois</p>
+                <p className="mt-1 text-sm text-slate-500">Appartement · Gombe</p>
+                <div className="mt-6 rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500">À régler</p>
+                  <p className="mt-1 text-xl font-bold text-[#010A19]">850 000 FC</p>
                 </div>
-                <ul className="mt-8 space-y-3">
-                  {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-sm text-slate-600">
-                      <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                <div className="mt-4 space-y-2">
+                  <div className="h-10 rounded-lg bg-[#0063FE]/10" />
+                  <div className="h-10 rounded-lg bg-slate-100" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <PublicMarketplaceCarousel
+        items={previewItems}
+        totalCount={totalCount}
+        loadError={loadError}
+      />
+
+      <section className="px-6 py-16 lg:px-10 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+              Tout ce dont vous avez besoin
+            </h2>
+            <p className="mt-4 text-base text-slate-600 sm:text-lg">
+              Des outils simples pour gérer efficacement vos locations
+            </p>
+          </div>
+          <div className="mt-12 grid gap-8 lg:grid-cols-3">
+            {FEATURE_GROUPS.map((group) => (
+              <article key={group.title} className="border-t border-slate-200 pt-6">
+                <h3 className="text-xl font-bold text-[#010A19]">{group.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{group.description}</p>
+                <ul className="mt-5 space-y-2.5">
+                  {group.items.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2.5 text-sm text-slate-700">
+                      <svg
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[#0063FE]"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
                       {feature}
                     </li>
                   ))}
                 </ul>
-                <Link href="/signup" className="mt-8 block rounded-lg bg-blue-500 text-white hover:bg-blue-600 px-6 py-3 text-center text-sm font-semibold transition shadow-md shadow-blue-500/10">
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="border-y border-slate-200 bg-slate-50 px-6 py-16 lg:px-10 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+              Tarification simple
+            </h2>
+            <p className="mt-4 text-base text-slate-600 sm:text-lg">
+              Gratuit sous 2 biens. Ensuite, 5$ par logement et par mois — payé en Mobile Money,
+              sans prélèvement automatique.
+            </p>
+          </div>
+          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+            {PRICING_TIERS.map((tier) => (
+              <article
+                key={tier.name}
+                className={`relative bg-white p-8 ${
+                  tier.name === "Professionnel"
+                    ? "border-2 border-[#0063FE]"
+                    : "border border-slate-200"
+                }`}
+              >
+                {tier.name === "Professionnel" ? (
+                  <p className="absolute right-6 top-6 text-xs font-bold uppercase tracking-wide text-[#0063FE]">
+                    Usage
+                  </p>
+                ) : null}
+                <h3 className="text-lg font-bold text-[#010A19]">{tier.name}</h3>
+                <p className="mt-4 text-4xl font-bold tracking-tight text-[#010A19]">{tier.price}</p>
+                <p className="mt-4 text-sm leading-relaxed text-slate-600">{tier.description}</p>
+                <ul className="mt-8 space-y-3">
+                  {tier.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-3 text-sm text-slate-600">
+                      <svg
+                        className="mt-0.5 h-5 w-5 shrink-0 text-[#0063FE]"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/signup"
+                  className="mt-8 block bg-[#0063FE] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#0052d4]"
+                >
                   Commencer maintenant
                 </Link>
               </article>
@@ -254,83 +410,64 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </div>
       </section>
 
-      <section id="use-cases" className="bg-slate-50 py-12 md:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700">
-              Solutions
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Une plateforme adaptée à votre rôle</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Propriétaire, gestionnaire ou locataire — Haraka Property répond à votre besoin, sans complexité inutile.
-            </p>
-          </div>
-          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {USE_CASES.map((useCase, i) => (
-              <article key={useCase.title} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-blue-200 hover:shadow-xl">
-                <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 opacity-0 blur-2xl transition group-hover:opacity-100" />
-                <div className="relative">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white font-bold text-lg">{i + 1}</div>
-                  <h3 className="mt-4 text-xl font-bold text-slate-900">{useCase.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{useCase.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PublicWhatsAppContact />
 
-      <section id="features" className="py-12 md:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+      <section id="faq" className="px-6 py-16 lg:px-10 lg:py-20">
+        <div className="mx-auto max-w-3xl">
           <div className="text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Tout ce dont vous avez besoin</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Des outils simples pour gérer efficacement vos locations
-            </p>
-          </div>
-          <div className="mt-16 grid gap-8 lg:grid-cols-3">
-            {FEATURE_GROUPS.map((group, i) => (
-              <article key={group.title} className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                <div className={`inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${i === 0 ? 'from-blue-500 to-cyan-500' : i === 1 ? 'from-violet-500 to-purple-500' : 'from-amber-500 to-orange-500'} text-white`}>
-                  <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                </div>
-                <h3 className="mt-6 text-2xl font-bold text-slate-900">{group.title}</h3>
-                <p className="mt-3 text-slate-600">{group.description}</p>
-                <ul className="mt-6 space-y-3">
-                  {group.items.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-sm text-slate-600">
-                      <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="faq" className="bg-slate-50 py-12 md:py-20">
-        <div className="mx-auto max-w-4xl px-6 lg:px-10">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-200 px-4 py-2 text-xs font-semibold text-slate-700">
-              Besoin d'aide ?
-            </div>
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">Questions fréquentes</h2>
-            <p className="mx-auto mt-4 text-lg text-slate-600">
+            <h2 className="text-3xl font-bold tracking-tight text-[#010A19] sm:text-4xl">
+              Questions fréquentes
+            </h2>
+            <p className="mt-4 text-base text-slate-600">
               Tout ce que vous devez savoir sur Haraka Property
             </p>
           </div>
-          <div className="mt-12 space-y-4">
+          <div className="mt-10 space-y-3">
             {FAQS.map((item) => (
-              <details key={item.question} className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-200">
-                <summary className="flex cursor-pointer items-center justify-between text-lg font-semibold text-slate-900">
+              <details
+                key={item.question}
+                className="group border border-slate-200 bg-white px-5 py-4 open:border-[#0063FE]/30"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-[#010A19]">
                   {item.question}
-                  <svg className="h-5 w-5 flex-shrink-0 text-slate-400 transition group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  <svg
+                    className="h-5 w-5 shrink-0 text-slate-400 transition group-open:rotate-180"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </summary>
-                <p className="mt-4 text-slate-600 leading-relaxed">{item.answer}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.answer}</p>
               </details>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#010A19] px-6 py-16 text-white lg:px-10 lg:py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Sérieux sur la gestion locative ?
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base text-blue-100/80">
+            Gagnez du temps et gérez plus de logements. Voyez si Haraka Property vous convient.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/demo"
+              className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-7 text-sm font-semibold text-[#0063FE] transition hover:bg-slate-100 sm:w-auto"
+            >
+              Réserver une démo
+            </Link>
+            <Link
+              href="/signup"
+              className="inline-flex h-12 w-full items-center justify-center rounded-lg border border-white/30 px-7 text-sm font-semibold text-white transition hover:bg-white/10 sm:w-auto"
+            >
+              Démarrer gratuitement
+            </Link>
           </div>
         </div>
       </section>

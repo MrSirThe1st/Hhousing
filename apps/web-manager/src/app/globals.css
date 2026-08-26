@@ -377,8 +377,50 @@
     animation: hero-carousel-fade 400ms ease-out;
   }
 
+  @keyframes landing-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes landing-hero-glow {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.04);
+    }
+  }
+
+  .landing-fade-up {
+    animation: landing-fade-up 700ms ease-out both;
+  }
+
+  .landing-fade-up-delay {
+    animation: landing-fade-up 850ms ease-out 120ms both;
+  }
+
+  .landing-hero-glow {
+    background:
+      radial-gradient(ellipse at 18% 20%, rgba(0, 99, 254, 0.45), transparent 55%),
+      radial-gradient(ellipse at 88% 70%, rgba(0, 99, 254, 0.22), transparent 50%);
+    animation: landing-hero-glow 10s ease-in-out infinite;
+    transform-origin: center;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .hero-carousel-fade {
+    .hero-carousel-fade,
+    .landing-fade-up,
+    .landing-fade-up-delay,
+    .landing-hero-glow {
       animation: none;
     }
   }
