@@ -63,7 +63,13 @@ const MOBILE_LINKS = [
   { href: "/#faq", label: "FAQ" }
 ] as const;
 
-export default function PublicSiteNavbar(): React.ReactElement {
+type PublicSiteNavbarProps = {
+  hideBottomBorder?: boolean;
+};
+
+export default function PublicSiteNavbar({
+  hideBottomBorder = false
+}: PublicSiteNavbarProps): React.ReactElement {
   const { user, loading } = useAuth();
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -121,7 +127,9 @@ export default function PublicSiteNavbar(): React.ReactElement {
   return (
     <header
       ref={headerRef}
-      className="relative sticky top-0 z-40 border-b border-[#C5D9EC]/50 bg-[#EAF2FA]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/95"
+      className={`relative sticky top-0 z-40 bg-[#EAF2FA]/90 backdrop-blur-xl dark:bg-[#0a1120]/95 ${
+        hideBottomBorder ? "" : "border-b border-[#C5D9EC]/50 dark:border-slate-800"
+      }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:gap-6 lg:px-10">
         <Link

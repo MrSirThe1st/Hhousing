@@ -3,22 +3,26 @@ import BookDemoButton from "./book-demo-button";
 
 export default function PublicLandingHero(): React.ReactElement {
   return (
-    <section className="relative overflow-hidden bg-[#EAF2FA] text-[#1F3B63]">
+    <section className="relative overflow-hidden bg-white text-[#1F3B63]">
       <div
-        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.22]"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.18]"
         style={{ backgroundImage: "url(/brand/search_hero_bg.png)" }}
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#EAF2FA] via-[#EAF2FA]/95 to-white"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_-10%,#EAF2FA_0%,#EAF2FA_42%,rgba(234,242,250,0.55)_68%,rgba(255,255,255,0)_100%)]"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#8BB4E0]/35 blur-3xl"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent via-white/70 to-white"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-[#A9C8E8]/40 blur-3xl"
+        className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#8BB4E0]/30 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -right-20 top-1/3 h-72 w-72 rounded-full bg-[#A9C8E8]/28 blur-3xl"
         aria-hidden="true"
       />
 
@@ -30,11 +34,8 @@ export default function PublicLandingHero(): React.ReactElement {
           </h1>
 
           <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-9 sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
-            <BookDemoButton className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#4A86D4] px-7 text-sm font-semibold text-white shadow-md shadow-[#4A86D4]/25 transition hover:bg-[#3B73BC] sm:w-auto sm:text-base">
+            <BookDemoButton className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#4A86D4] px-7 text-sm font-semibold text-white shadow-md shadow-[#4A86D4]/25 transition hover:bg-[#3B73BC] sm:w-auto sm:text-base">
               Réserver une démo
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
             </BookDemoButton>
             <Link
               href="/signup"

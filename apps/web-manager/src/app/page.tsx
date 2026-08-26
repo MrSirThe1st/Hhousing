@@ -57,31 +57,12 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
-      <PublicSiteNavbar />
+      <PublicSiteNavbar hideBottomBorder />
       <PublicLandingHero />
 
       <section id="features" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-7xl">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#1F3B63] sm:text-4xl">
-              Une plateforme de gestion. Toutes vos opérations.
-            </h2>
-            <p className="mt-4 text-base text-slate-600 sm:text-lg">
-              Loyers, maintenance, contrats, messagerie et documents — connectés pour que votre
-              équipe arrête de coordonner entre dix outils.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <BookDemoButton className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-6 text-sm font-semibold text-white transition hover:bg-[#3B73BC]" />
-              <Link
-                href="/signup"
-                className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-              >
-                Démarrer gratuitement
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-16 space-y-16 lg:mt-20 lg:space-y-24">
+          <div className="space-y-16 lg:space-y-24">
             {OPERATION_FEATURES.map((feature, index) => {
               const reversed = index % 2 === 1;
               return (

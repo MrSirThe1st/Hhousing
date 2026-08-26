@@ -165,10 +165,7 @@ export default function BookDemoModal(): React.ReactElement | null {
       >
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4A86D4]">
-              Démonstration
-            </p>
-            <h2 id="book-demo-title" className="mt-1 text-lg font-bold text-[#1F3B63] sm:text-xl">
+            <h2 id="book-demo-title" className="text-lg font-bold text-[#1F3B63] sm:text-xl">
               {phase === "success" ? "Demande reçue" : "Réserver une démo"}
             </h2>
           </div>
