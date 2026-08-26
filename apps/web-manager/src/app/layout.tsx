@@ -12,12 +12,20 @@ export const metadata: Metadata = {
 
 const THEME_INIT_SCRIPT = `(function () {
   try {
+    var path = window.location.pathname || "/";
+    // Public landing page is always light — never flash dark from stored preference.
+    if (path === "/") {
+      document.documentElement.classList.remove("dark");
+      return;
+    }
     var stored = localStorage.getItem("hhousing.theme");
     var theme = stored === "dark" || stored === "light"
       ? stored
       : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
   } catch (e) {}
 })();`;

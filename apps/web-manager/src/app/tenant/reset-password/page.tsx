@@ -117,11 +117,11 @@ export default function TenantResetPasswordPage(): React.ReactElement {
       <div className="w-full max-w-md">
         <div className="mb-5 flex flex-col items-center gap-2 text-center">
           <Image
-            src="/brand/haraka-pay-logo.svg"
-            alt="Haraka Property"
+            src="/brand/mon-espace-logo.png"
+            alt="Mon Espace"
             width={72}
-            height={72}
-            className="h-[72px] w-[72px]"
+            height={107}
+            className="h-[72px] w-auto object-contain"
             priority
           />
           <h1 className="text-[28px] font-bold leading-none text-[#0063FE]">Mon Espace</h1>

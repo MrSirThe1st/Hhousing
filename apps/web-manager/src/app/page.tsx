@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createListingRepo } from "./api/shared";
 import BookDemoButton from "../components/book-demo-button";
+import ForceLightTheme from "../components/force-light-theme";
 import PublicLandingHero from "../components/public-landing-hero";
 import PublicMarketplaceCarousel from "../components/public-marketplace-carousel";
 import PublicSiteFooter from "../components/public-site-footer";
@@ -58,6 +59,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
+      <ForceLightTheme />
       <PublicSiteNavbar hideBottomBorder />
       <PublicLandingHero />
 
@@ -104,7 +106,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
                     <div className="relative">
                       <Image
                         src="/brand/payments.jpeg"
-                        alt="Paiement de loyer réussi dans l’application locataire Haraka"
+                        alt="Paiement de loyer réussi dans l’application locataire Mon Espace"
                         width={900}
                         height={1200}
                         className="mx-auto h-auto w-full max-w-xl object-contain"
@@ -267,7 +269,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#3A6BA8] p-3 shadow-xl">
               <div className="rounded-[1.35rem] bg-white p-5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Haraka · Locataire
+                  Mon Espace
                 </p>
                 <p className="mt-4 text-2xl font-bold text-[#1F3B63]">Loyer du mois</p>
                 <p className="mt-1 text-sm text-slate-500">Appartement · Gombe</p>

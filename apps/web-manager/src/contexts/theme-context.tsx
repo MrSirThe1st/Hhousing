@@ -31,7 +31,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
   const toggleTheme = useCallback(() => {
     setTheme((current) => {
       const next: Theme = current === "dark" ? "light" : "dark";
-      document.documentElement.classList.toggle("dark", next === "dark");
+      // Landing page stays light even if theme is toggled elsewhere in the same tab.
+      const onLanding = window.location.pathname === "/";
+      document.documentElement.classList.toggle("dark", next === "dark" && !onLanding);
       window.localStorage.setItem(THEME_STORAGE_KEY, next);
       return next;
     });
