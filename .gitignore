@@ -9,3 +9,6 @@ coverage/
 Learning/architecture-book/
 *.tsbuildinfo
 .posthog/
+
+.env.local
+**/.env.local

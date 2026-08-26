@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "../contexts/auth-context";
+import { BookDemoProvider } from "../contexts/book-demo-context";
 import { ThemeProvider } from "../contexts/theme-context";
 import TawkToWidget from "../components/tawk-to-widget";
 
@@ -34,7 +35,9 @@ export default function RootLayout({
       </head>
       <body className="bg-gray-50 text-foreground antialiased dark:bg-[#0a1120] dark:text-slate-100" suppressHydrationWarning>
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <BookDemoProvider>{children}</BookDemoProvider>
+          </AuthProvider>
         </ThemeProvider>
         <TawkToWidget />
       </body>

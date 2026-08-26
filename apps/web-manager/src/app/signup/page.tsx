@@ -87,8 +87,8 @@ export default function SignupPage(): React.ReactElement {
   }
 
   return (
-    <main 
-      className="min-h-screen flex items-center justify-center bg-white px-4 py-4 relative"
+    <main
+      className="relative flex min-h-dvh items-center justify-center bg-white px-4 py-8 sm:py-10"
       style={{
         backgroundImage: "url('/brand/MOTIFS.png')",
         backgroundSize: "cover",
@@ -96,16 +96,13 @@ export default function SignupPage(): React.ReactElement {
         backgroundRepeat: "no-repeat"
       }}
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-slate-50/30" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden bg-slate-50/30" />
 
-      <div className="relative w-full max-w-md my-auto">
-        <div className="mb-4 text-center">
-          <PlatformLogoLink
-            centered
-            subtitle="Retour à l'accueil public de la plateforme"
-          />
+      <div className="relative my-auto w-full max-w-md">
+        <div className="mb-5 text-center sm:mb-6">
+          <PlatformLogoLink centered />
           <div className="mt-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/50 px-4 py-1 text-xs font-semibold text-emerald-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/50 px-3.5 py-1 text-xs font-semibold text-emerald-700">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
@@ -114,7 +111,7 @@ export default function SignupPage(): React.ReactElement {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-6">
           <div className="mb-4">
             <h1 className="text-xl font-bold text-slate-900">Inscription</h1>
             <p className="mt-1 text-xs text-slate-600">
@@ -137,7 +134,7 @@ export default function SignupPage(): React.ReactElement {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                 placeholder="Jean Dupont"
               />
             </div>
@@ -156,7 +153,7 @@ export default function SignupPage(): React.ReactElement {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                 placeholder="vous@example.com"
               />
             </div>
@@ -176,7 +173,7 @@ export default function SignupPage(): React.ReactElement {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white pl-3.5 pr-10 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                   placeholder="••••••••"
                 />
                 <button
@@ -215,7 +212,7 @@ export default function SignupPage(): React.ReactElement {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white pl-3.5 pr-10 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#0063fe] focus:ring-2 focus:ring-[#0063fe]/15"
                   placeholder="••••••••"
                 />
                 <button
@@ -250,7 +247,7 @@ export default function SignupPage(): React.ReactElement {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[#0063fe] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-[#0063fe] px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
             >
               {loading ? "Création du compte…" : "Créer mon compte"}
             </button>
@@ -269,7 +266,7 @@ export default function SignupPage(): React.ReactElement {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
               <path

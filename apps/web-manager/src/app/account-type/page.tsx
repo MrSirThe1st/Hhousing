@@ -83,7 +83,7 @@ export default function AccountTypePage(): React.ReactElement {
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center bg-white px-4 py-12 relative"
+      className="relative flex min-h-dvh items-center justify-center bg-white px-4 py-8 sm:py-12"
       style={{
         backgroundImage: "url('/brand/MOTIFS.png')",
         backgroundSize: "cover",
@@ -91,16 +91,16 @@ export default function AccountTypePage(): React.ReactElement {
         backgroundRepeat: "no-repeat"
       }}
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-slate-50/30" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden bg-slate-50/30" />
 
       <div className="relative w-full max-w-xl">
-        <div className="mb-10 text-center">
-          <PlatformLogoLink centered subtitle="Espace gestionnaire" />
+        <div className="mb-6 text-center sm:mb-10">
+          <PlatformLogoLink centered />
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">Configurez votre compte</h1>
+        <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-8">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Configurez votre compte</h1>
             <p className="mt-2 text-sm text-slate-600">Choisissez l&apos;expérience qui correspond à votre usage</p>
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-700">
               <p className="font-semibold text-slate-900">Tarification</p>
@@ -189,7 +189,7 @@ export default function AccountTypePage(): React.ReactElement {
             <button
               type="submit"
               disabled={loading || !formData.platformExperience}
-              className="w-full rounded-xl bg-[#0063fe] py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-[#0063fe] text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0052d4] hover:shadow-blue-500/35 focus:outline-none focus:ring-2 focus:ring-[#0063fe]/40 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Configuration de l'espace..." : "Configurer et démarrer"}
             </button>

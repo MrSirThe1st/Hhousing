@@ -2,6 +2,30 @@
 
 Use this file as the first project memory source before searching the codebase.
 
+## 2026-08-26
+- Type: Frontend + API
+- Description: Book Demo popup on the landing page — email gate, 2-step form (details + Kinshasa weekday slots 09:00–17:00 / 30 min / 14 days), Resend to marcilungambuyu@gmail.com, Google Calendar stubbed. Removed dedicated `/demo` page.
+- Impact: `book-demo-modal.tsx`, `book-demo-button.tsx`, `book-demo-context.tsx`, `lib/demo-booking.ts`, `api/demo-requests`, landing/nav/footer/WhatsApp CTAs, root layout provider; deleted `demo/page.tsx` and `public-demo-request-form.tsx`.
+- Tests: `demo-booking.test.ts` (slot rules)
+
+## 2026-08-26
+- Type: Frontend
+- Description: Mobile responsiveness for public landing + auth — hamburger menu (replacing chip strip), tighter mobile paddings/CTAs, footer 2-col on small screens, auth pages use min-h-dvh with compact logo and 44px touch targets.
+- Impact: `public-site-navbar.tsx`, `public-landing-hero.tsx`, `public-site-footer.tsx`, `public-whatsapp-contact.tsx`, `public-marketplace-carousel.tsx`, `platform-logo-link.tsx`, `page.tsx`, `demo/page.tsx`, `login`, `signup`, `forgot-password`, `reset-password`, `account-type`.
+- Tests: deferred (manual mobile viewport QA)
+
+## 2026-08-26
+- Type: Frontend
+- Description: Landing polish — removed navbar subtitle under Haraka Property; reframed rent feature copy around receiving rents via Mobile Money or bank transfer (no fake product screenshots; none exist in repo assets).
+- Impact: `public-site-navbar.tsx`, `public-site-data.ts`, rent visual block in `page.tsx`.
+- Tests: deferred (marketing copy/UI)
+
+## 2026-08-26
+- Type: Frontend
+- Description: Redesigned the public landing page in a DoorLoop-inspired layout for landlords/managers: brand-forward hero, operations feature sections, secondary one-row marketplace carousel (search bar removed from homepage), demo booking page + API, and compact WhatsApp contact. No unsupported product claims (AI, screening, QuickBooks, etc.).
+- Impact: `apps/web-manager/src/app/page.tsx`, `public-site-data.ts`, `globals.css`, new `public-landing-hero.tsx`, `public-marketplace-carousel.tsx`, `public-whatsapp-contact.tsx`, `public-demo-request-form.tsx`, `/demo`, `/api/demo-requests`; removed `public-hero-carousel.tsx`; navbar/footer CTAs updated; `NEXT_PUBLIC_CONTACT_WHATSAPP` in `.env.example`.
+- Tests: deferred (marketing UI; typecheck clean for new files; pre-existing test fixture TS errors unrelated)
+
 ## 2026-08-06
 - Type: Frontend
 - Description: Rebuilt the public navbar around Solutions / Fonctionnalités / Catalogue / Tarifs, with stronger Se connecter + Créer un compte CTAs; removed Cas d'usage from nav.

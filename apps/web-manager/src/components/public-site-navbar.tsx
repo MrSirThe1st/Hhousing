@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/auth-context";
+import BookDemoButton from "./book-demo-button";
 
 type MenuId = "solutions" | "features";
 
@@ -38,7 +39,7 @@ const FEATURE_LINKS = [
   },
   {
     title: "Paiements",
-    description: "Suivi des loyers, retards et quittances en temps réel.",
+    description: "Loyers reçus par Mobile Money ou virement, retards et suivi en un lieu.",
     href: "/#features"
   },
   {
@@ -53,15 +54,26 @@ const FEATURE_LINKS = [
   }
 ] as const;
 
+const MOBILE_LINKS = [
+  { href: "/#use-cases", label: "Solutions" },
+  { href: "/#features", label: "Fonctionnalités" },
+  { href: "/#pricing", label: "Tarifs" },
+  { href: "/marketplace", label: "Catalogue" },
+  { href: "/#contact", label: "WhatsApp" },
+  { href: "/#faq", label: "FAQ" }
+] as const;
+
 export default function PublicSiteNavbar(): React.ReactElement {
   const { user, loading } = useAuth();
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent): void {
       if (event.key === "Escape") {
         setOpenMenu(null);
+        setMobileOpen(false);
       }
     }
 
@@ -84,6 +96,15 @@ export default function PublicSiteNavbar(): React.ReactElement {
     };
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
+
   function toggleMenu(menuId: MenuId): void {
     setOpenMenu((current) => (current === menuId ? null : menuId));
   }
@@ -92,25 +113,35 @@ export default function PublicSiteNavbar(): React.ReactElement {
     setOpenMenu(null);
   }
 
+  function closeMobile(): void {
+    setMobileOpen(false);
+    setOpenMenu(null);
+  }
+
   return (
     <header
       ref={headerRef}
-      className="relative sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/90"
+      className="relative sticky top-0 z-40 border-b border-[#C5D9EC]/50 bg-[#EAF2FA]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0a1120]/95"
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6 lg:px-10">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:gap-6 lg:px-10">
         <Link
           href="/"
-          onClick={closeMenu}
-          className="flex min-w-0 items-center gap-2 text-[#010A19] dark:text-slate-100 sm:gap-3"
+          onClick={closeMobile}
+          className="flex shrink-0 items-center gap-2 text-[#1F3B63] dark:text-slate-100 sm:gap-3"
         >
-          <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
-          <span className="min-w-0">
-            <span className="block truncate text-base font-semibold tracking-tight sm:text-lg">Haraka Property</span>
-            <span className="hidden text-[11px] uppercase tracking-[0.18em] text-slate-500 sm:block">Gestion de vos locations</span>
+          <Image
+            src="/brand/haraka-pay-logo.svg"
+            alt="Haraka Property"
+            width={44}
+            height={44}
+            className="h-9 w-9 shrink-0 sm:h-11 sm:w-11"
+          />
+          <span className="whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
+            Haraka Property
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 xl:gap-2 lg:flex">
+        <nav className="hidden items-center gap-0.5 xl:gap-1.5 lg:flex">
           <MenuButton
             label="Solutions"
             isOpen={openMenu === "solutions"}
@@ -121,46 +152,68 @@ export default function PublicSiteNavbar(): React.ReactElement {
             isOpen={openMenu === "features"}
             onClick={() => toggleMenu("features")}
           />
-          <NavLink href="/marketplace" onClick={closeMenu}>Catalogue</NavLink>
           <NavLink href="/#pricing" onClick={closeMenu}>Tarifs</NavLink>
+          <NavLink href="/marketplace" onClick={closeMenu}>Catalogue</NavLink>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {loading ? (
-            <div className="h-9 w-28 animate-pulse rounded-full bg-slate-100 dark:bg-slate-800 sm:h-10 sm:w-40" />
+            <div className="hidden h-9 w-24 animate-pulse rounded-lg bg-[#D7E7F7] dark:bg-slate-800 sm:block sm:h-10 sm:w-40" />
           ) : user !== null ? (
             <Link
               href="/dashboard"
-              onClick={closeMenu}
-              className="whitespace-nowrap rounded-full bg-[#0063FE] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0052d4] sm:px-6 sm:py-2.5 sm:text-sm"
+              onClick={closeMobile}
+              className="hidden whitespace-nowrap rounded-lg bg-[#4A86D4] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3B73BC] sm:inline-flex"
             >
-              <span className="sm:hidden">Tableau de bord</span>
-              <span className="hidden sm:inline">Mon tableau de bord</span>
+              Mon tableau de bord
             </Link>
           ) : (
             <>
               <Link
                 href="/login"
-                onClick={closeMenu}
-                className="hidden rounded-full px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
+                onClick={closeMobile}
+                className="hidden rounded-lg px-4 py-2 text-xs font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
               >
                 Se connecter
               </Link>
+              <BookDemoButton
+                onClick={closeMobile}
+                className="hidden rounded-lg border border-[#9CB8D6] bg-white/60 px-4 py-2 text-xs font-semibold text-[#1F3B63] transition hover:border-[#4A86D4] hover:bg-white dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 lg:inline-block lg:px-5 lg:py-2.5 lg:text-sm"
+              />
               <Link
                 href="/signup"
-                onClick={closeMenu}
-                className="rounded-full bg-[#0063FE] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-[#0052d4] hover:shadow-md hover:shadow-blue-500/25 sm:px-6 sm:py-2.5 sm:text-sm"
+                onClick={closeMobile}
+                className="hidden rounded-lg bg-[#4A86D4] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#4A86D4]/20 transition hover:bg-[#3B73BC] sm:inline-block sm:px-6 sm:py-2.5 sm:text-sm"
               >
                 Créer un compte
               </Link>
             </>
           )}
+
+          <button
+            type="button"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#9CB8D6] bg-white/50 text-[#1F3B63] transition hover:bg-white dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800 lg:hidden"
+            aria-expanded={mobileOpen}
+            aria-controls="public-mobile-menu"
+            aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            onClick={() => setMobileOpen((current) => !current)}
+          >
+            {mobileOpen ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Overlay mega panel — does not push page content */}
+      {/* Desktop mega panel */}
       <div
-        className={`absolute left-0 right-0 top-full z-50 hidden border-b border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition duration-150 dark:border-slate-800 dark:bg-[#0a1120] lg:block ${
+        className={`absolute left-0 right-0 top-full z-50 hidden border-b border-[#C5D9EC] bg-[#EAF2FA] shadow-[0_18px_40px_rgba(31,59,99,0.12)] transition duration-150 dark:border-slate-800 dark:bg-[#0a1120] lg:block ${
           openMenu
             ? "visible translate-y-0 opacity-100"
             : "pointer-events-none invisible -translate-y-1 opacity-0"
@@ -173,15 +226,61 @@ export default function PublicSiteNavbar(): React.ReactElement {
         </div>
       </div>
 
-      <div className="border-t border-slate-200 px-3 py-2.5 dark:border-slate-800 sm:px-4 sm:py-3 lg:hidden">
-        <div className="mx-auto flex max-w-7xl gap-1.5 overflow-x-auto sm:gap-2">
-          <MobileChip href="/#use-cases">Solutions</MobileChip>
-          <MobileChip href="/#features">Fonctionnalités</MobileChip>
-          <MobileChip href="/marketplace">Catalogue</MobileChip>
-          <MobileChip href="/#pricing">Tarifs</MobileChip>
-          {user === null && !loading ? (
-            <MobileChip href="/login">Se connecter</MobileChip>
-          ) : null}
+      {/* Mobile drawer */}
+      <div
+        id="public-mobile-menu"
+        className={`border-t border-[#C5D9EC]/70 bg-[#EAF2FA] dark:border-slate-800 dark:bg-[#0a1120] lg:hidden ${
+          mobileOpen ? "block" : "hidden"
+        }`}
+      >
+        <div className="max-h-[min(78vh,40rem)] overflow-y-auto px-4 py-4 sm:px-6">
+          <nav className="space-y-1">
+            {MOBILE_LINKS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={closeMobile}
+                className="block rounded-lg px-3 py-3 text-base font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-100 dark:hover:bg-slate-800"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <BookDemoButton
+              onClick={closeMobile}
+              className="block w-full rounded-lg px-3 py-3 text-left text-base font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-100 dark:hover:bg-slate-800"
+            />
+          </nav>
+
+          <div className="mt-5 space-y-2 border-t border-[#C5D9EC] pt-5 dark:border-slate-700">
+            {loading ? (
+              <div className="h-11 animate-pulse rounded-lg bg-[#D7E7F7] dark:bg-slate-800" />
+            ) : user !== null ? (
+              <Link
+                href="/dashboard"
+                onClick={closeMobile}
+                className="flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-4 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
+              >
+                Mon tableau de bord
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  onClick={closeMobile}
+                  className="flex h-11 items-center justify-center rounded-lg bg-[#4A86D4] px-4 text-sm font-semibold text-white transition hover:bg-[#3B73BC]"
+                >
+                  Créer un compte
+                </Link>
+                <Link
+                  href="/login"
+                  onClick={closeMobile}
+                  className="flex h-11 items-center justify-center rounded-lg border border-[#9CB8D6] bg-white/70 px-4 text-sm font-semibold text-[#1F3B63] transition hover:bg-white dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
+                >
+                  Se connecter
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
@@ -202,10 +301,10 @@ function MenuButton({
       type="button"
       onClick={onClick}
       aria-expanded={isOpen}
-      className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+      className={`inline-flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
         isOpen
-          ? "bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-white"
-          : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          ? "bg-[#D7E7F7] text-[#1F3B63] dark:bg-slate-800 dark:text-white"
+          : "text-[#1F3B63] hover:bg-[#D7E7F7] dark:text-slate-200 dark:hover:bg-slate-800"
       }`}
     >
       {label}
@@ -235,18 +334,7 @@ function NavLink({
     <Link
       href={href}
       onClick={onClick}
-      className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-    >
-      {children}
-    </Link>
-  );
-}
-
-function MobileChip({ href, children }: { href: string; children: React.ReactNode }): React.ReactElement {
-  return (
-    <Link
-      href={href}
-      className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 sm:px-4 sm:py-2 sm:text-sm"
+      className="rounded-lg px-4 py-2 text-sm font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-200 dark:hover:bg-slate-800"
     >
       {children}
     </Link>
@@ -257,8 +345,8 @@ function SolutionsPanel({ onNavigate }: { onNavigate: () => void }): React.React
   return (
     <div>
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Solutions</p>
-        <p className="mt-2 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A93AE]">Solutions</p>
+        <p className="mt-2 text-lg font-semibold tracking-tight text-[#1F3B63] dark:text-white">
           Une plateforme adaptée à votre rôle
         </p>
       </div>
@@ -268,10 +356,10 @@ function SolutionsPanel({ onNavigate }: { onNavigate: () => void }): React.React
             key={item.title}
             href={item.href}
             onClick={onNavigate}
-            className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
+            className="rounded-2xl border border-[#C5D9EC] bg-white/70 px-4 py-3 transition hover:border-[#4A86D4]/40 hover:bg-white dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
           >
-            <p className="text-sm font-semibold text-slate-950 dark:text-white">{item.title}</p>
-            <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">{item.description}</p>
+            <p className="text-sm font-semibold text-[#1F3B63] dark:text-white">{item.title}</p>
+            <p className="mt-1 text-sm leading-5 text-[#4A6484] dark:text-slate-400">{item.description}</p>
           </Link>
         ))}
       </div>
@@ -284,15 +372,15 @@ function FeaturesPanel({ onNavigate }: { onNavigate: () => void }): React.ReactE
     <div>
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Fonctionnalités</p>
-          <p className="mt-2 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A93AE]">Fonctionnalités</p>
+          <p className="mt-2 text-lg font-semibold tracking-tight text-[#1F3B63] dark:text-white">
             Des bénéfices concrets au quotidien
           </p>
         </div>
         <Link
           href="/#features"
           onClick={onNavigate}
-          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="rounded-lg border border-[#9CB8D6] bg-white/70 px-4 py-2 text-sm font-semibold text-[#1F3B63] transition hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           Tout voir
         </Link>
@@ -303,10 +391,10 @@ function FeaturesPanel({ onNavigate }: { onNavigate: () => void }): React.ReactE
             key={item.title}
             href={item.href}
             onClick={onNavigate}
-            className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
+            className="rounded-2xl border border-[#C5D9EC] bg-white/70 px-4 py-3 transition hover:border-[#4A86D4]/40 hover:bg-white dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
           >
-            <p className="text-sm font-semibold text-slate-950 dark:text-white">{item.title}</p>
-            <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">{item.description}</p>
+            <p className="text-sm font-semibold text-[#1F3B63] dark:text-white">{item.title}</p>
+            <p className="mt-1 text-sm leading-5 text-[#4A6484] dark:text-slate-400">{item.description}</p>
           </Link>
         ))}
       </div>
