@@ -190,6 +190,8 @@
     "noResultsTitle": "Aucun résultat",
     "noResultsText": "Essayez une autre recherche ou un autre filtre.",
     "metaPaid": "{{date}} • Payé",
+    "metaPaidWithPeriod": "{{period}} · Payé le {{date}}",
+    "periodRent": "Loyer {{month}} {{year}}",
     "metaPending": "{{date}} • En attente",
     "metaCancelled": "{{date}} • Annulé",
     "status": {
@@ -204,20 +206,69 @@
       "fee": "Frais",
       "payment": "Paiement"
     },
-    "modalTitle": "Payer par mobile money",
+    "modalTitle": "Payer par Mobile Money",
     "modalAmount": "Montant total : {{amount}}",
-    "operator": "Opérateur",
-    "phoneLabel": "Numéro mobile money",
+    "operator": "Choisir un opérateur",
+    "phoneLabel": "Numéro Mobile Money",
     "phoneRequired": "Veuillez saisir votre numéro mobile money.",
+    "continueAction": "Continuer",
+    "confirmTitle": "Confirmer le paiement",
+    "confirmHint": "Vérifiez le montant, l’opérateur et le numéro avant de confirmer.",
+    "confirmAction": "Confirmer",
+    "payAction": "Payer",
+    "processingTitle": "Paiement en cours",
     "processing": "Traitement du paiement en cours...",
+    "processingHint": "Validez la demande sur votre téléphone Mobile Money. Vous pouvez annuler pour quitter cet écran.",
     "confirmed": "Paiement confirmé. Merci !",
-    "failed": "Le paiement a échoué."
+    "failed": "Le paiement a échoué.",
+    "success": {
+      "title": "Paiement réussi",
+      "subtitle": "Votre loyer a bien été enregistré. Vous pouvez télécharger ou partager votre facture.",
+      "method": "Méthode",
+      "phone": "Numéro",
+      "date": "Date",
+      "reference": "Référence",
+      "download": "Télécharger la facture",
+      "done": "Terminer",
+      "receiptTitle": "Facture de paiement — Haraka",
+      "receiptAmount": "Montant : {{amount}}",
+      "receiptMethod": "Méthode : {{provider}}",
+      "receiptPhone": "Numéro : {{phone}}",
+      "receiptDate": "Date : {{date}}",
+      "receiptRef": "Référence : {{ref}}",
+      "receiptFooter": "Conservez cette facture comme preuve de paiement."
+    },
+    "failure": {
+      "title": "Paiement échoué",
+      "subtitle": "Le paiement n’a pas abouti. Vous pouvez réessayer ou fermer cet écran.",
+      "errorLabel": "Détail",
+      "retry": "Réessayer",
+      "close": "Fermer"
+    },
+    "detail": {
+      "title": "Détail du paiement",
+      "back": "Retour",
+      "dueDate": "Échéance",
+      "paidDate": "Payé le",
+      "invoiceNumber": "N° facture",
+      "download": "Télécharger la facture",
+      "share": "Partager",
+      "receiptTitleLine": "Objet : {{title}}",
+      "receiptInvoice": "Facture : {{number}}"
+    }
   },
   "shared": {
     "acceptedMethods": "MÉTHODES ACCEPTÉES",
     "acceptedMethodsA11y": "Méthodes acceptées",
     "methodsComingSoon": "MÉTHODES À VENIR",
-    "methodsComingSoonA11y": "Méthodes de paiement à venir"
+    "methodsComingSoonA11y": "Méthodes de paiement à venir",
+    "methodInfoA11y": "Informations sur {{provider}}",
+    "methodInfoSubtitle": "Informations utiles",
+    "methodInfoRatesLabel": "Frais et taux",
+    "methodInfoRatesBody": "Les frais et taux pour {{provider}} seront affichés ici bientôt.",
+    "methodInfoAvailabilityLabel": "Disponibilité",
+    "methodInfoAvailabilityBody": "Horaires, couverture réseau et autres détails utiles arriveront ici.",
+    "methodInfoClose": "Fermer"
   },
   "account": {
     "profile": "Profil",

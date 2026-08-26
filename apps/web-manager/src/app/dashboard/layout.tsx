@@ -8,7 +8,7 @@ import { getDashboardRequestContext } from "../../lib/dashboard-request-context"
 import { getServerAuthSession } from "../../lib/session";
 import { getServerOperatorContext } from "../../lib/operator-context";
 import { isIndividualExperience } from "../../lib/platform-experience";
-import ThemeToggle from "../../components/theme-toggle";
+import DashboardAccountMenu from "../../components/dashboard-account-menu";
 import DashboardOverdueBillingBanner from "./dashboard-overdue-billing-banner";
 
 export const metadata: Metadata = {
@@ -92,7 +92,13 @@ export default async function DashboardLayout({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <div className="hidden md:block">
-                <ThemeToggle />
+                <DashboardAccountMenu
+                  organizationProfileHref={
+                    sidebarAccess.manageOrganization || isIndividual
+                      ? "/dashboard/profile?tab=organisation"
+                      : "/dashboard/profile"
+                  }
+                />
               </div>
             </div>
           </div>

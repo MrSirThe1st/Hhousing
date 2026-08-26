@@ -409,6 +409,7 @@ export default function DashboardTasksPanel({
         </div>
       ) : (
         <ResponsiveTable<Task>
+          framed
           keyExtractor={(task) => task.id}
           data={filteredTasks}
           paginate

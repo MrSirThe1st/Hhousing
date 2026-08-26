@@ -161,6 +161,7 @@ export default function TenantManagementPanel({
         </div>
       ) : (
         <ResponsiveTable<TenantListItem>
+          framed
           mode={displayMode}
           keyExtractor={(item) => item.tenant.id}
           data={filteredTenants}

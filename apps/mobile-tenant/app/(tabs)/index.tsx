@@ -30,7 +30,6 @@ import {
 } from "@/i18n/format";
 import { fontWeight, fontSize, useTheme } from "@/theme";
 import type { ThemeColors } from "@/theme";
-import { env } from "@/lib/env";
 
 type LeaseOutput = {
   lease: Lease | null;
@@ -287,42 +286,6 @@ export default function HomeScreen(): React.ReactElement {
                   : t("home.dueOn", { date: formatDueDate(data.nextPayment.dueDate) })}
               </Text>
             </View>
-
-            {/* Live in-app pay — gated until PawaPay production is ready.
-                Re-enable with EXPO_PUBLIC_MOBILE_PAYMENTS_ENABLED=true */}
-            {env.mobilePaymentsEnabled ? (
-              <>
-                <Pressable
-                  style={styles.payBtn}
-                  onPress={() => { router.push("/(tabs)/payments?pay=1"); }}
-                >
-                  <Text style={styles.payBtnText}>{t("home.payNow")}</Text>
-                </Pressable>
-
-                <View style={styles.trustRow}>
-                  <Ionicons name="shield-checkmark-outline" size={13} color={colors.textFaint} />
-                  <Text style={styles.trustText}>{t("home.securePayment")}</Text>
-                </View>
-              </>
-            ) : (
-              <View style={styles.payComingSoonBox}>
-                <Ionicons name="time-outline" size={16} color={colors.textMuted} />
-                <Text style={styles.payComingSoonText}>{t("home.payComingSoon")}</Text>
-              </View>
-            )}
-            {/*
-            <Pressable
-              style={styles.payBtn}
-              onPress={() => { router.push("/(tabs)/payments?pay=1"); }}
-            >
-              <Text style={styles.payBtnText}>{t("home.payNow")}</Text>
-            </Pressable>
-
-            <View style={styles.trustRow}>
-              <Ionicons name="shield-checkmark-outline" size={13} color={colors.textFaint} />
-              <Text style={styles.trustText}>{t("home.securePayment")}</Text>
-            </View>
-            */}
           </>
         ) : data.lease ? (
           <View style={styles.rentCard}>
@@ -378,7 +341,25 @@ export default function HomeScreen(): React.ReactElement {
             data.recentPayments.map((payment) => {
               const paid = payment.status === "paid";
               return (
-                <View key={payment.id} style={styles.historyCard}>
+                <Pressable
+                  key={payment.id}
+                  style={styles.historyCard}
+                  onPress={() => {
+                    const unpaid =
+                      payment.status === "pending" || payment.status === "overdue";
+                    if (unpaid) {
+                      router.push("/(tabs)/payments?pay=1");
+                      return;
+                    }
+                    if (payment.status === "paid") {
+                      router.push(
+                        `/(tabs)/payment-detail?id=${encodeURIComponent(payment.id)}`
+                      );
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={paymentTitle(payment, t)}
+                >
                   <View
                     style={[
                       styles.historyIcon,
@@ -409,7 +390,7 @@ export default function HomeScreen(): React.ReactElement {
                       {statusLabel(payment.status, t)}
                     </Text>
                   </View>
-                </View>
+                </Pressable>
               );
             })
           )}
@@ -529,51 +510,6 @@ function createStyles(colors: ThemeColors) {
     },
     dueText: {
       fontSize: fontSize.secondary,
-      color: colors.textMuted
-    },
-
-    payBtn: {
-      marginHorizontal: 20,
-      marginTop: 10,
-      backgroundColor: colors.brand,
-      borderRadius: 10,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center"
-    },
-    payBtnText: {
-      color: colors.onBrand,
-      fontSize: fontSize.body,
-      fontWeight: "700"
-    },
-    trustRow: {
-      marginTop: 8,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 5
-    },
-    trustText: {
-      fontSize: fontSize.caption,
-      color: colors.textFaint
-    },
-    payComingSoonBox: {
-      marginHorizontal: 20,
-      marginTop: 10,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surfaceMuted,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 10
-    },
-    payComingSoonText: {
-      flex: 1,
-      fontSize: fontSize.secondary,
-      lineHeight: 20,
       color: colors.textMuted
     },
 

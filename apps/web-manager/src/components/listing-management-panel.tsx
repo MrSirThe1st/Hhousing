@@ -594,6 +594,7 @@ export default function ListingManagementPanel({
           </div>
 
           <ResponsiveTable
+            framed
             columns={listingColumns}
             data={filteredListings}
             renderMobileCard={renderListingMobileCard}
@@ -609,6 +610,7 @@ export default function ListingManagementPanel({
 
       {activeTab === "applications" && (
         <ResponsiveTable
+          framed
           columns={applicationColumns}
           data={applications}
           renderMobileCard={renderApplicationMobileCard}

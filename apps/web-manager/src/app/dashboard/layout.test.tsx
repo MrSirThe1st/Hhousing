@@ -78,7 +78,7 @@ vi.mock("../../components/floating-action-button", () => ({
   default: () => null
 }));
 
-vi.mock("../../components/theme-toggle", () => ({
+vi.mock("../../components/dashboard-account-menu", () => ({
   default: () => null
 }));
 

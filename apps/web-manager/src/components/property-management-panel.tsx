@@ -295,6 +295,7 @@ export default function PropertyManagementPanel({
                 </div>
               ) : (
                 <ResponsiveTable<PropertyWithUnitsView>
+                  framed
                   keyExtractor={(item) => item.property.id}
                   data={filteredProperties}
                   onRowClick={(item) => handlePropertyRowNavigation(item.property.id)}
@@ -428,6 +429,7 @@ export default function PropertyManagementPanel({
                 </div>
               ) : (
                 <ResponsiveTable<{ property: any; unit: any }>
+                  framed
                   keyExtractor={(item) => item.unit.id}
                   data={filteredUnitRows}
                   onRowClick={(item) => handleUnitRowNavigation(item.unit.id)}

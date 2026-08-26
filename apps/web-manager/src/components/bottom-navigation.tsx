@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { SidebarAccess } from "./sidebar";
-import LogoutButton from "./logout-button";
-import ThemeToggle from "./theme-toggle";
+import DashboardAccountMenu from "./dashboard-account-menu";
 import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
 import { isV1DeferredNavHref } from "../lib/v1-deferred-features";
 
@@ -248,9 +247,15 @@ export default function BottomNavigation({
         {/* Quick actions & Logout at bottom of drawer */}
         <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-3 dark:border-slate-800">
           <span className="text-xs text-slate-400 shrink-0">Haraka · v1.0</span>
-          <div className="min-h-[44px] flex items-center gap-2">
-            <ThemeToggle />
-            <LogoutButton compact />
+          <div className="min-h-[44px] flex items-center">
+            <DashboardAccountMenu
+              compact
+              organizationProfileHref={
+                access.manageOrganization || isIndividualExperience
+                  ? "/dashboard/profile?tab=organisation"
+                  : "/dashboard/profile"
+              }
+            />
           </div>
         </div>
       </div>

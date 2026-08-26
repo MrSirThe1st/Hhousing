@@ -190,6 +190,8 @@
     "noResultsTitle": "No results",
     "noResultsText": "Try another search or filter.",
     "metaPaid": "{{date}} • Paid",
+    "metaPaidWithPeriod": "{{period}} · Paid on {{date}}",
+    "periodRent": "Rent {{month}} {{year}}",
     "metaPending": "{{date}} • Pending",
     "metaCancelled": "{{date}} • Cancelled",
     "status": {
@@ -204,20 +206,69 @@
       "fee": "Fee",
       "payment": "Payment"
     },
-    "modalTitle": "Pay with mobile money",
+    "modalTitle": "Pay with Mobile Money",
     "modalAmount": "Total amount: {{amount}}",
-    "operator": "Provider",
+    "operator": "Choose a provider",
     "phoneLabel": "Mobile money number",
     "phoneRequired": "Please enter your mobile money number.",
+    "continueAction": "Continue",
+    "confirmTitle": "Confirm payment",
+    "confirmHint": "Check the amount, provider and phone number before confirming.",
+    "confirmAction": "Confirm",
+    "payAction": "Pay",
+    "processingTitle": "Payment in progress",
     "processing": "Processing payment...",
+    "processingHint": "Approve the request on your Mobile Money phone. You can cancel to leave this screen.",
     "confirmed": "Payment confirmed. Thank you!",
-    "failed": "Payment failed."
+    "failed": "Payment failed.",
+    "success": {
+      "title": "Payment successful",
+      "subtitle": "Your rent payment was recorded. You can download or share your invoice.",
+      "method": "Method",
+      "phone": "Number",
+      "date": "Date",
+      "reference": "Reference",
+      "download": "Download invoice",
+      "done": "Done",
+      "receiptTitle": "Payment invoice — Haraka",
+      "receiptAmount": "Amount: {{amount}}",
+      "receiptMethod": "Method: {{provider}}",
+      "receiptPhone": "Number: {{phone}}",
+      "receiptDate": "Date: {{date}}",
+      "receiptRef": "Reference: {{ref}}",
+      "receiptFooter": "Keep this invoice as proof of payment."
+    },
+    "failure": {
+      "title": "Payment failed",
+      "subtitle": "The payment did not go through. You can try again or close this screen.",
+      "errorLabel": "Details",
+      "retry": "Try again",
+      "close": "Close"
+    },
+    "detail": {
+      "title": "Payment details",
+      "back": "Back",
+      "dueDate": "Due date",
+      "paidDate": "Paid on",
+      "invoiceNumber": "Invoice no.",
+      "download": "Download invoice",
+      "share": "Share",
+      "receiptTitleLine": "Subject: {{title}}",
+      "receiptInvoice": "Invoice: {{number}}"
+    }
   },
   "shared": {
     "acceptedMethods": "ACCEPTED METHODS",
     "acceptedMethodsA11y": "Accepted methods",
     "methodsComingSoon": "METHODS COMING SOON",
-    "methodsComingSoonA11y": "Payment methods coming soon"
+    "methodsComingSoonA11y": "Payment methods coming soon",
+    "methodInfoA11y": "Information about {{provider}}",
+    "methodInfoSubtitle": "Useful information",
+    "methodInfoRatesLabel": "Fees and rates",
+    "methodInfoRatesBody": "Fees and rates for {{provider}} will appear here soon.",
+    "methodInfoAvailabilityLabel": "Availability",
+    "methodInfoAvailabilityBody": "Hours, network coverage and other useful details will appear here.",
+    "methodInfoClose": "Close"
   },
   "account": {
     "profile": "Profile",

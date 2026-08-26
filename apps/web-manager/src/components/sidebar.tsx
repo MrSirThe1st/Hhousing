@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import type { Organization } from "@hhousing/domain";
 import { isNavHrefHiddenInIndividualExperience } from "../lib/individual-experience";
 import { isV1DeferredNavHref } from "../lib/v1-deferred-features";
-import LogoutButton from "./logout-button";
 import { SIDEBAR_SET_COLLAPSED_EVENT, SIDEBAR_STORAGE_KEY } from "./sidebar-collapse";
 import { SidebarIcon, type IconName } from "./sidebar-icons";
 import SidebarToggleButton from "./sidebar-toggle-button";
@@ -52,21 +51,6 @@ function createEmptyBadgeCounts(): SidebarBadgeCounts {
     listings: 0,
     payments: 0
   };
-}
-
-function getOrganizationInitials(name?: string): string {
-  const source = name?.trim();
-  if (!source) {
-    return "HH";
-  }
-
-  const letters = source
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-
-  return letters.toUpperCase();
 }
 
 export default function Sidebar({
@@ -261,20 +245,47 @@ export default function Sidebar({
   }, [initialBadgeCounts]);
 
   const organizationSubtitle = organization?.contactEmail ?? organization?.contactPhone ?? currentRoleLabel;
-  const shellWidthClassName = isCollapsed ? "w-14" : "w-56";
+  // Collapsed width fits logo (28px) + toggle (28px) + gaps without crowding nav icons.
+  const shellWidthClassName = isCollapsed ? "w-20" : "w-56";
 
   const orgSettingsHref = access.manageOrganization || isIndividualExperience
     ? "/dashboard/profile?tab=organisation"
     : null;
+
+  const orgMark = organization?.logoUrl ? (
+    <img
+      src={organization.logoUrl}
+      alt={organization.name}
+      className="h-7 w-7 shrink-0 rounded-md object-contain bg-white p-0.5 ring-1 ring-slate-200 dark:ring-slate-700"
+    />
+  ) : (
+    <img
+      src="/brand/haraka-pay-logo.svg"
+      alt={organization?.name ?? "Haraka Property"}
+      className="h-7 w-7 shrink-0 rounded-md object-contain bg-white p-0.5 ring-1 ring-slate-200 dark:ring-slate-700"
+    />
+  );
 
   return (
     <aside
       className={`hidden md:flex h-full shrink-0 flex-col overflow-hidden bg-white text-[#010a19] transition-[width] duration-300 dark:bg-[#0d1526] dark:text-slate-100 ${shellWidthClassName}`}
     >
       {/* Top bar segment: org + collapse control (aligns with main header) */}
-      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-slate-200 px-2 dark:border-slate-800">
+      <div className="flex h-14 shrink-0 items-center border-b border-slate-200 px-2 dark:border-slate-800">
         {isCollapsed ? (
-          <div className="flex w-full items-center justify-center">
+          <div className="flex w-full items-center justify-between gap-1">
+            {orgSettingsHref ? (
+              <Link
+                href={orgSettingsHref}
+                className="inline-flex shrink-0 items-center justify-center rounded-md p-0.5 transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                aria-label={isIndividualExperience ? "Paramètres" : "Organisation"}
+                title={organization?.name ?? "Organisation"}
+              >
+                {orgMark}
+              </Link>
+            ) : (
+              <span className="inline-flex shrink-0 items-center justify-center p-0.5">{orgMark}</span>
+            )}
             <SidebarToggleButton />
           </div>
         ) : (
@@ -285,13 +296,7 @@ export default function Sidebar({
                 className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-1.5 py-1 transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
                 aria-label={isIndividualExperience ? "Paramètres" : "Organisation"}
               >
-                {organization?.logoUrl ? (
-                  <img src={organization.logoUrl} alt={organization.name} className="h-7 w-7 shrink-0 rounded-md object-contain bg-white p-0.5 ring-1 ring-slate-200 dark:ring-slate-700" />
-                ) : (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-[11px] font-semibold uppercase text-[#10213d] ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
-                    {getOrganizationInitials(organization?.name)}
-                  </div>
-                )}
+                {orgMark}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-semibold leading-tight text-[#10213d] dark:text-slate-100">{organization?.name ?? "Organisation"}</p>
                   <p className="truncate text-[11px] leading-tight text-slate-500 dark:text-slate-400">{organizationSubtitle}</p>
@@ -299,13 +304,7 @@ export default function Sidebar({
               </Link>
             ) : (
               <div className="flex min-w-0 flex-1 items-center gap-2.5 px-1.5 py-1">
-                {organization?.logoUrl ? (
-                  <img src={organization.logoUrl} alt={organization.name} className="h-7 w-7 shrink-0 rounded-md object-contain bg-white p-0.5 ring-1 ring-slate-200 dark:ring-slate-700" />
-                ) : (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-[11px] font-semibold uppercase text-[#10213d] ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
-                    {getOrganizationInitials(organization?.name)}
-                  </div>
-                )}
+                {orgMark}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-semibold leading-tight text-[#10213d] dark:text-slate-100">{organization?.name ?? "Organisation"}</p>
                   <p className="truncate text-[11px] leading-tight text-slate-500 dark:text-slate-400">{organizationSubtitle}</p>
@@ -375,16 +374,6 @@ export default function Sidebar({
             ))}
           </div>
         </nav>
-
-        <div className={`border-t border-slate-200 py-2 dark:border-slate-800 ${isCollapsed ? "flex justify-center px-1.5" : "px-2"}`}>
-          {isCollapsed ? (
-            <LogoutButton compact />
-          ) : (
-            <div className="[&>div]:w-full [&_button]:w-full">
-              <LogoutButton />
-            </div>
-          )}
-        </div>
       </div>
     </aside>
   );

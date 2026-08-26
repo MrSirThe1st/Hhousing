@@ -20,7 +20,7 @@ export interface ResponsiveTableProps<T> {
   paginate?: boolean;
   defaultPageSize?: number;
   mode?: "auto" | "table" | "cards";
-  /** When false, omit outer card chrome (for nesting inside an existing panel). */
+  /** When true, wrap the table in its own card chrome. Keep false when nested in a panel. */
   framed?: boolean;
 }
 
@@ -39,7 +39,7 @@ export default function ResponsiveTable<T>({
   paginate = true,
   defaultPageSize = 10,
   mode = "auto",
-  framed = true,
+  framed = false,
 }: ResponsiveTableProps<T>): React.ReactElement {
   const { isMobile, isMounted } = useIsMobile();
   const [currentPage, setCurrentPage] = useState(1);

@@ -64,6 +64,18 @@ export default function TabsLayout(): React.ReactElement {
         name="services"
         options={{ href: null }}
       />
+      <Tabs.Screen
+        name="payment-success"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="payment-failed"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="payment-detail"
+        options={{ href: null }}
+      />
     </Tabs>
   );
 }

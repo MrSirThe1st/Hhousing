@@ -11,17 +11,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { Payment } from "@/lib/domain-types";
 import type { ApiResult } from "@/lib/api-client";
-import { ScreenLoader, FullScreenLoadingOverlay } from "@/components/universal-loading-state";
+import { ScreenLoader } from "@/components/universal-loading-state";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { SensitiveAmount, maskSensitiveAmount } from "@/components/sensitive-amount";
 import { useAmountPrivacy } from "@/contexts/amount-privacy-context";
-import { usePreferences } from "@/contexts/preferences-context";
 import { getWithAuth, postWithAuth } from "@/lib/api-client";
 import { userFacingErrorMessage } from "@/lib/user-facing-error";
 import {
@@ -110,8 +109,10 @@ function parseYmd(value: string): { year: number; month: number; day: number } {
 function paymentTitle(payment: Payment, t: TFunction): string {
   if (payment.paymentKind === "rent") {
     const { year } = parseYmd(payment.dueDate);
+    const month = monthNameFromYmd(payment.dueDate);
+    const monthLabel = month ? month.charAt(0).toUpperCase() + month.slice(1) : month;
     return t("payments.kind.rent", {
-      month: monthNameFromYmd(payment.dueDate),
+      month: monthLabel,
       year
     });
   }
@@ -122,17 +123,44 @@ function paymentTitle(payment: Payment, t: TFunction): string {
 }
 
 function paymentMeta(payment: Payment, t: TFunction): string {
-  const date = formatNumericDate(payment.paidDate ?? payment.dueDate);
-  if (payment.status === "paid") return t("payments.metaPaid", { date });
+  if (payment.status === "paid") {
+    const paid = formatNumericDate(payment.paidDate ?? payment.dueDate);
+    const { year } = parseYmd(payment.dueDate);
+    const month = monthNameFromYmd(payment.dueDate);
+    const period =
+      payment.paymentKind === "rent" && month
+        ? t("payments.periodRent", {
+            month: month.charAt(0).toUpperCase() + month.slice(1),
+            year
+          })
+        : null;
+    if (period) {
+      return t("payments.metaPaidWithPeriod", { period, date: paid });
+    }
+    return t("payments.metaPaid", { date: paid });
+  }
+  const date = formatNumericDate(payment.dueDate);
   if (payment.status === "overdue") return t("payments.metaPending", { date });
   if (payment.status === "pending") return t("payments.metaPending", { date });
   return t("payments.metaCancelled", { date });
 }
 
 function sortPaymentsDesc(left: Payment, right: Payment): number {
+  const leftKey = dateForGrouping(left);
+  const rightKey = dateForGrouping(right);
+  if (leftKey > rightKey) return -1;
+  if (leftKey < rightKey) return 1;
   if (left.dueDate > right.dueDate) return -1;
   if (left.dueDate < right.dueDate) return 1;
   return 0;
+}
+
+/** Group history by when money moved (paidDate); unpaid stays on dueDate. */
+function dateForGrouping(payment: Payment): string {
+  if (payment.status === "paid" && payment.paidDate) {
+    return payment.paidDate.slice(0, 10);
+  }
+  return payment.dueDate.slice(0, 10);
 }
 
 function getMonthGroups(payments: Payment[]): MonthGroup[] {
@@ -140,7 +168,7 @@ function getMonthGroups(payments: Payment[]): MonthGroup[] {
   const map = new Map<string, Payment[]>();
 
   for (const payment of sorted) {
-    const { year, month } = parseYmd(payment.dueDate);
+    const { year, month } = parseYmd(dateForGrouping(payment));
     const monthKey = `${year}-${String(month).padStart(2, "0")}`;
     if (!map.has(monthKey)) {
       map.set(monthKey, []);
@@ -163,6 +191,7 @@ function getMonthGroups(payments: Payment[]): MonthGroup[] {
 
 export default function PaymentsScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const params = useLocalSearchParams<{ pay?: string }>();
   const { colors } = useTheme();
   const { amountsRevealed, amountsSensitive, toggleAmountsRevealed } = useAmountPrivacy();
@@ -176,13 +205,16 @@ export default function PaymentsScreen(): React.ReactElement {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<PaymentFilter>("all");
   const [isPayModalVisible, setIsPayModalVisible] = useState(false);
+  const [isConfirmPopupVisible, setIsConfirmPopupVisible] = useState(false);
+  const [payStep, setPayStep] = useState<"form" | "processing">("form");
   const [selectedProvider, setSelectedProvider] = useState<MobileMoneyProviderCode>("AIRTEL_COD");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [payError, setPayError] = useState<string | null>(null);
-  const [isPaying, setIsPaying] = useState(false);
-  const [payStatusMessage, setPayStatusMessage] = useState<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoOpenedPayRef = useRef(false);
+  const pendingPayAmountRef = useRef<{ amount: number; currencyCode: string }>({
+    amount: 0,
+    currencyCode: "CDF"
+  });
 
   const load = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -243,8 +275,39 @@ export default function PaymentsScreen(): React.ReactElement {
     }
   }, []);
 
+  const closePayModal = useCallback((): void => {
+    stopPolling();
+    setIsPayModalVisible(false);
+    setIsConfirmPopupVisible(false);
+    setPayStep("form");
+    setPayError(null);
+  }, [stopPolling]);
+
+  const goToFailure = useCallback((message: string): void => {
+    stopPolling();
+    setIsPayModalVisible(false);
+    setIsConfirmPopupVisible(false);
+    setPayStep("form");
+    setPayError(null);
+    const providerLabel =
+      MOBILE_MONEY_PROVIDERS.find((item) => item.code === selectedProvider)?.label
+      ?? selectedProvider;
+    router.push({
+      pathname: "/(tabs)/payment-failed",
+      params: {
+        amount: String(pendingPayAmountRef.current.amount),
+        currencyCode: pendingPayAmountRef.current.currencyCode,
+        provider: providerLabel,
+        providerCode: selectedProvider,
+        phone: phoneNumber.trim(),
+        error: message
+      }
+    });
+  }, [phoneNumber, router, selectedProvider, stopPolling]);
+
   const pollTransactionStatus = useCallback((transactionId: string): void => {
     stopPolling();
+    setPayStep("processing");
 
     const checkOnce = async (): Promise<void> => {
       const result: ApiResult<PayBalanceStatusOutput> = await getWithAuth<PayBalanceStatusOutput>(
@@ -257,18 +320,31 @@ export default function PaymentsScreen(): React.ReactElement {
 
       if (result.data.status === "completed") {
         stopPolling();
-        setIsPaying(false);
-        setPayStatusMessage(t("payments.confirmed"));
         setIsPayModalVisible(false);
+        setPayStep("form");
+        const providerLabel =
+          MOBILE_MONEY_PROVIDERS.find((item) => item.code === result.data.provider)?.label
+          ?? result.data.provider;
+        const paidAmount = result.data.totalAmount || pendingPayAmountRef.current.amount;
+        const paidCurrency = result.data.currencyCode || pendingPayAmountRef.current.currencyCode;
+        router.push({
+          pathname: "/(tabs)/payment-success",
+          params: {
+            amount: String(paidAmount),
+            currencyCode: paidCurrency,
+            provider: providerLabel,
+            providerCode: result.data.provider,
+            phone: phoneNumber.trim(),
+            transactionId: result.data.transactionId,
+            paidAt: result.data.completedAtIso ?? new Date().toISOString()
+          }
+        });
         await load();
         return;
       }
 
       if (result.data.status === "failed") {
-        stopPolling();
-        setIsPaying(false);
-        setPayError(result.data.failureMessage ?? t("payments.failed"));
-        setPayStatusMessage(null);
+        goToFailure(result.data.failureMessage ?? t("payments.failed"));
       }
     };
 
@@ -276,50 +352,51 @@ export default function PaymentsScreen(): React.ReactElement {
     pollTimerRef.current = setInterval(() => {
       void checkOnce();
     }, 3000);
-  }, [load, stopPolling, t]);
+  }, [goToFailure, load, phoneNumber, router, stopPolling, t]);
 
   const openPayModal = useCallback(async (): Promise<void> => {
     setPayError(null);
-    setPayStatusMessage(null);
+    setPayStep("form");
+    setIsConfirmPopupVisible(false);
+    pendingPayAmountRef.current = { amount: totalDue, currencyCode };
     setIsPayModalVisible(true);
 
     const profileResult: ApiResult<ProfileOutput> = await getWithAuth<ProfileOutput>("/api/mobile/profile");
     if (profileResult.success && profileResult.data.tenant.phone) {
       setPhoneNumber(profileResult.data.tenant.phone);
     }
-  }, []);
+  }, [currencyCode, totalDue]);
 
   useEffect(() => {
-    // Live pay auto-open from Accueil (?pay=1) — gated until PawaPay is production-ready.
+    // Live pay auto-open from Accueil / unpaid row (?pay=1).
     if (!env.mobilePaymentsEnabled) return;
-    if (autoOpenedPayRef.current) return;
     if (params.pay !== "1") return;
     if (isLoading || totalDue <= 0) return;
 
-    autoOpenedPayRef.current = true;
     void openPayModal();
-  }, [isLoading, openPayModal, params.pay, totalDue]);
+    router.setParams({ pay: undefined });
+  }, [isLoading, openPayModal, params.pay, router, totalDue]);
 
-  /*
-  useEffect(() => {
-    if (autoOpenedPayRef.current) return;
-    if (params.pay !== "1") return;
-    if (isLoading || totalDue <= 0) return;
-
-    autoOpenedPayRef.current = true;
-    void openPayModal();
-  }, [isLoading, openPayModal, params.pay, totalDue]);
-  */
-
-  const handlePayBalance = useCallback(async (): Promise<void> => {
+  const handleContinueToConfirm = useCallback((): void => {
     if (!phoneNumber.trim()) {
       setPayError(t("payments.phoneRequired"));
       return;
     }
-
-    setIsPaying(true);
     setPayError(null);
-    setPayStatusMessage(t("payments.processing"));
+    setIsConfirmPopupVisible(true);
+  }, [phoneNumber, t]);
+
+  const handlePayBalance = useCallback(async (): Promise<void> => {
+    if (!phoneNumber.trim()) {
+      setPayError(t("payments.phoneRequired"));
+      setIsConfirmPopupVisible(false);
+      setPayStep("form");
+      return;
+    }
+
+    setPayError(null);
+    setIsConfirmPopupVisible(false);
+    setPayStep("processing");
 
     const result: ApiResult<PayBalanceOutput> = await postWithAuth<PayBalanceOutput>(
       "/api/mobile/payments/pay-balance",
@@ -330,16 +407,12 @@ export default function PaymentsScreen(): React.ReactElement {
     );
 
     if (!result.success) {
-      setIsPaying(false);
-      setPayStatusMessage(null);
-      setPayError(
-        userFacingErrorMessage({ code: result.code, error: result.error, t })
-      );
+      goToFailure(userFacingErrorMessage({ code: result.code, error: result.error, t }));
       return;
     }
 
     pollTransactionStatus(result.data.transactionId);
-  }, [phoneNumber, pollTransactionStatus, selectedProvider, t]);
+  }, [goToFailure, phoneNumber, pollTransactionStatus, selectedProvider, t]);
 
   const filteredPayments = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -510,7 +583,27 @@ export default function PaymentsScreen(): React.ReactElement {
                 const paid = payment.status === "paid";
 
                 return (
-                  <View key={payment.id} style={styles.paymentCard}>
+                  <Pressable
+                    key={payment.id}
+                    style={styles.paymentCard}
+                    onPress={() => {
+                      const unpaid =
+                        payment.status === "pending" || payment.status === "overdue";
+                      if (unpaid) {
+                        if (env.mobilePaymentsEnabled && totalDue > 0) {
+                          void openPayModal();
+                        }
+                        return;
+                      }
+                      if (payment.status === "paid") {
+                        router.push(
+                          `/(tabs)/payment-detail?id=${encodeURIComponent(payment.id)}`
+                        );
+                      }
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={paymentTitle(payment, t)}
+                  >
                     <View
                       style={[
                         styles.paymentIcon,
@@ -557,7 +650,7 @@ export default function PaymentsScreen(): React.ReactElement {
                         </Text>
                       </View>
                     </View>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -567,103 +660,157 @@ export default function PaymentsScreen(): React.ReactElement {
 
       {/* Live Mobile Money pay modal — gated until PawaPay production is ready. */}
       {env.mobilePaymentsEnabled ? (
+      <>
       <Modal
         visible={isPayModalVisible}
         animationType="slide"
         transparent
         onRequestClose={() => {
-          if (!isPaying) {
-            setIsPayModalVisible(false);
+          if (payStep !== "processing") {
+            closePayModal();
           }
         }}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t("payments.modalTitle")}</Text>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>
+              {payStep === "processing"
+                ? t("payments.processingTitle")
+                : t("payments.modalTitle")}
+            </Text>
             <Text style={styles.modalSubtitle}>
-              {t("payments.modalAmount", {
-                amount: amountsRevealed
-                  ? formatAmount(totalDue, currencyCode)
-                  : maskSensitiveAmount(formatAmount(totalDue, currencyCode))
-              })}
+              {formatAmount(totalDue, currencyCode)}
             </Text>
 
-            <Text style={styles.fieldLabel}>{t("payments.operator")}</Text>
-            <View style={styles.providerRow}>
-              {MOBILE_MONEY_PROVIDERS.map((option) => {
-                const active = selectedProvider === option.code;
-                return (
-                  <Pressable
-                    key={option.code}
-                    style={[styles.providerChip, active && styles.providerChipActive]}
-                    onPress={() => { setSelectedProvider(option.code); }}
-                    disabled={isPaying}
-                  >
-                    <MobileMoneyLogo code={option.code} size={28} />
-                    <Text style={[styles.providerChipText, active && styles.providerChipTextActive]}>
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.selectedProviderHero}>
+              <View style={styles.selectedProviderLogoSlot}>
+                <MobileMoneyLogo code={selectedProvider} height={56} />
+              </View>
+              <Text style={styles.selectedProviderName}>
+                {MOBILE_MONEY_PROVIDERS.find((item) => item.code === selectedProvider)?.label}
+              </Text>
             </View>
 
-            <Text style={styles.fieldLabel}>{t("payments.phoneLabel")}</Text>
-            <TextInput
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder="243973456789"
-              placeholderTextColor={colors.textFaint}
-              keyboardType="phone-pad"
-              style={styles.phoneInput}
-              editable={!isPaying}
-            />
+            {payStep === "form" ? (
+              <>
+                <Text style={styles.fieldLabel}>{t("payments.operator")}</Text>
+                <View style={styles.providerRow}>
+                  {MOBILE_MONEY_PROVIDERS.map((option) => {
+                    const active = selectedProvider === option.code;
+                    return (
+                      <Pressable
+                        key={option.code}
+                        style={[styles.providerChip, active && styles.providerChipActive]}
+                        onPress={() => { setSelectedProvider(option.code); }}
+                      >
+                        <View style={styles.providerChipLogoSlot}>
+                          <MobileMoneyLogo code={option.code} height={30} />
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
 
-            {payStatusMessage && !isPaying ? (
-              <View style={styles.statusNotice}>
-                <Text style={styles.statusNoticeText}>{payStatusMessage}</Text>
-              </View>
+                <Text style={styles.fieldLabel}>{t("payments.phoneLabel")}</Text>
+                <TextInput
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder="243973456789"
+                  placeholderTextColor={colors.textFaint}
+                  keyboardType="phone-pad"
+                  style={styles.phoneInput}
+                />
+
+                {payError ? <Text style={styles.payErrorText}>{payError}</Text> : null}
+
+                <View style={styles.modalActions}>
+                  <Pressable style={styles.cancelBtn} onPress={closePayModal}>
+                    <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
+                  </Pressable>
+                  <Pressable style={styles.confirmBtn} onPress={handleContinueToConfirm}>
+                    <Text style={styles.confirmBtnText}>{t("payments.continueAction")}</Text>
+                  </Pressable>
+                </View>
+              </>
             ) : null}
 
-            {payError ? <Text style={styles.payErrorText}>{payError}</Text> : null}
+            {payStep === "processing" ? (
+              <>
+                <Text style={styles.processingText}>{t("payments.processingHint")}</Text>
+                <View style={styles.modalActions}>
+                  <Pressable style={styles.cancelBtn} onPress={closePayModal}>
+                    <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
+                  </Pressable>
+                  <View style={[styles.confirmBtn, styles.confirmBtnDisabled]}>
+                    <Text style={styles.confirmBtnText}>{t("common.inProgress")}</Text>
+                  </View>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={isConfirmPopupVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          setIsConfirmPopupVisible(false);
+        }}
+      >
+        <View style={styles.confirmPopupBackdrop}>
+          <View style={styles.confirmPopupCard}>
+            <Text style={styles.confirmPopupTitle}>{t("payments.confirmTitle")}</Text>
+            <Text style={styles.confirmPopupAmount}>
+              {formatAmount(totalDue, currencyCode)}
+            </Text>
+
+            <View style={styles.selectedProviderHero}>
+              <View style={styles.selectedProviderLogoSlot}>
+                <MobileMoneyLogo code={selectedProvider} height={48} />
+              </View>
+              <Text style={styles.selectedProviderName}>
+                {MOBILE_MONEY_PROVIDERS.find((item) => item.code === selectedProvider)?.label}
+              </Text>
+            </View>
+
+            <View style={styles.confirmSummary}>
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmLabel}>{t("payments.success.method")}</Text>
+                <Text style={styles.confirmValue}>
+                  {MOBILE_MONEY_PROVIDERS.find((item) => item.code === selectedProvider)?.label}
+                </Text>
+              </View>
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmLabel}>{t("payments.success.phone")}</Text>
+                <Text style={styles.confirmValue}>{phoneNumber.trim()}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.confirmHint}>{t("payments.confirmHint")}</Text>
 
             <View style={styles.modalActions}>
               <Pressable
                 style={styles.cancelBtn}
-                disabled={isPaying}
                 onPress={() => {
-                  stopPolling();
-                  setIsPayModalVisible(false);
-                  setIsPaying(false);
-                  setPayStatusMessage(null);
-                  setPayError(null);
+                  setIsConfirmPopupVisible(false);
                 }}
               >
                 <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
               </Pressable>
               <Pressable
-                style={[styles.confirmBtn, isPaying && styles.confirmBtnDisabled]}
-                disabled={isPaying}
+                style={styles.confirmBtn}
                 onPress={() => { void handlePayBalance(); }}
               >
-                <Text style={styles.confirmBtnText}>
-                  {isPaying ? t("common.inProgress") : t("common.confirm")}
-                </Text>
+                <Text style={styles.confirmBtnText}>{t("payments.confirmAction")}</Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
-      ) : null}
-      {/*
-      <Modal ... live pay modal preserved above behind env.mobilePaymentsEnabled />
-      */}
-
-      {env.mobilePaymentsEnabled ? (
-      <FullScreenLoadingOverlay
-        visible={isPaying}
-        message={t("payments.processing")}
-      />
+      </>
       ) : null}
     </SafeAreaView>
   );
@@ -889,22 +1036,85 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.overlay,
       justifyContent: "flex-end"
     },
+    confirmPopupBackdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: "center",
+      paddingHorizontal: 24
+    },
+    confirmPopupCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      paddingHorizontal: 20,
+      paddingTop: 22,
+      paddingBottom: 20,
+      gap: 14,
+      borderWidth: 1,
+      borderColor: colors.border
+    },
+    confirmPopupTitle: {
+      fontSize: fontSize.title,
+      fontWeight: "700",
+      color: colors.text,
+      textAlign: "center"
+    },
+    confirmPopupAmount: {
+      fontSize: fontSize.display,
+      fontWeight: "700",
+      color: colors.text,
+      textAlign: "center",
+      marginTop: -4
+    },
     modalCard: {
       backgroundColor: colors.surface,
-      borderTopLeftRadius: 18,
-      borderTopRightRadius: 18,
-      padding: 18,
-      gap: 12
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      paddingBottom: 28,
+      gap: 14
+    },
+    modalHandle: {
+      alignSelf: "center",
+      width: 40,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: colors.border,
+      marginBottom: 4
     },
     modalTitle: {
       fontSize: fontSize.title,
       fontWeight: "700",
-      color: colors.text
+      color: colors.text,
+      textAlign: "center"
     },
     modalSubtitle: {
-      fontSize: fontSize.secondary,
-      color: colors.textMuted,
-      fontWeight: "600"
+      fontSize: fontSize.display,
+      color: colors.text,
+      fontWeight: "700",
+      textAlign: "center",
+      marginTop: -4
+    },
+    selectedProviderHero: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      paddingVertical: 16,
+      borderRadius: 16,
+      backgroundColor: colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: colors.border
+    },
+    selectedProviderLogoSlot: {
+      height: 56,
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    selectedProviderName: {
+      fontSize: fontSize.body,
+      fontWeight: "700",
+      color: colors.text
     },
     fieldLabel: {
       fontSize: fontSize.secondary,
@@ -913,19 +1123,26 @@ function createStyles(colors: ThemeColors) {
     },
     providerRow: {
       flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8
+      gap: 10
     },
     providerChip: {
-      borderWidth: 1,
+      flex: 1,
+      borderWidth: 1.5,
       borderColor: colors.border,
-      borderRadius: 12,
-      paddingHorizontal: 10,
+      borderRadius: 14,
+      paddingHorizontal: 8,
       paddingVertical: 10,
       backgroundColor: colors.surface,
       alignItems: "center",
-      gap: 6,
-      minWidth: 100
+      justifyContent: "center",
+      minHeight: 64
+    },
+    providerChipLogoSlot: {
+      height: 30,
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden"
     },
     providerChipActive: {
       borderColor: colors.brand,
@@ -942,12 +1159,52 @@ function createStyles(colors: ThemeColors) {
     phoneInput: {
       borderWidth: 1,
       borderColor: colors.inputBorder,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
       fontSize: fontSize.body,
       color: colors.text,
       backgroundColor: colors.inputBg
+    },
+    confirmSummary: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      gap: 10
+    },
+    confirmRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12
+    },
+    confirmLabel: {
+      fontSize: fontSize.secondary,
+      color: colors.textMuted,
+      fontWeight: "600"
+    },
+    confirmValue: {
+      flexShrink: 1,
+      fontSize: fontSize.secondary,
+      color: colors.text,
+      fontWeight: "700",
+      textAlign: "right"
+    },
+    confirmHint: {
+      fontSize: fontSize.secondary,
+      lineHeight: 20,
+      color: colors.textMuted,
+      textAlign: "center"
+    },
+    processingText: {
+      fontSize: fontSize.secondary,
+      lineHeight: 22,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingHorizontal: 8
     },
     statusNotice: {
       borderRadius: 10,

@@ -36,6 +36,7 @@ export default function DashboardOverduePaymentsTable({
 
   return (
     <ResponsiveTable<OverduePaymentRow>
+      framed
       paginate={false}
       keyExtractor={(row) => row.paymentId}
       data={rows}
