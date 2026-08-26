@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/auth-context";
-import BookDemoButton from "./book-demo-button";
 
 type MenuId = "solutions" | "features";
 
@@ -180,14 +179,10 @@ export default function PublicSiteNavbar({
               <Link
                 href="/login"
                 onClick={closeMobile}
-                className="hidden rounded-lg px-4 py-2 text-xs font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
+                className="hidden rounded-lg border border-[#9CB8D6] bg-white/60 px-4 py-2 text-xs font-semibold text-[#1F3B63] transition hover:border-[#4A86D4] hover:bg-white dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 sm:inline-block sm:px-5 sm:py-2.5 sm:text-sm"
               >
                 Se connecter
               </Link>
-              <BookDemoButton
-                onClick={closeMobile}
-                className="hidden rounded-lg border border-[#9CB8D6] bg-white/60 px-4 py-2 text-xs font-semibold text-[#1F3B63] transition hover:border-[#4A86D4] hover:bg-white dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800 lg:inline-block lg:px-5 lg:py-2.5 lg:text-sm"
-              />
               <Link
                 href="/signup"
                 onClick={closeMobile}
@@ -253,10 +248,6 @@ export default function PublicSiteNavbar({
                 {item.label}
               </Link>
             ))}
-            <BookDemoButton
-              onClick={closeMobile}
-              className="block w-full rounded-lg px-3 py-3 text-left text-base font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-100 dark:hover:bg-slate-800"
-            />
           </nav>
 
           <div className="mt-5 space-y-2 border-t border-[#C5D9EC] pt-5 dark:border-slate-700">
