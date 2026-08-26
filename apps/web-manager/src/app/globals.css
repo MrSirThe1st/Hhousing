@@ -46,13 +46,6 @@
     font-family: var(--font-sans);
     color: var(--color-foreground);
     background-color: var(--color-surface);
-    scroll-behavior: smooth;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
   }
 
   html.dark {

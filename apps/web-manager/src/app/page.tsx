@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createListingRepo } from "./api/shared";
 import BookDemoButton from "../components/book-demo-button";
 import ForceLightTheme from "../components/force-light-theme";
+import LandingSmoothScroll from "../components/landing-smooth-scroll";
 import PublicLandingHero from "../components/public-landing-hero";
 import PublicMarketplaceCarousel from "../components/public-marketplace-carousel";
 import PublicSiteFooter from "../components/public-site-footer";
@@ -58,10 +59,11 @@ export default async function HomePage(): Promise<React.ReactElement> {
   }
 
   return (
-    <main className="min-h-screen bg-white text-slate-950">
-      <ForceLightTheme />
-      <PublicSiteNavbar hideBottomBorder />
-      <PublicLandingHero />
+    <LandingSmoothScroll>
+      <main className="min-h-screen bg-white text-slate-950">
+        <ForceLightTheme />
+        <PublicSiteNavbar hideBottomBorder />
+        <PublicLandingHero />
 
       <section id="features" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-7xl">
@@ -451,6 +453,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       </section>
 
       <PublicSiteFooter />
-    </main>
+      </main>
+    </LandingSmoothScroll>
   );
 }

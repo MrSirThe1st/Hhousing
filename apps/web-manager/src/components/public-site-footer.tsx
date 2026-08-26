@@ -15,11 +15,11 @@ export default function PublicSiteFooter(): React.ReactElement {
         <div className="sm:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-3">
             <Image
-              src="/brand/logo-white.jpg"
+              src="/brand/logo-white.png"
               alt="Haraka Property"
               width={44}
               height={44}
-              className="h-10 w-10 rounded-md object-cover sm:h-11 sm:w-11"
+              className="h-10 w-10 object-contain sm:h-11 sm:w-11"
             />
             <span className="text-lg font-semibold tracking-tight text-white">Haraka Property</span>
           </div>
