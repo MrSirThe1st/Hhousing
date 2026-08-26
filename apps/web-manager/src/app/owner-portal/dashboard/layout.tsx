@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import OwnerPortalSignOutButton from "@/components/owner-portal/sign-out-button";
-import OwnerPortalSidebar from "@/components/owner-portal/sidebar";
+import OwnerPortalAccountMenu from "@/components/owner-portal/account-menu";
+import OwnerPortalSidebar, { OwnerPortalMobileNav } from "@/components/owner-portal/sidebar";
 import { getOwnerPortalSession } from "@/lib/owner-portal/server-session";
 
 export default async function OwnerPortalDashboardLayout({
@@ -10,27 +10,30 @@ export default async function OwnerPortalDashboardLayout({
 }): Promise<React.ReactElement> {
   const session = await getOwnerPortalSession();
   if (session === null) {
-    redirect("/owner-portal/login");
+    redirect("/login");
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mx-auto max-w-7xl space-y-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6 lg:space-y-0">
-        <OwnerPortalSidebar />
+    <div className="flex h-screen w-full max-w-full flex-col overflow-hidden bg-gray-50 md:flex-row dark:bg-[#0a1120]">
+      <OwnerPortalSidebar />
 
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-6 py-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Espace propriétaire</h1>
-                <p className="mt-1 text-sm text-slate-600">Accès owner</p>
-              </div>
-              <OwnerPortalSignOutButton />
+      <main className="min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto pb-24 md:pb-0">
+        <div className="sticky top-0 z-10 flex h-14 items-center border-b border-slate-200 bg-white px-4 md:px-6 dark:border-slate-800 dark:bg-[#0d1526]">
+          <div className="flex w-full items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#010a19] dark:text-white">Espace propriétaire</p>
+              <p className="line-clamp-1 text-xs text-gray-500 md:text-sm dark:text-slate-400">
+                Consultez vos biens, encaissements et indicateurs en lecture seule.
+              </p>
             </div>
+            <OwnerPortalAccountMenu />
           </div>
-          <div className="p-6">{children}</div>
         </div>
-      </div>
+
+        <div className="p-6 md:p-8">{children}</div>
+      </main>
+
+      <OwnerPortalMobileNav />
     </div>
   );
 }

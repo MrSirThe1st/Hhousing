@@ -20,47 +20,67 @@ export default async function OwnerPortalPropertiesPage(): Promise<React.ReactEl
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19]">Mes biens</h2>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              Lecture consolidée par bien, avec occupation, baux actifs et encaissements liés à votre portefeuille owner.
-            </p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            {view.propertyCount} bien(s) • {view.unitCount} unité(s) • {view.activeLeaseCount} bail/baux actif(s)
-          </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#010a19] dark:text-white">
+            Mes biens
+          </h1>
+          <p className="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+            Lecture consolidée par bien, avec occupation, baux actifs et encaissements liés à votre
+            portefeuille owner.
+          </p>
         </div>
-      </section>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          {view.propertyCount} bien(s) • {view.unitCount} unité(s) • {view.activeLeaseCount}{" "}
+          bail/baux actif(s)
+        </p>
+      </div>
 
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#0d1526]">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
+            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
               <tr>
-                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Bien</th>
-                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Adresse</th>
-                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Logements</th>
-                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Baux actifs</th>
-                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">Encaisse</th>
-                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide">À suivre</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">Bien</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">Adresse</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">Logements</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">Baux actifs</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">Encaisse</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">À suivre</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {view.propertyRows.map((row) => (
-                <tr key={row.property.id} className="transition hover:bg-slate-50">
-                  <td className="px-5 py-4 align-top">
-                    <p className="font-semibold text-[#010a19]">{row.property.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{row.property.managementContext === "managed" ? "Parc géré" : "Parc propriétaire"}</p>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {view.propertyRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                    Aucun bien dans votre périmètre pour le moment
                   </td>
-                  <td className="px-5 py-4 text-slate-600">{row.property.address}, {row.property.city}</td>
-                  <td className="px-5 py-4 text-slate-600">{row.occupiedUnits}/{row.units.length} occupée(s)</td>
-                  <td className="px-5 py-4 text-slate-600">{row.activeLeases}</td>
-                  <td className="px-5 py-4 text-slate-600">{formatCurrency(row.paidAmount, view.primaryCurrencyCode)}</td>
-                  <td className="px-5 py-4 text-slate-600">{formatCurrency(row.pendingAmount, view.primaryCurrencyCode)}</td>
                 </tr>
-              ))}
+              ) : (
+                view.propertyRows.map((row) => (
+                  <tr key={row.property.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <td className="px-5 py-4 align-top">
+                      <p className="font-semibold text-[#010a19] dark:text-white">{row.property.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {row.property.managementContext === "managed" ? "Parc géré" : "Parc propriétaire"}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
+                      {row.property.address}, {row.property.city}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
+                      {row.occupiedUnits}/{row.units.length} occupée(s)
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{row.activeLeases}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
+                      {formatCurrency(row.paidAmount, view.primaryCurrencyCode)}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
+                      {formatCurrency(row.pendingAmount, view.primaryCurrencyCode)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

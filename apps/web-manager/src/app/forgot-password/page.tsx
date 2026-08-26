@@ -129,7 +129,7 @@ function ForgotPasswordContent(): React.ReactElement {
               </div>
 
               <Link
-                href={isOwner ? "/owner-portal/login" : "/login"}
+                href="/login"
                 className={`block text-center text-xs font-semibold text-slate-600 hover:text-slate-800 transition py-2`}
               >
                 Retour à la page de connexion
@@ -172,7 +172,7 @@ function ForgotPasswordContent(): React.ReactElement {
 
               <div className="pt-2 text-center">
                 <Link
-                  href={isOwner ? "/owner-portal/login" : "/login"}
+                  href="/login"
                   className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition"
                 >
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

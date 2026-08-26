@@ -10,9 +10,9 @@ export default function OwnerPortalLogoLink({ subtitle, centered = false }: Plat
   return (
     <div className={centered ? "text-center" : "text-left"}>
       <Link
-        href="/owner-portal/login"
+        href="/login"
         className={`inline-flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-[#010a19] shadow-sm transition hover:border-[#0063fe]/30 hover:bg-blue-50 ${centered ? "justify-center" : "justify-start"}`}
-        aria-label="Retour au portail owner"
+        aria-label="Retour à la connexion"
       >
         <Image src="/brand/haraka-pay-logo.svg" alt="Haraka Property" width={44} height={44} className="h-11 w-11" />
         <span className="text-left">

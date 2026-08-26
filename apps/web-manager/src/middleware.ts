@@ -179,33 +179,20 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-  // Owner invite stays public for token handling; owner login redirects only if user has active owner access.
+  // Owner invite stays public for token handling.
   if (pathname === "/owner-portal/invite") {
     return response;
   }
 
+  // Legacy owner login URL — always use the shared /login.
   if (pathname === "/owner-portal/login") {
-    if (user !== null) {
-      if (await hasPlatformAdmin(user.id)) {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
-      const ownerAccessExists = await hasOwnerPortalAccess(user.id);
-      debugLogs.push(`[middleware] /owner-portal/login: ownerAccessExists=${ownerAccessExists}`);
-      if (ownerAccessExists) {
-        debugLogs.push(`[middleware] /owner-portal/login: redirecting to /owner-portal/dashboard`);
-        logDebug(debugLogs);
-        return NextResponse.redirect(new URL("/owner-portal/dashboard", request.url));
-      }
-    }
-    debugLogs.push(`[middleware] /owner-portal/login: unauthenticated or no access, showing login form`);
-    logDebug(debugLogs);
-    return response;
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Owner portal dashboard: requires authenticated user with active owner access.
   if (pathname.startsWith("/owner-portal/dashboard")) {
     if (user === null) {
-      return NextResponse.redirect(new URL("/owner-portal/login", request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
     if (await hasPlatformAdmin(user.id)) {
       return NextResponse.redirect(new URL("/admin", request.url));
@@ -213,7 +200,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
     const ownerAccessExists = await hasOwnerPortalAccess(user.id);
     if (!ownerAccessExists) {
-      return NextResponse.redirect(new URL("/owner-portal/login", request.url));
+      return NextResponse.redirect(new URL("/account-type", request.url));
     }
 
     return response;

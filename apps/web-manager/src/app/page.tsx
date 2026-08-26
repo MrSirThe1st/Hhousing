@@ -112,6 +112,18 @@ export default async function HomePage(): Promise<React.ReactElement> {
                         priority={false}
                       />
                     </div>
+                  ) : feature.id === "owner-portal" ? (
+                    <div className="relative">
+                      <Image
+                        src="/brand/owner-portal-mockup.png"
+                        alt="Espace propriétaire Haraka sur ordinateur — biens, encaissements et indicateurs en lecture seule"
+                        width={1790}
+                        height={1327}
+                        className="mx-auto h-auto w-full max-w-2xl object-contain"
+                        sizes="(max-width: 768px) 100vw, 42rem"
+                        priority={false}
+                      />
+                    </div>
                   ) : (
                   <div
                     className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br p-6 sm:p-8 ${
@@ -125,78 +137,24 @@ export default async function HomePage(): Promise<React.ReactElement> {
                     }`}
                   >
                     <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#4A86D4]/10 blur-2xl" />
-                    {feature.id === "owner-portal" ? (
-                      <div className="relative space-y-3">
-                        <div className="rounded-xl border border-white/80 bg-white p-4 shadow-sm">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                            Espace propriétaire
-                          </p>
-                          <p className="mt-2 text-lg font-bold text-[#1F3B63]">Portefeuille Limete</p>
-                          <p className="mt-1 text-xs text-slate-500">3 biens · lecture seule</p>
-                          <div className="mt-4 grid grid-cols-2 gap-2">
-                            <div className="rounded-lg bg-[#EAF2FA] px-3 py-2.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                Loyers reçus
-                              </p>
-                              <p className="mt-1 text-sm font-bold text-[#1F3B63]">1 250 000 FC</p>
-                            </div>
-                            <div className="rounded-lg bg-[#EAF2FA] px-3 py-2.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                Occupation
-                              </p>
-                              <p className="mt-1 text-sm font-bold text-[#1F3B63]">92 %</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {[
-                            { label: "Villa Bâtiment A", detail: "Occupé", amount: "Payé" },
-                            { label: "Appartement 2B", detail: "Occupé", amount: "En retard" },
-                            { label: "Studio Rez", detail: "Vacant", amount: "—" }
-                          ].map((row) => (
-                            <div
-                              key={row.label}
-                              className="flex items-center justify-between rounded-xl border border-white/80 bg-white px-3 py-2.5 shadow-sm"
-                            >
-                              <div>
-                                <p className="text-sm font-semibold text-[#1F3B63]">{row.label}</p>
-                                <p className="text-xs text-slate-500">{row.detail}</p>
-                              </div>
-                              <p
-                                className={`text-sm font-semibold ${
-                                  row.amount === "En retard"
-                                    ? "text-amber-600"
-                                    : row.amount === "Payé"
-                                      ? "text-emerald-600"
-                                      : "text-slate-400"
-                                }`}
-                              >
-                                {row.amount}
-                              </p>
-                            </div>
-                          ))}
+                    <div className="relative space-y-3">
+                      <div className="h-3 w-24 rounded-full bg-[#4A86D4]/30" />
+                      <div className="rounded-xl border border-white/80 bg-white/90 p-4 shadow-sm">
+                        <div className="h-2.5 w-2/3 rounded bg-slate-200" />
+                        <div className="mt-3 h-2 w-1/2 rounded bg-slate-100" />
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <div className="h-16 rounded-lg bg-slate-50" />
+                          <div className="h-16 rounded-lg bg-slate-50" />
                         </div>
                       </div>
-                    ) : (
-                      <div className="relative space-y-3">
-                        <div className="h-3 w-24 rounded-full bg-[#4A86D4]/30" />
-                        <div className="rounded-xl border border-white/80 bg-white/90 p-4 shadow-sm">
-                          <div className="h-2.5 w-2/3 rounded bg-slate-200" />
-                          <div className="mt-3 h-2 w-1/2 rounded bg-slate-100" />
-                          <div className="mt-4 grid grid-cols-2 gap-2">
-                            <div className="h-16 rounded-lg bg-slate-50" />
-                            <div className="h-16 rounded-lg bg-slate-50" />
-                          </div>
+                      <div className="rounded-xl border border-white/80 bg-white/90 p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="h-2.5 w-1/3 rounded bg-slate-200" />
+                          <div className="h-6 w-6 rounded-full bg-emerald-100" />
                         </div>
-                        <div className="rounded-xl border border-white/80 bg-white/90 p-4 shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <div className="h-2.5 w-1/3 rounded bg-slate-200" />
-                            <div className="h-6 w-6 rounded-full bg-emerald-100" />
-                          </div>
-                          <div className="mt-3 h-2 w-full rounded bg-slate-100" />
-                        </div>
+                        <div className="mt-3 h-2 w-full rounded bg-slate-100" />
                       </div>
-                    )}
+                    </div>
                   </div>
                   )}
                 </article>
