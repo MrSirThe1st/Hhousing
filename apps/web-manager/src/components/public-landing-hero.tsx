@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function PublicLandingHero(): React.ReactElement {
@@ -24,27 +23,10 @@ export default function PublicLandingHero(): React.ReactElement {
 
       <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center px-4 py-14 text-center sm:px-6 sm:py-20 lg:px-10 lg:py-24">
         <div className="landing-fade-up flex flex-col items-center">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <Image
-              src="/brand/haraka-pay-logo.svg"
-              alt=""
-              width={52}
-              height={52}
-              className="h-10 w-10 sm:h-14 sm:w-14"
-              priority
-            />
-            <p className="text-xl font-semibold tracking-tight text-[#1F3B63] sm:text-3xl md:text-4xl">
-              Haraka Property
-            </p>
-          </div>
-
-          <h1 className="mt-6 max-w-3xl text-[1.65rem] font-bold leading-[1.15] tracking-tight text-[#1F3B63] sm:mt-8 sm:text-4xl md:text-5xl lg:text-[3.1rem] lg:leading-[1.12]">
-            Logiciel de gestion locative pour bailleurs et gestionnaires modernes
+          <h1 className="max-w-3xl text-[1.65rem] font-bold leading-[1.15] tracking-tight text-[#1F3B63] sm:text-4xl md:text-5xl lg:text-[3.1rem] lg:leading-[1.12]">
+            Gérez vos propriétés, recevez vos loyers et suivez vos locataires depuis une seule
+            plateforme.
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#4A6484] sm:mt-5 sm:text-lg">
-            Moins de temps à jongler entre Excel, WhatsApp et les carnets. Plus de temps à gérer
-            votre portefeuille — en RDC.
-          </p>
 
           <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-9 sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
             <Link
@@ -65,7 +47,7 @@ export default function PublicLandingHero(): React.ReactElement {
           </div>
 
           <p className="mt-5 text-xs leading-relaxed text-[#5E7694] sm:mt-6 sm:text-sm">
-            Gratuit sous 2 biens · Paiement Mobile Money · Sans carte bancaire
+            Gratuit sous 2 biens · Paiement Mobile Money ou par banque
           </p>
         </div>
       </div>

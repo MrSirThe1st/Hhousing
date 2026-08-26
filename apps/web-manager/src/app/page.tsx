@@ -59,17 +59,6 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <PublicSiteNavbar />
       <PublicLandingHero />
 
-      <section className="border-b border-slate-200 bg-white px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="text-lg font-semibold tracking-tight text-[#1F3B63] sm:text-xl md:text-2xl">
-            Moins de temps à gérer des outils. Plus de temps à gérer votre portefeuille.
-          </p>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
-            Une plateforme pour les opérations locatives — pas une marketplace déguisée.
-          </p>
-        </div>
-      </section>
-
       <section id="features" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
