@@ -302,8 +302,8 @@ function MenuButton({
       aria-expanded={isOpen}
       className={`inline-flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
         isOpen
-          ? "bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-white"
-          : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          ? "bg-[#D7E7F7] text-[#1F3B63] dark:bg-slate-800 dark:text-white"
+          : "text-[#1F3B63] hover:bg-[#D7E7F7] dark:text-slate-200 dark:hover:bg-slate-800"
       }`}
     >
       {label}
@@ -333,7 +333,7 @@ function NavLink({
     <Link
       href={href}
       onClick={onClick}
-      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+      className="rounded-lg px-4 py-2 text-sm font-semibold text-[#1F3B63] transition hover:bg-[#D7E7F7] dark:text-slate-200 dark:hover:bg-slate-800"
     >
       {children}
     </Link>
@@ -344,8 +344,8 @@ function SolutionsPanel({ onNavigate }: { onNavigate: () => void }): React.React
   return (
     <div>
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Solutions</p>
-        <p className="mt-2 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A93AE]">Solutions</p>
+        <p className="mt-2 text-lg font-semibold tracking-tight text-[#1F3B63] dark:text-white">
           Une plateforme adaptée à votre rôle
         </p>
       </div>
@@ -355,10 +355,10 @@ function SolutionsPanel({ onNavigate }: { onNavigate: () => void }): React.React
             key={item.title}
             href={item.href}
             onClick={onNavigate}
-            className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
+            className="rounded-2xl border border-[#C5D9EC] bg-white/70 px-4 py-3 transition hover:border-[#4A86D4]/40 hover:bg-white dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
           >
-            <p className="text-sm font-semibold text-slate-950 dark:text-white">{item.title}</p>
-            <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">{item.description}</p>
+            <p className="text-sm font-semibold text-[#1F3B63] dark:text-white">{item.title}</p>
+            <p className="mt-1 text-sm leading-5 text-[#4A6484] dark:text-slate-400">{item.description}</p>
           </Link>
         ))}
       </div>
@@ -371,15 +371,15 @@ function FeaturesPanel({ onNavigate }: { onNavigate: () => void }): React.ReactE
     <div>
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Fonctionnalités</p>
-          <p className="mt-2 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A93AE]">Fonctionnalités</p>
+          <p className="mt-2 text-lg font-semibold tracking-tight text-[#1F3B63] dark:text-white">
             Des bénéfices concrets au quotidien
           </p>
         </div>
         <Link
           href="/#features"
           onClick={onNavigate}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="rounded-lg border border-[#9CB8D6] bg-white/70 px-4 py-2 text-sm font-semibold text-[#1F3B63] transition hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           Tout voir
         </Link>
@@ -390,10 +390,10 @@ function FeaturesPanel({ onNavigate }: { onNavigate: () => void }): React.ReactE
             key={item.title}
             href={item.href}
             onClick={onNavigate}
-            className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
+            className="rounded-2xl border border-[#C5D9EC] bg-white/70 px-4 py-3 transition hover:border-[#4A86D4]/40 hover:bg-white dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
           >
-            <p className="text-sm font-semibold text-slate-950 dark:text-white">{item.title}</p>
-            <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">{item.description}</p>
+            <p className="text-sm font-semibold text-[#1F3B63] dark:text-white">{item.title}</p>
+            <p className="mt-1 text-sm leading-5 text-[#4A6484] dark:text-slate-400">{item.description}</p>
           </Link>
         ))}
       </div>

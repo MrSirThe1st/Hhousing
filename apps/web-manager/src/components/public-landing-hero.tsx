@@ -10,7 +10,7 @@ export default function PublicLandingHero(): React.ReactElement {
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#D7E7F7]/90 via-[#EAF2FA]/92 to-white"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#EAF2FA] via-[#EAF2FA]/95 to-white"
         aria-hidden="true"
       />
       <div
