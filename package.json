@@ -8,6 +8,7 @@
     "test": "pnpm -C apps/web-manager test",
     "build": "pnpm -C apps/web-manager build",
     "desktop:dev": "pnpm -C apps/desktop dev",
+    "desktop:start": "pnpm -C apps/web-manager build && pnpm -C apps/desktop start",
     "mobile:dev": "pnpm -C apps/mobile-tenant dev",
     "android": "pnpm -C apps/mobile-tenant android",
     "ios": "pnpm -C apps/mobile-tenant ios",

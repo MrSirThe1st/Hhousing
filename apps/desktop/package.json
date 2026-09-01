@@ -6,6 +6,7 @@
   "scripts": {
     "build:main": "tsc -p tsconfig.main.json",
     "dev": "pnpm build:main && electron .",
+    "start": "pnpm build:main && electron . --production",
     "typecheck": "tsc -p tsconfig.main.json --noEmit"
   },
   "devDependencies": {

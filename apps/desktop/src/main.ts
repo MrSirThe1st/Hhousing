@@ -1,15 +1,38 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'node:path';
+import {
+  ensureWebManagerServer,
+  stopWebManagerServer,
+  type WebManagerServerHandle,
+  type WebManagerServerMode,
+} from './web-manager-server';
 
-const isDev = !app.isPackaged;
+const isDev =
+  !app.isPackaged &&
+  !process.argv.includes('--production') &&
+  process.env.ELECTRON_WEB_MANAGER_MODE !== 'start';
+let webManagerServer: WebManagerServerHandle | null = null;
 
-function createMainWindow(): BrowserWindow {
+function resolveServerMode(): WebManagerServerMode {
+  if (
+    app.isPackaged ||
+    process.argv.includes('--production') ||
+    process.env.ELECTRON_WEB_MANAGER_MODE === 'start'
+  ) {
+    return 'start';
+  }
+
+  return 'dev';
+}
+
+function createMainWindow(origin: string): BrowserWindow {
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1280,
+    height: 840,
     minWidth: 960,
     minHeight: 640,
     show: false,
+    title: 'Haraka Property',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -18,7 +41,7 @@ function createMainWindow(): BrowserWindow {
     },
   });
 
-  void mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  void mainWindow.loadURL(origin);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -31,14 +54,30 @@ function createMainWindow(): BrowserWindow {
   return mainWindow;
 }
 
+async function bootstrap(): Promise<void> {
+  const serverMode = resolveServerMode();
+
+  try {
+    webManagerServer = await ensureWebManagerServer(serverMode);
+    createMainWindow(webManagerServer.origin);
+  } catch (error) {
+    console.error('[desktop] Failed to start Haraka Property desktop shell:', error);
+    app.quit();
+  }
+}
+
 app.whenReady().then(() => {
-  createMainWindow();
+  void bootstrap();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0 && webManagerServer) {
+      createMainWindow(webManagerServer.origin);
     }
   });
+});
+
+app.on('before-quit', () => {
+  stopWebManagerServer(webManagerServer);
 });
 
 app.on('window-all-closed', () => {
