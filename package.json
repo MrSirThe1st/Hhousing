@@ -7,6 +7,7 @@
     "typecheck": "pnpm -C apps/web-manager typecheck",
     "test": "pnpm -C apps/web-manager test",
     "build": "pnpm -C apps/web-manager build",
+    "desktop:dev": "pnpm -C apps/desktop dev",
     "mobile:dev": "pnpm -C apps/mobile-tenant dev",
     "android": "pnpm -C apps/mobile-tenant android",
     "ios": "pnpm -C apps/mobile-tenant ios",
