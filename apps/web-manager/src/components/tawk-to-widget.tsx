@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const DEFAULT_PROPERTY_ID = "6a732b3e2502921d483ec339";
 const DEFAULT_WIDGET_ID = "1jvgcml3v";
@@ -9,11 +10,23 @@ const DEFAULT_WIDGET_ID = "1jvgcml3v";
 /**
  * Loads Tawk.to on public + operator surfaces.
  * Hidden on /admin — platform ops use the Tawk dashboard, not the widget.
+ * Hidden in the Electron desktop shell — Tawk's session API rejects the
+ * 127.0.0.1 renderer origin (CORS / 400), and support already falls back to mailto.
  */
 export default function TawkToWidget(): React.ReactElement | null {
   const pathname = usePathname();
+  const [enabled, setEnabled] = useState(false);
 
-  if (pathname.startsWith("/admin")) {
+  useEffect(() => {
+    if (pathname.startsWith("/admin") || window.desktop) {
+      setEnabled(false);
+      return;
+    }
+
+    setEnabled(true);
+  }, [pathname]);
+
+  if (!enabled) {
     return null;
   }
 

@@ -2,6 +2,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { applyMobileCorsHeaders } from "./lib/mobile-cors";
+import { readDesktopAuthState } from "./lib/desktop-auth/cookie";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -48,6 +49,16 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   } = await supabase.auth.getUser();
 
   debugLogs.push(`[middleware] path=${pathname} user_id=${user?.id ?? "none"}`);
+
+  if (
+    user !== null &&
+    readDesktopAuthState(request) &&
+    !pathname.startsWith("/desktop/auth/")
+  ) {
+    debugLogs.push("[middleware] desktop auth pending, redirecting to /desktop/auth/complete");
+    logDebug(debugLogs);
+    return NextResponse.redirect(new URL("/desktop/auth/complete", request.url));
+  }
 
   // Fast existence checks avoid expensive exact-count scans on hot auth paths.
   async function hasMembership(userId: string): Promise<boolean> {
@@ -231,6 +242,7 @@ export const config = {
     "/admin",
     "/admin/:path*",
     "/owner-portal/:path*",
+    "/desktop/auth/complete",
     "/api/mobile/:path*"
   ]
 };

@@ -15,12 +15,18 @@ pnpm desktop:dev
 This will:
 
 1. Compile the Electron main process
-2. Start `apps/web-manager` via `next dev` (unless it is already running on the configured port)
-3. Open Electron and load the web-manager UI
+2. Start `apps/web-manager` via `next dev` (unless a Haraka identity endpoint is already running)
+3. Open Electron
+4. If a session already exists, open the Property Dashboard (or admin / onboarding)
+5. Otherwise show the desktop authentication screen and complete sign-in in the system browser
 
-Configure the dev server port with the standard Next.js `PORT` env var (default: `3000`, matching mobile/web local conventions).
+Custom protocol used for the auth callback:
 
-If web-manager is already running (for example via `pnpm -C apps/web-manager dev`), Electron reuses that server instead of starting a second one.
+```text
+haraka-property://auth/callback
+```
+
+Configure the dev server port with the standard Next.js `PORT` env var (default: `3000`).
 
 ## Production (foundation)
 
@@ -37,4 +43,5 @@ Packaging/installer distribution is not implemented yet.
 - `contextIsolation: true`
 - `nodeIntegration: false`
 - `sandbox: true`
-- Preload exposes only a minimal `window.desktop.platform` bridge
+- Preload exposes `window.desktop.platform` plus a narrow auth IPC bridge
+- The deep-link callback carries only a short-lived authorization code and state — never Supabase tokens

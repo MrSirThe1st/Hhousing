@@ -1,5 +1,8 @@
-import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { DESKTOP_AUTH_COOKIE_NAME } from "../../../lib/desktop-auth/constants";
+import { resolveAuthenticatedAppPath } from "../../../lib/desktop-auth/destination";
 
 export async function GET(request: Request): Promise<NextResponse> {
   const requestUrl = new URL(request.url);
@@ -12,6 +15,11 @@ export async function GET(request: Request): Promise<NextResponse> {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      const cookieStore = await cookies();
+      if (cookieStore.get(DESKTOP_AUTH_COOKIE_NAME)?.value) {
+        return NextResponse.redirect(`${origin}/desktop/auth/complete`);
+      }
+
       const next = requestUrl.searchParams.get("next");
       if (next && next.startsWith("/") && !next.startsWith("/account")) {
         return NextResponse.redirect(`${origin}${next}`);
@@ -22,39 +30,8 @@ export async function GET(request: Request): Promise<NextResponse> {
       } = await supabase.auth.getUser();
 
       if (user) {
-        const { data: platformAdmins } = await supabase
-          .from("platform_admins")
-          .select("user_id")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .limit(1);
-
-        if (platformAdmins && platformAdmins.length > 0) {
-          return NextResponse.redirect(`${origin}/admin`);
-        }
-
-        const { data: memberships } = await supabase
-          .from("organization_memberships")
-          .select("id")
-          .eq("user_id", user.id)
-          .limit(1);
-
-        if (memberships && memberships.length > 0) {
-          return NextResponse.redirect(`${origin}/dashboard`);
-        }
-
-        const { data: ownerAccesses } = await supabase
-          .from("owner_portal_accesses")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .limit(1);
-
-        if (ownerAccesses && ownerAccesses.length > 0) {
-          return NextResponse.redirect(`${origin}/owner-portal/dashboard`);
-        }
-
-        return NextResponse.redirect(`${origin}/account-type`);
+        const destination = await resolveAuthenticatedAppPath(supabase, user.id);
+        return NextResponse.redirect(`${origin}${destination}`);
       }
     }
   }

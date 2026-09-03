@@ -1,4 +1,12 @@
+const DEFAULT_WEB_MANAGER_HOST = '127.0.0.1';
 const DEFAULT_WEB_MANAGER_PORT = 3000;
+
+export const WEB_MANAGER_APP_ID = 'haraka-web-manager';
+export const WEB_MANAGER_IDENTITY_PATH = '/api/desktop/identity';
+
+export function resolveWebManagerHost(): string {
+  return process.env.WEB_MANAGER_HOST?.trim() || DEFAULT_WEB_MANAGER_HOST;
+}
 
 export function resolveWebManagerPort(): number {
   const rawPort = process.env.PORT ?? process.env.WEB_MANAGER_PORT;
@@ -19,6 +27,5 @@ export function resolveWebManagerPort(): number {
 }
 
 export function resolveWebManagerOrigin(port = resolveWebManagerPort()): string {
-  const hostname = process.env.WEB_MANAGER_HOST?.trim() || '127.0.0.1';
-  return `http://${hostname}:${port}`;
+  return `http://${resolveWebManagerHost()}:${port}`;
 }
